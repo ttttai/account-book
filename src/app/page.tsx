@@ -1,8 +1,10 @@
+import Link from "next/link";
+
 const implementationSteps = [
-  "認証と安全なセッション境界",
   "複数グループとメンバー管理",
   "支出登録と負担額の整合性",
   "月間カレンダーとメンバー別集計",
+  "履歴の絞り込みとCSV出力",
 ];
 
 export default function HomePage() {
@@ -16,12 +18,20 @@ export default function HomePage() {
         </p>
         <div className="status" role="status">
           <span aria-hidden="true" className="status-dot" />
-          開発基盤の準備ができました
+          認証画面と安全なセッション境界を実装しました
+        </div>
+        <div className="hero-actions">
+          <Link className="primary-link" href="/signup">
+            新規登録
+          </Link>
+          <Link className="secondary-link" href="/login">
+            ログイン
+          </Link>
         </div>
       </section>
 
       <section className="roadmap" aria-labelledby="roadmap-title">
-        <h2 id="roadmap-title">これから実装する機能</h2>
+        <h2 id="roadmap-title">次に実装する機能</h2>
         <ol>
           {implementationSteps.map((step) => (
             <li key={step}>{step}</li>

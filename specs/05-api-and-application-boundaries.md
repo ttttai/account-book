@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.1
+バージョン: 0.1.2
 
 ## 1. Next.js境界方針
 
@@ -80,7 +80,7 @@ updateProfile(input)
 GET /auth/callback?code=...&next=...
 ```
 
-Auth用Server Actionは入力検証と安全なエラー変換だけを担い、password、token、Auth APIの内部エラーをlogや戻り値へ含めない。callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandで再確認する。
+Auth用Server Actionは入力検証と安全なエラー変換だけを担い、password、token、Auth APIの内部エラーをlogや戻り値へ含めない。callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandで再確認する。パスワード更新の画面表示時とAction実行時には、サーバーで検証したclaimsの`amr`に`recovery`が含まれることをそれぞれ確認する。
 
 ### Query
 

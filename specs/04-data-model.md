@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.1
+バージョン: 0.1.2
 
 ## 1. 設計目標
 
@@ -35,6 +35,8 @@ transactions *---1 auth.users（created_by / updated_by）
 | `display_name` | text        | 1〜50文字              |
 | `created_at`   | timestamptz | UTC                    |
 | `updated_at`   | timestamptz | UTC                    |
+
+Authユーザー作成triggerで同じIDの行を1件作る。メール登録では検証済み入力の`display_name`を使う。OAuth初回登録ではprovider metadataの`full_name`、`name`、メールアドレスのローカル部、「ユーザー」の順で初期値を選び、前後空白を除去して50文字以内にする。provider metadataをそのままHTMLとして扱わない。
 
 ### groups
 

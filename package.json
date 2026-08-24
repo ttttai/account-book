@@ -15,7 +15,8 @@
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/architecture/*.test.mjs && vitest run --passWithNoTests",
-    "test:unit": "vitest run --passWithNoTests"
+    "test:unit": "vitest run --passWithNoTests --exclude tests/integration/**",
+    "test:integration": "RUN_LOCAL_INTEGRATION=1 vitest run tests/integration"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",
