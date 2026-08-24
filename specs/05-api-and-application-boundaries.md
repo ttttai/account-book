@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.0
+バージョン: 0.1.1
 
 ## 1. Next.js境界方針
 
@@ -66,6 +66,21 @@ Route Handlerからも、Server Actionと同じ機能query・commandを呼ぶ。
 特権service roleの利用は、明示的に命名したadmin用モジュールへ隔離する。通常のユーザー読み取り・更新では使用しない。
 
 ## 4. 初期サーバー処理
+
+### Auth Action / Handler
+
+```text
+signUpWithPassword(input)
+signInWithPassword(input)
+signInWithGoogle(nextPath)
+signOut()
+requestPasswordReset(email)
+updatePassword(input)
+updateProfile(input)
+GET /auth/callback?code=...&next=...
+```
+
+Auth用Server Actionは入力検証と安全なエラー変換だけを担い、password、token、Auth APIの内部エラーをlogや戻り値へ含めない。callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandで再確認する。
 
 ### Query
 

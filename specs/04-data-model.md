@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.0
+バージョン: 0.1.1
 
 ## 1. 設計目標
 
@@ -181,6 +181,8 @@ exists (
 ```
 
 更新policyでは、操作に必要なroleも確認する。RLSは多層防御であり、アプリ層の認可を省略する理由にはしない。
+
+`profiles`は本人、または同じグループにアクティブ所属するユーザーからselectできる。insertは`auth.users`作成時のDB triggerに限定し、updateは本人だけに許可する。triggerは`security definer`を使う場合も`search_path`を空文字へ固定し、`new.id`と検証済みmetadataだけから行を作成する。表示名metadataが制約違反の場合、認証ユーザーを不完全な状態で残さず登録全体を失敗させる。
 
 RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB関数アクセスを確認する。`security definer`関数を使用する場合は`search_path`を固定し、関数内で認可を再確認する。
 
