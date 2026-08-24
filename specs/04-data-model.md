@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.2
+バージョン: 0.1.3
 
 ## 1. 設計目標
 
@@ -100,6 +100,8 @@ Authユーザー作成triggerで同じIDの行を1件作る。メール登録で
 | `archived_at` | timestamptz nullable |                                 |
 | `created_at`  | timestamptz          |                                 |
 | `updated_at`  | timestamptz          |                                 |
+
+初期カテゴリは機能コード上の不変定義とDBのグループ作成関数で同じ順序を維持する。色は`food`、`daily`、`home`、`utilities`、`transport`、`leisure`、`other`、`salary`、`extra`の許可済みdesign tokenを使用し、iconは`utensils`、`basket`、`house`、`bolt`、`train`、`ticket`、`ellipsis`、`wallet`、`sparkles`の許可リストから保存する。
 
 ### transactions
 
