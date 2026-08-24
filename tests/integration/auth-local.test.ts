@@ -16,8 +16,8 @@ function createTestClient() {
   });
 }
 
-describe.runIf(shouldRun)("ローカルAuth・profiles RLS", () => {
-  it("プロフィールを自動作成し、別ユーザーから読み書きできない", async () => {
+describe.runIf(shouldRun)("ローカルAuth・グループRLS", () => {
+  it("プロフィールとグループを作成し、別ユーザーから読み書きできない", async () => {
     const testRunId = crypto.randomUUID();
     const firstClient = createTestClient();
     const secondClient = createTestClient();
@@ -69,5 +69,49 @@ describe.runIf(shouldRun)("ローカルAuth・profiles RLS", () => {
       .eq("user_id", firstUserId as string)
       .single();
     expect(unchangedProfile.data?.display_name).toBe("利用者A");
+
+    const createdGroup = await firstClient.rpc("create_group", {
+      p_name: "テスト家計",
+      p_week_starts_on: 0,
+      p_default_allocation: "equal",
+    });
+    expect(createdGroup.error).toBeNull();
+    expect(createdGroup.data).toEqual(expect.any(String));
+    const groupId = createdGroup.data as string;
+
+    const ownerMembership = await firstClient
+      .from("group_members")
+      .select("role, status")
+      .eq("group_id", groupId);
+    expect(ownerMembership.error).toBeNull();
+    expect(ownerMembership.data).toEqual([{ role: "owner", status: "active" }]);
+
+    const initialCategories = await firstClient
+      .from("categories")
+      .select("type, name, sort_order")
+      .eq("group_id", groupId)
+      .order("type")
+      .order("sort_order");
+    expect(initialCategories.error).toBeNull();
+    expect(initialCategories.data).toHaveLength(10);
+    expect(
+      initialCategories.data
+        ?.filter((category) => category.type === "expense")
+        .map((category) => category.name),
+    ).toEqual(["食費", "日用品", "住居", "光熱費", "交通", "娯楽", "その他"]);
+    expect(
+      initialCategories.data
+        ?.filter((category) => category.type === "income")
+        .map((category) => category.name),
+    ).toEqual(["給与", "臨時収入", "その他"]);
+
+    for (const table of ["groups", "group_members", "categories"] as const) {
+      const crossGroupRead = await secondClient
+        .from(table)
+        .select("*")
+        .eq(table === "groups" ? "id" : "group_id", groupId);
+      expect(crossGroupRead.error).toBeNull();
+      expect(crossGroupRead.data).toEqual([]);
+    }
   });
 });

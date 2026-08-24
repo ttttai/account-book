@@ -2,9 +2,14 @@ import { redirect } from "next/navigation";
 
 import { getCurrentProfile } from "@/modules/auth/server";
 import { LogoutForm, ProfileForm } from "@/modules/auth/presentation";
+import { CreateGroupForm, GroupList } from "@/modules/groups/presentation";
+import { listMyGroups } from "@/modules/groups/server";
 
 export default async function ProtectedAppPage() {
-  const profile = await getCurrentProfile();
+  const [profile, groups] = await Promise.all([
+    getCurrentProfile(),
+    listMyGroups(),
+  ]);
   if (!profile) redirect("/login");
 
   return (
@@ -20,15 +25,18 @@ export default async function ProtectedAppPage() {
         <h1 id="profile-title">プロフィール</h1>
         <ProfileForm displayName={profile.displayName} />
       </section>
-      <section className="empty-panel" aria-labelledby="groups-title">
+      <GroupList groups={groups} />
+      <section className="empty-panel" aria-labelledby="create-group-title">
         <p className="empty-icon" aria-hidden="true">
           家
         </p>
-        <h2 id="groups-title">家計グループを作りましょう</h2>
-        <p>次の実装段階で、グループ作成と家族の招待が使えるようになります。</p>
-        <button className="primary-button" disabled type="button">
-          グループを作成
-        </button>
+        <h2 id="create-group-title">
+          {groups.length === 0
+            ? "最初の家計グループを作りましょう"
+            : "別のグループを作成"}
+        </h2>
+        <p>家庭や旅行など、記録を分けたい単位で複数作成できます。</p>
+        <CreateGroupForm />
       </section>
     </main>
   );
