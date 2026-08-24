@@ -1,0 +1,52 @@
+name: account-book
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/development/Dockerfile
+      args:
+        NODE_IMAGE_TAG: ${NODE_IMAGE_TAG:-24-bookworm-slim}
+    init: true
+    environment:
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: sync
+          path: ./specs
+          target: /app/specs
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+
+  db:
+    image: ${DATABASE_IMAGE:-supabase/postgres:17.6.1.136}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORDを.envへ設定してください}
+    ports:
+      - "127.0.0.1:54322:5432"
+    volumes:
+      - account_book_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  account_book_db:

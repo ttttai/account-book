@@ -135,23 +135,23 @@
 
 ## 4. 要件と検証方法の対応
 
-| 要件範囲 | 主な検証方法 |
-| --- | --- |
-| `AUTH-001`〜`AUTH-004` | 認証integration test、モバイルE2E |
-| `GRP-001`〜`GRP-010` | group command、RLS、招待・所有権E2E |
-| `CAT-001`〜`CAT-003` | category integration、権限test |
-| `TXN-001`〜`TXN-013` | 金額・負担単体test、取引integration、E2E |
-| `CAL-001`〜`CAL-010` | calendar query integration、viewport E2E |
-| `HIS-001`〜`HIS-005` | query/filter integration、履歴E2E |
-| `EXP-001`〜`EXP-004` | export integration、CSV inject単体test、復元E2E |
-| `NFR-SEC-*` | RLS、server境界、production設定review |
-| `NFR-PRI-*` | 認可test、UI文言review |
-| `NFR-PERF-*` | query plan/index review、代表値測定 |
-| `NFR-REC-*` | 論理削除・復元test、migration手順review |
-| `NFR-A11Y-*` | 自動accessibility test、手動keyboard/screen reader確認 |
-| `NFR-UI-*` | 320px・375px E2E/手動確認 |
-| `NFR-OPS-*` | Compose health check、deploy smoke test |
-| `NFR-MNT-*` | lint、typecheck、依存rule、文書review |
+| 要件範囲               | 主な検証方法                                           |
+| ---------------------- | ------------------------------------------------------ |
+| `AUTH-001`〜`AUTH-004` | 認証integration test、モバイルE2E                      |
+| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                    |
+| `CAT-001`〜`CAT-003`   | category integration、権限test                         |
+| `TXN-001`〜`TXN-013`   | 金額・負担単体test、取引integration、E2E               |
+| `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E               |
+| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                      |
+| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E        |
+| `NFR-SEC-*`            | RLS、server境界、production設定review                  |
+| `NFR-PRI-*`            | 認可test、UI文言review                                 |
+| `NFR-PERF-*`           | query plan/index review、代表値測定                    |
+| `NFR-REC-*`            | 論理削除・復元test、migration手順review                |
+| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認 |
+| `NFR-UI-*`             | 320px・375px E2E/手動確認                              |
+| `NFR-OPS-*`            | Compose health check、deploy smoke test                |
+| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                  |
 
 ## 5. 実装を妨げない延期事項
 

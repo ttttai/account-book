@@ -118,15 +118,15 @@ GET    /api/v1/groups/{groupId}/exports/transactions.csv
 
 内部エラーは、stack traceやDB詳細を含めず、安定したerror codeへ変換する。
 
-| code | HTTP相当 | 意味 |
-| --- | ---: | --- |
-| `UNAUTHENTICATED` | 401 | 有効なsessionがない |
-| `FORBIDDEN` | 403 | 認証済みだが権限がない |
-| `NOT_FOUND` | 404 | resourceがない、または存在を隠す |
-| `VALIDATION_ERROR` | 422 | 入力が不正 |
-| `CONFLICT` | 409 | 古いversionまたは制約競合 |
-| `RATE_LIMITED` | 429 | 要求回数超過 |
-| `INTERNAL_ERROR` | 500 | 予期しないサーバーエラー |
+| code               | HTTP相当 | 意味                             |
+| ------------------ | -------: | -------------------------------- |
+| `UNAUTHENTICATED`  |      401 | 有効なsessionがない              |
+| `FORBIDDEN`        |      403 | 認証済みだが権限がない           |
+| `NOT_FOUND`        |      404 | resourceがない、または存在を隠す |
+| `VALIDATION_ERROR` |      422 | 入力が不正                       |
+| `CONFLICT`         |      409 | 古いversionまたは制約競合        |
+| `RATE_LIMITED`     |      429 | 要求回数超過                     |
+| `INTERNAL_ERROR`   |      500 | 予期しないサーバーエラー         |
 
 resourceの存在推測を防ぐため、非メンバーがグループ所有resourceを要求した場合、存在を明かす`FORBIDDEN`ではなく`NOT_FOUND`を返してよい。
 

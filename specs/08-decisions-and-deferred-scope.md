@@ -54,14 +54,14 @@ MVPでは自動backupを実装しない。論理削除、CSV出力、高risk mig
 
 次は最初の中核縦切りを妨げないが、対象機能へ着手する前に決定する。
 
-| ID | 判断内容 | 決定期限 |
-| --- | --- | --- |
-| `OPEN-001` | アカウント削除と過去データ保持 | 一般登録前 |
-| `OPEN-003` | 利用規約・プライバシーポリシー | 一般登録前 |
-| `OPEN-004` | 外部SMTP providerと送信domain | チーム外メール登録前 |
-| `OPEN-005` | CAPTCHA providerとabuse判定値 | 一般登録前 |
-| `OPEN-006` | Realtime subscription方針・上限 | Realtime実装前 |
-| `OPEN-007` | 自動backupを必須化する条件 | 一般公開前 |
+| ID         | 判断内容                        | 決定期限             |
+| ---------- | ------------------------------- | -------------------- |
+| `OPEN-001` | アカウント削除と過去データ保持  | 一般登録前           |
+| `OPEN-003` | 利用規約・プライバシーポリシー  | 一般登録前           |
+| `OPEN-004` | 外部SMTP providerと送信domain   | チーム外メール登録前 |
+| `OPEN-005` | CAPTCHA providerとabuse判定値   | 一般登録前           |
+| `OPEN-006` | Realtime subscription方針・上限 | Realtime実装前       |
+| `OPEN-007` | 自動backupを必須化する条件      | 一般公開前           |
 
 ## 延期機能
 

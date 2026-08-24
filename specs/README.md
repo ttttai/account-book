@@ -10,17 +10,17 @@
 
 ## 仕様書一覧
 
-| ファイル | 目的 |
-| --- | --- |
-| `01-product-requirements.md` | プロダクト目標、用語、MVP範囲、機能要件 |
-| `02-use-cases.md` | ユースケース、認可動作、受け入れ条件 |
-| `03-screen-specification.md` | モバイル優先の画面・ナビゲーション仕様 |
-| `04-data-model.md` | エンティティ、関連、制約、インデックス、RLS |
-| `05-api-and-application-boundaries.md` | Next.jsのサーバー境界と将来のAPI方針 |
-| `06-non-functional-requirements.md` | セキュリティ、性能、アクセシビリティ、運用、費用 |
-| `07-acceptance-test-plan.md` | テストレベルとリリース条件 |
-| `08-decisions-and-deferred-scope.md` | 確定事項、前提、延期機能 |
-| `09-spec-review.md` | 仕様レビュー結果と承認状態 |
+| ファイル                               | 目的                                             |
+| -------------------------------------- | ------------------------------------------------ |
+| `01-product-requirements.md`           | プロダクト目標、用語、MVP範囲、機能要件          |
+| `02-use-cases.md`                      | ユースケース、認可動作、受け入れ条件             |
+| `03-screen-specification.md`           | モバイル優先の画面・ナビゲーション仕様           |
+| `04-data-model.md`                     | エンティティ、関連、制約、インデックス、RLS      |
+| `05-api-and-application-boundaries.md` | Next.jsのサーバー境界と将来のAPI方針             |
+| `06-non-functional-requirements.md`    | セキュリティ、性能、アクセシビリティ、運用、費用 |
+| `07-acceptance-test-plan.md`           | テストレベルとリリース条件                       |
+| `08-decisions-and-deferred-scope.md`   | 確定事項、前提、延期機能                         |
+| `09-spec-review.md`                    | 仕様レビュー結果と承認状態                       |
 
 ## 変更・実装フロー
 
@@ -43,17 +43,17 @@ MVP仕様が`09-spec-review.md`で承認されるまで、本実装を開始し�
 
 ## 要件IDの接頭辞
 
-| 接頭辞 | 対象 |
-| --- | --- |
-| `AUTH` | 認証・プロフィール |
-| `GRP` | グループ・招待・メンバー |
-| `TXN` | 取引・負担額 |
-| `CAL` | カレンダー・月次集計 |
-| `HIS` | 履歴・絞り込み |
-| `CAT` | カテゴリ |
-| `EXP` | エクスポート・復元 |
-| `SEC` | セキュリティ・プライバシー |
-| `NFR` | 非機能要件 |
+| 接頭辞 | 対象                       |
+| ------ | -------------------------- |
+| `AUTH` | 認証・プロフィール         |
+| `GRP`  | グループ・招待・メンバー   |
+| `TXN`  | 取引・負担額               |
+| `CAL`  | カレンダー・月次集計       |
+| `HIS`  | 履歴・絞り込み             |
+| `CAT`  | カテゴリ                   |
+| `EXP`  | エクスポート・復元         |
+| `SEC`  | セキュリティ・プライバシー |
+| `NFR`  | 非機能要件                 |
 
 ## 変更ルール
 

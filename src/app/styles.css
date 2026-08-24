@@ -1,0 +1,138 @@
+:root {
+  color-scheme: light;
+  --background: #f7f5ef;
+  --surface: #fffdf8;
+  --text: #243126;
+  --muted: #647066;
+  --accent: #2f6f55;
+  --accent-soft: #dcebe1;
+  --border: #dce1da;
+  font-family:
+    Inter, "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100svh;
+  margin: 0;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 85% 4%, #e4eee4 0, transparent 32rem),
+    var(--background);
+}
+
+.shell {
+  width: min(100% - 32px, 720px);
+  margin-inline: auto;
+  padding: max(64px, env(safe-area-inset-top)) 0
+    max(40px, env(safe-area-inset-bottom));
+}
+
+.hero h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(2.7rem, 13vw, 5.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.lead {
+  max-width: 36rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 3.6vw, 1.2rem);
+  line-height: 1.8;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 28px;
+  padding: 10px 16px;
+  border: 1px solid #bad5c3;
+  border-radius: 999px;
+  color: #275e47;
+  background: var(--accent-soft);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  margin-right: 9px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgb(47 111 85 / 12%);
+}
+
+.roadmap {
+  margin-top: 64px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+}
+
+.roadmap h2 {
+  margin: 0 0 18px;
+  font-size: 1rem;
+}
+
+.roadmap ol {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  counter-reset: steps;
+  list-style: none;
+}
+
+.roadmap li {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted);
+  counter-increment: steps;
+}
+
+.roadmap li::before {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--accent-soft);
+  content: counter(steps);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+@media (min-width: 720px) {
+  .shell {
+    padding-top: 112px;
+  }
+
+  .roadmap {
+    padding: 32px;
+  }
+}

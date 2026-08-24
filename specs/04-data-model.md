@@ -29,37 +29,37 @@ transactions *---1 auth.users（created_by / updated_by）
 
 ### profiles
 
-| column | 型 | 説明 |
-| --- | --- | --- |
-| `user_id` | uuid PK/FK | `auth.users(id)`を参照 |
-| `display_name` | text | 1〜50文字 |
-| `created_at` | timestamptz | UTC |
-| `updated_at` | timestamptz | UTC |
+| column         | 型          | 説明                   |
+| -------------- | ----------- | ---------------------- |
+| `user_id`      | uuid PK/FK  | `auth.users(id)`を参照 |
+| `display_name` | text        | 1〜50文字              |
+| `created_at`   | timestamptz | UTC                    |
+| `updated_at`   | timestamptz | UTC                    |
 
 ### groups
 
-| column | 型 | 説明 |
-| --- | --- | --- |
-| `id` | uuid PK | サーバー側で生成 |
-| `name` | text | 1〜50文字 |
-| `currency` | char(3) | MVPは`JPY` |
-| `timezone` | text | 有効なIANA timezone、標準`Asia/Tokyo` |
-| `week_starts_on` | smallint | 0は日曜、1は月曜 |
-| `default_allocation` | text | `equal`または`self` |
-| `created_by` | uuid FK | 認証ユーザー |
-| `created_at` | timestamptz | UTC |
-| `updated_at` | timestamptz | UTC |
+| column               | 型          | 説明                                  |
+| -------------------- | ----------- | ------------------------------------- |
+| `id`                 | uuid PK     | サーバー側で生成                      |
+| `name`               | text        | 1〜50文字                             |
+| `currency`           | char(3)     | MVPは`JPY`                            |
+| `timezone`           | text        | 有効なIANA timezone、標準`Asia/Tokyo` |
+| `week_starts_on`     | smallint    | 0は日曜、1は月曜                      |
+| `default_allocation` | text        | `equal`または`self`                   |
+| `created_by`         | uuid FK     | 認証ユーザー                          |
+| `created_at`         | timestamptz | UTC                                   |
+| `updated_at`         | timestamptz | UTC                                   |
 
 ### group_members
 
-| column | 型 | 説明 |
-| --- | --- | --- |
-| `id` | uuid PK | 取引から参照する所属ID |
-| `group_id` | uuid FK | グループ境界 |
-| `user_id` | uuid FK | 認証ユーザー |
-| `role` | text | `owner`、`admin`、`member` |
-| `status` | text | `active`、`removed` |
-| `joined_at` | timestamptz | UTC |
+| column       | 型                   | 説明                         |
+| ------------ | -------------------- | ---------------------------- |
+| `id`         | uuid PK              | 取引から参照する所属ID       |
+| `group_id`   | uuid FK              | グループ境界                 |
+| `user_id`    | uuid FK              | 認証ユーザー                 |
+| `role`       | text                 | `owner`、`admin`、`member`   |
+| `status`     | text                 | `active`、`removed`          |
+| `joined_at`  | timestamptz          | UTC                          |
 | `removed_at` | timestamptz nullable | 過去履歴を保持するために使用 |
 
 制約:
@@ -70,56 +70,56 @@ transactions *---1 auth.users（created_by / updated_by）
 
 ### group_invitations
 
-| column | 型 | 説明 |
-| --- | --- | --- |
-| `id` | uuid PK | |
-| `group_id` | uuid FK | |
-| `email_normalized` | text nullable | メールアドレス指定招待では必須 |
-| `role` | text | `admin`または`member`。ownerは招待できない |
-| `token_hash` | text unique | 生トークンは保存しない |
-| `expires_at` | timestamptz | 標準72時間 |
-| `created_by` | uuid FK | |
-| `accepted_by` | uuid nullable FK | |
-| `accepted_at` | timestamptz nullable | |
-| `revoked_at` | timestamptz nullable | |
-| `created_at` | timestamptz | |
+| column             | 型                   | 説明                                       |
+| ------------------ | -------------------- | ------------------------------------------ |
+| `id`               | uuid PK              |                                            |
+| `group_id`         | uuid FK              |                                            |
+| `email_normalized` | text nullable        | メールアドレス指定招待では必須             |
+| `role`             | text                 | `admin`または`member`。ownerは招待できない |
+| `token_hash`       | text unique          | 生トークンは保存しない                     |
+| `expires_at`       | timestamptz          | 標準72時間                                 |
+| `created_by`       | uuid FK              |                                            |
+| `accepted_by`      | uuid nullable FK     |                                            |
+| `accepted_at`      | timestamptz nullable |                                            |
+| `revoked_at`       | timestamptz nullable |                                            |
+| `created_at`       | timestamptz          |                                            |
 
 ### categories
 
-| column | 型 | 説明 |
-| --- | --- | --- |
-| `id` | uuid PK | |
-| `group_id` | uuid FK | |
-| `type` | text | `expense`または`income` |
-| `name` | text | 1〜30文字 |
-| `color` | text | 検証済みdesign tokenまたはhex値 |
-| `icon` | text | 許可リスト内のicon名 |
-| `sort_order` | integer | |
-| `archived_at` | timestamptz nullable | |
-| `created_at` | timestamptz | |
-| `updated_at` | timestamptz | |
+| column        | 型                   | 説明                            |
+| ------------- | -------------------- | ------------------------------- |
+| `id`          | uuid PK              |                                 |
+| `group_id`    | uuid FK              |                                 |
+| `type`        | text                 | `expense`または`income`         |
+| `name`        | text                 | 1〜30文字                       |
+| `color`       | text                 | 検証済みdesign tokenまたはhex値 |
+| `icon`        | text                 | 許可リスト内のicon名            |
+| `sort_order`  | integer              |                                 |
+| `archived_at` | timestamptz nullable |                                 |
+| `created_at`  | timestamptz          |                                 |
+| `updated_at`  | timestamptz          |                                 |
 
 ### transactions
 
-| column | 型 | 説明 |
-| --- | --- | --- |
-| `id` | uuid PK | |
-| `group_id` | uuid FK | 必須のグループ境界 |
-| `type` | text | MVPは`expense`または`income` |
-| `amount_minor` | bigint | 正のJPY整数 |
-| `transaction_date` | date | グループ基準の取引日 |
-| `category_id` | uuid FK | 同じグループかつ同じ種別であること |
-| `payer_member_id` | uuid nullable FK | 支出の場合だけ必須 |
-| `recipient_member_id` | uuid nullable FK | 収入の場合だけ必須 |
-| `memo` | text nullable | 最大500文字 |
-| `client_request_id` | uuid | 冪等性key |
-| `version` | integer | 1から開始し更新ごとに加算 |
-| `created_by` | uuid FK | 認証ユーザー |
-| `updated_by` | uuid FK | 認証ユーザー |
-| `created_at` | timestamptz | UTC |
-| `updated_at` | timestamptz | UTC |
-| `deleted_at` | timestamptz nullable | 論理削除 |
-| `deleted_by` | uuid nullable FK | |
+| column                | 型                   | 説明                               |
+| --------------------- | -------------------- | ---------------------------------- |
+| `id`                  | uuid PK              |                                    |
+| `group_id`            | uuid FK              | 必須のグループ境界                 |
+| `type`                | text                 | MVPは`expense`または`income`       |
+| `amount_minor`        | bigint               | 正のJPY整数                        |
+| `transaction_date`    | date                 | グループ基準の取引日               |
+| `category_id`         | uuid FK              | 同じグループかつ同じ種別であること |
+| `payer_member_id`     | uuid nullable FK     | 支出の場合だけ必須                 |
+| `recipient_member_id` | uuid nullable FK     | 収入の場合だけ必須                 |
+| `memo`                | text nullable        | 最大500文字                        |
+| `client_request_id`   | uuid                 | 冪等性key                          |
+| `version`             | integer              | 1から開始し更新ごとに加算          |
+| `created_by`          | uuid FK              | 認証ユーザー                       |
+| `updated_by`          | uuid FK              | 認証ユーザー                       |
+| `created_at`          | timestamptz          | UTC                                |
+| `updated_at`          | timestamptz          | UTC                                |
+| `deleted_at`          | timestamptz nullable | 論理削除                           |
+| `deleted_by`          | uuid nullable FK     |                                    |
 
 制約:
 
@@ -130,12 +130,12 @@ transactions *---1 auth.users（created_by / updated_by）
 
 ### transaction_allocations
 
-| column | 型 | 説明 |
-| --- | --- | --- |
-| `transaction_id` | uuid PK/FKの一部 | |
-| `member_id` | uuid PK/FKの一部 | raw userではなく所属ID |
-| `amount_minor` | bigint | 正の整数 |
-| `created_at` | timestamptz | UTC |
+| column           | 型               | 説明                   |
+| ---------------- | ---------------- | ---------------------- |
+| `transaction_id` | uuid PK/FKの一部 |                        |
+| `member_id`      | uuid PK/FKの一部 | raw userではなく所属ID |
+| `amount_minor`   | bigint           | 正の整数               |
+| `created_at`     | timestamptz      | UTC                    |
 
 制約:
 
