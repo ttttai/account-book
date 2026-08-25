@@ -2,7 +2,10 @@ import "server-only";
 
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/modules/auth/server";
+import {
+  createServerSupabaseClient,
+  getAllowedGoogleUserId,
+} from "@/modules/auth/server";
 
 import type { CreateGroupInput } from "../domain/group-input";
 
@@ -10,7 +13,7 @@ export async function createGroup(input: CreateGroupInput): Promise<string> {
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
-  if (claimsError || !claimsData?.claims?.sub) {
+  if (claimsError || !getAllowedGoogleUserId(claimsData?.claims)) {
     throw new Error("UNAUTHENTICATED");
   }
 

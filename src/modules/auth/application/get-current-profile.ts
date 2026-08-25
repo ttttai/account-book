@@ -1,21 +1,20 @@
 import "server-only";
 
+import { getAllowedGoogleUserId } from "../infrastructure/google-auth-access";
 import { createServerSupabaseClient } from "../infrastructure/supabase-server";
 
 export type CurrentProfile = Readonly<{
   userId: string;
   displayName: string;
-  email: string | null;
 }>;
 
 export async function getCurrentProfile(): Promise<CurrentProfile | null> {
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
-  const userId = claimsData?.claims?.sub;
+  const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return null;
 
-  const { data: userData } = await supabase.auth.getUser();
   const { data: profile } = await supabase
     .from("profiles")
     .select("display_name")
@@ -26,6 +25,5 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
   return {
     userId,
     displayName: profile.display_name,
-    email: userData.user?.email ?? null,
   };
 }

@@ -1,12 +1,5 @@
-import { AuthShell, SignupForm } from "@/modules/auth/presentation";
+import { redirect } from "next/navigation";
 
 export default function SignupPage() {
-  return (
-    <AuthShell
-      title="新規登録"
-      introduction="まずはあなたのプロフィールを作成します。"
-    >
-      <SignupForm />
-    </AuthShell>
-  );
+  redirect("/login");
 }

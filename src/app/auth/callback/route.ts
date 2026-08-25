@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { resolveSafeNextPath } from "@/modules/auth";
-import { createServerSupabaseClient } from "@/modules/auth/server";
+import {
+  createServerSupabaseClient,
+  getAllowedGoogleUserId,
+} from "@/modules/auth/server";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -11,8 +14,18 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error)
-      return NextResponse.redirect(new URL(nextPath, requestUrl.origin));
+    if (!error) {
+      const { data: claimsData, error: claimsError } =
+        await supabase.auth.getClaims();
+      if (!claimsError && getAllowedGoogleUserId(claimsData?.claims) !== null) {
+        return NextResponse.redirect(new URL(nextPath, requestUrl.origin));
+      }
+
+      await supabase.auth.signOut();
+      return NextResponse.redirect(
+        new URL("/login?error=not_allowed", requestUrl.origin),
+      );
+    }
   }
 
   return NextResponse.redirect(

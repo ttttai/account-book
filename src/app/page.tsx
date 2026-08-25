@@ -21,11 +21,8 @@ export default function HomePage() {
           認証画面と安全なセッション境界を実装しました
         </div>
         <div className="hero-actions">
-          <Link className="primary-link" href="/signup">
-            新規登録
-          </Link>
-          <Link className="secondary-link" href="/login">
-            ログイン
+          <Link className="primary-link" href="/login">
+            Googleでログイン
           </Link>
         </div>
       </section>

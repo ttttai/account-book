@@ -1,5 +1,5 @@
 import { resolveSafeNextPath } from "@/modules/auth";
-import { AuthShell, LoginForm } from "@/modules/auth/presentation";
+import { AuthShell } from "@/modules/auth/presentation";
 import {
   isGoogleOAuthEnabled,
   signInWithGoogleAction,
@@ -19,14 +19,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       title="ログイン"
       introduction="家計グループへ安全にアクセスします。"
     >
-      <LoginForm nextPath={nextPath} />
-      <div className="auth-separator">
-        <span>または</span>
-      </div>
       <form action={signInWithGoogleAction}>
         <input name="next" type="hidden" value={nextPath} />
         <button
-          className="secondary-button"
+          className="primary-button google-login-button"
           disabled={!googleEnabled}
           type="submit"
         >
@@ -35,7 +31,15 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </form>
       {!googleEnabled && (
         <p className="field-hint">
-          この環境ではGoogleログインが設定されていません。
+          Google OAuthまたは2アカウントの許可設定が完了していません。
+        </p>
+      )}
+      <p className="field-hint">
+        現在は、管理者が許可した2つのGoogleアカウントだけ利用できます。
+      </p>
+      {params.error === "not_allowed" && (
+        <p className="form-message error" role="alert">
+          このGoogleアカウントは利用を許可されていません。
         </p>
       )}
       {params.error === "oauth" && (

@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.3
+バージョン: 0.2.0
 
 ## 1. 設計目標
 
@@ -36,7 +36,11 @@ transactions *---1 auth.users（created_by / updated_by）
 | `created_at`   | timestamptz | UTC                    |
 | `updated_at`   | timestamptz | UTC                    |
 
-Authユーザー作成triggerで同じIDの行を1件作る。メール登録では検証済み入力の`display_name`を使う。OAuth初回登録ではprovider metadataの`full_name`、`name`、メールアドレスのローカル部、「ユーザー」の順で初期値を選び、前後空白を除去して50文字以内にする。provider metadataをそのままHTMLとして扱わない。
+Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回登録ではprovider metadataの`full_name`、`name`、「ユーザー」の順で初期値を選び、前後空白を除去して50文字以内にする。provider metadataをそのままHTMLとして扱わない。
+
+### allowed_google_accounts
+
+`app_private`に、非公開MVPで利用を許可するGoogleアカウントの正規化済み識別子を保持する。値はGit管理外のサーバー環境変数から同期し、重複のない2件でなければ認証を有効化しない。`anon`、`authenticated`、PostgRESTから直接参照・更新できない。
 
 ### groups
 
@@ -72,19 +76,18 @@ Authユーザー作成triggerで同じIDの行を1件作る。メール登録で
 
 ### group_invitations
 
-| column             | 型                   | 説明                                       |
-| ------------------ | -------------------- | ------------------------------------------ |
-| `id`               | uuid PK              |                                            |
-| `group_id`         | uuid FK              |                                            |
-| `email_normalized` | text nullable        | メールアドレス指定招待では必須             |
-| `role`             | text                 | `admin`または`member`。ownerは招待できない |
-| `token_hash`       | text unique          | 生トークンは保存しない                     |
-| `expires_at`       | timestamptz          | 標準72時間                                 |
-| `created_by`       | uuid FK              |                                            |
-| `accepted_by`      | uuid nullable FK     |                                            |
-| `accepted_at`      | timestamptz nullable |                                            |
-| `revoked_at`       | timestamptz nullable |                                            |
-| `created_at`       | timestamptz          |                                            |
+| column        | 型                   | 説明                                       |
+| ------------- | -------------------- | ------------------------------------------ |
+| `id`          | uuid PK              |                                            |
+| `group_id`    | uuid FK              |                                            |
+| `role`        | text                 | `admin`または`member`。ownerは招待できない |
+| `token_hash`  | text unique          | 生トークンは保存しない                     |
+| `expires_at`  | timestamptz          | 標準72時間                                 |
+| `created_by`  | uuid FK              |                                            |
+| `accepted_by` | uuid nullable FK     |                                            |
+| `accepted_at` | timestamptz nullable |                                            |
+| `revoked_at`  | timestamptz nullable |                                            |
+| `created_at`  | timestamptz          |                                            |
 
 ### categories
 
@@ -186,7 +189,9 @@ exists (
 
 更新policyでは、操作に必要なroleも確認する。RLSは多層防御であり、アプリ層の認可を省略する理由にはしない。
 
-`profiles`は本人、または同じグループにアクティブ所属するユーザーからselectできる。insertは`auth.users`作成時のDB triggerに限定し、updateは本人だけに許可する。triggerは`security definer`を使う場合も`search_path`を空文字へ固定し、`new.id`と検証済みmetadataだけから行を作成する。表示名metadataが制約違反の場合、認証ユーザーを不完全な状態で残さず登録全体を失敗させる。
+`profiles`は許可された本人、または同じグループにアクティブ所属する許可済みユーザーからselectできる。insertは`auth.users`作成時のDB triggerに限定し、updateは許可された本人だけに許可する。triggerは`security definer`を使う場合も`search_path`を空文字へ固定し、`new.id`と検証済みmetadataだけから行を作成する。表示名metadataが制約違反の場合、認証ユーザーを不完全な状態で残さず登録全体を失敗させる。
+
+Authの登録前フックは`app_metadata.provider = 'google'`と許可リストを照合し、不一致をユーザー行作成前に拒否する。RLSと`security definer`関数でも、検証済みJWTのGoogle providerと許可リストを再確認する。
 
 RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB関数アクセスを確認する。`security definer`関数を使用する場合は`search_path`を固定し、関数内で認可を再確認する。
 

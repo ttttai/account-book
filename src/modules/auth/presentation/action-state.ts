@@ -1,5 +1,4 @@
-export type AuthFieldName =
-  "displayName" | "email" | "password" | "passwordConfirmation";
+export type AuthFieldName = "displayName";
 
 export type AuthActionState = Readonly<{
   status: "idle" | "error" | "success";

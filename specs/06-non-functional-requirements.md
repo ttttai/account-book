@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.6
+バージョン: 0.2.0
 
 ## セキュリティ
 
@@ -14,7 +14,8 @@
 - `NFR-SEC-006` 状態変更要求にはframework/sessionの保護を使い、必要に応じてoriginを検証する。
 - `NFR-SEC-007` Content Security Policy、frame保護、content-type保護、referrer policyを設定する。
 - `NFR-SEC-008` CSVのユーザー入力文字列に対する数式injectを無害化する。
-- `NFR-SEC-009` 一般公開前に新規登録のCAPTCHAとrate limitを有効化する。
+- `NFR-SEC-009` 一般公開前にGoogle OAuthのrate limit、abuse対策、許可リスト解除条件を再評価する。
+- `NFR-SEC-010` 非公開MVPの2アカウント制限を、Auth登録前フック、callback・DALのサーバー検証、DBのRLS・更新関数で多層防御する。許可リストの入力が重複のない有効な2件ちょうどでない場合は、サーバーとDBの両方で全件を無効としてfail closedにする。
 
 ## プライバシー
 

@@ -27,7 +27,3 @@ export function getSupabaseServerEnvironment(): SupabaseServerEnvironment {
     url: process.env.SUPABASE_INTERNAL_URL || publicEnvironment.url,
   };
 }
-
-export function isGoogleOAuthEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED === "true";
-}

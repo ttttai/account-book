@@ -2,7 +2,10 @@ import "server-only";
 
 import { z } from "zod";
 
-import { createServerSupabaseClient } from "@/modules/auth/server";
+import {
+  createServerSupabaseClient,
+  getAllowedGoogleUserId,
+} from "@/modules/auth/server";
 
 import type { GroupSummary } from "./group-types";
 
@@ -23,7 +26,7 @@ export async function listMyGroups(): Promise<readonly GroupSummary[]> {
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
-  const userId = claimsData?.claims?.sub;
+  const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return [];
 
   const { data, error } = await supabase

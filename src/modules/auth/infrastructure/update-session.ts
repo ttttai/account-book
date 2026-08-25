@@ -2,10 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { resolveSafeNextPath } from "../domain/safe-next-path";
+import { getAllowedGoogleUserId } from "./google-auth-access";
 import { getSupabaseServerEnvironment } from "./supabase-environment";
 
 const PROTECTED_PATHS = ["/app", "/groups", "/account"];
-const SIGNED_OUT_ONLY_PATHS = ["/login", "/signup"];
+const SIGNED_OUT_ONLY_PATHS = ["/login"];
 
 function matchesPath(pathname: string, roots: readonly string[]): boolean {
   return roots.some(
@@ -32,7 +33,7 @@ export async function updateSession(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getClaims();
-  const isAuthenticated = Boolean(data?.claims?.sub);
+  const isAuthenticated = getAllowedGoogleUserId(data?.claims) !== null;
   const pathname = request.nextUrl.pathname;
 
   if (!isAuthenticated && matchesPath(pathname, PROTECTED_PATHS)) {

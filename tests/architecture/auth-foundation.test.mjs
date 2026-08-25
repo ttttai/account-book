@@ -22,16 +22,56 @@ test("プロフィールをmigration・trigger・RLSで保護する", async () =
   assert.match(migration, /on auth\.users/i);
   assert.match(migration, /raw_user_meta_data\s*->>\s*'full_name'/i);
   assert.match(migration, /raw_user_meta_data\s*->>\s*'name'/i);
-  assert.match(migration, /split_part\(new\.email,\s*'@',\s*1\)/i);
 });
 
-test("パスワード更新をrecovery claimsで二重に保護する", async () => {
-  const page = await read("src/app/account/update-password/page.tsx");
+test("Google OAuthだけをユーザーへ提供する", async () => {
+  const loginPage = await read("src/app/login/page.tsx");
+  const forms = await read("src/modules/auth/presentation/auth-forms.tsx");
   const actions = await read("src/modules/auth/presentation/actions.ts");
+  const signupPage = await read("src/app/signup/page.tsx");
+  const forgotPasswordPage = await read("src/app/forgot-password/page.tsx");
+  const updatePasswordPage = await read(
+    "src/app/account/update-password/page.tsx",
+  );
 
-  assert.match(page, /hasCurrentRecoverySession/);
-  assert.match(actions, /hasCurrentRecoverySession/);
-  assert.doesNotMatch(actions, /getSession\s*\(/);
+  assert.match(loginPage, /signInWithGoogleAction/);
+  assert.doesNotMatch(loginPage, /LoginForm|auth-separator/);
+  assert.doesNotMatch(forms, /type="(?:email|password)"/);
+  assert.doesNotMatch(
+    actions,
+    /signInWithPassword|auth\.signUp|resetPasswordForEmail|password:/,
+  );
+  for (const legacyPage of [
+    signupPage,
+    forgotPasswordPage,
+    updatePasswordPage,
+  ]) {
+    assert.match(legacyPage, /redirect\("\/login"\)/);
+  }
+});
+
+test("Googleの2アカウント制限をAuth・server・DBで強制する", async () => {
+  const migration = await read(
+    "supabase/migrations/202608250001_google_auth_allowlist.sql",
+  );
+  const authAccess = await read(
+    "src/modules/auth/infrastructure/google-auth-access.ts",
+  );
+  const callback = await read("src/app/auth/callback/route.ts");
+  const groupCreation = await read(
+    "src/modules/groups/application/create-group.ts",
+  );
+
+  assert.match(migration, /create table app_private\.allowed_google_accounts/i);
+  assert.match(migration, /hook_restrict_google_signup/i);
+  assert.match(migration, /app_metadata[\s\S]*provider[\s\S]*google/i);
+  assert.match(migration, /is_allowed_google_identity/i);
+  assert.match(migration, /drop policy "profiles_select_self"/i);
+  assert.match(migration, /create or replace function public\.create_group/i);
+  assert.match(authAccess, /import "server-only"/);
+  assert.match(authAccess, /AUTH_ALLOWED_GOOGLE_EMAILS/);
+  assert.match(callback, /getAllowedGoogleUserId/);
+  assert.match(groupCreation, /getAllowedGoogleUserId/);
 });
 
 test("認証済み画面から自分の表示名を更新できる", async () => {
@@ -73,6 +113,13 @@ test("Composeで必要最小限のローカルSupabase Authを構成する", asy
   assert.match(compose, /127\.0\.0\.1:54321:8000/);
   assert.match(compose, /condition:\s*service_completed_successfully/);
   assert.match(compose, /SUPABASE_INTERNAL_URL:/);
+  assert.match(compose, /GOTRUE_EXTERNAL_EMAIL_ENABLED:\s*"false"/);
+  assert.match(compose, /GOTRUE_EXTERNAL_PHONE_ENABLED:\s*"false"/);
+  assert.match(compose, /GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED:\s*"false"/);
+  assert.match(compose, /GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED:\s*"true"/);
+  assert.match(compose, /hook_restrict_google_signup/);
+  assert.doesNotMatch(compose, /\n {2}mail:\n/);
+  assert.doesNotMatch(compose, /GOTRUE_SMTP_|MAILER_AUTOCONFIRM|mailpit/i);
   assert.ok(dbService, "db serviceの定義が必要です");
   assert.doesNotMatch(
     dbService,

@@ -40,6 +40,7 @@ trap 'rm -f "$temporary_file"' EXIT HUP INT TERM
   printf 'NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=false\n'
   printf 'GOOGLE_OAUTH_CLIENT_ID=\n'
   printf 'GOOGLE_OAUTH_CLIENT_SECRET=\n'
+  printf 'AUTH_ALLOWED_GOOGLE_EMAILS=\n'
 } > "$temporary_file"
 
 mv "$temporary_file" "$environment_file"
