@@ -78,3 +78,44 @@ test("全ページへ基本セキュリティヘッダーを設定する", async
     assert.match(nextConfig, new RegExp(header));
   }
 });
+
+test("仕様レビューの要件件数と宣言を一致させる", async () => {
+  const requirements = [
+    await read("specs/01-product-requirements.md"),
+    await read("specs/06-non-functional-requirements.md"),
+  ].join("\n");
+  const useCases = await read("specs/02-use-cases.md");
+  const review = await read("specs/09-spec-review.md");
+  const requirementIds = [
+    ...requirements.matchAll(/^- `([A-Z]+(?:-[A-Z]+)?-[0-9]{3})`/gm),
+  ].map((match) => match[1]);
+  const acceptanceConditionIds = [
+    ...useCases.matchAll(/^- `(AC-[A-Z]+-[0-9]{3}-[0-9]+)`/gm),
+  ].map((match) => match[1]);
+  const recordedCounts = review.match(
+    /要件ID ([0-9]+)件、明示的な受け入れ条件ID ([0-9]+)件/,
+  );
+
+  assert.ok(recordedCounts, "仕様レビューにID件数の記録が必要です");
+  assert.equal(new Set(requirementIds).size, requirementIds.length);
+  assert.equal(
+    new Set(acceptanceConditionIds).size,
+    acceptanceConditionIds.length,
+  );
+  assert.equal(Number(recordedCounts[1]), requirementIds.length);
+  assert.equal(Number(recordedCounts[2]), acceptanceConditionIds.length);
+});
+
+test("スマートフォン主用途と未解決不具合のIssue運用を明記する", async () => {
+  const agentRules = await read("AGENTS.md");
+  const screenSpecification = await read("specs/03-screen-specification.md");
+
+  assert.match(agentRules, /主にスマートフォンから利用/);
+  assert.match(agentRules, /モバイルファースト/);
+  assert.match(
+    agentRules,
+    /その場で安全かつ確実に解決できない場合.*Issueを作成/,
+  );
+  assert.match(screenSpecification, /主にスマートフォンから利用/);
+  assert.match(screenSpecification, /モバイルファースト/);
+});
