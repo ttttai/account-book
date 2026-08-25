@@ -296,11 +296,12 @@ a:focus-visible {
 
 .profile-panel {
   width: min(100%, 36rem);
+  margin-top: 2rem;
   padding: 1.25rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
 }
 
 .profile-panel h1 {
@@ -311,6 +312,24 @@ a:focus-visible {
 .profile-form {
   display: grid;
   gap: 0.65rem;
+}
+
+.profile-form label,
+.group-form > label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.profile-form input,
+.group-form > input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #bdc7bd;
+  border-radius: 10px;
+  color: var(--text);
+  background: white;
+  font: inherit;
 }
 
 .profile-form .primary-button {
@@ -336,6 +355,7 @@ a:focus-visible {
 
 .group-list-panel {
   width: min(100%, 36rem);
+  margin-top: 2rem;
 }
 
 .group-list-panel h1,
@@ -357,11 +377,11 @@ a:focus-visible {
   justify-content: space-between;
   min-height: 3.5rem;
   padding: 0.85rem 1rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.85rem;
-  color: var(--ink);
+  color: var(--text);
   background: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
   text-decoration: none;
 }
 
@@ -382,7 +402,7 @@ a:focus-visible {
   gap: 0.45rem;
   margin: 0;
   padding: 0.8rem;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
 }
 
@@ -417,7 +437,7 @@ a:focus-visible {
   justify-content: space-between;
   gap: 1rem;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border);
 }
 
 .group-settings-summary dt {
@@ -505,5 +525,55 @@ a:focus-visible {
 
   .roadmap {
     padding: 32px;
+  }
+}
+
+@media (min-width: 900px) {
+  .shell {
+    display: grid;
+    width: min(100% - 64px, 1120px);
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    align-items: center;
+    gap: 64px;
+    padding-top: 96px;
+  }
+
+  .roadmap {
+    margin-top: 0;
+  }
+
+  .protected-shell {
+    width: min(100% - 64px, 1120px);
+    padding-top: 40px;
+  }
+
+  .groups-overview {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.8fr) minmax(420px, 1.2fr);
+    align-items: start;
+    gap: 24px 32px;
+  }
+
+  .groups-overview .app-header {
+    grid-column: 1 / -1;
+  }
+
+  .groups-overview .profile-panel,
+  .groups-overview .group-list-panel {
+    width: 100%;
+    margin-top: 0;
+    grid-column: 1;
+  }
+
+  .groups-overview .empty-panel {
+    margin-top: 0;
+    padding: 40px;
+    grid-column: 2;
+    grid-row: 2 / span 2;
+  }
+
+  .group-home .empty-panel {
+    margin-top: 32px;
+    padding-inline: 48px;
   }
 }

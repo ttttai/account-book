@@ -119,3 +119,14 @@ test("スマートフォン主用途と未解決不具合のIssue運用を明記
   assert.match(screenSpecification, /主にスマートフォンから利用/);
   assert.match(screenSpecification, /モバイルファースト/);
 });
+
+test("PC表示を複数カラムへ適応し未定義tokenを使わない", async () => {
+  const styles = await read("src/app/styles.css");
+  const agentRules = await read("AGENTS.md");
+
+  assert.match(agentRules, /1280 x 800 CSS pixel/);
+  assert.match(styles, /@media \(min-width: 900px\)/);
+  assert.match(styles, /\.groups-overview\s*\{[^}]*grid-template-columns:/s);
+  assert.match(styles, /\.shell\s*\{[^}]*grid-template-columns:/s);
+  assert.doesNotMatch(styles, /var\(--(?:line|ink)\)/);
+});

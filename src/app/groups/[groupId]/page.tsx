@@ -12,7 +12,7 @@ export default async function GroupPage({ params }: GroupPageProps) {
   if (!group) notFound();
 
   return (
-    <main className="protected-shell">
+    <main className="protected-shell group-home">
       <header className="app-header">
         <div>
           <p className="eyebrow">家計グループ</p>

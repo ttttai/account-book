@@ -13,7 +13,7 @@ export default async function ProtectedAppPage() {
   if (!profile) redirect("/login");
 
   return (
-    <main className="protected-shell">
+    <main className="protected-shell groups-overview">
       <header className="app-header">
         <div>
           <p className="eyebrow">わが家計</p>
