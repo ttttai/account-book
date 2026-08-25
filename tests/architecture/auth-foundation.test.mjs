@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../../", import.meta.url);
@@ -63,10 +63,39 @@ test("Proxyはclaimsを検証し、未検証sessionを認可に使わない", as
 
 test("Composeで必要最小限のローカルSupabase Authを構成する", async () => {
   const compose = await read("compose.yaml");
+  const rolePasswordSetup = await read("docker/database/set-role-passwords.sh");
+  const dbService = compose.match(/\n {2}db:\n([\s\S]*?)\nvolumes:/)?.[1];
 
   assert.match(compose, /supabase\/gotrue:v[\d.]+/);
   assert.match(compose, /postgrest\/postgrest:v[\d.]+/);
+  assert.match(compose, /PGRST_ADMIN_SERVER_PORT:\s*3001/);
+  assert.match(compose, /PGRST_SERVER_HOST=localhost postgrest --ready/);
   assert.match(compose, /127\.0\.0\.1:54321:8000/);
   assert.match(compose, /condition:\s*service_completed_successfully/);
   assert.match(compose, /SUPABASE_INTERNAL_URL:/);
+  assert.ok(dbService, "db serviceの定義が必要です");
+  assert.doesNotMatch(
+    dbService,
+    /POSTGRES_USER:\s*postgres/,
+    "Supabase Postgres imageのbootstrap管理者を上書きしてはいけません",
+  );
+  assert.match(
+    dbService,
+    /set-role-passwords\.sh:\/docker-entrypoint-initdb\.d\/zz-set-role-passwords\.sh:ro/,
+  );
+  assert.match(rolePasswordSetup, /POSTGRES_PASSWORD/);
+  assert.match(
+    rolePasswordSetup,
+    /alter role supabase_auth_admin with password/i,
+  );
+  assert.match(rolePasswordSetup, /alter role authenticator with password/i);
+  assert.match(rolePasswordSetup, /:'db_password'/);
+  const rolePasswordSetupStat = await stat(
+    new URL("docker/database/set-role-passwords.sh", root),
+  );
+  assert.notEqual(
+    rolePasswordSetupStat.mode & 0o111,
+    0,
+    "Postgres entrypointから実行できる権限が必要です",
+  );
 });

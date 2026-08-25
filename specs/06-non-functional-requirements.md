@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.5
+バージョン: 0.1.6
 
 ## セキュリティ
 
@@ -67,6 +67,7 @@
 - `NFR-OPS-004` Cloud Runは1 vCPU、512 MiB、min instances 0、max instances 3で開始し、負荷テスト後に調整する。
 - `NFR-OPS-005` 本番deploy前にbilling alertを設定する。
 - `NFR-OPS-006` structured logへrequest/correlation IDを含め、機密payloadを含めない。
+- `NFR-OPS-007` ローカルSupabase Postgresは固定した公式imageの既定bootstrap管理者を上書きせず、空の専用volumeからAuth用role、schema、ローカル専用role password、アプリmigrationを初期化して`docker compose up --watch`で全serviceが起動できるようにする。passwordをSQLやGit管理ファイルへ固定値で記載しない。
 
 ## 保守性
 

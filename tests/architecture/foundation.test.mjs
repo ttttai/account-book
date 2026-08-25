@@ -26,6 +26,7 @@ test("Next.js App Routerを機能単位の構成で利用する", async () => {
 test("TypeScript strict modeと品質ゲートを設定する", async () => {
   const tsconfig = JSON.parse(await read("tsconfig.json"));
   const packageJson = JSON.parse(await read("package.json"));
+  const vitestConfig = await read("vitest.config.ts");
 
   assert.equal(tsconfig.compilerOptions.strict, true);
   for (const script of ["format:check", "lint", "typecheck", "test", "build"]) {
@@ -35,6 +36,7 @@ test("TypeScript strict modeと品質ゲートを設定する", async () => {
       `${script}が必要です`,
     );
   }
+  assert.match(vitestConfig, /tests\/integration\/\*\*\/\*\.test/);
 });
 
 test("Docker Composeを標準のローカル開発入口にする", async () => {

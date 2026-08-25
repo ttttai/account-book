@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.5
+バージョン: 0.1.6
 
 ## 1. テストレベル
 
@@ -97,6 +97,14 @@ production build
 ```
 
 E2Eテストは主要smoke flowから開始し、縦切り機能ごとに追加する。
+
+ローカルCompose基盤を変更した場合は、既存の開発DBを使った起動確認だけでなく、データを保持していないことを確認した専用の空volumeから次を検証する。
+
+- Supabase Postgres imageの既定bootstrap管理者をComposeで上書きしていない。
+- `supabase_auth_admin`、`authenticator`、`anon`、`authenticated`、`service_role`が作成され、loginする内部roleには`.env`のローカル専用Postgres passwordが設定される。
+- Authがhealthyになった後、アプリmigrationが完了する。
+- PostgREST、gateway、Webが起動し、ローカルURLへ応答する。
+- 初期化失敗時はvolumeを自動削除せず、原因と削除対象を確認してから明示的に復旧する。
 
 ## 4. モバイル手動確認
 
