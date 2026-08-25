@@ -1,0 +1,128 @@
+# リポジトリ運用ルール
+
+このファイルを、本リポジトリにおけるエージェントおよび開発者向けルールの正本とする。
+
+## 最優先の開発手順
+
+機能追加・仕様変更・不具合修正では、必ず次の順序を守る。
+
+1. `specs/`に仕様を作成または更新する
+2. 仕様の整合性、安全性、実装可能性、MVP範囲をレビューする
+3. レビュー結果を`specs/09-spec-review.md`へ記録し、対象仕様を承認状態にする
+4. 受け入れ条件に対応するテストを作成または更新する
+5. 承認済み仕様に従って実装する
+6. テスト、lint、型検査、本番ビルド、モバイル表示を検証する
+7. 仕様と実装の一致を再確認する
+
+仕様が未承認のまま本実装を始めてはならない。実装中に曖昧さや矛盾を発見した場合、推測で処理せず、先に仕様を更新して再レビューする。
+
+## 作業開始前の必読資料
+
+本番コードを変更する前に、次を順番に読む。
+
+1. `specs/README.md`
+2. `specs/01-product-requirements.md`
+3. 対象機能の仕様と受け入れ条件
+4. `specs/06-non-functional-requirements.md`
+5. `specs/09-spec-review.md`
+
+## プロダクト・アーキテクチャ
+
+- スマートフォンを主対象とする、共有可能な家計簿Webアプリを構築する。
+- ユーザーは複数グループを作成・参加できる。ユーザー行に単一の`group_id`を持たせない。
+- グループ所有データには必ず`group_id`を持たせ、DBのRow Level Securityで保護する。
+- Next.js App Routerの機能単位モジュラーモノリスとし、`src/modules`配下に機能を整理する。
+- `src/app`はルーティング、loading/error境界、画面の組み立てに集中させる。
+- Server Componentの読み取りは、サーバー専用の機能クエリを直接呼ぶ。自アプリのRoute HandlerをHTTP経由で呼ばない。
+- Server Actionは、Web更新用の薄い認証・検証境界として使う。
+- Route Handlerは、コールバック、ダウンロード、Webhook、外部クライアント向けAPIに使う。
+- 業務計算をReactコンポーネント、Route Handler、DBマッパーに書かない。
+- 差し替え可能性が実際にある境界だけ抽象化し、全テーブルに機械的なRepository interfaceを作らない。
+
+## デザイン・UI方針
+
+- このアプリは主にスマートフォンから利用することを前提とし、すべての画面をモバイルファーストで設計する。
+- デザイン判断は375 x 812 CSS pixelを基準に行い、320 CSS pixelでも主要操作を完了できるようにする。
+- デスクトップ表示はスマートフォン向けの情報設計と操作性を保ったまま、利用可能な幅へ適応させる。デスクトップを先に設計して縮小する進め方は採用しない。
+- PC表示は1280 x 800 CSS pixelを基準の1つとして確認し、コンテンツが過度に横へ伸びない範囲で、一覧と詳細など関連領域を複数カラムへ適応させる。
+- 片手操作、タップ領域、数字キーボード、safe area、スクロール量、画面下部の主要操作を考慮する。
+- 主要フローの完了判定には、幅375pxと1280pxでの実画面確認を必須とする。
+
+## セキュリティ
+
+- 重要な読み取りとすべての更新処理で、認証と認可をその都度確認する。
+- route params、search params、FormData、JSON、header、cookieは信頼しない。
+- 外部入力はスキーマで検証してから利用する。
+- クライアントから渡されたユーザーID、権限、所属、合計額、負担額合計を信用しない。
+- Client Componentには必要最小限のDTOだけを渡し、DB行をそのまま渡さない。
+- サーバー専用モジュールには`import "server-only"`を記述する。
+- Supabaseのservice role keyなど、特権資格情報をブラウザへ公開しない。
+- Proxyでの確認は画面遷移改善用に限定し、最終的な認可判断に使わない。
+- 別グループのデータを閲覧・更新できないことをテストで証明する。
+
+## データ
+
+- JPYは最小通貨単位の整数で保存し、金額計算に浮動小数点を使わない。
+- 取引日はグループのタイムゾーンにおける`YYYY-MM-DD`として扱う。
+- 監査日時はUTCの`timestamptz`で保存する。
+- 取引の登録者、支出の支払者、収入の受取者、支出の負担者を区別する。
+- 支出の負担額合計は取引金額と一致させる。
+- 編集可能なレコードには楽観的ロックを適用する。
+- MVPでは取引を論理削除し、復元可能期間を設ける。
+- DB変更は必ずマイグレーションとしてコミットする。本番DBだけの未記録変更を行わない。
+
+## ローカル開発
+
+- ローカル開発はDocker Compose経由で行う。
+- 基本起動コマンドは`docker compose up --watch`とする。
+- 通常の起動、停止、テスト、マイグレーションでDocker volumeを削除しない。
+- ローカル資格情報は開発専用とし、ローカルSupabaseを外部公開しない。
+- 本番はCloud RunとマネージドSupabaseを使い、Docker Composeを本番オーケストレーターにしない。
+
+## コーディング規約
+
+- TypeScriptはstrict modeを有効にする。
+- `any`は原則禁止する。境界で避けられない場合は範囲を限定し、理由を記録する。
+- 小さな名前付き関数と、モジュール境界の明示的な型を優先する。
+- 機能内部の実装を他機能から直接importせず、公開エントリーポイントを経由する。
+- `src/lib`を分類不能なファイルの置き場にしない。
+- Client Componentは必要最小限の対話領域に限定する。
+- 個人の家計データに対するキャッシュは、キー、無効化、グループ分離のテストが揃うまで追加しない。
+
+## 完了条件
+
+変更は次をすべて満たして完了とする。
+
+- 対応する要件IDと受け入れ条件IDが特定されている。
+- 対象仕様が承認済みである。
+- 必要な単体、統合、RLS、E2Eテストが通る。
+- lint、型検査、本番ビルドが通る。
+- 必要なloading、空状態、エラー、権限不足状態が実装されている。
+- 幅375pxのスマートフォン表示を確認している。
+- 振る舞いが変わる場合、仕様書と運用資料も更新されている。
+
+## Git運用
+
+- ユーザーによる無関係な変更を保持する。
+- 承認済み仕様、基盤、完成した縦切り機能など、意味のある単位でコミットする。
+- 秘密情報、ローカル資格情報、依存キャッシュ、ビルド成果物、ローカルDB volumeをコミットしない。
+- リモートが設定済みでユーザーから依頼されている場合、節目ごとにpushする。
+
+## Issue運用
+
+- エラー、不具合、仕様との不一致、セキュリティ上の懸念を発見し、その場で安全かつ確実に解決できない場合は、未記録のまま延期せずIssueを作成する。
+- Issueには、概要、再現手順、期待する動作、実際の動作、影響範囲、重要度、確認した内容、試した対応、暫定回避策、完了条件を記載する。
+- 関連する要件ID、受け入れ条件ID、仕様書、テスト、commitまたはログを紐付ける。ただし秘密情報、個人情報、access token、password、家計データを記載しない。
+- セキュリティ上の問題は、公開Issueへ機密な再現情報を書かず、利用可能なprivateな報告経路を優先する。
+- Issue trackerまたはリモートが未設定、未認証などの理由でIssueを作成できない場合は、その事実を直ちにユーザーへ報告し、設定後に作成できるIssue本文案を残す。
+- Issueを作成しても、現在の作業範囲で安全に進められる検証や別作業は継続する。Issueを完了扱いにするのは、修正と回帰テストが揃った後とする。
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
