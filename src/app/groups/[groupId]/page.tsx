@@ -1,12 +1,19 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
+import { getCurrentProfile } from "@/modules/auth/server";
 import { listMyGroups } from "@/modules/groups/server";
 
 type GroupPageProps = Readonly<{ params: Promise<{ groupId: string }> }>;
 
 export default async function GroupPage({ params }: GroupPageProps) {
   const { groupId } = await params;
+  const profile = await getCurrentProfile();
+  if (!profile) {
+    const nextPath = `/groups/${encodeURIComponent(groupId)}`;
+    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+  }
+
   const groups = await listMyGroups();
   const group = groups.find((candidate) => candidate.id === groupId);
   if (!group) notFound();
@@ -18,9 +25,14 @@ export default async function GroupPage({ params }: GroupPageProps) {
           <p className="eyebrow">家計グループ</p>
           <h1 className="group-page-title">{group.name}</h1>
         </div>
-        <Link className="text-link" href="/app">
-          グループ一覧
-        </Link>
+        <nav className="header-links" aria-label="グループ操作">
+          <Link className="text-link" href={`/groups/${group.id}/members`}>
+            メンバー
+          </Link>
+          <Link className="text-link" href="/app">
+            グループ一覧
+          </Link>
+        </nav>
       </header>
       <section className="empty-panel" aria-labelledby="calendar-title">
         <p className="empty-icon" aria-hidden="true">

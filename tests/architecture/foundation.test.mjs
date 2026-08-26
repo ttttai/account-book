@@ -36,6 +36,10 @@ test("TypeScript strict modeと品質ゲートを設定する", async () => {
     );
   }
   assert.equal(await exists("tests/integration/auth-local.sql"), true);
+  assert.equal(
+    await exists("tests/integration/groups-sharing-local.sql"),
+    true,
+  );
 });
 
 test("Docker Composeを標準のローカル開発入口にする", async () => {

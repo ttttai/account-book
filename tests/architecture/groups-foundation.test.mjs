@@ -79,3 +79,58 @@ test("App Routerはgroupsモジュールの公開境界だけを使う", async (
     /@\/modules\/groups\/(?:application|infrastructure)\//,
   );
 });
+
+test("招待共有はraw tokenをfragmentと一時session storageだけで扱う", async () => {
+  const tokenDomain = await read(
+    "src/modules/groups/domain/invitation-token.ts",
+  );
+  const tokenGenerator = await read(
+    "src/modules/groups/infrastructure/generate-invitation-token.ts",
+  );
+  const acceptanceClient = await read(
+    "src/modules/groups/presentation/invitation-acceptance.tsx",
+  );
+  const migration = await read(
+    "supabase/migrations/202608260001_group_invitations.sql",
+  );
+
+  assert.match(tokenDomain, /\/invitations\/accept/);
+  assert.match(tokenDomain, /hash/);
+  assert.match(tokenGenerator, /randomBytes\(32\)/);
+  assert.match(tokenGenerator, /base64url/);
+  assert.doesNotMatch(tokenDomain, /searchParams\.set\(["']token/);
+  assert.match(acceptanceClient, /sessionStorage/);
+  assert.doesNotMatch(acceptanceClient, /localStorage/);
+  assert.doesNotMatch(acceptanceClient, /document\.cookie/);
+  assert.match(migration, /token_hash text not null unique/i);
+  assert.doesNotMatch(migration, /raw_token/i);
+});
+
+test("招待commandとmember queryをserver-only境界へ隔離する", async () => {
+  const sources = await Promise.all([
+    read("src/modules/groups/application/create-invitation.ts"),
+    read("src/modules/groups/application/accept-invitation.ts"),
+    read("src/modules/groups/application/revoke-invitation.ts"),
+    read("src/modules/groups/application/get-group-membership.ts"),
+  ]);
+
+  for (const source of sources) {
+    assert.match(source, /import "server-only"/);
+    assert.match(source, /auth\.getClaims\(\)/);
+    assert.doesNotMatch(source, /SERVICE_ROLE/);
+  }
+});
+
+test("グループ画面は未認証をログインへ戻し非メンバーだけ404にする", async () => {
+  const pages = await Promise.all([
+    read("src/app/groups/[groupId]/page.tsx"),
+    read("src/app/groups/[groupId]/members/page.tsx"),
+  ]);
+
+  for (const page of pages) {
+    assert.match(page, /getCurrentProfile\(\)/);
+    assert.match(page, /redirect\([^)]+login/);
+    assert.match(page, /next=/);
+    assert.match(page, /notFound\(\)/);
+  }
+});

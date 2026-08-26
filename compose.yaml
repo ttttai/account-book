@@ -152,9 +152,9 @@ services:
       PGUSER: postgres
       PGPASSWORD: ${POSTGRES_PASSWORD:?scripts/setup-local-env.shを実行してください}
     volumes:
-      - ./tests/integration/auth-local.sql:/tests/auth-local.sql:ro
+      - ./tests/integration:/tests:ro
     entrypoint: ["psql"]
-    command: ["--file=/tests/auth-local.sql"]
+    command: ["--file=/tests/run-local.sql"]
     restart: "no"
 
   db:

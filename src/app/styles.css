@@ -270,6 +270,22 @@ a:focus-visible {
   gap: 16px;
 }
 
+.header-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 16px;
+}
+
+.text-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .profile-name {
   margin: 4px 0 0;
   font-size: 1.1rem;
@@ -449,6 +465,182 @@ a:focus-visible {
   font-weight: 700;
 }
 
+.member-page-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.member-panel,
+.invitation-panel,
+.member-info-panel {
+  min-width: 0;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panel-heading h2,
+.member-info-panel h2 {
+  margin: 0.25rem 0 0;
+  font-size: 1.25rem;
+}
+
+.count-badge {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.member-list,
+.pending-invitations ul {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member-list li {
+  display: flex;
+  min-height: 3.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+}
+
+.member-avatar {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  place-items: center;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 800;
+}
+
+.member-summary {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.member-summary strong {
+  overflow-wrap: anywhere;
+}
+
+.member-summary small,
+.pending-invitations small {
+  color: var(--muted);
+}
+
+.panel-description,
+.member-info-panel p,
+.accept-invitation-form > p,
+.invitation-login-prompt > p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.invitation-form,
+.share-link-result,
+.accept-invitation-form,
+.invitation-login-prompt {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.invitation-form {
+  margin-top: 1rem;
+}
+
+.invitation-form label,
+.share-link-result label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.invitation-form select,
+.share-link-result input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #bdc7bd;
+  border-radius: 10px;
+  color: var(--text);
+  background: white;
+  font: inherit;
+}
+
+.share-link-result {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #bad5c3;
+  border-radius: 0.85rem;
+  background: var(--accent-soft);
+}
+
+.pending-invitations {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.pending-invitations h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.pending-invitations li {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+}
+
+.pending-invitations li > div,
+.inline-action-form {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.inline-action-form {
+  justify-items: start;
+}
+
+.danger-text {
+  min-width: 44px;
+  color: #a3342f;
+}
+
+.invitation-acceptance-card .eyebrow {
+  margin-top: 1.25rem;
+}
+
+.invitation-acceptance-card h1 {
+  margin-top: 0.4rem;
+}
+
 .empty-panel h1 {
   margin: 14px 0 8px;
   font-size: 1.35rem;
@@ -575,5 +767,17 @@ a:focus-visible {
   .group-home .empty-panel {
     margin-top: 32px;
     padding-inline: 48px;
+  }
+
+  .member-page-grid {
+    grid-template-columns: minmax(280px, 0.85fr) minmax(400px, 1.15fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .member-panel,
+  .invitation-panel,
+  .member-info-panel {
+    padding: 1.5rem;
   }
 }
