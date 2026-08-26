@@ -167,8 +167,11 @@ services:
     depends_on:
       web:
         condition: service_started
+    network_mode: service:web
     environment:
-      OAUTH_TEST_BASE_URL: http://web:3000
+      OAUTH_TEST_BASE_URL: http://127.0.0.1:3000
+      OAUTH_TEST_ALTERNATE_BASE_URL: http://web:3000
+      OAUTH_TEST_SITE_ORIGIN: ${NEXT_PUBLIC_SITE_URL:-http://127.0.0.1:3000}
     command: ["node", "--test", "tests/integration/oauth-start-local.test.mjs"]
     restart: "no"
 

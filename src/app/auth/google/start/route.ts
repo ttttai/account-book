@@ -1,4 +1,3 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { resolveBrowserOAuthAuthorizationUrl } from "@/modules/auth";
@@ -7,36 +6,11 @@ import {
   getSupabaseServerEnvironment,
 } from "@/modules/auth/infrastructure/supabase-environment";
 import {
+  createRouteHandlerSupabaseClient,
+  getConfiguredSiteOrigin,
   isGoogleOAuthEnabled,
   resolveSafeNextPath,
 } from "@/modules/auth/server";
-
-type PendingCookie = Readonly<{
-  name: string;
-  value: string;
-  options: CookieOptions;
-}>;
-
-function configuredSiteOrigin(): URL | null {
-  try {
-    const siteUrl = new URL(
-      process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000",
-    );
-    if (
-      !["http:", "https:"].includes(siteUrl.protocol) ||
-      siteUrl.username ||
-      siteUrl.password ||
-      siteUrl.pathname !== "/" ||
-      siteUrl.search ||
-      siteUrl.hash
-    ) {
-      return null;
-    }
-    return siteUrl;
-  } catch {
-    return null;
-  }
-}
 
 function loginRedirect(siteOrigin: URL, error: string) {
   const loginUrl = new URL("/login", siteOrigin);
@@ -44,8 +18,32 @@ function loginRedirect(siteOrigin: URL, error: string) {
   return NextResponse.redirect(loginUrl);
 }
 
+function disableCaching(response: NextResponse) {
+  response.headers.set(
+    "Cache-Control",
+    "private, no-cache, no-store, must-revalidate, max-age=0",
+  );
+  return response;
+}
+
+function requestOrigin(request: NextRequest): string | null {
+  const host = request.headers.get("host");
+  const forwardedProtocol = request.headers
+    .get("x-forwarded-proto")
+    ?.split(",")[0]
+    ?.trim();
+  const protocol = forwardedProtocol || request.nextUrl.protocol.slice(0, -1);
+  if (!host || !["http", "https"].includes(protocol)) return null;
+
+  try {
+    return new URL(`${protocol}://${host}`).origin;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: NextRequest) {
-  const siteOrigin = configuredSiteOrigin();
+  const siteOrigin = getConfiguredSiteOrigin();
   if (!siteOrigin) {
     return new Response("OAuth設定が正しくありません。", { status: 500 });
   }
@@ -56,20 +54,15 @@ export async function GET(request: NextRequest) {
   const nextPath = resolveSafeNextPath(
     request.nextUrl.searchParams.get("next"),
   );
-  const pendingCookies: PendingCookie[] = [];
-  const pendingHeaders = new Map<string, string>();
-  const { url, publishableKey } = getSupabaseServerEnvironment();
-  const supabase = createServerClient(url, publishableKey, {
-    cookies: {
-      getAll: () => request.cookies.getAll(),
-      setAll(cookiesToSet, headers) {
-        pendingCookies.push(...cookiesToSet);
-        for (const [name, value] of Object.entries(headers)) {
-          pendingHeaders.set(name, value);
-        }
-      },
-    },
-  });
+  if (requestOrigin(request) !== siteOrigin.origin) {
+    const canonicalStartUrl = new URL("/auth/google/start", siteOrigin);
+    canonicalStartUrl.searchParams.set("next", nextPath);
+    return disableCaching(NextResponse.redirect(canonicalStartUrl));
+  }
+
+  const { url } = getSupabaseServerEnvironment();
+  const { applyToResponse, supabase } =
+    createRouteHandlerSupabaseClient(request);
   const callbackUrl = new URL("/auth/callback", siteOrigin);
   callbackUrl.searchParams.set("next", nextPath);
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -85,16 +78,7 @@ export async function GET(request: NextRequest) {
   });
   if (!browserAuthorizationUrl) return loginRedirect(siteOrigin, "oauth");
 
-  const response = NextResponse.redirect(browserAuthorizationUrl);
-  for (const { name, value, options } of pendingCookies) {
-    response.cookies.set(name, value, options);
-  }
-  for (const [name, value] of pendingHeaders) {
-    response.headers.set(name, value);
-  }
-  response.headers.set(
-    "Cache-Control",
-    "private, no-cache, no-store, must-revalidate, max-age=0",
+  return disableCaching(
+    applyToResponse(NextResponse.redirect(browserAuthorizationUrl)),
   );
-  return response;
 }

@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.3
+バージョン: 0.2.4
 
 ## 1. プロダクト概要
 
@@ -61,6 +61,8 @@ MVPの認証方式はGoogle OAuthのみとする。メールアドレス・パ�
 OAuth開始時、Docker内部またはprivate network専用のSupabase URLをブラウザへ返さない。Auth clientが生成した認可URLのoriginとpathを検証し、承認済みの公開Supabase URLへ変換してから遷移する。想定外のURLは拒否する。
 
 Google OAuthの開始は、ブラウザの通常のtop-level HTTP navigationで専用Route Handlerへ要求する。Route HandlerはPKCE verifier cookieを含む応答を確定してからSupabase Authへredirectし、JavaScriptで拡張されたServer Actionの外部redirectにcookie確定を依存しない。
+
+OAuth開始要求のoriginが構成済みの公開サイトoriginと異なる場合、Route HandlerはPKCE cookieを発行する前に、検証済みの戻り先だけを維持して公開サイトorigin上の同じ開始Routeへredirectする。PKCE cookieを保存するhostとアプリcallbackのhostを一致させ、`localhost`、IP address、別portなどの表記差でcode交換が失敗しないようにする。
 
 ### グループとメンバー
 

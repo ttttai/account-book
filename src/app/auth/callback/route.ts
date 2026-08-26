@@ -1,34 +1,56 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { resolveSafeNextPath } from "@/modules/auth";
 import {
-  createServerSupabaseClient,
+  createRouteHandlerSupabaseClient,
   getAllowedGoogleUserId,
+  getConfiguredSiteOrigin,
 } from "@/modules/auth/server";
 
-export async function GET(request: Request) {
+function disableCaching(response: NextResponse) {
+  response.headers.set(
+    "Cache-Control",
+    "private, no-cache, no-store, must-revalidate, max-age=0",
+  );
+  response.headers.set("Expires", "0");
+  response.headers.set("Pragma", "no-cache");
+  return response;
+}
+
+export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
+  const siteOrigin = getConfiguredSiteOrigin();
+  if (!siteOrigin) {
+    return new Response("OAuth設定が正しくありません。", { status: 500 });
+  }
   const code = requestUrl.searchParams.get("code");
   const nextPath = resolveSafeNextPath(requestUrl.searchParams.get("next"));
 
   if (code) {
-    const supabase = await createServerSupabaseClient();
+    const { applyToResponse, supabase } =
+      createRouteHandlerSupabaseClient(request);
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       const { data: claimsData, error: claimsError } =
         await supabase.auth.getClaims();
       if (!claimsError && getAllowedGoogleUserId(claimsData?.claims) !== null) {
-        return NextResponse.redirect(new URL(nextPath, requestUrl.origin));
+        return disableCaching(
+          applyToResponse(NextResponse.redirect(new URL(nextPath, siteOrigin))),
+        );
       }
 
       await supabase.auth.signOut();
-      return NextResponse.redirect(
-        new URL("/login?error=not_allowed", requestUrl.origin),
+      return disableCaching(
+        applyToResponse(
+          NextResponse.redirect(
+            new URL("/login?error=not_allowed", siteOrigin),
+          ),
+        ),
       );
     }
   }
 
-  return NextResponse.redirect(
-    new URL("/login?error=oauth", requestUrl.origin),
+  return disableCaching(
+    NextResponse.redirect(new URL("/login?error=oauth", siteOrigin)),
   );
 }

@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.3
+バージョン: 0.2.4
 
 ## 1. テストレベル
 
@@ -31,8 +31,9 @@
 - グループ・owner所属・初期カテゴリの原子的な作成
 - 初期カテゴリの名称・種別・順序が承認済み定義と一致すること
 - OAuth callback・ログイン後戻り先のopen redirect防止
+- OAuth callback後のredirectが要求Hostではなく構成済みの公開サイトoriginを使い、Auth cookie更新応答が共有cacheを禁止すること
 - OAuth認可URLのDocker内部originから公開Supabase originへの安全な変換と、想定外origin・path・認証情報・fragmentの拒否
-- OAuth開始Route Handlerが通常のHTTP redirectでPKCE verifier cookieを設定し、検証済みの戻り先を維持すること。callbackはcookieがある場合だけcode交換を試み、欠損時はsessionを作らず安全に失敗すること
+- OAuth開始Route Handlerが通常のHTTP redirectでPKCE verifier cookieを設定し、検証済みの戻り先を維持すること。公開サイトと異なるoriginからの開始はcookie発行前にcanonical originへredirectし、その後のcallbackとcookieのhostが一致すること。callbackはcookieがある場合だけcode交換を試み、欠損時はsessionを作らず安全に失敗すること
 - 未認証の保護画面遷移とログアウト後のsession無効化
 - OAuth metadata欠損時も制約内のプロフィール表示名を作れること
 - 許可リストの正規化と厳密な2件制約。重複、空値、不正値、3件以上を含む場合は、有効な部分だけを採用せずサーバー・DBとも全件を無効にする
