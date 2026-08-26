@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.1
+バージョン: 0.2.2
 
 ## 1. Next.js境界方針
 
@@ -96,6 +96,7 @@ listRecoverableTransactions(groupId)
 createGroup(input)
 createInvitation(groupId, input)
 acceptInvitation(rawToken)
+revokeInvitation(groupId, invitationId)
 changeMemberRole(groupId, memberId, role)
 removeMember(groupId, memberId)
 createCategory(groupId, input)
@@ -106,6 +107,10 @@ updateTransaction(groupId, transactionId, expectedVersion, input)
 deleteTransaction(groupId, transactionId, expectedVersion)
 restoreTransaction(groupId, transactionId, expectedVersion)
 ```
+
+招待作成Actionはroleとgroup IDを検証し、command内で認証・owner/admin権限を再確認する。256 bit以上の生トークンはサーバーで生成してSHA-256 hashだけをDB commandへ渡し、作成成功時だけURL fragment形式の共有リンクを最小DTOとしてClientへ返す。生トークンを再取得するqueryは提供しない。
+
+招待承認画面は公開routeとして表示できるが、承認Actionは検証済みGoogle sessionを必須とする。ClientはURL fragmentを同一tabの`sessionStorage`へ一時保持できるが、raw tokenをquery、cookie、localStorageへ移さない。Actionはtoken形式を検証してhash化し、DB commandで招待のlock・状態確認・所属upsert・使用済み更新を原子的に行う。
 
 ## 5. 外部API方針
 

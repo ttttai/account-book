@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.0
+バージョン: 0.2.1
 
 ## 1. 設計目標
 
@@ -89,6 +89,10 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 | `revoked_at`  | timestamptz nullable |                                            |
 | `created_at`  | timestamptz          |                                            |
 
+`token_hash`は、256 bit以上のURL-safeな生トークンをSHA-256でhashした小文字hex 64文字とする。生トークンはDBへ渡さず保存しない。`role`は`admin`または`member`だけを許可し、`expires_at`は作成時のDB時刻から72時間に固定する。
+
+招待承認は対象行をlockし、期限、取消、使用済み状態を確認してから、所属作成または再有効化と`accepted_by`・`accepted_at`更新を同じtransactionで行う。既存のアクティブ所属は重複作成せず、削除済み所属は同じ所属IDを再有効化する。同一承認者による使用済み招待の再承認は既存グループIDを返す。
+
 ### categories
 
 | column        | 型                   | 説明                            |
@@ -160,6 +164,7 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 group_members(user_id, status, group_id)
 group_members(group_id, status, role)
 group_invitations(token_hash)
+group_invitations(group_id, created_at DESC) WHERE accepted_at IS NULL AND revoked_at IS NULL
 transactions(group_id, transaction_date DESC, id DESC) WHERE deleted_at IS NULL
 transactions(group_id, payer_member_id, transaction_date DESC) WHERE deleted_at IS NULL
 transactions(group_id, recipient_member_id, transaction_date DESC) WHERE deleted_at IS NULL
