@@ -1,9 +1,6 @@
 import { resolveSafeNextPath } from "@/modules/auth";
 import { AuthShell } from "@/modules/auth/presentation";
-import {
-  isGoogleOAuthEnabled,
-  signInWithGoogleAction,
-} from "@/modules/auth/server";
+import { isGoogleOAuthEnabled } from "@/modules/auth/server";
 
 type LoginPageProps = Readonly<{
   searchParams: Promise<{ next?: string; oauth?: string; error?: string }>;
@@ -13,22 +10,29 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const nextPath = resolveSafeNextPath(params.next);
   const googleEnabled = isGoogleOAuthEnabled();
+  const googleOAuthStartPath = `/auth/google/start?next=${encodeURIComponent(nextPath)}`;
 
   return (
     <AuthShell
       title="ログイン"
       introduction="家計グループへ安全にアクセスします。"
     >
-      <form action={signInWithGoogleAction}>
-        <input name="next" type="hidden" value={nextPath} />
+      {googleEnabled ? (
+        <a
+          className="primary-button google-login-button"
+          href={googleOAuthStartPath}
+        >
+          Googleでログイン
+        </a>
+      ) : (
         <button
           className="primary-button google-login-button"
-          disabled={!googleEnabled}
-          type="submit"
+          disabled
+          type="button"
         >
           Googleでログイン
         </button>
-      </form>
+      )}
       {!googleEnabled && (
         <p className="field-hint">
           Google OAuthまたは2アカウントの許可設定が完了していません。

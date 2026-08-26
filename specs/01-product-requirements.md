@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.2
+バージョン: 0.2.3
 
 ## 1. プロダクト概要
 
@@ -59,6 +59,8 @@ ownerだけが所有権を変更できる。ownerはアクティブなadminま�
 MVPの認証方式はGoogle OAuthのみとする。メールアドレス・パスワード、magic link、OTP、電話番号による認証画面・Action・メール送信基盤は持たない。非公開MVPでは、Git管理外のサーバー環境変数に正規化したGoogleアカウント2件を明示的に設定し、その2件だけに登録・ログイン・データアクセスを許可する。「先着2人」は使わない。OAuth設定または2件の許可リストが不完全な環境ではログインを無効化し、理由を明示する。
 
 OAuth開始時、Docker内部またはprivate network専用のSupabase URLをブラウザへ返さない。Auth clientが生成した認可URLのoriginとpathを検証し、承認済みの公開Supabase URLへ変換してから遷移する。想定外のURLは拒否する。
+
+Google OAuthの開始は、ブラウザの通常のtop-level HTTP navigationで専用Route Handlerへ要求する。Route HandlerはPKCE verifier cookieを含む応答を確定してからSupabase Authへredirectし、JavaScriptで拡張されたServer Actionの外部redirectにcookie確定を依存しない。
 
 ### グループとメンバー
 

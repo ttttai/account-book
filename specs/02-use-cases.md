@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.2
+バージョン: 0.2.3
 
 ## UC-001 グループを作成する
 
@@ -153,7 +153,7 @@ Bの利用額: 3,000円
 
 基本フロー:
 
-1. ユーザーがGoogleログインを開始する。
+1. ユーザーが通常のtop-level navigationでGoogleログイン開始Route Handlerへ遷移する。
 2. Googleが本人確認し、Supabase AuthがPKCE callbackを処理する。
 3. 登録前フックがGoogle providerと2件の許可リストを照合し、対象外はAuthユーザー作成前に拒否する。
 4. 許可された初回ログインでSupabase Authのユーザーと`profiles`行を作成する。
@@ -168,6 +168,7 @@ Bの利用額: 3,000円
 - `AC-AUTH-001-4` OAuth失敗、許可対象外、Auth停止を区別した安全なメッセージを表示し、tokenやproviderの内部詳細を表示しない。
 - `AC-AUTH-001-5` 初回プロフィールの表示名は、Googleが返す検証済みmetadataの`full_name`、`name`、「ユーザー」の順で最初の空でない値を使い、前後空白を除去して50文字以内にする。
 - `AC-AUTH-001-6` OAuth認可URLは、生成元が構成済みの内部または公開Supabase originで、pathが`/auth/v1/authorize`の場合だけ、構成済みの公開Supabase originへ変換してブラウザへ返す。Docker内部hostname、想定外origin・path、認証情報またはfragmentを含むURLを拒否する。
+- `AC-AUTH-001-7` OAuth開始Route Handlerは検証済みの戻り先だけを受け付け、PKCE verifier cookieを応答へ設定した後に公開Supabase認可URLへredirectする。Googleからアプリへ戻ったcallbackは同じcookieを使ってcodeをsessionへ交換でき、cookie欠損時はsessionを作らず安全なOAuth失敗として扱う。
 - `AC-AUTH-002-1` ログインユーザーは自分のプロフィールを取得・更新でき、別ユーザーとして更新できない。
 - `AC-AUTH-003-1` ログアウト後は保護画面を閲覧できず、ログイン画面へ遷移する。
 - `AC-AUTH-004-1` 未認証で保護画面へアクセスすると、ログイン後の戻り先を安全な相対pathとして保持してログイン画面へ遷移する。

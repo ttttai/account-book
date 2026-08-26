@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.2
+バージョン: 0.2.3
 
 ## 1. Next.js境界方針
 
@@ -26,11 +26,14 @@ Client form → Server Action → 入力検証 → 認可 → command → DB
 
 Server Actionへ再利用可能な業務ロジックを書かず、Web要求をcommandへ変換する境界として扱う。
 
+外部identity providerへ遷移するOAuth開始は更新formの例外とし、通常のtop-level navigationで専用Route Handlerを呼ぶ。PKCE verifier cookieを含むHTTP redirect応答をブラウザへ確実に適用してから、外部providerへ移動するためである。
+
 ### Route Handler
 
 次の用途で使用する。
 
 - 認証callback
+- OAuth開始
 - CSV download
 - Webhook
 - health check
@@ -70,13 +73,13 @@ Route Handlerからも、Server Actionと同じ機能query・commandを呼ぶ。
 ### Auth Action / Handler
 
 ```text
-signInWithGoogle(nextPath)
+GET /auth/google/start?next=...
 signOut()
 updateProfile(input)
 GET /auth/callback?code=...&next=...
 ```
 
-Auth用Server Actionは安全なGoogle OAuth開始境界として使い、token、許可リスト、Auth APIの内部エラーをlogや戻り値へ含めない。server clientはコンテナ間通信に内部Supabase URLを使用できるが、生成されたOAuth認可URLは期待するoriginと`/auth/v1/authorize` pathを検証し、公開Supabase originへ変換してからブラウザへ返す。callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。callbackでcodeをsessionへ交換後、Google providerと許可リストを再検証し、不一致のsessionは直ちに破棄する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandおよびRLSでGoogle providerと許可リストを含めて再確認する。
+OAuth開始Route Handlerは安全なGoogle OAuth開始境界として使い、token、許可リスト、Auth APIの内部エラーをlogや戻り値へ含めない。server clientはコンテナ間通信に内部Supabase URLを使用できるが、生成されたOAuth認可URLは期待するoriginと`/auth/v1/authorize` pathを検証し、公開Supabase originへ変換してからブラウザへ返す。開始Route HandlerはPKCE verifier cookieを応答へ設定した通常のHTTP redirectを返し、callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。callbackでcodeをsessionへ交換後、Google providerと許可リストを再検証し、不一致のsessionは直ちに破棄する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandおよびRLSでGoogle providerと許可リストを含めて再確認する。
 
 ### Query
 

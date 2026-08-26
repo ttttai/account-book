@@ -157,6 +157,21 @@ services:
     command: ["--file=/tests/run-local.sql"]
     restart: "no"
 
+  web-integration-tests:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: docker/development/Dockerfile
+      args:
+        NODE_IMAGE_TAG: ${NODE_IMAGE_TAG:-24-bookworm-slim}
+    depends_on:
+      web:
+        condition: service_started
+    environment:
+      OAUTH_TEST_BASE_URL: http://web:3000
+    command: ["node", "--test", "tests/integration/oauth-start-local.test.mjs"]
+    restart: "no"
+
   db:
     image: ${DATABASE_IMAGE:-supabase/postgres:17.6.1.136}
     restart: unless-stopped

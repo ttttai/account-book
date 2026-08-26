@@ -34,7 +34,8 @@ test("Google OAuthだけをユーザーへ提供する", async () => {
     "src/app/account/update-password/page.tsx",
   );
 
-  assert.match(loginPage, /signInWithGoogleAction/);
+  assert.match(loginPage, /\/auth\/google\/start\?next=/);
+  assert.doesNotMatch(loginPage, /signInWithGoogleAction/);
   assert.doesNotMatch(loginPage, /LoginForm|auth-separator/);
   assert.doesNotMatch(forms, /type="(?:email|password)"/);
   assert.doesNotMatch(
@@ -51,10 +52,28 @@ test("Google OAuthだけをユーザーへ提供する", async () => {
 });
 
 test("OAuth認可URLをDocker内部hostnameのままブラウザへ返さない", async () => {
-  const actions = await read("src/modules/auth/presentation/actions.ts");
+  const startRoute = await read("src/app/auth/google/start/route.ts");
 
-  assert.match(actions, /resolveBrowserOAuthAuthorizationUrl/);
-  assert.doesNotMatch(actions, /redirect\(data\.url\)/);
+  assert.match(startRoute, /resolveBrowserOAuthAuthorizationUrl/);
+  assert.doesNotMatch(startRoute, /redirect\(data\.url\)/);
+});
+
+test("OAuth開始は通常navigationでPKCE cookie付きredirectを返す", async () => {
+  const loginPage = await read("src/app/login/page.tsx");
+  const startRoute = await read("src/app/auth/google/start/route.ts");
+  const callback = await read("src/app/auth/callback/route.ts");
+
+  assert.match(loginPage, /<a[\s\S]*href=\{googleOAuthStartPath\}/);
+  assert.doesNotMatch(loginPage, /<form[\s\S]*Googleでログイン/);
+  assert.match(startRoute, /export async function GET/);
+  assert.match(startRoute, /resolveSafeNextPath/);
+  assert.match(startRoute, /NEXT_PUBLIC_SITE_URL/);
+  assert.doesNotMatch(startRoute, /request\.nextUrl\.origin/);
+  assert.match(startRoute, /request\.cookies\.getAll\(\)/);
+  assert.match(startRoute, /supabase\.auth\.signInWithOAuth/);
+  assert.match(startRoute, /response\.cookies\.set/);
+  assert.match(startRoute, /Cache-Control/);
+  assert.match(callback, /exchangeCodeForSession\(code\)/);
 });
 
 test("Googleの2アカウント制限をAuth・server・DBで強制する", async () => {
