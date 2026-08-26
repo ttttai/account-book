@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.1
+バージョン: 0.2.6
 
 ## 1. 設計目標
 
@@ -138,12 +138,14 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 - `(group_id, client_request_id)`をuniqueにする。
 - 種別に応じて、支出では支払者、収入では受取者のどちらか一方だけを必須にする。
 - カテゴリ、支払者、受取者が取引と同じグループに属することを、複合外部キーまたはtransaction-safeなDB関数で保証する。
+- `amount_minor`は`1`以上`9,007,199,254,740,991`以下とし、アプリケーションとの安全な整数境界を一致させる。
 
 ### transaction_allocations
 
 | column           | 型               | 説明                   |
 | ---------------- | ---------------- | ---------------------- |
 | `transaction_id` | uuid PK/FKの一部 |                        |
+| `group_id`       | uuid FK          | 必須のグループ境界     |
 | `member_id`      | uuid PK/FKの一部 | raw userではなく所属ID |
 | `amount_minor`   | bigint           | 正の整数               |
 | `created_at`     | timestamptz      | UTC                    |
@@ -151,10 +153,13 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 制約:
 
 - `(transaction_id, member_id)`をuniqueにする。
+- `transaction_id`と`member_id`は、それぞれ`group_id`を含む複合外部キーで同じグループへ固定する。
 - `amount_minor > 0`。
 - 負担メンバーは取引と同じグループへ所属する。
 - 支出では、負担額合計が取引金額と一致する状態だけをcommitできる。
 - MVPの収入には負担行を作成しない。
+- 支出作成commandは`transactions`と`transaction_allocations`を同一DB transactionで作成し、合計一致を確認してからcommitする。直接table insert権限は付与しない。
+- 同じ`(group_id, client_request_id)`が存在する場合、入力内容にかかわらず既存取引IDを返す。最初の成功結果を正本とし、再送による別内容への更新は行わない。
 
 ## 4. インデックス
 

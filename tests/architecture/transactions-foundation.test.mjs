@@ -1,0 +1,85 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const root = new URL("../../", import.meta.url);
+
+async function read(path) {
+  return readFile(new URL(path, root), "utf8");
+}
+
+test("取引と負担行をgroup_id付きRLSテーブルとして保護する", async () => {
+  const migration = await read(
+    "supabase/migrations/202608270001_expense_transactions.sql",
+  );
+
+  for (const table of ["transactions", "transaction_allocations"]) {
+    assert.match(
+      migration,
+      new RegExp(
+        `alter table public\\.${table} enable row level security`,
+        "i",
+      ),
+    );
+    assert.match(
+      migration,
+      new RegExp(`alter table public\\.${table} force row level security`, "i"),
+    );
+    assert.match(
+      migration,
+      new RegExp(`revoke all on table public\\.${table}`, "i"),
+    );
+  }
+
+  assert.match(
+    migration,
+    /transaction_allocations[\s\S]+group_id uuid not null/i,
+  );
+  assert.match(migration, /create_expense_transaction/i);
+  assert.match(migration, /security definer/i);
+  assert.match(migration, /is_allowed_google_identity/i);
+  assert.match(migration, /is_active_group_member/i);
+  assert.match(migration, /allocation_total <> p_amount_minor/i);
+  assert.match(migration, /client_request_id/i);
+  assert.doesNotMatch(migration, /grant insert on table public\.transactions/i);
+});
+
+test("支出queryとcommandをserver-only境界へ隔離する", async () => {
+  const query = await read(
+    "src/modules/transactions/application/get-expense-form-options.ts",
+  );
+  const command = await read(
+    "src/modules/transactions/application/create-expense.ts",
+  );
+
+  for (const source of [query, command]) {
+    assert.match(source, /import "server-only"/);
+    assert.match(source, /auth\.getClaims\(\)/);
+    assert.doesNotMatch(source, /SERVICE_ROLE/);
+  }
+  assert.match(command, /create_expense_transaction/);
+});
+
+test("支出Server ActionはFormDataを検証して認可済みcommandだけを呼ぶ", async () => {
+  const action = await read("src/modules/transactions/presentation/actions.ts");
+
+  assert.match(action, /"use server"/);
+  assert.match(action, /createExpenseInputSchema\.safeParse/);
+  assert.match(action, /calculateExpenseAllocations/);
+  assert.match(action, /createExpense\(/);
+  assert.doesNotMatch(action, /formData\.get\(["'](?:userId|createdBy|total)/);
+});
+
+test("App Routerはtransactionsモジュールの公開境界だけを使う", async () => {
+  const page = await read("src/app/groups/[groupId]/transactions/new/page.tsx");
+
+  assert.match(page, /@\/modules\/transactions\/server/);
+  assert.match(page, /@\/modules\/transactions\/presentation/);
+  assert.doesNotMatch(
+    page,
+    /@\/modules\/transactions\/(?:application|domain|infrastructure)\//,
+  );
+  assert.match(page, /getCurrentProfile\(\)/);
+  assert.match(page, /redirect\([^)]+login/);
+  assert.match(page, /notFound\(\)/);
+});

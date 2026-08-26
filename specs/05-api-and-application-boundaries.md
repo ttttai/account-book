@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.4
+バージョン: 0.2.6
 
 ## 1. Next.js境界方針
 
@@ -110,6 +110,10 @@ updateTransaction(groupId, transactionId, expectedVersion, input)
 deleteTransaction(groupId, transactionId, expectedVersion)
 restoreTransaction(groupId, transactionId, expectedVersion)
 ```
+
+`createTransaction`の最初の縦切りは支出だけを受け付ける。Server Actionは`groupId`をbind引数として受け取っても未信頼入力としてUUID検証し、FormDataの金額、日付、カテゴリ、支払者、負担方法、負担メンバー・金額、メモ、`client_request_id`をschemaで検証する。commandは検証済みGoogle sessionを取得し、ユーザーsession付きSupabase clientで原子的なDB関数を呼ぶ。DB関数はアクティブ所属、カテゴリ種別、支払者・負担者の同一グループ所属、合計一致、冪等性を再確認する。
+
+支出登録画面のServer Componentは、サーバー専用queryからグループ、現在のmembership、アクティブメンバー、未アーカイブの支出カテゴリだけを含む最小DTOを受け取る。Client Componentへuser ID、DB行全体、認証tokenを渡さない。
 
 招待作成Actionはroleとgroup IDを検証し、command内で認証・owner/admin権限を再確認する。256 bit以上の生トークンはサーバーで生成してSHA-256 hashだけをDB commandへ渡し、作成成功時だけURL fragment形式の共有リンクを最小DTOとしてClientへ返す。生トークンを再取得するqueryは提供しない。
 

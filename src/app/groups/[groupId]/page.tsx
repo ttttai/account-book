@@ -34,13 +34,21 @@ export default async function GroupPage({ params }: GroupPageProps) {
           </Link>
         </nav>
       </header>
+      <div className="group-primary-actions">
+        <Link
+          className="primary-link"
+          href={`/groups/${group.id}/transactions/new`}
+        >
+          支出を追加
+        </Link>
+      </div>
       <section className="empty-panel" aria-labelledby="calendar-title">
         <p className="empty-icon" aria-hidden="true">
           暦
         </p>
         <h2 id="calendar-title">月間カレンダー</h2>
         <p>
-          グループの作成が完了しました。次の段階で支出登録と月間カレンダーを追加します。
+          登録した支出を日ごとに確認できるカレンダーを、次の段階で追加します。
         </p>
         <dl className="group-settings-summary">
           <div>
