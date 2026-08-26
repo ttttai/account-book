@@ -147,7 +147,8 @@ test("Composeで必要最小限のローカルSupabase Authを構成する", asy
   assert.match(compose, /supabase\/gotrue:v[\d.]+/);
   assert.match(compose, /postgrest\/postgrest:v[\d.]+/);
   assert.match(compose, /PGRST_ADMIN_SERVER_PORT:\s*3001/);
-  assert.match(compose, /PGRST_SERVER_HOST=localhost postgrest --ready/);
+  assert.match(compose, /PGRST_SERVER_HOST:\s*0\.0\.0\.0/);
+  assert.match(compose, /\["CMD", "postgrest", "--ready"\]/);
   assert.match(compose, /127\.0\.0\.1:54321:8000/);
   assert.match(compose, /condition:\s*service_completed_successfully/);
   assert.match(compose, /SUPABASE_INTERNAL_URL:/);

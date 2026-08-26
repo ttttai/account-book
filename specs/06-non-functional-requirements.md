@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.0
+バージョン: 0.2.5
 
 ## セキュリティ
 
@@ -79,6 +79,8 @@
 - `NFR-MNT-005` DB変更をmigrationとしてversion管理する。
 - `NFR-MNT-006` toolingで可能な範囲のarchitecture依存ルールをlintする。
 - `NFR-MNT-007` 実装を要件IDまたは受け入れ条件IDへ紐付ける。
+- `NFR-MNT-008` pull requestおよび`main`へのpushでCIを自動実行し、format、lint、型検査、architecture・単体test、DB・RLS test、HTTP integration test、本番buildの失敗をmerge前に検出する。
+- `NFR-MNT-009` CIの`GITHUB_TOKEN`権限は読み取り最小限とし、外部Actionは完全なcommit SHAへ固定する。本番秘密情報や実GoogleアカウントをCIへ渡さず、CI専用のローカル資格情報と架空の許可アカウントだけを利用する。
 
 ## 対応ブラウザ
 

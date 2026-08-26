@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run architecture and unit tests
+        run: npm test
+
+      - name: Build production application
+        run: npm run build
+
+  integration:
+    name: Docker integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Generate CI-only local credentials
+        env:
+          LOCAL_GOOGLE_OAUTH_ENABLED: "true"
+          LOCAL_GOOGLE_OAUTH_CLIENT_ID: ci-client.apps.googleusercontent.com
+          LOCAL_GOOGLE_OAUTH_CLIENT_SECRET: ci-placeholder-not-a-secret
+          LOCAL_ALLOWED_GOOGLE_EMAILS: ci-first@example.test,ci-second@example.test
+        run: ./scripts/setup-local-env.sh
+
+      - name: Start the local stack
+        run: docker compose up --detach --wait --wait-timeout 180
+
+      - name: Run DB and RLS integration tests
+        run: docker compose --profile test run --rm integration-tests
+
+      - name: Run OAuth HTTP integration tests
+        run: docker compose --profile test run --rm web-integration-tests
+
+      - name: Build production container
+        run: docker build --tag account-book:ci .
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 200
+
+      - name: Remove CI-only containers and volumes
+        if: always()
+        run: docker compose down --volumes --remove-orphans
