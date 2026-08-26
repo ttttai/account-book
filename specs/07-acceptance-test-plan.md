@@ -104,7 +104,7 @@
 
 ## 3. CI必須check
 
-CIはpull request、`main`へのpush、手動実行で起動する。同じbranchで新しい実行が始まった場合、古い実行をcancelして最新commitだけを判定する。
+CIは作業branchと`main`を含むすべてのbranchへのpush、および手動実行で起動する。pull requestイベントでは同じcommitのCIを重複起動せず、pushで作成されたcheckをpull requestのhead commitに表示する。同じbranchで新しい実行が始まった場合、古い実行をcancelして最新commitだけを判定する。非公開MVPでは同一repository内のbranchからpull requestを作成する運用とし、forkからのpull request対応は対象外とする。
 
 ```text
 format check
