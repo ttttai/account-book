@@ -2,7 +2,17 @@ import assert from "node:assert/strict";
 import test, { before } from "node:test";
 import { setTimeout } from "node:timers/promises";
 
-const baseUrl = process.env.OAUTH_TEST_BASE_URL ?? "http://web:3000";
+const baseUrl = process.env.OAUTH_TEST_BASE_URL ?? "http://127.0.0.1:3000";
+const alternateBaseUrl =
+  process.env.OAUTH_TEST_ALTERNATE_BASE_URL ?? "http://web:3000";
+const canonicalSiteOrigin =
+  process.env.OAUTH_TEST_SITE_ORIGIN ?? "http://127.0.0.1:3000";
+
+function fetchFromCanonicalOrigin(path) {
+  return fetch(`${baseUrl}${path}`, {
+    redirect: "manual",
+  });
+}
 
 before(async () => {
   for (let attempt = 0; attempt < 40; attempt += 1) {
@@ -27,9 +37,8 @@ test("ログイン画面は通常navigation用のOAuth開始URLを表示する",
 });
 
 test("OAuth開始はPKCE cookie付きの公開Supabase redirectを返す", async () => {
-  const response = await fetch(
-    `${baseUrl}/auth/google/start?next=%2Finvitations%2Faccept`,
-    { redirect: "manual" },
+  const response = await fetchFromCanonicalOrigin(
+    "/auth/google/start?next=%2Finvitations%2Faccept",
   );
   assert.equal(response.status, 307);
 
@@ -60,9 +69,8 @@ test("OAuth開始はPKCE cookie付きの公開Supabase redirectを返す", async
 });
 
 test("OAuth開始は外部の戻り先を標準画面へ置き換える", async () => {
-  const response = await fetch(
-    `${baseUrl}/auth/google/start?next=${encodeURIComponent("https://attacker.example/")}`,
-    { redirect: "manual" },
+  const response = await fetchFromCanonicalOrigin(
+    `/auth/google/start?next=${encodeURIComponent("https://attacker.example/")}`,
   );
   const location = response.headers.get("location");
   assert.ok(location);
@@ -71,4 +79,37 @@ test("OAuth開始は外部の戻り先を標準画面へ置き換える", async 
     authorizationUrl.searchParams.get("redirect_to") ?? "",
   );
   assert.equal(callbackUrl.searchParams.get("next"), "/app");
+});
+
+test("異なるoriginからのOAuth開始はcookie発行前にcanonical originへ揃える", async () => {
+  const response = await fetch(
+    `${alternateBaseUrl}/auth/google/start?next=%2Finvitations%2Faccept`,
+    { redirect: "manual" },
+  );
+  assert.equal(response.status, 307);
+  assert.deepEqual(response.headers.getSetCookie(), []);
+
+  const location = response.headers.get("location");
+  assert.ok(location);
+  const canonicalStartUrl = new URL(location);
+  assert.equal(canonicalStartUrl.origin, canonicalSiteOrigin);
+  assert.equal(canonicalStartUrl.pathname, "/auth/google/start");
+  assert.equal(
+    canonicalStartUrl.searchParams.get("next"),
+    "/invitations/accept",
+  );
+});
+
+test("OAuth callbackの失敗redirectは要求Hostを使わず共有cacheを禁止する", async () => {
+  const response = await fetch(
+    `${alternateBaseUrl}/auth/callback?next=${encodeURIComponent("https://attacker.example/")}`,
+    { redirect: "manual" },
+  );
+  assert.equal(response.status, 307);
+  assert.equal(
+    response.headers.get("location"),
+    `${canonicalSiteOrigin}/login?error=oauth`,
+  );
+  assert.match(response.headers.get("cache-control") ?? "", /no-store/);
+  assert.equal(response.headers.get("pragma"), "no-cache");
 });

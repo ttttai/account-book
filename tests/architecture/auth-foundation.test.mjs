@@ -62,18 +62,28 @@ test("OAuth開始は通常navigationでPKCE cookie付きredirectを返す", asyn
   const loginPage = await read("src/app/login/page.tsx");
   const startRoute = await read("src/app/auth/google/start/route.ts");
   const callback = await read("src/app/auth/callback/route.ts");
+  const routeHandlerClient = await read(
+    "src/modules/auth/infrastructure/supabase-route-handler.ts",
+  );
 
   assert.match(loginPage, /<a[\s\S]*href=\{googleOAuthStartPath\}/);
   assert.doesNotMatch(loginPage, /<form[\s\S]*Googleでログイン/);
   assert.match(startRoute, /export async function GET/);
   assert.match(startRoute, /resolveSafeNextPath/);
-  assert.match(startRoute, /NEXT_PUBLIC_SITE_URL/);
+  assert.match(startRoute, /getConfiguredSiteOrigin/);
   assert.doesNotMatch(startRoute, /request\.nextUrl\.origin/);
-  assert.match(startRoute, /request\.cookies\.getAll\(\)/);
+  assert.match(startRoute, /createRouteHandlerSupabaseClient/);
   assert.match(startRoute, /supabase\.auth\.signInWithOAuth/);
-  assert.match(startRoute, /response\.cookies\.set/);
   assert.match(startRoute, /Cache-Control/);
   assert.match(callback, /exchangeCodeForSession\(code\)/);
+  assert.match(callback, /getConfiguredSiteOrigin/);
+  assert.doesNotMatch(callback, /requestUrl\.origin/);
+  assert.match(callback, /Cache-Control/);
+  assert.match(callback, /createRouteHandlerSupabaseClient/);
+  assert.match(routeHandlerClient, /request\.cookies\.getAll\(\)/);
+  assert.match(routeHandlerClient, /setAll\(cookiesToSet, headers\)/);
+  assert.match(routeHandlerClient, /response\.cookies\.set/);
+  assert.match(routeHandlerClient, /response\.headers\.set/);
 });
 
 test("Googleの2アカウント制限をAuth・server・DBで強制する", async () => {
@@ -125,6 +135,8 @@ test("Proxyはclaimsを検証し、未検証sessionを認可に使わない", as
 
   assert.match(sessionProxy, /auth\.getClaims\(\)/);
   assert.doesNotMatch(sessionProxy, /auth\.getSession\(\)/);
+  assert.match(sessionProxy, /setAll\(cookiesToSet, headers\)/);
+  assert.match(sessionProxy, /response\.headers\.set/);
 });
 
 test("Composeで必要最小限のローカルSupabase Authを構成する", async () => {

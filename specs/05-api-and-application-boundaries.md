@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.3
+バージョン: 0.2.4
 
 ## 1. Next.js境界方針
 
@@ -79,7 +79,7 @@ updateProfile(input)
 GET /auth/callback?code=...&next=...
 ```
 
-OAuth開始Route Handlerは安全なGoogle OAuth開始境界として使い、token、許可リスト、Auth APIの内部エラーをlogや戻り値へ含めない。server clientはコンテナ間通信に内部Supabase URLを使用できるが、生成されたOAuth認可URLは期待するoriginと`/auth/v1/authorize` pathを検証し、公開Supabase originへ変換してからブラウザへ返す。開始Route HandlerはPKCE verifier cookieを応答へ設定した通常のHTTP redirectを返し、callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。callbackでcodeをsessionへ交換後、Google providerと許可リストを再検証し、不一致のsessionは直ちに破棄する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandおよびRLSでGoogle providerと許可リストを含めて再確認する。
+OAuth開始Route Handlerは安全なGoogle OAuth開始境界として使い、token、許可リスト、Auth APIの内部エラーをlogや戻り値へ含めない。要求originが構成済みの公開サイトoriginと異なる場合は、PKCE cookieを発行する前に、検証済みの戻り先だけを含む公開サイトorigin上の同じRouteへredirectする。server clientはコンテナ間通信に内部Supabase URLを使用できるが、生成されたOAuth認可URLは期待するoriginと`/auth/v1/authorize` pathを検証し、公開Supabase originへ変換してからブラウザへ返す。開始Route Handlerはcanonical origin上でPKCE verifier cookieを応答へ設定した通常のHTTP redirectを返し、callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。callbackでcodeをsessionへ交換後、Google providerと許可リストを再検証し、不一致のsessionは直ちに破棄する。callback後のredirectは要求Hostではなく構成済みの公開サイトoriginから生成し、Auth cookieを設定するcallbackおよびProxy応答にはSupabase SSR cookie adapterが要求する非cache headerを反映する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandおよびRLSでGoogle providerと許可リストを含めて再確認する。
 
 ### Query
 
