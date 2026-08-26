@@ -1,5 +1,7 @@
 # わが家計
 
+[![CI](https://github.com/ttttai/account-book/actions/workflows/ci.yml/badge.svg)](https://github.com/ttttai/account-book/actions/workflows/ci.yml)
+
 夫婦やグループで共有できる、スマートフォン優先の家計簿Webアプリです。仕様の正本は[`specs/`](specs/README.md)、開発ルールの正本は[`AGENTS.md`](AGENTS.md)です。
 
 ## 必要な環境
@@ -58,9 +60,19 @@ docker compose run --rm web npm run lint
 docker compose run --rm web npm run typecheck
 docker compose run --rm web npm test
 docker compose --profile test run --rm integration-tests
+docker compose --profile test run --rm web-integration-tests
 docker compose run --rm web npm run build
 ```
 
 `integration-tests`はtransaction内のローカル専用ユーザーで、登録前フック、プロフィール自動作成、2アカウント制限、ユーザー・グループ間RLS分離を確認し、最後にrollbackする。クラウド環境には接続しない。
 
 ローカルDB volumeは通常操作で削除しない。破棄が必要な場合は対象と影響を確認してから明示的に行う。
+
+## CI
+
+GitHub Actionsはpull request、`main`へのpush、手動実行で起動する。
+
+- `Quality`: Node.js 24で依存関係をlockfileどおりに導入し、format、lint、型検査、architecture・単体test、本番buildを実行する。
+- `Docker integration`: CI専用のローカル資格情報でDocker Composeを起動し、DB・RLS test、OAuth HTTP integration test、本番container buildを実行する。
+
+CIは実Googleアカウント、本番Supabase、本番秘密情報へ接続しない。外部Actionは完全なcommit SHAへ固定し、`GITHUB_TOKEN`はrepository内容の読み取りだけに制限する。branch protectionで`Quality`と`Docker integration`をrequired checkにする操作は、workflowを`main`へmergeした後にGitHub側で設定する。

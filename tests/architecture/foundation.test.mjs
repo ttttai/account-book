@@ -135,3 +135,45 @@ test("PC表示を複数カラムへ適応し未定義tokenを使わない", asyn
   assert.match(styles, /\.shell\s*\{[^}]*grid-template-columns:/s);
   assert.doesNotMatch(styles, /var\(--(?:line|ink)\)/);
 });
+
+test("GitHub Actionsで最小権限の品質・統合CIを実行する", async () => {
+  assert.equal(await exists(".github/workflows/ci.yml"), true);
+
+  const workflow = await read(".github/workflows/ci.yml");
+  const environmentSetup = await read("scripts/setup-local-env.sh");
+  const actionReferences = [
+    ...workflow.matchAll(/uses:\s+[^\s@]+@([^\s]+)/g),
+  ].map((match) => match[1]);
+
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /push:\s*[\s\S]*branches:\s*\[main\]/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /permissions:\s*\n\s+contents:\s+read/);
+  assert.doesNotMatch(workflow, /contents:\s+write|\$\{\{\s*secrets\./);
+  assert.ok(actionReferences.length >= 2);
+  assert.ok(
+    actionReferences.every((reference) => /^[0-9a-f]{40}$/.test(reference)),
+  );
+  assert.match(workflow, /persist-credentials:\s+false/);
+  assert.match(workflow, /node-version:\s+24/);
+  assert.match(workflow, /cache:\s+npm/);
+
+  for (const command of [
+    "npm ci",
+    "npm run format:check",
+    "npm run lint",
+    "npm run typecheck",
+    "npm test",
+    "npm run build",
+    "docker compose --profile test run --rm integration-tests",
+    "docker compose --profile test run --rm web-integration-tests",
+    "docker build --tag account-book:ci .",
+  ]) {
+    assert.match(workflow, new RegExp(command.replaceAll(" ", "\\s+")));
+  }
+
+  assert.match(workflow, /docker compose down --volumes --remove-orphans/);
+  assert.match(workflow, /if:\s+always\(\)/);
+  assert.match(environmentSetup, /LOCAL_GOOGLE_OAUTH_ENABLED/);
+  assert.match(environmentSetup, /LOCAL_ALLOWED_GOOGLE_EMAILS/);
+});

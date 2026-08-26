@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.4
+バージョン: 0.2.5
 
 ## 1. テストレベル
 
@@ -95,15 +95,24 @@
 
 ## 3. CI必須check
 
+CIはpull request、`main`へのpush、手動実行で起動する。同じbranchで新しい実行が始まった場合、古い実行をcancelして最新commitだけを判定する。
+
 ```text
 format check
 lint
 typecheck
-unit test
+architecture・unit test
 DB・RLS test
-integration test
+OAuth HTTP integration test
 production build
+production container build
 ```
+
+Node品質jobとDocker Compose統合jobを分離し、どの境界で失敗したかを判別できるようにする。Nodeは`package.json`の対応majorと一致するversionを明示し、`package-lock.json`を使う`npm ci`とlockfile基準のdependency cacheを利用する。
+
+Workflow全体の`GITHUB_TOKEN`権限は`contents: read`だけとし、checkout後のcredentialは保持しない。利用する外部Actionはrelease tagだけでなく完全なcommit SHAへ固定し、更新時は公式releaseとtagの対応を確認する。
+
+Docker Compose統合jobは、CI runner内で毎回新しいローカル専用Postgres password・JWT keyを生成する。Google OAuthの実client secret、実許可メールアドレス、本番Supabase資格情報、GitHub Secretsは使用せず、Googleへの外部認証を完了しない範囲のHTTP testには架空の`.test`アカウントとCI専用placeholderを使う。終了時は成功・失敗にかかわらずCI専用containerとvolumeを破棄する。
 
 E2Eテストは主要smoke flowから開始し、縦切り機能ごとに追加する。
 
