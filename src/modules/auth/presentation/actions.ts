@@ -4,11 +4,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { updateProfileSchema } from "../domain/auth-input";
+import { resolveBrowserOAuthAuthorizationUrl } from "../domain/oauth-authorization-url";
 import { resolveSafeNextPath } from "../domain/safe-next-path";
 import {
   getAllowedGoogleUserId,
   isGoogleOAuthEnabled,
 } from "../infrastructure/google-auth-access";
+import {
+  getSupabasePublicEnvironment,
+  getSupabaseServerEnvironment,
+} from "../infrastructure/supabase-environment";
 import { createServerSupabaseClient } from "../infrastructure/supabase-server";
 import type { AuthActionState, AuthFieldName } from "./action-state";
 
@@ -44,7 +49,13 @@ export async function signInWithGoogleAction(formData: FormData) {
   });
 
   if (error || !data.url) redirect("/login?error=oauth");
-  redirect(data.url);
+  const browserAuthorizationUrl = resolveBrowserOAuthAuthorizationUrl({
+    authorizationUrl: data.url,
+    internalSupabaseUrl: getSupabaseServerEnvironment().url,
+    publicSupabaseUrl: getSupabasePublicEnvironment().url,
+  });
+  if (!browserAuthorizationUrl) redirect("/login?error=oauth");
+  redirect(browserAuthorizationUrl);
 }
 
 export async function updateProfileAction(

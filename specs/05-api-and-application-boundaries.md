@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.0
+バージョン: 0.2.1
 
 ## 1. Next.js境界方針
 
@@ -76,7 +76,7 @@ updateProfile(input)
 GET /auth/callback?code=...&next=...
 ```
 
-Auth用Server Actionは安全なGoogle OAuth開始境界として使い、token、許可リスト、Auth APIの内部エラーをlogや戻り値へ含めない。callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。callbackでcodeをsessionへ交換後、Google providerと許可リストを再検証し、不一致のsessionは直ちに破棄する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandおよびRLSでGoogle providerと許可リストを含めて再確認する。
+Auth用Server Actionは安全なGoogle OAuth開始境界として使い、token、許可リスト、Auth APIの内部エラーをlogや戻り値へ含めない。server clientはコンテナ間通信に内部Supabase URLを使用できるが、生成されたOAuth認可URLは期待するoriginと`/auth/v1/authorize` pathを検証し、公開Supabase originへ変換してからブラウザへ返す。callbackとログイン後の戻り先は、単一slashで始まる同一origin相対pathだけを許可する。callbackでcodeをsessionへ交換後、Google providerと許可リストを再検証し、不一致のsessionは直ちに破棄する。Proxyはtoken更新と画面遷移改善に使い、重要処理の最終認可は各query/commandおよびRLSでGoogle providerと許可リストを含めて再確認する。
 
 ### Query
 

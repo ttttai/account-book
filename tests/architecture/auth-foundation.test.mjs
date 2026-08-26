@@ -50,6 +50,13 @@ test("Google OAuthだけをユーザーへ提供する", async () => {
   }
 });
 
+test("OAuth認可URLをDocker内部hostnameのままブラウザへ返さない", async () => {
+  const actions = await read("src/modules/auth/presentation/actions.ts");
+
+  assert.match(actions, /resolveBrowserOAuthAuthorizationUrl/);
+  assert.doesNotMatch(actions, /redirect\(data\.url\)/);
+});
+
 test("Googleの2アカウント制限をAuth・server・DBで強制する", async () => {
   const migration = await read(
     "supabase/migrations/202608250001_google_auth_allowlist.sql",
