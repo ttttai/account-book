@@ -2,31 +2,51 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { getCurrentProfile } from "@/modules/auth/server";
-import { listMyGroups } from "@/modules/groups/server";
+import {
+  CalendarHome,
+  CalendarValidationError,
+} from "@/modules/calendar/presentation";
+import {
+  getGroupCalendar,
+  type CalendarSearchInput,
+} from "@/modules/calendar/server";
 
-type GroupPageProps = Readonly<{ params: Promise<{ groupId: string }> }>;
+type GroupPageProps = Readonly<{
+  params: Promise<{ groupId: string }>;
+  searchParams: Promise<CalendarSearchInput>;
+}>;
 
-export default async function GroupPage({ params }: GroupPageProps) {
-  const { groupId } = await params;
-  const profile = await getCurrentProfile();
+export default async function GroupPage({
+  params,
+  searchParams,
+}: GroupPageProps) {
+  const [{ groupId }, search, profile] = await Promise.all([
+    params,
+    searchParams,
+    getCurrentProfile(),
+  ]);
   if (!profile) {
     const nextPath = `/groups/${encodeURIComponent(groupId)}`;
     redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
 
-  const groups = await listMyGroups();
-  const group = groups.find((candidate) => candidate.id === groupId);
-  if (!group) notFound();
+  const calendar = await getGroupCalendar(groupId, search);
+  if (!calendar) notFound();
+  const groupName =
+    calendar.kind === "ready" ? calendar.group.name : "家計グループ";
 
   return (
-    <main className="protected-shell group-home">
+    <main className="protected-shell group-home calendar-home-page">
       <header className="app-header">
         <div>
           <p className="eyebrow">家計グループ</p>
-          <h1 className="group-page-title">{group.name}</h1>
+          <h1 className="group-page-title">{groupName}</h1>
         </div>
         <nav className="header-links" aria-label="グループ操作">
-          <Link className="text-link" href={`/groups/${group.id}/members`}>
+          <Link
+            className="text-link"
+            href={`/groups/${encodeURIComponent(groupId)}/members`}
+          >
             メンバー
           </Link>
           <Link className="text-link" href="/app">
@@ -37,34 +57,16 @@ export default async function GroupPage({ params }: GroupPageProps) {
       <div className="group-primary-actions">
         <Link
           className="primary-link"
-          href={`/groups/${group.id}/transactions/new`}
+          href={`/groups/${encodeURIComponent(groupId)}/transactions/new`}
         >
           支出を追加
         </Link>
       </div>
-      <section className="empty-panel" aria-labelledby="calendar-title">
-        <p className="empty-icon" aria-hidden="true">
-          暦
-        </p>
-        <h2 id="calendar-title">月間カレンダー</h2>
-        <p>
-          登録した支出を日ごとに確認できるカレンダーを、次の段階で追加します。
-        </p>
-        <dl className="group-settings-summary">
-          <div>
-            <dt>通貨</dt>
-            <dd>{group.currency}</dd>
-          </div>
-          <div>
-            <dt>タイムゾーン</dt>
-            <dd>{group.timezone}</dd>
-          </div>
-          <div>
-            <dt>週の開始</dt>
-            <dd>{group.weekStartsOn === 0 ? "日曜日" : "月曜日"}</dd>
-          </div>
-        </dl>
-      </section>
+      {calendar.kind === "ready" ? (
+        <CalendarHome data={calendar} />
+      ) : (
+        <CalendarValidationError data={calendar} />
+      )}
     </main>
   );
 }

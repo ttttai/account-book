@@ -73,9 +73,12 @@ test("App Routerはgroupsモジュールの公開境界だけを使う", async (
 
   assert.match(appPage, /@\/modules\/groups\/server/);
   assert.match(appPage, /@\/modules\/groups\/presentation/);
-  assert.match(groupPage, /@\/modules\/groups\/server/);
   assert.doesNotMatch(
     appPage,
+    /@\/modules\/groups\/(?:application|infrastructure)\//,
+  );
+  assert.doesNotMatch(
+    groupPage,
     /@\/modules\/groups\/(?:application|infrastructure)\//,
   );
 });

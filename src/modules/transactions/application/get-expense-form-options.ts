@@ -7,6 +7,7 @@ import {
   getAllowedGoogleUserId,
 } from "@/modules/auth/server";
 
+import { resolveExpenseInitialDate } from "../domain/expense-initial-date";
 import type { ExpenseFormOptions } from "./expense-types";
 
 const groupIdSchema = z.uuid();
@@ -46,6 +47,7 @@ function dateInTimeZone(date: Date, timeZone: string): string {
 
 export async function getExpenseFormOptions(
   unsafeGroupId: string,
+  unsafeInitialDate?: unknown,
 ): Promise<ExpenseFormOptions | null> {
   const groupIdResult = groupIdSchema.safeParse(unsafeGroupId);
   if (!groupIdResult.success) return null;
@@ -117,7 +119,10 @@ export async function getExpenseFormOptions(
       defaultAllocation: group.default_allocation,
       currentMembershipId: currentMembership.id,
     },
-    today: dateInTimeZone(new Date(), group.timezone),
+    today: resolveExpenseInitialDate(
+      unsafeInitialDate,
+      dateInTimeZone(new Date(), group.timezone),
+    ),
     members: memberships.map((membership) => ({
       membershipId: membership.id,
       displayName: profileByUserId.get(membership.user_id) ?? "メンバー",

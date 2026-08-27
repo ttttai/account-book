@@ -1,0 +1,84 @@
+export type CalendarExpense = Readonly<{
+  id: string;
+  date: string;
+  amountMinor: number;
+  payerMemberId: string;
+  createdAt: string;
+  category: Readonly<{ name: string; color: string; icon: string }>;
+  allocations: readonly Readonly<{ memberId: string; amountMinor: number }>[];
+}>;
+
+type CalendarSummaryTarget =
+  | Readonly<{ scope: "group" }>
+  | Readonly<{ scope: "member"; memberId: string }>;
+
+export type CalendarSummary = Readonly<{
+  monthlyTotal: number;
+  monthlyPaidTotal?: number;
+  dailyTotals: Readonly<Record<string, number>>;
+}>;
+
+function safeAdd(left: number, right: number): number {
+  if (
+    !Number.isSafeInteger(left) ||
+    !Number.isSafeInteger(right) ||
+    right < 0
+  ) {
+    throw new Error("calendar amount overflow");
+  }
+  const result = left + right;
+  if (!Number.isSafeInteger(result))
+    throw new Error("calendar amount overflow");
+  return result;
+}
+
+export function calculateCalendarSummary(
+  expenses: readonly CalendarExpense[],
+  target: CalendarSummaryTarget,
+): CalendarSummary {
+  let monthlyTotal = 0;
+  let monthlyPaidTotal = 0;
+  const dailyTotals: Record<string, number> = {};
+
+  for (const expense of expenses) {
+    const targetAmount =
+      target.scope === "group"
+        ? expense.amountMinor
+        : (expense.allocations.find(
+            (allocation) => allocation.memberId === target.memberId,
+          )?.amountMinor ?? 0);
+
+    if (targetAmount > 0) {
+      monthlyTotal = safeAdd(monthlyTotal, targetAmount);
+      dailyTotals[expense.date] = safeAdd(
+        dailyTotals[expense.date] ?? 0,
+        targetAmount,
+      );
+    }
+
+    if (
+      target.scope === "member" &&
+      expense.payerMemberId === target.memberId
+    ) {
+      monthlyPaidTotal = safeAdd(monthlyPaidTotal, expense.amountMinor);
+    }
+  }
+
+  return {
+    monthlyTotal,
+    ...(target.scope === "member" ? { monthlyPaidTotal } : {}),
+    dailyTotals,
+  };
+}
+
+export function formatCompactJpy(amountMinor: number): string {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) {
+    throw new Error("invalid JPY amount");
+  }
+  if (amountMinor < 10_000) return amountMinor.toLocaleString("ja-JP");
+
+  const roundedTenths = Math.round(amountMinor / 1000);
+  const whole = Math.floor(roundedTenths / 10);
+  const fraction = roundedTenths % 10;
+  return fraction === 0 ? `${whole}万` : `${whole}.${fraction}万`;
+}
