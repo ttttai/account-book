@@ -61,7 +61,7 @@ export function CreateGroupForm() {
         </label>
         <label className="radio-option">
           <input name="defaultAllocation" type="radio" value="self" />
-          支払者が全額負担
+          自分が全額負担
         </label>
       </fieldset>
 

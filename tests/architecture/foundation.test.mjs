@@ -145,8 +145,9 @@ test("GitHub Actionsで最小権限の品質・統合CIを実行する", async (
     ...workflow.matchAll(/uses:\s+[^\s@]+@([^\s]+)/g),
   ].map((match) => match[1]);
 
-  assert.match(workflow, /pull_request:/);
-  assert.match(workflow, /push:\s*[\s\S]*branches:\s*\[main\]/);
+  assert.match(workflow, /on:\s*\n\s+push:\s*\n\s+workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /pull_request:/);
+  assert.doesNotMatch(workflow, /push:\s*[\s\S]{0,120}branches:/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /permissions:\s*\n\s+contents:\s+read/);
   assert.doesNotMatch(workflow, /contents:\s+write|\$\{\{\s*secrets\./);

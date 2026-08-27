@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.5
+バージョン: 0.2.6
 
 ## 1. テストレベル
 
@@ -13,6 +13,9 @@
 - 金額検証
 - 均等割りと端数配分
 - 負担額合計制約
+- 金額文字列、取引日、メモ、`client_request_id`の検証
+- 均等割りの端数をmembership ID昇順へ配る決定性
+- 1人負担・カスタム負担の正規化と0円行の除外
 - 取引日・対象月parse
 - 権限判断
 - CSV cellの無害化
@@ -41,6 +44,8 @@
 - メール・パスワード認証の画面、Action、ローカルSMTP構成が存在しないこと
 - 招待tokenの長さ・URL-safe形式・決定的なSHA-256 hashと、不正形式の拒否
 - 招待共有リンクがraw tokenをfragmentだけへ含め、query・cookie・永続storageへ含めないこと
+- 支出作成ActionがFormDataを検証し、操作者user IDや合計額をクライアント入力から採用しないこと
+- 支出登録DTOがアクティブメンバーと未アーカイブ支出カテゴリだけを含み、認証tokenや不要なDB列を含まないこと
 
 ### DB・RLSテスト
 
@@ -64,6 +69,10 @@
 - memberと非メンバーは招待作成・保留一覧・取消を実行できず、owner/adminだけが実行できる。
 - 期限切れ、取消済み、別ユーザーが使用済みの招待を拒否し、同一ユーザーの再承認は冪等に成功する。
 - 招待承認で所属を重複作成せず、削除済み所属は同じ所属IDを再有効化する。
+- 支出と負担行を原子的に作成し、合計不一致ではどちらも残らない。
+- 同じ`client_request_id`の再送は同じ取引IDを返し、取引・負担行を増やさない。
+- 別グループ、削除済みメンバー、収入カテゴリ、許可リスト外identityを支払者・負担者・カテゴリ・操作者として利用できない。
+- tableへの直接insertでは支出を作成できず、認可・検証済みDB commandだけが作成できる。
 
 ### E2Eテスト
 
@@ -95,7 +104,7 @@
 
 ## 3. CI必須check
 
-CIはpull request、`main`へのpush、手動実行で起動する。同じbranchで新しい実行が始まった場合、古い実行をcancelして最新commitだけを判定する。
+CIは作業branchと`main`を含むすべてのbranchへのpush、および手動実行で起動する。pull requestイベントでは同じcommitのCIを重複起動せず、pushで作成されたcheckをpull requestのhead commitに表示する。同じbranchで新しい実行が始まった場合、古い実行をcancelして最新commitだけを判定する。非公開MVPでは同一repository内のbranchからpull requestを作成する運用とし、forkからのpull request対応は対象外とする。
 
 ```text
 format check
