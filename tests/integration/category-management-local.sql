@@ -372,7 +372,6 @@ select pg_temp.assert_reorder_denied(
     where group_id = :'group_id'
       and type = 'expense'
       and archived_at is null
-      and id <> :'new_category_id'
   ),
   '重複のある順序を拒否する'
 );
