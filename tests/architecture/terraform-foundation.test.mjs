@@ -89,6 +89,13 @@ test("Artifact Registry、budget、keyなしruntime・deploy identityを宣言�
     bootstrapVariables,
     /regex\("\^\[0-9A-F\]\{6\}-\[0-9A-F\]\{6\}-\[0-9A-F\]\{6\}\$",\s*var\.billing_account_id\)/,
   );
+
+  // billing account単位のAPIがADCのquota project設定に依存しないようにする。
+  const bootstrapProviders = await read(
+    "infra/terraform/bootstrap/providers.tf",
+  );
+  assert.match(bootstrapProviders, /user_project_override\s*=\s*true/);
+  assert.match(bootstrapProviders, /billing_project\s*=\s*var\.project_id/);
   for (const threshold of ["0.5", "0.8", "1.0"]) {
     assert.match(
       bootstrap,
