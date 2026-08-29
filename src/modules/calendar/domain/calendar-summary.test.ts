@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { calculateCalendarSummary, formatCompactJpy } from "./calendar-summary";
+import {
+  calculateCalendarSummary,
+  formatCalendarCellJpy,
+} from "./calendar-summary";
 
 const firstMemberId = "10000000-0000-4000-8000-000000000001";
 const secondMemberId = "10000000-0000-4000-8000-000000000002";
@@ -75,14 +78,22 @@ describe("calculateCalendarSummary", () => {
   });
 });
 
-describe("formatCompactJpy", () => {
+describe("formatCalendarCellJpy", () => {
   it.each([
     [0, "0"],
     [9999, "9,999"],
-    [10000, "1万"],
-    [12345, "1.2万"],
-    [99999, "10万"],
+    [10000, "10,000"],
+    [12345, "12,345"],
+    [99999, "99,999"],
+    [1234567, "1,234,567"],
   ])("%i円を%sと表示する", (amount, expected) => {
-    expect(formatCompactJpy(amount)).toBe(expected);
+    expect(formatCalendarCellJpy(amount)).toBe(expected);
   });
+
+  it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    "不正な金額%sを拒否する",
+    (amount) => {
+      expect(() => formatCalendarCellJpy(amount)).toThrow("invalid JPY amount");
+    },
+  );
 });

@@ -496,7 +496,8 @@ a:focus-visible {
 }
 
 .expense-field > label,
-.allocation-fieldset > legend {
+.allocation-fieldset > legend,
+.category-fieldset > legend {
   font-size: 0.9rem;
   font-weight: 750;
 }
@@ -518,6 +519,115 @@ a:focus-visible {
 .expense-field textarea {
   min-height: 5.5rem;
   resize: vertical;
+}
+
+.category-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.category-fieldset > legend {
+  margin-bottom: 0.4rem;
+  padding: 0;
+}
+
+.category-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.category-option {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.category-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.category-option-content {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 48px;
+  padding: 0.6rem 0.65rem;
+  border: 1px solid #bdc7bd;
+  border-radius: 0.75rem;
+  background: white;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.category-option-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  background: #758178;
+}
+
+.category-option-dot[data-category-color="food"] {
+  background: #d8664f;
+}
+
+.category-option-dot[data-category-color="daily"] {
+  background: #6582c4;
+}
+
+.category-option-dot[data-category-color="home"] {
+  background: #a06a45;
+}
+
+.category-option-dot[data-category-color="utilities"] {
+  background: #d29a35;
+}
+
+.category-option-dot[data-category-color="transport"] {
+  background: #397f8f;
+}
+
+.category-option-dot[data-category-color="leisure"] {
+  background: #8a67ae;
+}
+
+.category-option-check {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  border: 1px solid #a9b4aa;
+  border-radius: 50%;
+  color: transparent;
+  background: white;
+  font-size: 0.72rem;
+}
+
+.category-option input:checked + .category-option-content {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 2px 8px rgb(36 49 38 / 9%);
+}
+
+.category-option
+  input:checked
+  + .category-option-content
+  .category-option-check {
+  border-color: var(--accent);
+  color: white;
+  background: var(--accent);
+}
+
+.category-option input:focus-visible + .category-option-content {
+  outline: 3px solid rgb(47 111 85 / 28%);
+  outline-offset: 2px;
 }
 
 .amount-input-wrap {
@@ -1098,7 +1208,7 @@ a:focus-visible {
 
 .calendar-cell {
   min-width: 0;
-  height: 52px;
+  height: 60px;
   padding: 0;
   vertical-align: top;
   border: 1px solid transparent;
@@ -1147,12 +1257,12 @@ a:focus-visible {
 
 .calendar-cell-amount {
   max-width: 100%;
-  overflow: hidden;
   color: var(--accent);
-  font-size: clamp(0.58rem, 2.4vw, 0.72rem);
+  font-size: clamp(0.56rem, 2.3vw, 0.72rem);
   font-weight: 800;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .calendar-empty-message {

@@ -112,7 +112,7 @@
 - ブランチ名は`<種別>/<内容>`とし、種別には`feat`、`fix`、`docs`、`test`、`refactor`、`chore`などを使う（例: `feat/group-invitation`、`fix/oauth-callback`）。
 - コミットメッセージとPRタイトルはConventional Commits形式とし、`feat:`、`fix:`、`docs:`など変更内容に合うprefixを付ける。
 - リモートが設定済みでユーザーから依頼されている場合、節目ごとに作業ブランチをpushしてPRを作成する。
-- PRには概要、関連する要件ID・受け入れ条件ID・仕様書、検証結果、必要な画面確認、既知の制約またはIssueを記載する。
+- PRには概要、関連する要件ID・受け入れ条件ID・仕様書、影響範囲、影響しない範囲、検証結果、必要な画面確認、既知の制約またはIssueを記載する。
 - 既存PRへの追加変更は同じ作業ブランチへpushしてPRを更新する。
 - PRのmergeおよびauto-mergeの設定は行わない。差分をユーザーが確認し、手動でmergeする。
 

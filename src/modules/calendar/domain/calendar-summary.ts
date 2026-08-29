@@ -71,14 +71,9 @@ export function calculateCalendarSummary(
   };
 }
 
-export function formatCompactJpy(amountMinor: number): string {
+export function formatCalendarCellJpy(amountMinor: number): string {
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) {
     throw new Error("invalid JPY amount");
   }
-  if (amountMinor < 10_000) return amountMinor.toLocaleString("ja-JP");
-
-  const roundedTenths = Math.round(amountMinor / 1000);
-  const whole = Math.floor(roundedTenths / 10);
-  const fraction = roundedTenths % 10;
-  return fraction === 0 ? `${whole}万` : `${whole}.${fraction}万`;
+  return amountMinor.toLocaleString("ja-JP");
 }

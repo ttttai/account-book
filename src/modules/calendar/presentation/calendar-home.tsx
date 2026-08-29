@@ -5,7 +5,7 @@ import type {
   CalendarReadyData,
 } from "../application/calendar-types";
 import { shiftMonth } from "../domain/calendar-grid";
-import { formatCompactJpy } from "../domain/calendar-summary";
+import { formatCalendarCellJpy } from "../domain/calendar-summary";
 
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
@@ -308,7 +308,7 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
                               className="calendar-cell-amount"
                               aria-hidden="true"
                             >
-                              {formatCompactJpy(amount)}
+                              {formatCalendarCellJpy(amount)}
                             </span>
                           ) : null}
                         </Link>
