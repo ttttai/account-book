@@ -1261,7 +1261,7 @@ a:focus-visible {
   font-size: clamp(0.56rem, 2.3vw, 0.72rem);
   font-weight: 800;
   line-height: 1.05;
-  overflow-wrap: anywhere;
+  word-break: keep-all;
   text-align: center;
 }
 

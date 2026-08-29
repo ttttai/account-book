@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -74,6 +75,22 @@ function isPlainPrimaryClick(
     !event.ctrlKey &&
     !event.metaKey &&
     !event.shiftKey
+  );
+}
+
+function CalendarCellAmount({
+  amountMinor,
+}: Readonly<{ amountMinor: number }>) {
+  const digitGroups = formatCalendarCellJpy(amountMinor).split(",");
+  return (
+    <span className="calendar-cell-amount" aria-hidden="true">
+      {digitGroups.map((digitGroup, index) => (
+        <Fragment key={`${index}-${digitGroup}`}>
+          {index > 0 ? <wbr /> : null}
+          {index < digitGroups.length - 1 ? `${digitGroup},` : digitGroup}
+        </Fragment>
+      ))}
+    </span>
   );
 }
 
@@ -270,12 +287,7 @@ export function CalendarDayExplorer({
                             {cell.day}
                           </span>
                           {amount ? (
-                            <span
-                              className="calendar-cell-amount"
-                              aria-hidden="true"
-                            >
-                              {formatCalendarCellJpy(amount)}
-                            </span>
+                            <CalendarCellAmount amountMinor={amount} />
                           ) : null}
                         </a>
                       ) : (
