@@ -413,6 +413,32 @@
 
 判定: `CAT-002`、`CAT-003`、認可マトリクスに整合する。実装開始を承認する。
 
+### R-INF-001 Cloud Run本番基盤とTerraform責務
+
+指摘: `D-007`と`NFR-OPS-*`はCloud Run、managed Supabase、費用上限の方針を定めているが、state、secret、image、IAM、初回構築順、IaCの管理境界が未確定だった。単一rootでstate bucketとCloud Runを同時管理すると、初回backend作成が循環し、日常のrevision変更がfoundation資源へ波及する。Next.jsの`NEXT_PUBLIC_*`をCloud Runのruntime変数だけで渡すと、browser bundleへproduction値が入らない。
+
+対応: `11-production-infrastructure.md`を追加し、`bootstrap`と`environments/prod`を独立したTerraform root・stateへ分ける。bootstrapはversioning済みGCS state bucket、必要API、Artifact Registry、runtime service account、secret containerとsecret単位IAM、billing budgetを管理する。prodはCloud Run v2と公開invokerだけを管理する。imageは同一regionのArtifact Registry digest参照に限定し、4つの`NEXT_PUBLIC_*`はproduction imageのbuild時とCloud Run runtimeで一致させる。secret payloadとversion作成はTerraform外とし、Cloud Runは指定versionを参照する。
+
+確認: Cloud Run公式資料はrequest-based billing、service-level min 0、max instance制限、Secret Managerの環境変数で特定versionを使う構成、専用service identityへのsecret単位accessorを提供している。Cloud Runの既定`run.app` endpointはHTTPSであり、公開invokerにしてもアプリのGoogle OAuth、許可リスト、membership、RLSを認証・認可境界として維持できる。Next.js公式資料は`NEXT_PUBLIC_*`がbuild時に固定されると明記している。GCS backendはlockingを備え、versioningが誤削除からの復旧に推奨される。Supabase Terraform ProviderはPublic Alphaで、現状の管理資源だけではGoogle OAuth secretとBefore User Created Hookを含む初回設定を完全に表現できないため、managed Supabaseのcontrol planeは今回のIaCから除外し、migrationとproduction checklistを正本とする。
+
+安全性確認: Terraform source、example、state、planへsecret payloadを入れず、service account keyを作らない。runtime IAMは対象secretのaccessorだけとし、project-levelの広いroleを付与しない。production deletion protection、state bucketのpublic access prevention・`force_destroy = false`・削除防止を要求する。公開invokerはWebアプリとOAuth callbackに必要であり、DBアクセスはuser sessionとRLSで分離する。budget通知はhard capでないこと、min 0によるcold start、max 3による混雑時の遅延を明示した。
+
+実装可能性確認: 初回はbootstrapをlocal stateでapplyし、作成後のGCS bucketへstateをmigrateする。その後secret versionとdigest固定imageを準備してprodをplanする順序なら循環しない。Cloud Run URLが初回作成まで不明なため、初回に限り仮imageでserviceを作成し、確定URLをSupabase、Google OAuth、production buildへ反映する二段階手順を許容する。実credentialなしの構造test、`terraform fmt`、`terraform init -backend=false`、`terraform validate`でPR時の静的検証が可能である。
+
+MVP範囲確認: custom domain、load balancer、CDN、VPC、Cloud SQL、自動deploy、Workload Identity Federation、Supabase control planeのTerraform管理、自動DB backupは追加しない。実cloud資源への`apply`も本PRで行わず、人が承認したplanを別作業で適用する。低利用の非公開MVPに必要な再現性、秘密管理、費用監視へ範囲を限定している。
+
+判定: `INF-001`〜`INF-012`、`AC-INF-001-1`〜`AC-INF-001-12`は既存の`D-007`、`D-008`、`NFR-OPS-*`、`NFR-PERF-005`、`NFR-SEC-*`と整合し、安全かつ実装可能な非公開MVPの本番基盤仕様である。受け入れ条件に対応する構造testを先に作成し、Terraformと日本語運用資料を実装して、実資源を変更せず静的検証することを条件に実装開始を承認する。
+
+### R-INF-002 Terraform生成物のDocker build context混入防止
+
+指摘: Provider取得後のproduction Docker buildで、各rootの`.terraform`が合計246MBのbuild contextへ含まれることを確認した。`.gitignore`はDocker daemonへ送るfileを制御しないため、Git管理外のProvider cacheだけでなく、将来作成するlocal state、plan、実値tfvars、backend設定がbuild contextや中間layerへ混入するおそれがある。
+
+対応: `INF-013`と`AC-INF-001-13`を追加し、Terraform生成物と実値を`.dockerignore`でも明示的に除外する。構造testで`.terraform`、state、plan、tfvars、backend設定の除外を先に固定し、production Docker buildを再実行する。
+
+判定: app実行fileやTerraform sourceは変更せず、機密情報混入と不要な転送量を減らす安全なbuild境界の修正である。既存の`NFR-SEC-004`、`NFR-SEC-005`、`INF-001`、`INF-011`に整合し、test先行とDocker build再確認を条件に実装開始を承認する。
+
+実装確認: `bootstrap`と`environments/prod`を独立rootとして実装し、Google Provider v7.46.0をlockした。state bucket、必要API、Artifact Registryのdry-run cleanup、keyなしruntime service account、payloadを持たないSecret Manager containerとsecret単位IAM、50%・80%・100%のbilling budget、Cloud Run v2のTokyo・Gen2・1 vCPU・512 MiB・request-based billing・min 0・max 3・deletion protection・digest入力・固定secret version・公開invokerを宣言した。日本語運用資料にbackend移行、secret登録、Next.js build時公開値、Supabase・Google OAuth前提、plan確認、rotation、rollback、smoke testを記録した。最新`origin/main`へrebase後、Terraform構造test 8件を含むarchitecture test 48件と単体test 180件、format、警告なしlint、型検査、本番Next.js build、両rootの`terraform validate`が成功した。production Docker imageを再buildし、`.dockerignore`修正によってbuild contextが約246MBから1MB未満へ減少したことを確認した。実credentialをTerraformへ渡さず、`plan`と`apply`は実行していない。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
