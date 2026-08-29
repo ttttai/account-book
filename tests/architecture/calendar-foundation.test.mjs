@@ -46,9 +46,33 @@ test("カレンダーrouteにloadingとerror境界を置く", async () => {
   assert.match(error, /reset\(\)/);
 });
 
-test("日別パネルから検証済み日付を支出登録へ引き継ぐ", async () => {
+test("日付選択は認可済み月間DTOを使う局所的なClient interactionとする", async () => {
+  const query = await read(
+    "src/modules/calendar/application/get-group-calendar.ts",
+  );
+  const types = await read(
+    "src/modules/calendar/application/calendar-types.ts",
+  );
   const calendar = await read(
     "src/modules/calendar/presentation/calendar-home.tsx",
+  );
+  const dayExplorer = await read(
+    "src/modules/calendar/presentation/calendar-day-explorer.tsx",
+  );
+
+  assert.match(types, /dayTransactionsByDate/);
+  assert.match(query, /dayTransactionsByDate/);
+  assert.match(dayExplorer, /^"use client";/m);
+  assert.match(dayExplorer, /window\.history\.pushState/);
+  assert.match(dayExplorer, /addEventListener\("popstate"/);
+  assert.match(dayExplorer, /event\.preventDefault\(\)/);
+  assert.doesNotMatch(dayExplorer, /router\.(?:push|replace|refresh)/);
+  assert.doesNotMatch(calendar, /day: cell\.date/);
+});
+
+test("日別パネルから検証済み日付を支出登録へ引き継ぐ", async () => {
+  const calendar = await read(
+    "src/modules/calendar/presentation/calendar-day-explorer.tsx",
   );
   const expensePage = await read(
     "src/app/groups/[groupId]/transactions/new/page.tsx",

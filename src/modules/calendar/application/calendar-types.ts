@@ -44,7 +44,9 @@ export type CalendarReadyData = Readonly<{
   monthlyPaidTotal?: number;
   dailyTotals: Readonly<Record<string, number>>;
   grid: readonly CalendarGridCell[];
-  dayTransactions: readonly CalendarDayTransaction[];
+  dayTransactionsByDate: Readonly<
+    Record<string, readonly CalendarDayTransaction[]>
+  >;
 }>;
 
 export type CalendarInvalidData = Readonly<{

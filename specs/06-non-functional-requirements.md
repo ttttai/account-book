@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.5
+バージョン: 0.2.6
 
 ## セキュリティ
 
@@ -31,6 +31,7 @@
 - `NFR-PERF-003` カレンダーqueryは選択月だけを対象とし、indexを使える日付範囲で検索する。
 - `NFR-PERF-004` 履歴はcursor paginationを使い、標準30件、最大100件とする。
 - `NFR-PERF-005` Cloud Runはrequest-based billing、min instances 0、初期限度付きmax instancesとする。
+- `NFR-PERF-006` 同じ月・集計対象内の日付選択では、認可済みの月間DTOを再利用し、認証、所属、プロフィール、月間取引を再取得しない。選択状態と日別パネルへ即時feedbackを返す。
 
 非公開MVPでは、費用とのtrade-offとしてcold startを許容する。
 
