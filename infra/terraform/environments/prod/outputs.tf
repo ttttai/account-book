@@ -8,7 +8,7 @@ output "service_url" {
   value       = google_cloud_run_v2_service.app.uri
 }
 
-output "deployed_image" {
-  description = "rollback記録に使うdigest固定image"
-  value       = var.container_image
+output "initial_container_image" {
+  description = "service作成に使った初回image。現在のrevisionはGitHub Actionsのdeploy記録を正本とします"
+  value       = var.initial_container_image
 }

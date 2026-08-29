@@ -6,11 +6,11 @@
 
 ```text
 infra/terraform/
-├── bootstrap/            # state、API、Artifact Registry、runtime IAM、secret container、budget
+├── bootstrap/            # state、API、Artifact Registry、runtime/deploy IAM、WIF、secret、budget
 └── environments/prod/    # Cloud Run serviceと公開invoker
 ```
 
-2つのrootはstateを分離する。`bootstrap`の日常的に変更しない資源を、Cloud Run revision更新時のplanから隔離するためである。実値の`terraform.tfvars`、`backend.hcl`、plan、state、credentialはGitへcommitしない。
+2つのrootはstateを分離する。`bootstrap`の日常的に変更しない資源を、Cloud Runの固定service構成から隔離するためである。通常のアプリrevisionはGitHub Actionsがimageだけを更新し、Terraformは差分として扱わない。実値の`terraform.tfvars`、`backend.hcl`、plan、state、credentialはGitへcommitしない。
 
 ## 前提
 
@@ -21,8 +21,10 @@ infra/terraform/
 - Docker
 - Tokyo regionのmanaged Supabase project
 - production用Google OAuth client
+- production deploy元のGitHub repository
+- GitHub Environment `production`
 
-service account key JSONは作らない。手元では次のADCを使い、将来自動deployを導入するときはWorkload Identity Federationを別仕様で設計する。
+service account key JSONは作らない。手元のTerraform操作は次のADC、GitHub Actionsはbootstrapが作成するWorkload Identity Federationを使う。
 
 ```sh
 gcloud auth application-default login
@@ -38,7 +40,7 @@ cd infra/terraform/bootstrap
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-`project_id`、globally uniqueな`state_bucket_name`、`billing_account_id`を実値へ変更する。`monthly_budget_jpy`は通知額であり、課金を止めるhard capではない。
+`project_id`、globally uniqueな`state_bucket_name`、`billing_account_id`、`github_repository_id`、`github_repository_owner_id`を実値へ変更する。現在の`ttttai/account-book`はrepository ID `1343312787`、owner ID `115963632`である。名前は削除後に第三者が再取得できるため、WIFは再利用されないnumeric IDとmain branchで制約する。IDは`gh api repos/ttttai/account-book --jq '{repository_id: .id, repository_owner_id: .owner.id}'`で再確認できる。`monthly_budget_jpy`は通知額であり、課金を止めるhard capではない。
 
 ### 2. local stateでbootstrapを作成する
 
@@ -54,6 +56,13 @@ terraform apply bootstrap.tfplan
 ```
 
 plan確認では、対象project、region、bucket名、budget額、作成資源を確認する。削除または置換が1件でも含まれる場合はapplyしない。
+
+apply後、GitHub Actions用の値を確認する。
+
+```sh
+terraform output -raw github_workload_identity_provider
+terraform output -raw github_deploy_service_account_email
+```
 
 ### 3. backend移行
 
@@ -93,7 +102,7 @@ Cloud Runをproduction imageへ切り替える前に、次を確認する。
 
 Google OAuth client secretはSupabase Dashboardへ設定し、Cloud Run、Terraform、container imageへ渡さない。Supabase access tokenやservice role keyも本構成では使わない。
 
-## production imageのbuildとpush
+## 初回production imageのbuildとpush
 
 `NEXT_PUBLIC_`変数はNext.jsのbrowser bundleへbuild時に固定される。同じimageを異なる環境へ昇格させず、productionの公開値でproduction imageをbuildする。次の値はCloud Run runtimeへ渡す値と完全に一致させる。
 
@@ -121,13 +130,13 @@ gcloud artifacts docker images describe \
   --format='value(image_summary.digest)'
 ```
 
-Cloud Runへ渡すのはtagではなく、取得したdigestを含む次の形式である。
+Cloud Runの初回Terraform applyへ渡すのはtagではなく、取得したdigestを含む次の形式である。
 
 ```text
 asia-northeast1-docker.pkg.dev/YOUR_PROJECT_ID/account-book/web@sha256:64_HEX_DIGEST
 ```
 
-初回はCloud Run URLがまだないため、短いservice名とproject numberから得られるCloud Runの決定的URLを使うか、仮imageでserviceを作成して`service_url` outputを取得する。その後、Supabase・Google OAuth・production build・`site_url`を同じoriginへ揃えて最終planを作る。
+初回はCloud Run URLがまだないため、初回imageでserviceを作成して`service_url` outputを取得する。その後、Supabase・Google OAuth・GitHub Environment・production buildの`site_url`を同じoriginへ揃え、GitHub Actionsからproduction値で再build・digest deployする。
 
 ## Cloud Runのplanと適用
 
@@ -146,12 +155,50 @@ terraform apply prod.tfplan
 `terraform.tfvars`には次を設定する。
 
 - 対象project ID
-- Artifact Registryのdigest固定image
+- Artifact Registryの初回digest固定image (`initial_container_image`)
 - production HTTPS origin
 - managed Supabase URLとbrowser公開用key
 - 許可リストsecretのversion番号
 
-plan確認では、削除・置換がないこと、Tokyo region、1 vCPU、512 MiB、min 0、max 3、request-based billing、専用service account、secretの固定version、image digestを確認する。`terraform apply -auto-approve`と、通常運用での`-target`は使わない。
+plan確認では、削除・置換がないこと、Tokyo region、1 vCPU、512 MiB、min 0、max 3、request-based billing、専用service account、secretの固定version、初回image digest、deploy identityのservice単位権限を確認する。`terraform apply -auto-approve`と、通常運用での`-target`は使わない。
+
+Terraformは`initial_container_image`でserviceを作成するが、作成後のcontainer image変更だけを`ignore_changes`とする。CPU、memory、scaling、環境変数、secret、runtime identity、ingress、traffic、IAMは引き続きTerraformが管理する。
+
+## GitHub Actions production CD
+
+GitHub repositoryのSettings > Environmentsで`production`を作成し、可能ならrequired reviewerとmain branch制限を設定する。初期構築が終わるまで、Repository variableの`PRODUCTION_CD_ENABLED`は未設定または`false`にする。起動判定はjob開始前に行われ、Environment variableはその時点で利用できないため、この値だけはRepository variableとする。
+
+Environment variablesには次を設定する。
+
+```text
+GCP_PROJECT_ID=account-book-506623
+GCP_REGION=asia-northeast1
+ARTIFACT_REGISTRY_REPOSITORY=account-book
+CLOUD_RUN_SERVICE=account-book
+NEXT_PUBLIC_SITE_URL=https://Cloud-Runの本番URL
+NEXT_PUBLIC_SUPABASE_URL=https://PROJECT_REF.supabase.co
+GCP_WORKLOAD_IDENTITY_PROVIDER=terraform outputで取得したprovider名
+GCP_DEPLOY_SERVICE_ACCOUNT=terraform outputで取得したservice account email
+```
+
+Environment secretには次だけを設定する。
+
+```text
+NEXT_PUBLIC_SUPABASE_ANON_KEY=browser公開用publishable/anon key
+```
+
+このkeyはbrowserへ公開される前提だが、workflow logでの意図しない露出を避けるためsecretとして扱う。許可Googleアカウント一覧、Google OAuth client secret、Supabase service role key、service account key JSONはGitHubへ登録しない。
+
+Cloud Run、Supabase、Google OAuth、上記Environment値が揃った後、Repository variableへ`PRODUCTION_CD_ENABLED=true`を設定する。以降はmainのCI成功後に`.github/workflows/deploy-production.yml`が次を直列実行する。
+
+1. CIが検証したcommitをcheckoutする。
+2. WIFで短期credentialを取得する。
+3. production公開値でcontainerをbuildする。
+4. Artifact Registryへcommit SHA tagでpushし、digestを取得する。
+5. `gcloud run deploy --image=<digest>`でimageだけを更新する。
+6. Cloud Runの参照digestとHTTPS `/login`応答を確認する。
+
+workflowはCPU、memory、環境変数、secret、service account、ingress、IAMを変更しない。CD後のTerraform planでimage以外の差分がないことを確認する。
 
 ## スモークテスト
 
@@ -164,11 +211,13 @@ apply後、最低限次を手動確認する。
 - 2人が同じgroupを共有できる。
 - 別groupの取引・集計を閲覧または更新できない。
 - Cloud Loggingにtoken、cookie、許可メール一覧、家計データがない。
-- Cloud Runのimageがplanと同じdigestである。
+- 初回はCloud Runのimageがplanのdigest、CD後はworkflowが記録したdigestと一致する。
 - min 0、max 3、1 vCPU、512 MiB、runtime service account、secret versionがplanどおりである。
 - billing budgetが対象projectへ設定されている。
 
 ## 通常の変更
+
+Terraformの固定構成を変更する場合:
 
 1. 先に仕様と受け入れ条件を更新・レビューする。
 2. 専用branchとworktreeでTerraformを変更する。
@@ -176,7 +225,9 @@ apply後、最低限次を手動確認する。
 4. PRで影響範囲と影響しない範囲を明記する。
 5. merge後、Git管理外の実値でplanを保存する。
 6. 人がplanを確認し、そのplan fileだけをapplyする。
-7. スモークテストを行う。
+7. スモークテストと、意図しないimage変更がないことを確認する。
+
+アプリを変更する場合は、PRのCI成功と人によるmerge後、production CDがbuild・push・digest deploy・smoke testを行う。Terraform applyは行わない。
 
 同じrootを複数人が同時にapplyしない。GCS lockingの失敗時に`force-unlock`を安易に実行せず、実行中processがないこととlock IDを確認する。
 
@@ -190,7 +241,7 @@ apply後、最低限次を手動確認する。
 
 ## ロールバック
 
-アプリ不具合時は、動作確認済みの過去image digestを`container_image`へ戻し、plan・applyする。mutable tagへ戻してはならない。DB migrationを含む変更はimageだけで戻せないため、高risk migration前のmanual dumpとmigration固有の復旧手順に従う。
+アプリ不具合時は、Artifact Registryと過去のworkflow記録から動作確認済みimage digestを特定し、deploy identityまたは権限を持つ運用者が`gcloud run deploy --image=<過去digest>`で新しいrevisionとして戻す。`initial_container_image`を変更したTerraform applyではrollbackしない。mutable tagへ戻してはならない。DB migrationを含む変更はimageだけで戻せないため、高risk migration前のmanual dumpとmigration固有の復旧手順に従う。
 
 Terraform変更自体を戻す場合もGit revert後に必ずplanを確認する。stateを手動編集しない。state破損時はGCS object versioningから復旧候補を確認し、別保存して内容と世代を検証してから復旧する。
 

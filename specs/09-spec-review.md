@@ -439,6 +439,20 @@ MVP範囲確認: custom domain、load balancer、CDN、VPC、Cloud SQL、自動d
 
 実装確認: `bootstrap`と`environments/prod`を独立rootとして実装し、Google Provider v7.46.0をlockした。state bucket、必要API、Artifact Registryのdry-run cleanup、keyなしruntime service account、payloadを持たないSecret Manager containerとsecret単位IAM、50%・80%・100%のbilling budget、Cloud Run v2のTokyo・Gen2・1 vCPU・512 MiB・request-based billing・min 0・max 3・deletion protection・digest入力・固定secret version・公開invokerを宣言した。日本語運用資料にbackend移行、secret登録、Next.js build時公開値、Supabase・Google OAuth前提、plan確認、rotation、rollback、smoke testを記録した。最新`origin/main`へrebase後、Terraform構造test 8件を含むarchitecture test 48件と単体test 180件、format、警告なしlint、型検査、本番Next.js build、両rootの`terraform validate`が成功した。production Docker imageを再buildし、`.dockerignore`修正によってbuild contextが約246MBから1MB未満へ減少したことを確認した。実credentialをTerraformへ渡さず、`plan`と`apply`は実行していない。
 
+### R-INF-003 Terraform固定構成とGitHub Actions revision deployの分離
+
+指摘: R-INF-001ではTerraformがCloud Runのimage digestも継続管理するため、アプリの各releaseでprod root全体のplan・applyが必要になる。GitHub Actionsから別途`gcloud run deploy`するとTerraformが古いimageへ戻そうとしてdriftが発生する。一方、Cloud Run template全体を`ignore_changes`にするとCPU、memory、scaling、環境変数、secret、runtime identityまでIaCの管理外になる。長期service account keyをGitHub Secretsへ保存する構成も避ける必要がある。
+
+対応: TerraformはfoundationとCloud Runの固定service構成を管理し、service作成に必要な`initial_container_image`だけを入力する。`lifecycle.ignore_changes`はcontainer imageの正確な属性だけに限定する。GitHub ActionsはmainのCI成功後にWIFで専用deploy service accountをimpersonateし、production imageをbuild・Artifact Registryへpushして、取得したdigestで既存Cloud Run serviceのimageだけを更新する。bootstrapは再利用されないnumeric repository ID・owner IDとmain branchへ制約したWIF、deploy identity、repository単位Writer、runtime identity単位Service Account Userを管理し、prodは対象service単位Cloud Run Developerを管理する。workflowは`production` Environmentと直列concurrencyを使う。Environment変数はjobがrunnerへ送られた後に利用可能になるため、起動スイッチだけはRepository variable `PRODUCTION_CD_ENABLED`とし、初期構築後に`true`を明示するまでjobをskipする。Cloud Runの固定構成を変更するflagは禁止する。
+
+安全性確認: WIFにより長期credentialをGitHubへ保存しない。Google Cloud公式が名前fieldのcybersquatting対策として推奨するnumeric `repository_id`と`repository_owner_id`を使い、repository削除・rename後に同名を取得した主体を信頼しない。deploy identityとruntime identityを分離し、deploy identityはSecret Manager payloadを読めない。GitHub workflowへ許可メール一覧、OAuth client secret、Supabase service role keyを渡さない。WIF Actionがworkspaceへ一時生成する`gha-creds-*.json`はGitとDocker build contextの両方から除外する。imageはmutable tagではなく解決済みdigestでdeployし、commit SHA、digest、Cloud Run実参照を照合する。外部Actionは完全commit SHAへ固定し、production Environmentでbranch・承認を追加できる。
+
+実装可能性確認: Cloud Run v2 resourceは作成時imageが必須だが、初回imageを手動でpushしてからprod Terraformをapplyすれば循環しない。以後の`gcloud run deploy --image`は既存設定を保持したままrevisionを作成でき、Terraformはimage属性だけを無視するため固定構成のdrift検知を維持できる。CI workflowの`workflow_run`成功eventから検証済みhead SHAをcheckoutし、手動実行はmainだけに制限できる。構造testでtrigger、WIF、digest、禁止flag、IAM scope、ignore対象を固定できる。
+
+MVP範囲確認: preview環境、canary、Cloud Deploy、独自domain、自動Terraform apply、DB migration自動適用は追加しない。低頻度のfoundation変更は従来どおり人がplanを確認してapplyし、高頻度のアプリrevisionだけをCDへ分離する。
+
+判定: `INF-012`、`INF-014`〜`INF-016`、`AC-INF-001-14`〜`AC-INF-001-18`は`NFR-MNT-008`、`NFR-MNT-009`、`NFR-OPS-*`、`NFR-SEC-004`と整合し、安全かつ実装可能である。受け入れ条件に対応する構造testを先に更新し、Terraform、workflow、日本語運用資料を実装し、実credentialと実cloud変更なしで検証することを条件に実装開始を承認する。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |

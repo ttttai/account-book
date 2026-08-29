@@ -51,6 +51,49 @@ variable "cloud_run_service_account_id" {
   }
 }
 
+variable "github_deploy_service_account_id" {
+  description = "GitHub Actions production deploy専用service account ID"
+  type        = string
+  default     = "account-book-deploy"
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.github_deploy_service_account_id))
+    error_message = "service account IDには6〜30文字の有効な値を指定してください。"
+  }
+}
+
+variable "github_repository_id" {
+  description = "production deployを許可するGitHub repositoryの再利用されないnumeric ID"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*$", var.github_repository_id))
+    error_message = "github_repository_idには1以上のnumeric repository IDを指定してください。"
+  }
+}
+
+variable "github_repository_owner_id" {
+  description = "production deployを許可するGitHub repository ownerの再利用されないnumeric ID"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[1-9][0-9]*$", var.github_repository_owner_id))
+    error_message = "github_repository_owner_idには1以上のnumeric owner IDを指定してください。"
+  }
+}
+
+variable "github_workload_identity_pool_id" {
+  description = "GitHub Actions用Workload Identity Pool ID"
+  type        = string
+  default     = "account-book-github"
+}
+
+variable "github_workload_identity_provider_id" {
+  description = "GitHub OIDC用Workload Identity Provider ID"
+  type        = string
+  default     = "account-book-main"
+}
+
 variable "allowed_google_emails_secret_id" {
   description = "許可Googleアカウント一覧を保存するSecret Manager secret ID"
   type        = string

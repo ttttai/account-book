@@ -1,7 +1,9 @@
 # 実値はterraform.tfvarsへコピーし、Gitへcommitしないでください。
 project_id         = "your-gcp-project-id"
 state_bucket_name  = "your-globally-unique-account-book-tfstate"
-billing_account_id = "billingAccounts/000000-000000-000000"
+billing_account_id         = "billingAccounts/000000-000000-000000"
+github_repository_id       = "1343312787"
+github_repository_owner_id = "115963632"
 
 # budgetは通知であり、課金を停止するhard capではありません。
 monthly_budget_jpy = 1000

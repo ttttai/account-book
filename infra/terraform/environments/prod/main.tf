@@ -14,6 +14,11 @@ data "google_service_account" "cloud_run" {
   account_id = var.cloud_run_service_account_id
 }
 
+data "google_service_account" "github_deploy" {
+  project    = var.project_id
+  account_id = var.github_deploy_service_account_id
+}
+
 data "google_secret_manager_secret" "allowed_google_emails" {
   project   = var.project_id
   secret_id = var.allowed_google_emails_secret_id
@@ -38,7 +43,7 @@ resource "google_cloud_run_v2_service" "app" {
 
     containers {
       name  = "app"
-      image = var.container_image
+      image = var.initial_container_image
 
       ports {
         name           = "http1"
@@ -93,11 +98,23 @@ resource "google_cloud_run_v2_service" "app" {
   }
 
   lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image,
+    ]
+
     precondition {
-      condition     = startswith(var.container_image, "${var.region}-docker.pkg.dev/${var.project_id}/")
+      condition     = startswith(var.initial_container_image, "${var.region}-docker.pkg.dev/${var.project_id}/")
       error_message = "container imageは同じproject・regionのArtifact Registryから指定してください。"
     }
   }
+}
+
+resource "google_cloud_run_v2_service_iam_member" "github_deploy" {
+  project  = var.project_id
+  location = google_cloud_run_v2_service.app.location
+  name     = google_cloud_run_v2_service.app.name
+  role     = "roles/run.developer"
+  member   = "serviceAccount:${data.google_service_account.github_deploy.email}"
 }
 
 resource "google_cloud_run_v2_service_iam_member" "public" {

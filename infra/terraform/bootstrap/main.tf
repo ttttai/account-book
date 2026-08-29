@@ -13,10 +13,12 @@ locals {
     "billingbudgets.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
     "serviceusage.googleapis.com",
     "storage.googleapis.com",
+    "sts.googleapis.com",
   ])
 }
 
@@ -92,6 +94,66 @@ resource "google_service_account" "cloud_run" {
   description  = "Keyless runtime identity for the Account Book production service"
 
   depends_on = [google_project_service.required]
+}
+
+resource "google_service_account" "github_deploy" {
+  project      = var.project_id
+  account_id   = var.github_deploy_service_account_id
+  display_name = "Account Book GitHub Actions deploy"
+  description  = "Keyless deploy identity for GitHub Actions production releases"
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_iam_workload_identity_pool" "github" {
+  project                   = var.project_id
+  workload_identity_pool_id = var.github_workload_identity_pool_id
+  display_name              = "Account Book GitHub Actions"
+  description               = "Trust boundary for the Account Book production workflow"
+  disabled                  = false
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_iam_workload_identity_pool_provider" "github" {
+  project                            = var.project_id
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
+  workload_identity_pool_provider_id = var.github_workload_identity_provider_id
+  display_name                       = "Account Book GitHub OIDC"
+  description                        = "Only the configured repository main branch may deploy"
+
+  attribute_mapping = {
+    "google.subject"                = "assertion.sub"
+    "attribute.repository_id"       = "assertion.repository_id"
+    "attribute.repository_owner_id" = "assertion.repository_owner_id"
+    "attribute.ref"                 = "assertion.ref"
+  }
+
+  attribute_condition = "assertion.repository_id == '${var.github_repository_id}' && assertion.repository_owner_id == '${var.github_repository_owner_id}' && assertion.ref == 'refs/heads/main'"
+
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+}
+
+resource "google_service_account_iam_member" "github_actions_wif" {
+  service_account_id = google_service_account.github_deploy.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository_id/${var.github_repository_id}"
+}
+
+resource "google_artifact_registry_repository_iam_member" "github_deploy_writer" {
+  project    = var.project_id
+  location   = google_artifact_registry_repository.app.location
+  repository = google_artifact_registry_repository.app.repository_id
+  role       = "roles/artifactregistry.writer"
+  member     = "serviceAccount:${google_service_account.github_deploy.email}"
+}
+
+resource "google_service_account_iam_member" "github_deploy_runtime_user" {
+  service_account_id = google_service_account.cloud_run.name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.github_deploy.email}"
 }
 
 resource "google_secret_manager_secret" "allowed_google_emails" {
