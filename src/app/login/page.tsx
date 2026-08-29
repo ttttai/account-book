@@ -35,11 +35,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       )}
       {!googleEnabled && (
         <p className="field-hint">
-          Google OAuthまたは2アカウントの許可設定が完了していません。
+          Google OAuthまたは許可アカウントの設定が完了していません。
         </p>
       )}
       <p className="field-hint">
-        現在は、管理者が許可した2つのGoogleアカウントだけ利用できます。
+        現在は、管理者が許可したGoogleアカウントだけ利用できます。
       </p>
       {params.error === "not_allowed" && (
         <p className="form-message error" role="alert">

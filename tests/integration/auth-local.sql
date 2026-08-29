@@ -56,9 +56,27 @@ select pg_temp.assert_true(
 );
 select pg_temp.assert_true(
   app_private.sync_allowed_google_accounts(
+    'first@example.test,First@example.test'
+  ) = 0,
+  '正規化後に重複する許可リストは全件を無効にする'
+);
+select pg_temp.assert_true(
+  app_private.sync_allowed_google_accounts(
+    'first@example.test,second@example.test,third@example.test'
+  ) = 3,
+  '3件以上の有効な許可リストを件数上限なしで同期する'
+);
+select pg_temp.assert_true(
+  app_private.sync_allowed_google_accounts(
+    'only@example.test'
+  ) = 1,
+  '1件だけの有効な許可リストを同期する'
+);
+select pg_temp.assert_true(
+  app_private.sync_allowed_google_accounts(
     ' FIRST@example.test , second@example.test '
   ) = 2,
-  '重複のない有効な2件だけを正規化して同期する'
+  '重複のない有効な2件を正規化して同期する'
 );
 
 insert into auth.users (
