@@ -70,16 +70,14 @@ function dateInTimeZone(date: Date, timeZone: string): string {
   return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
 }
 
-function createDayTransactions(
+function createDayTransactionsByDate(
   expenses: readonly CalendarExpense[],
-  selectedDay: string | undefined,
   targetMembershipId: string | undefined,
   displayNameByMembershipId: ReadonlyMap<string, string>,
-): readonly CalendarDayTransaction[] {
-  if (!selectedDay) return [];
+): Readonly<Record<string, readonly CalendarDayTransaction[]>> {
+  const transactionsByDate: Record<string, CalendarDayTransaction[]> = {};
 
-  return expenses
-    .filter((expense) => expense.date === selectedDay)
+  const transactions = [...expenses]
     .map((expense) => {
       const targetAmountMinor = targetMembershipId
         ? (expense.allocations.find(
@@ -93,21 +91,32 @@ function createDayTransactions(
       right.expense.createdAt.localeCompare(left.expense.createdAt),
     )
     .map(({ expense, targetAmountMinor }) => ({
-      id: expense.id,
-      amountMinor: expense.amountMinor,
-      targetAmountMinor,
-      categoryName: expense.category.name,
-      categoryColor: expense.category.color,
-      categoryIcon: expense.category.icon,
-      payerDisplayName:
-        displayNameByMembershipId.get(expense.payerMemberId) ?? "メンバー",
-      allocations: expense.allocations.map((allocation) => ({
-        membershipId: allocation.memberId,
-        displayName:
-          displayNameByMembershipId.get(allocation.memberId) ?? "メンバー",
-        amountMinor: allocation.amountMinor,
-      })),
+      date: expense.date,
+      transaction: {
+        id: expense.id,
+        amountMinor: expense.amountMinor,
+        targetAmountMinor,
+        categoryName: expense.category.name,
+        categoryColor: expense.category.color,
+        categoryIcon: expense.category.icon,
+        payerDisplayName:
+          displayNameByMembershipId.get(expense.payerMemberId) ?? "メンバー",
+        allocations: expense.allocations.map((allocation) => ({
+          membershipId: allocation.memberId,
+          displayName:
+            displayNameByMembershipId.get(allocation.memberId) ?? "メンバー",
+          amountMinor: allocation.amountMinor,
+        })),
+      } satisfies CalendarDayTransaction,
     }));
+
+  for (const { date, transaction } of transactions) {
+    const dayTransactions = transactionsByDate[date] ?? [];
+    dayTransactions.push(transaction);
+    transactionsByDate[date] = dayTransactions;
+  }
+
+  return transactionsByDate;
 }
 
 export async function getGroupCalendar(
@@ -265,9 +274,8 @@ export async function getGroupCalendar(
     members,
     ...summary,
     grid: createCalendarGrid(selection.month, group.week_starts_on, today),
-    dayTransactions: createDayTransactions(
+    dayTransactionsByDate: createDayTransactionsByDate(
       expenses,
-      selection.day,
       targetMembershipId,
       displayNameByMembershipId,
     ),

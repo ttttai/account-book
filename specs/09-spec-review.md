@@ -4,7 +4,7 @@
 
 レビュー日: 2026-08-29
 
-対象バージョン: 0.2.9
+対象バージョン: 0.2.10
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.9の自動文書検査では、要件ID 96件、明示的な受け入れ条件ID 89件が一意であり、重複宣言はなかった。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
+バージョン0.2.10の自動文書検査では、要件ID 98件、明示的な受け入れ条件ID 90件が一意であり、重複宣言はなかった。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -310,6 +310,16 @@
 判定: `CAL-002`、`AC-CAL-001-16`、`AC-TXN-001-9`、`NFR-UI-*`、`NFR-A11Y-*`に整合し、DB、認証、認可、集計方法、保存形式を変更しない局所的な表示・入力改善として妥当である。単体test、architecture test、format、lint、型検査、本番build、3 viewportの実画面確認を条件に実装開始を承認する。
 
 実装確認: カレンダーセルの金額表示を桁区切りした正確な10進数字へ変更し、10,000円、12,345円、99,999円、1,234,567円と不正値拒否の単体testを追加した。支出カテゴリを名称、色点、選択記号を持つ2列のradio cardへ変更し、構造・2列・48pxタップ領域・focus表示のarchitecture testを追加した。architecture test 34件、単体test 118件、format、警告なしlint、型検査、本番buildが成功した。320 x 812では各カード幅123px、375 x 812では143px、1280 x 800では127pxで、すべて高さ48px、横scrollなしだった。375pxでカード全体から「交通」へ変更すると枠・背景・選択記号が更新され、keyboard focusの3px outlineも確認した。カレンダーは3 viewportで`10,000`から`1,234,567`まで`万`表記や省略なしで表示された。
+
+### R-032 カレンダー日付選択の即時性とURL同期
+
+指摘: 日付セルを`Link`によるServer Component navigationとして実装すると、`day`だけの変更でもプロフィール、認証・所属、メンバー、選択月の全取引と負担内訳を再取得し、月間集計とページ全体を再renderする。日付を連続して見比べる主要操作に通信待ちとroute-level loadingが入り、モバイルでbottom sheetを操作する連続性が損なわれる。仕様は月移動時のskeletonだけを要求しており、日付選択に同じ待機表示を適用する必要はない。
+
+対応: server-only queryは従来どおり認証・認可後に選択月だけを読み、月間集計に加えて、同じ認可済み取引から日付別の表示用最小DTOを作る。Client ComponentはそのDTOを表示にだけ利用し、金額計算や認可判断を行わない。同じ月・scope・member内の日付選択と解除はlocal stateで即時反映し、Next.js Routerと統合されるNative History APIで`day`を追加・削除する。初回表示・再読み込みはserver検証を維持し、戻る／進むではURLから有効な選択を復元する。
+
+確認: Next.js 16.3.2同梱ガイドでは、state・event handler・browser APIが必要な局所領域にClient Componentを使い、Server Componentからserializableな最小propsを渡す構成を案内している。同梱のLinking and Navigatingガイドは`window.history.pushState`と`replaceState`がページ再読み込みなしでhistoryを更新し、`useSearchParams`と同期すると明記している。月内の取引は現行queryですでに認可・取得済みであり、同じデータから日付別DTOを作るためDB・RLS境界とMVP範囲を変更しない。architecture・unit testでDTO、Client境界、Link不使用、History API、URL同期を固定し、375 x 812と1280 x 800で連続選択、閉じる、戻る／進む、横scroll、focusを確認する。
+
+判定: `CAL-005`、`CAL-011`、`AC-CAL-001-13`、`AC-CAL-001-17`、`NFR-PERF-006`、`NFR-A11Y-*`、`NFR-UI-*`に整合する。認証、認可、DB query範囲、集計定義を変更せず、日付選択だけを局所的なClient interactionへ移すため安全かつ実装可能である。上記testと2 viewportの実画面確認を条件に修正実装を承認する。
 
 ## 4. 要件と検証方法の対応
 
