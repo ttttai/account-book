@@ -1,7 +1,8 @@
 # 実値はterraform.tfvarsへコピーし、Gitへcommitしないでください。
 project_id         = "your-gcp-project-id"
 state_bucket_name  = "your-globally-unique-account-book-tfstate"
-billing_account_id         = "billingAccounts/000000-000000-000000"
+# gcloud billing accounts listの出力をそのまま使う（billingAccounts/ prefixなし）。
+billing_account_id         = "000000-000000-000000"
 github_repository_id       = "1343312787"
 github_repository_owner_id = "115963632"
 
