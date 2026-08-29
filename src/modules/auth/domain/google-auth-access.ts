@@ -1,4 +1,4 @@
-export type AllowedGoogleAccounts = readonly [string, string];
+export type AllowedGoogleAccounts = readonly string[];
 
 const SIMPLE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -17,14 +17,13 @@ export function parseAllowedGoogleAccounts(
 
   const accounts = value.split(",").map(normalizeAccount);
   if (
-    accounts.length !== 2 ||
-    new Set(accounts).size !== 2 ||
+    new Set(accounts).size !== accounts.length ||
     accounts.some((account) => !SIMPLE_EMAIL_PATTERN.test(account))
   ) {
     return null;
   }
 
-  return [accounts[0], accounts[1]];
+  return accounts;
 }
 
 export function getAllowedGoogleUserIdFromClaims(

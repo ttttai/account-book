@@ -15,7 +15,7 @@
 - `NFR-SEC-007` Content Security Policy、frame保護、content-type保護、referrer policyを設定する。
 - `NFR-SEC-008` CSVのユーザー入力文字列に対する数式injectを無害化する。
 - `NFR-SEC-009` 一般公開前にGoogle OAuthのrate limit、abuse対策、許可リスト解除条件を再評価する。
-- `NFR-SEC-010` 非公開MVPの2アカウント制限を、Auth登録前フック、callback・DALのサーバー検証、DBのRLS・更新関数で多層防御する。許可リストの入力が重複のない有効な2件ちょうどでない場合は、サーバーとDBの両方で全件を無効としてfail closedにする。
+- `NFR-SEC-010` 非公開MVPの許可リスト制限を、Auth登録前フック、callback・DALのサーバー検証、DBのRLS・更新関数で多層防御する。許可リストの入力が重複のない有効なメールアドレス1件以上でない場合は、サーバーとDBの両方で全件を無効としてfail closedにする。
 
 ## プライバシー
 

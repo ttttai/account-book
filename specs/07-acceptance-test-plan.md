@@ -44,7 +44,7 @@
 - OAuth開始Route Handlerが通常のHTTP redirectでPKCE verifier cookieを設定し、検証済みの戻り先を維持すること。公開サイトと異なるoriginからの開始はcookie発行前にcanonical originへredirectし、その後のcallbackとcookieのhostが一致すること。callbackはcookieがある場合だけcode交換を試み、欠損時はsessionを作らず安全に失敗すること
 - 未認証の保護画面遷移とログアウト後のsession無効化
 - OAuth metadata欠損時も制約内のプロフィール表示名を作れること
-- 許可リストの正規化と厳密な2件制約。重複、空値、不正値、3件以上を含む場合は、有効な部分だけを採用せずサーバー・DBとも全件を無効にする
+- 許可リストの正規化と厳密な検証。重複、空値、不正値を含む場合は、有効な部分だけを採用せずサーバー・DBとも全件を無効にする。重複のない有効な1件以上は件数の上限なく受け付ける
 - Google以外のproviderと許可リスト外アカウントのサーバー拒否
 - メール・パスワード認証の画面、Action、ローカルSMTP構成が存在しないこと
 - 招待tokenの長さ・URL-safe形式・決定的なSHA-256 hashと、不正形式の拒否
@@ -71,7 +71,7 @@
 - 削除されたメンバーは新しいアクセスを失い、過去参照は維持される。
 - RPC/DB関数でグループ分離を迂回できない。
 - カテゴリ、支払者、受取者、負担行を別グループへ関連付けられない。
-- 有効なSupabase sessionがあっても、Google providerでない、または2件の許可リスト外のユーザーはprofile、group、RPCへアクセスできない。
+- 有効なSupabase sessionがあっても、Google providerでない、または許可リスト外のユーザーはprofile、group、RPCへアクセスできない。
 - memberと非メンバーは招待作成・保留一覧・取消を実行できず、owner/adminだけが実行できる。
 - 期限切れ、取消済み、別ユーザーが使用済みの招待を拒否し、同一ユーザーの再承認は冪等に成功する。
 - 招待承認で所属を重複作成せず、削除済み所属は同じ所属IDを再有効化する。

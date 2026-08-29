@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.6
+バージョン: 0.2.7
 
 ## 1. 設計目標
 
@@ -13,6 +13,8 @@
 - 2人限定の構造を入れず、将来の予算、定期取引、精算、口座へ拡張できる。
 
 ## 2. エンティティ関連
+
+実装済みテーブルの視覚的な関係は`10-er-diagram.md`を参照する。DB構造の正本はmigration、制約と将来設計の正本は本書とする。
 
 ```text
 auth.users 1---1 profiles
@@ -40,7 +42,7 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 
 ### allowed_google_accounts
 
-`app_private`に、非公開MVPで利用を許可するGoogleアカウントの正規化済み識別子を保持する。値はGit管理外のサーバー環境変数から同期し、重複のない2件でなければ認証を有効化しない。`anon`、`authenticated`、PostgRESTから直接参照・更新できない。
+`app_private`に、非公開MVPで利用を許可するGoogleアカウントの正規化済み識別子を保持する。値はGit管理外のサーバー環境変数から同期し、重複のない有効なメールアドレス1件以上でなければ認証を有効化しない。件数の上限は設けない。`anon`、`authenticated`、PostgRESTから直接参照・更新できない。
 
 ### groups
 

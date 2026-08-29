@@ -21,6 +21,7 @@
 | `07-acceptance-test-plan.md`           | テストレベルとリリース条件                       |
 | `08-decisions-and-deferred-scope.md`   | 確定事項、前提、延期機能                         |
 | `09-spec-review.md`                    | 仕様レビュー結果と承認状態                       |
+| `10-er-diagram.md`                     | 実装済みDB構造のER図と関係・更新ルール           |
 
 ## 変更・実装フロー
 
