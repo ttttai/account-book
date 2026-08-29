@@ -5,15 +5,8 @@ import type {
   CalendarReadyData,
 } from "../application/calendar-types";
 import { shiftMonth } from "../domain/calendar-grid";
+import { formatJpy } from "../domain/calendar-summary";
 import { CalendarDayExplorer } from "./calendar-day-explorer";
-
-function formatJpy(amountMinor: number): string {
-  return new Intl.NumberFormat("ja-JP", {
-    style: "currency",
-    currency: "JPY",
-    maximumFractionDigits: 0,
-  }).format(amountMinor);
-}
 
 function formatMonth(month: string): string {
   const [year, monthNumber] = month.split("-").map(Number);

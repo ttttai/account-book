@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateCalendarSummary,
   formatCalendarCellJpy,
+  formatJpy,
 } from "./calendar-summary";
 
 const firstMemberId = "10000000-0000-4000-8000-000000000001";
@@ -94,6 +95,26 @@ describe("formatCalendarCellJpy", () => {
     "不正な金額%sを拒否する",
     (amount) => {
       expect(() => formatCalendarCellJpy(amount)).toThrow("invalid JPY amount");
+    },
+  );
+});
+
+describe("formatJpy", () => {
+  it.each([
+    [0, "￥0"],
+    [300, "￥300"],
+    [9999, "￥9,999"],
+    [18500, "￥18,500"],
+    [9999999, "￥9,999,999"],
+    [1234567890, "￥1,234,567,890"],
+  ])("%i円を全角￥付きの%sと決定的に表示する", (amount, expected) => {
+    expect(formatJpy(amount)).toBe(expected);
+  });
+
+  it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    "不正な金額%sを拒否する",
+    (amount) => {
+      expect(() => formatJpy(amount)).toThrow("invalid JPY amount");
     },
   );
 });

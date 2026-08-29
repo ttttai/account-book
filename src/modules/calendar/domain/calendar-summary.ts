@@ -71,9 +71,14 @@ export function calculateCalendarSummary(
   };
 }
 
+// server renderとclient hydrationで同一文字列にするため、locale実装に依存しない
 export function formatCalendarCellJpy(amountMinor: number): string {
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) {
     throw new Error("invalid JPY amount");
   }
-  return amountMinor.toLocaleString("ja-JP");
+  return String(amountMinor).replace(/\B(?=(\d{3})+$)/g, ",");
+}
+
+export function formatJpy(amountMinor: number): string {
+  return `￥${formatCalendarCellJpy(amountMinor)}`;
 }

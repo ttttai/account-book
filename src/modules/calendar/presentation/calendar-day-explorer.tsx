@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import type { CalendarReadyData } from "../application/calendar-types";
-import { formatCalendarCellJpy } from "../domain/calendar-summary";
+import { formatCalendarCellJpy, formatJpy } from "../domain/calendar-summary";
 
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
@@ -32,14 +32,6 @@ type CalendarDayExplorerData = Readonly<
     }>;
   }
 >;
-
-function formatJpy(amountMinor: number): string {
-  return new Intl.NumberFormat("ja-JP", {
-    style: "currency",
-    currency: "JPY",
-    maximumFractionDigits: 0,
-  }).format(amountMinor);
-}
 
 function formatMonth(month: string): string {
   const [year, monthNumber] = month.split("-").map(Number);
@@ -78,16 +70,35 @@ function isPlainPrimaryClick(
   );
 }
 
+type JpyDigitGroup = Readonly<{
+  offset: number;
+  text: string;
+  isLast: boolean;
+}>;
+
+function splitJpyDigitGroups(amountMinor: number): readonly JpyDigitGroup[] {
+  const digitGroups = formatCalendarCellJpy(amountMinor).split(",");
+  let offset = 0;
+  return digitGroups.map((digitGroup, index) => {
+    const group = {
+      offset,
+      text: digitGroup,
+      isLast: index === digitGroups.length - 1,
+    };
+    offset += digitGroup.length + 1;
+    return group;
+  });
+}
+
 function CalendarCellAmount({
   amountMinor,
 }: Readonly<{ amountMinor: number }>) {
-  const digitGroups = formatCalendarCellJpy(amountMinor).split(",");
   return (
     <span className="calendar-cell-amount" aria-hidden="true">
-      {digitGroups.map((digitGroup, index) => (
-        <Fragment key={`${index}-${digitGroup}`}>
-          {index > 0 ? <wbr /> : null}
-          {index < digitGroups.length - 1 ? `${digitGroup},` : digitGroup}
+      {splitJpyDigitGroups(amountMinor).map((digitGroup) => (
+        <Fragment key={digitGroup.offset}>
+          {digitGroup.offset > 0 ? <wbr /> : null}
+          {digitGroup.isLast ? digitGroup.text : `${digitGroup.text},`}
         </Fragment>
       ))}
     </span>
