@@ -176,7 +176,8 @@ resource "google_secret_manager_secret_iam_member" "cloud_run_accessor" {
 }
 
 resource "google_billing_budget" "monthly" {
-  billing_account = var.billing_account_id
+  # providerがbillingAccounts/ prefixを補うため、ID部分だけを渡す。
+  billing_account = trimprefix(var.billing_account_id, "billingAccounts/")
   display_name    = "Account Book production monthly budget"
 
   budget_filter {

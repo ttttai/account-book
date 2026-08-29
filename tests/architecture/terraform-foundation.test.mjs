@@ -79,6 +79,10 @@ test("Artifact Registry、budget、keyなしruntime・deploy identityを宣言�
   assert.match(bootstrap, /format\s*=\s*"DOCKER"/);
   assert.match(bootstrap, /cleanup_policy_dry_run\s*=\s*true/);
   assert.match(bootstrap, /resource\s+"google_billing_budget"\s+"monthly"/);
+  assert.match(
+    bootstrap,
+    /billing_account\s*=\s*trimprefix\(var\.billing_account_id,\s*"billingAccounts\/"\)/,
+  );
   for (const threshold of ["0.5", "0.8", "1.0"]) {
     assert.match(
       bootstrap,
