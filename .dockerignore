@@ -14,3 +14,7 @@ npm-debug.log*
 *.tfplan
 *.tfvars
 backend.hcl
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

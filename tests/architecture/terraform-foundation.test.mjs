@@ -239,6 +239,7 @@ test("Terraform生成物と実値をGit管理から除外する", async () => {
     "*.tfplan",
     "*.tfvars",
     "backend.hcl",
+    "*_override.tf",
     "gha-creds-*.json",
   ]) {
     assert.match(gitignore, new RegExp(pattern.replaceAll("*", "\\*")));
@@ -253,6 +254,7 @@ test("Terraform生成物と実値をGit管理から除外する", async () => {
     "*.tfplan",
     "*.tfvars",
     "backend.hcl",
+    "*_override.tf",
     "gha-creds-*.json",
   ]) {
     assert.match(dockerignore, new RegExp(pattern.replaceAll("*", "\\*")));
