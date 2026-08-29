@@ -287,6 +287,18 @@
 
 実装確認: workflowとarchitecture testを全branch `push`・手動実行の単一triggerへ更新し、format、lint、型検査、architecture test 29件、単体test 84件、本番buildがローカルで成功した。commit `621fecd`を`feat/expense-entry`へpushすると6秒以内に手動操作なしの`push` run `33022853825`が起動し、Qualityは59秒、Docker integrationは2分24秒で成功した。両checkがPR #6のhead commitへ表示されることも確認した。
 
+### R-029 ER図の実装状態と正本の分離
+
+指摘: `04-data-model.md`にはテキスト形式の関連だけがあり、複数の操作者外部キー、支払者・受取者、負担行、グループ境界の関係を一覧で確認しにくい。一方、将来予定を実装済みテーブルと同じ図へ描くと、migrationとの不一致を招く。
+
+対応: `10-er-diagram.md`に、migrationで実装済みの`auth.users`、`public` schema 7テーブル、`app_private` schema 1テーブルだけをMermaid ER図として記載する。外部schemaと認証許可リストの非FK関係、複合外部キーによるグループ固定、論理削除、読み取り時カレンダー集計を注記する。DB構造はmigration、制約と将来設計は`04-data-model.md`を正本とし、ER図は視覚資料として位置付ける。
+
+確認: migrationから作成テーブル名を抽出し、ER図に全テーブルが存在すること、主要な外部キー関係と`daily_summaries`非実装が明記されることをarchitecture testで確認する。テーブルまたは外部キーを変更するmigrationではER図も同じPRで更新する運用を定める。
+
+判定: 実装状態を誤認させず、グループ分離と取引負担モデルをレビューしやすくする文書変更として妥当である。ER図と同期testの作成を承認する。
+
+実装確認: 実装済み8テーブルとSupabase Auth管理の`auth.users`をMermaid ER図へ記載し、migrationから抽出したテーブル一覧、主要関係、複合外部キーの注記、`daily_summaries`非実装を照合するarchitecture testを追加した。architecture test 30件、単体test 84件、format、lint、型検査、本番buildが成功した。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
