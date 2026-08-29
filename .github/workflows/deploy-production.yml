@@ -36,8 +36,36 @@ jobs:
       NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
       NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
     steps:
+      - name: Validate production configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          required_values=(
+            GCP_PROJECT_ID
+            GCP_REGION
+            ARTIFACT_REGISTRY_REPOSITORY
+            CLOUD_RUN_SERVICE
+            NEXT_PUBLIC_SITE_URL
+            NEXT_PUBLIC_SUPABASE_URL
+            NEXT_PUBLIC_SUPABASE_ANON_KEY
+            GCP_WORKLOAD_IDENTITY_PROVIDER
+            GCP_DEPLOY_SERVICE_ACCOUNT
+          )
+          for name in "${required_values[@]}"; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "production Environmentの${name}が未設定です" >&2
+              exit 1
+            fi
+          done
+          if [[ "${GCP_REGION}" != "asia-northeast1" ]]; then
+            echo "GCP_REGIONはasia-northeast1である必要があります" >&2
+            exit 1
+          fi
+
       - name: Checkout the verified commit
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -53,30 +81,6 @@ jobs:
 
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
-
-      - name: Validate production configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          required_values=(
-            GCP_PROJECT_ID
-            GCP_REGION
-            ARTIFACT_REGISTRY_REPOSITORY
-            CLOUD_RUN_SERVICE
-            NEXT_PUBLIC_SITE_URL
-            NEXT_PUBLIC_SUPABASE_URL
-            NEXT_PUBLIC_SUPABASE_ANON_KEY
-          )
-          for name in "${required_values[@]}"; do
-            if [[ -z "${!name:-}" ]]; then
-              echo "production Environmentの${name}が未設定です" >&2
-              exit 1
-            fi
-          done
-          if [[ "${GCP_REGION}" != "asia-northeast1" ]]; then
-            echo "GCP_REGIONはasia-northeast1である必要があります" >&2
-            exit 1
-          fi
 
       - name: Configure Docker authentication
         run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
