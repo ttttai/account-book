@@ -42,7 +42,7 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 
 ### allowed_google_accounts
 
-`app_private`に、非公開MVPで利用を許可するGoogleアカウントの正規化済み識別子を保持する。値はGit管理外のサーバー環境変数から同期し、重複のない2件でなければ認証を有効化しない。`anon`、`authenticated`、PostgRESTから直接参照・更新できない。
+`app_private`に、非公開MVPで利用を許可するGoogleアカウントの正規化済み識別子を保持する。値はGit管理外のサーバー環境変数から同期し、重複のない有効なメールアドレス1件以上でなければ認証を有効化しない。件数の上限は設けない。`anon`、`authenticated`、PostgRESTから直接参照・更新できない。
 
 ### groups
 
