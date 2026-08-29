@@ -6,6 +6,7 @@ test-results
 .env
 .env.*
 !.env.example
+gha-creds-*.json
 npm-debug.log*
 .terraform
 *.tfstate

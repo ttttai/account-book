@@ -31,6 +31,7 @@ test("bootstrapとproductionを独立したTerraform rootに分離する", async
     "infra/terraform/environments/prod/backend.hcl.example",
     "infra/terraform/environments/prod/terraform.tfvars.example",
     "infra/terraform/README.md",
+    ".github/workflows/deploy-production.yml",
   ]) {
     assert.equal(await exists(path), true, `${path}が必要です`);
   }
@@ -47,10 +48,12 @@ test("bootstrapで必要APIと削除保護したremote stateを宣言する", as
     "billingbudgets.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "iam.googleapis.com",
+    "iamcredentials.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
     "serviceusage.googleapis.com",
     "storage.googleapis.com",
+    "sts.googleapis.com",
   ]) {
     assert.match(bootstrap, new RegExp(service.replaceAll(".", "\\.")));
   }
@@ -66,7 +69,7 @@ test("bootstrapで必要APIと削除保護したremote stateを宣言する", as
   assert.match(bootstrap, /lifecycle\s*\{\s*prevent_destroy\s*=\s*true/s);
 });
 
-test("Artifact Registry、budget、keyなしruntime identityを宣言する", async () => {
+test("Artifact Registry、budget、keyなしruntime・deploy identityを宣言する", async () => {
   const bootstrap = await read("infra/terraform/bootstrap/main.tf");
 
   assert.match(
@@ -84,7 +87,53 @@ test("Artifact Registry、budget、keyなしruntime identityを宣言する", as
   }
 
   assert.match(bootstrap, /resource\s+"google_service_account"\s+"cloud_run"/);
+  assert.match(
+    bootstrap,
+    /resource\s+"google_service_account"\s+"github_deploy"/,
+  );
   assert.doesNotMatch(bootstrap, /google_service_account_key/);
+});
+
+test("GitHub Actionsを不変repository IDとmain branchへ制約したWIFで認証する", async () => {
+  const bootstrap = [
+    await read("infra/terraform/bootstrap/main.tf"),
+    await read("infra/terraform/bootstrap/variables.tf"),
+  ].join("\n");
+
+  assert.match(
+    bootstrap,
+    /resource\s+"google_iam_workload_identity_pool"\s+"github"/,
+  );
+  assert.match(
+    bootstrap,
+    /resource\s+"google_iam_workload_identity_pool_provider"\s+"github"/,
+  );
+  assert.match(bootstrap, /https:\/\/token\.actions\.githubusercontent\.com/);
+  assert.match(
+    bootstrap,
+    /"attribute\.repository_id"\s*=\s*"assertion\.repository_id"/,
+  );
+  assert.match(
+    bootstrap,
+    /"attribute\.repository_owner_id"\s*=\s*"assertion\.repository_owner_id"/,
+  );
+  assert.match(
+    bootstrap,
+    /assertion\.repository_id\s*==\s*'\$\{var\.github_repository_id\}'/,
+  );
+  assert.match(
+    bootstrap,
+    /assertion\.repository_owner_id\s*==\s*'\$\{var\.github_repository_owner_id\}'/,
+  );
+  assert.match(bootstrap, /assertion\.ref\s*==\s*'refs\/heads\/main'/);
+  assert.match(bootstrap, /roles\/iam\.workloadIdentityUser/);
+  assert.match(bootstrap, /roles\/artifactregistry\.writer/);
+  assert.match(bootstrap, /roles\/iam\.serviceAccountUser/);
+  assert.doesNotMatch(bootstrap, /assertion\.repository\s*==/);
+  assert.doesNotMatch(
+    bootstrap,
+    /resource\s+"google_project_iam_member"\s+"github_deploy"/,
+  );
 });
 
 test("secret payloadをstateへ保存せず対象secretだけへ権限を付ける", async () => {
@@ -108,7 +157,7 @@ test("secret payloadをstateへ保存せず対象secretだけへ権限を付け�
   assert.doesNotMatch(production, /version\s*=\s*"latest"/);
 });
 
-test("Cloud Runを低コスト・削除保護・digest固定で宣言する", async () => {
+test("Cloud Runを低コスト・削除保護・初回digest固定で宣言する", async () => {
   const production = [
     await read("infra/terraform/environments/prod/main.tf"),
     await read("infra/terraform/environments/prod/variables.tf"),
@@ -132,6 +181,27 @@ test("Cloud Runを低コスト・削除保護・digest固定で宣言する", as
   assert.match(production, /@sha256:/);
   assert.match(production, /\[a-f0-9\]\{64\}/);
   assert.doesNotMatch(production, /:latest/);
+  assert.match(production, /image\s*=\s*var\.initial_container_image/);
+  assert.match(
+    production,
+    /ignore_changes\s*=\s*\[\s*template\[0\]\.containers\[0\]\.image,?\s*\]/s,
+  );
+  assert.doesNotMatch(production, /ignore_changes\s*=\s*\[\s*template,?\s*\]/s);
+  assert.doesNotMatch(production, /variable\s+"container_image"/);
+});
+
+test("deploy identityのCloud Run権限を対象serviceだけに付ける", async () => {
+  const production = await read("infra/terraform/environments/prod/main.tf");
+
+  assert.match(
+    production,
+    /resource\s+"google_cloud_run_v2_service_iam_member"\s+"github_deploy"/,
+  );
+  assert.match(production, /role\s*=\s*"roles\/run\.developer"/);
+  assert.match(
+    production,
+    /member\s*=\s*"serviceAccount:\$\{data\.google_service_account\.github_deploy\.email\}"/,
+  );
 });
 
 test("公開Web入口と必要最小限のruntime設定だけを渡す", async () => {
@@ -169,6 +239,7 @@ test("Terraform生成物と実値をGit管理から除外する", async () => {
     "*.tfplan",
     "*.tfvars",
     "backend.hcl",
+    "gha-creds-*.json",
   ]) {
     assert.match(gitignore, new RegExp(pattern.replaceAll("*", "\\*")));
   }
@@ -182,6 +253,7 @@ test("Terraform生成物と実値をGit管理から除外する", async () => {
     "*.tfplan",
     "*.tfvars",
     "backend.hcl",
+    "gha-creds-*.json",
   ]) {
     assert.match(dockerignore, new RegExp(pattern.replaceAll("*", "\\*")));
   }
@@ -206,4 +278,61 @@ test("日本語運用資料に初回構築・secret・rollback・確認手順を
     assert.match(operations, new RegExp(phrase));
   }
   assert.match(operations, /本PRでは.*apply.*行わない/s);
+});
+
+test("production CDはmainのCI成功後にWIFでdigestだけをdeployする", async () => {
+  const workflow = await read(".github/workflows/deploy-production.yml");
+
+  assert.match(workflow, /workflow_run:/);
+  assert.match(workflow, /workflows:\s*\["CI"\]/);
+  assert.match(workflow, /branches:\s*\[main\]/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(
+    workflow,
+    /github\.event\.workflow_run\.conclusion\s*==\s*'success'/,
+  );
+  assert.match(workflow, /github\.event\.workflow_run\.head_sha/);
+  assert.match(workflow, /vars\.PRODUCTION_CD_ENABLED\s*==\s*'true'/);
+  assert.match(workflow, /contents:\s*read/);
+  assert.match(workflow, /id-token:\s*write/);
+  assert.match(workflow, /environment:\s*production/);
+  assert.match(workflow, /cancel-in-progress:\s*false/);
+  assert.match(workflow, /google-github-actions\/auth@[0-9a-f]{40}/);
+  assert.match(workflow, /workload_identity_provider:/);
+  assert.match(workflow, /service_account:/);
+  assert.doesNotMatch(workflow, /credentials_json|service-account-key/);
+  assert.match(workflow, /docker build/);
+  assert.match(workflow, /docker push/);
+  assert.match(workflow, /\^sha256:\[0-9a-f\]\{64\}\$/);
+  assert.match(
+    workflow,
+    /image_with_digest="\$\{IMAGE_TAG%:\*\}@\$\{digest\}"/,
+  );
+  assert.match(workflow, /gcloud run deploy/);
+  assert.match(workflow, /gcloud run services describe/);
+  assert.match(workflow, /curl --fail/);
+
+  for (const forbiddenFlag of [
+    "--set-env-vars",
+    "--update-env-vars",
+    "--set-secrets",
+    "--update-secrets",
+    "--service-account",
+    "--cpu",
+    "--memory",
+    "--min-instances",
+    "--max-instances",
+    "--ingress",
+    "--allow-unauthenticated",
+  ]) {
+    assert.doesNotMatch(workflow, new RegExp(forbiddenFlag));
+  }
+
+  for (const forbiddenSecret of [
+    "AUTH_ALLOWED_GOOGLE_EMAILS",
+    "GOOGLE_OAUTH_CLIENT_SECRET",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ]) {
+    assert.doesNotMatch(workflow, new RegExp(forbiddenSecret));
+  }
 });

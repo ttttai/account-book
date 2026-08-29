@@ -36,6 +36,12 @@ variable "cloud_run_service_account_id" {
   default     = "account-book-run"
 }
 
+variable "github_deploy_service_account_id" {
+  description = "bootstrapで作成したGitHub Actions deploy service account ID"
+  type        = string
+  default     = "account-book-deploy"
+}
+
 variable "allowed_google_emails_secret_id" {
   description = "bootstrapで作成した許可Googleアカウント一覧のsecret ID"
   type        = string
@@ -52,16 +58,16 @@ variable "allowed_google_emails_version" {
   }
 }
 
-variable "container_image" {
-  description = "asia-northeast1のArtifact Registryにあるdigest固定production image"
+variable "initial_container_image" {
+  description = "Cloud Run初回作成用のdigest固定production image。以後のimageはGitHub Actionsが管理します"
   type        = string
 
   validation {
     condition = can(regex(
       "^asia-northeast1-docker\\.pkg\\.dev/[a-z][a-z0-9-]{4,28}[a-z0-9]/[a-z][a-z0-9-]{2,62}/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$",
-      var.container_image,
+      var.initial_container_image,
     ))
-    error_message = "container_imageにはasia-northeast1 Artifact Registryの@sha256 digest参照を指定してください。"
+    error_message = "initial_container_imageにはasia-northeast1 Artifact Registryの@sha256 digest参照を指定してください。"
   }
 }
 
