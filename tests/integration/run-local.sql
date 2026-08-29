@@ -3,3 +3,4 @@
 \ir auth-local.sql
 \ir groups-sharing-local.sql
 \ir transactions-local.sql
+\ir category-management-local.sql
