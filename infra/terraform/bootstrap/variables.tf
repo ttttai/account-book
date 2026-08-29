@@ -106,12 +106,12 @@ variable "allowed_google_emails_secret_id" {
 }
 
 variable "billing_account_id" {
-  description = "budgetを作成するbilling account。billingAccounts/XXXXXX-XXXXXX-XXXXXX形式"
+  description = "budgetを作成するbilling account ID。gcloud billing accounts listが出力するXXXXXX-XXXXXX-XXXXXX形式"
   type        = string
 
   validation {
-    condition     = can(regex("^billingAccounts/[0-9A-F]{6}-[0-9A-F]{6}-[0-9A-F]{6}$", var.billing_account_id))
-    error_message = "billing_account_idはbillingAccounts/XXXXXX-XXXXXX-XXXXXX形式で指定してください。"
+    condition     = can(regex("^[0-9A-F]{6}-[0-9A-F]{6}-[0-9A-F]{6}$", var.billing_account_id))
+    error_message = "billing_account_idはbillingAccounts/ prefixを付けず、XXXXXX-XXXXXX-XXXXXX形式で指定してください。"
   }
 }
 
