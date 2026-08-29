@@ -194,6 +194,47 @@ select pg_temp.assert_true(
   ),
   '負担行を同じグループで原子的に保存する'
 );
+select pg_temp.assert_true(
+  (
+    select sum(amount_minor) = 6000
+    from public.transactions
+    where group_id = :'shared_group_id'
+      and type = 'expense'
+      and deleted_at is null
+      and transaction_date >= '2026-08-01'
+      and transaction_date < '2026-09-01'
+  ),
+  'グループ月間カレンダーは取引金額を一度だけ集計する'
+);
+select pg_temp.assert_true(
+  (
+    select sum(allocation.amount_minor) = 3000
+    from public.transaction_allocations as allocation
+    join public.transactions as transaction
+      on transaction.id = allocation.transaction_id
+     and transaction.group_id = allocation.group_id
+    where transaction.group_id = :'shared_group_id'
+      and transaction.type = 'expense'
+      and transaction.deleted_at is null
+      and transaction.transaction_date >= '2026-08-01'
+      and transaction.transaction_date < '2026-09-01'
+      and allocation.member_id = :'shared_owner_member_id'
+  ),
+  'メンバー月間カレンダーは本人の負担額だけを集計する'
+);
+select pg_temp.assert_true(
+  (
+    select sum(amount_minor) = 6000
+    from public.transactions
+    where group_id = :'shared_group_id'
+      and type = 'expense'
+      and deleted_at is null
+      and transaction_date >= '2026-08-01'
+      and transaction_date < '2026-09-01'
+      and payer_member_id = :'shared_owner_member_id'
+  ),
+  'メンバーの利用額とは別に本人の支払額を集計できる'
+);
 
 select public.create_expense_transaction(
   :'shared_group_id',
@@ -272,6 +313,33 @@ select pg_temp.assert_direct_insert_denied(
 );
 
 select public.create_expense_transaction(
+  :'shared_group_id',
+  7000,
+  '2026-09-01'::date,
+  :'shared_category_id',
+  :'shared_owner_member_id',
+  '翌月の支出',
+  '40000000-0000-4000-8000-000000000010',
+  jsonb_build_array(
+    jsonb_build_object('member_id', :'shared_owner_member_id', 'amount_minor', 3500),
+    jsonb_build_object('member_id', :'shared_second_member_id', 'amount_minor', 3500)
+  )
+) as next_month_expense_id \gset
+
+select pg_temp.assert_true(
+  (
+    select sum(amount_minor) = 6000
+    from public.transactions
+    where group_id = :'shared_group_id'
+      and type = 'expense'
+      and deleted_at is null
+      and transaction_date >= '2026-08-01'
+      and transaction_date < '2026-09-01'
+  ),
+  '翌月の支出を選択月の集計へ混入させない'
+);
+
+select public.create_expense_transaction(
   :'private_group_id',
   1200,
   '2026-08-27'::date,
@@ -300,6 +368,47 @@ select pg_temp.assert_true(
     where transaction_id = :'private_expense_id'
   ) = 0,
   '非メンバーへ別グループ負担行を表示しない'
+);
+select pg_temp.assert_true(
+  (
+    select sum(amount_minor) = 6000
+    from public.transactions
+    where group_id = :'shared_group_id'
+      and type = 'expense'
+      and deleted_at is null
+      and transaction_date >= '2026-08-01'
+      and transaction_date < '2026-09-01'
+  ),
+  '共有グループのメンバーは同じ月間合計を閲覧できる'
+);
+select pg_temp.assert_true(
+  (
+    select sum(allocation.amount_minor) = 3000
+    from public.transaction_allocations as allocation
+    join public.transactions as transaction
+      on transaction.id = allocation.transaction_id
+     and transaction.group_id = allocation.group_id
+    where transaction.group_id = :'shared_group_id'
+      and transaction.type = 'expense'
+      and transaction.deleted_at is null
+      and transaction.transaction_date >= '2026-08-01'
+      and transaction.transaction_date < '2026-09-01'
+      and allocation.member_id = :'shared_second_member_id'
+  ),
+  '共有グループの別メンバーは本人の負担額だけを閲覧できる'
+);
+select pg_temp.assert_true(
+  (
+    select coalesce(sum(amount_minor), 0) = 0
+    from public.transactions
+    where group_id = :'shared_group_id'
+      and type = 'expense'
+      and deleted_at is null
+      and transaction_date >= '2026-08-01'
+      and transaction_date < '2026-09-01'
+      and payer_member_id = :'shared_second_member_id'
+  ),
+  '支払っていないメンバーの月間支払額は0になる'
 );
 select pg_temp.assert_expense_denied(
   :'private_group_id',

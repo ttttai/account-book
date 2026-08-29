@@ -172,26 +172,41 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
           )}
         </div>
 
-        <div className="expense-field">
-          <label htmlFor="categoryId">カテゴリ</label>
-          <select
-            aria-describedby="categoryId-error"
-            defaultValue={options.categories[0]?.id}
-            id="categoryId"
-            name="categoryId"
-          >
-            {options.categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
+        <fieldset
+          aria-describedby="categoryId-error"
+          className="category-fieldset"
+        >
+          <legend>カテゴリ</legend>
+          <div className="category-options">
+            {options.categories.map((category, index) => (
+              <label className="category-option" key={category.id}>
+                <input
+                  defaultChecked={index === 0}
+                  name="categoryId"
+                  required
+                  type="radio"
+                  value={category.id}
+                />
+                <span className="category-option-content">
+                  <span
+                    aria-hidden="true"
+                    className="category-option-dot"
+                    data-category-color={category.color}
+                  />
+                  <span className="category-option-name">{category.name}</span>
+                  <span aria-hidden="true" className="category-option-check">
+                    ✓
+                  </span>
+                </span>
+              </label>
             ))}
-          </select>
+          </div>
           {state.fieldErrors?.categoryId?.[0] && (
             <p className="field-error" id="categoryId-error">
               {state.fieldErrors.categoryId[0]}
             </p>
           )}
-        </div>
+        </fieldset>
 
         <div className="expense-field">
           <label htmlFor="payerMemberId">支払った人</label>

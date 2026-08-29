@@ -83,3 +83,31 @@ test("App Routerはtransactionsモジュールの公開境界だけを使う", a
   assert.match(page, /redirect\([^)]+login/);
   assert.match(page, /notFound\(\)/);
 });
+
+test("支出カテゴリはモバイルで比較しやすいradio cardとして表示する", async () => {
+  const form = await read(
+    "src/modules/transactions/presentation/expense-form.tsx",
+  );
+  const styles = await read("src/app/styles.css");
+
+  assert.match(
+    form,
+    /<fieldset\s+[\s\S]*?className="category-fieldset"[\s\S]*?>/,
+  );
+  assert.match(form, /name="categoryId"/);
+  assert.match(form, /type="radio"/);
+  assert.match(form, /className="category-option"/);
+  assert.doesNotMatch(form, /<select[\s\S]+name="categoryId"/);
+  assert.match(
+    styles,
+    /\.category-options\s*{[\s\S]*grid-template-columns:\s*repeat\(2,/,
+  );
+  assert.match(
+    styles,
+    /\.category-option-content\s*{[\s\S]*min-height:\s*(?:44|4[5-9]|[5-9]\d)px/,
+  );
+  assert.match(
+    styles,
+    /\.category-option input:focus-visible \+ \.category-option-content/,
+  );
+});

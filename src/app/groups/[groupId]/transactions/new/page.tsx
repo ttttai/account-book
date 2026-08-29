@@ -9,17 +9,21 @@ import { getExpenseFormOptions } from "@/modules/transactions/server";
 
 type NewExpensePageProps = Readonly<{
   params: Promise<{ groupId: string }>;
+  searchParams: Promise<{ date?: string | string[] }>;
 }>;
 
-export default async function NewExpensePage({ params }: NewExpensePageProps) {
-  const { groupId } = await params;
+export default async function NewExpensePage({
+  params,
+  searchParams,
+}: NewExpensePageProps) {
+  const [{ groupId }, search] = await Promise.all([params, searchParams]);
   const profile = await getCurrentProfile();
   if (!profile) {
     const nextPath = `/groups/${encodeURIComponent(groupId)}/transactions/new`;
     redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
 
-  const options = await getExpenseFormOptions(groupId);
+  const options = await getExpenseFormOptions(groupId, search.date);
   if (!options || options.categories.length === 0) notFound();
 
   return (
