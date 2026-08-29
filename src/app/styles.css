@@ -1221,7 +1221,7 @@ a:focus-visible {
   align-content: start;
   justify-items: center;
   gap: 0.2rem;
-  padding: 0.35rem 0.1rem;
+  padding: 0.35rem 0;
   color: var(--text);
   text-decoration: none;
 }
@@ -1258,8 +1258,10 @@ a:focus-visible {
 .calendar-cell-amount {
   max-width: 100%;
   color: var(--accent);
-  font-size: clamp(0.56rem, 2.3vw, 0.72rem);
-  font-weight: 800;
+  /* 最小幅320pxのセルでも99,999を1行で収める */
+  font-size: clamp(0.5rem, 2.4vw, 0.72rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.05;
   word-break: keep-all;
   text-align: center;

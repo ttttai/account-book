@@ -90,17 +90,22 @@ function splitJpyDigitGroups(amountMinor: number): readonly JpyDigitGroup[] {
   });
 }
 
+// 5桁以下（99,999円以下）は320pxでも1行で収まるため折り返し機会を与えない
+const maxUnwrappedAmountMinor = 99999;
+
 function CalendarCellAmount({
   amountMinor,
 }: Readonly<{ amountMinor: number }>) {
   return (
     <span className="calendar-cell-amount" aria-hidden="true">
-      {splitJpyDigitGroups(amountMinor).map((digitGroup) => (
-        <Fragment key={digitGroup.offset}>
-          {digitGroup.offset > 0 ? <wbr /> : null}
-          {digitGroup.isLast ? digitGroup.text : `${digitGroup.text},`}
-        </Fragment>
-      ))}
+      {amountMinor <= maxUnwrappedAmountMinor
+        ? formatCalendarCellJpy(amountMinor)
+        : splitJpyDigitGroups(amountMinor).map((digitGroup) => (
+            <Fragment key={digitGroup.offset}>
+              {digitGroup.offset > 0 ? <wbr /> : null}
+              {digitGroup.isLast ? digitGroup.text : `${digitGroup.text},`}
+            </Fragment>
+          ))}
     </span>
   );
 }

@@ -22,6 +22,7 @@ const data: CalendarReadyData = {
     "2026-08-15": 1000,
     "2026-08-16": 2000,
     "2026-08-20": 1234567,
+    "2026-08-21": 99999,
   },
   grid: Array.from({ length: 42 }, (_, index) => {
     const day = index + 1;
@@ -103,18 +104,28 @@ describe("CalendarDayExplorer", () => {
     expect(document.activeElement).toBe(dayLink);
   });
 
-  it("セル金額は桁区切り位置にだけ折り返し機会を与え、けたの途中で分断しない", () => {
+  it("5桁以下のセル金額は折り返し機会を与えず1行で表示する", () => {
     render(<CalendarDayExplorer data={data} />);
     const amount = screen
       .getByRole("link", { name: "2026年8月15日、￥1,000" })
       .querySelector(".calendar-cell-amount");
 
     expect(amount?.textContent).toBe("1,000");
-    expect(amount?.innerHTML).toBe("1,<wbr>000");
+    expect(amount?.innerHTML).toBe("1,000");
 
+    const fiveDigitAmount = screen
+      .getByRole("link", { name: "2026年8月21日、￥99,999" })
+      .querySelector(".calendar-cell-amount");
+    expect(fiveDigitAmount?.textContent).toBe("99,999");
+    expect(fiveDigitAmount?.innerHTML).toBe("99,999");
+  });
+
+  it("6桁以上のセル金額は桁区切り位置にだけ折り返し機会を与え、けたの途中で分断しない", () => {
+    render(<CalendarDayExplorer data={data} />);
     const largeAmount = screen
       .getByRole("link", { name: "2026年8月20日、￥1,234,567" })
       .querySelector(".calendar-cell-amount");
+
     expect(largeAmount?.textContent).toBe("1,234,567");
     expect(largeAmount?.innerHTML).toBe("1,<wbr>234,<wbr>567");
   });
