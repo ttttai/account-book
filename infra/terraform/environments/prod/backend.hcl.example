@@ -1,0 +1,3 @@
+# bootstrap outputのbucket名へ置き換え、実値ファイルはGitへcommitしないでください。
+bucket = "your-globally-unique-account-book-tfstate"
+prefix = "account-book/prod"

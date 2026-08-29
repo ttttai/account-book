@@ -1,0 +1,11 @@
+# 実値はterraform.tfvarsへコピーし、Gitへcommitしないでください。
+project_id = "your-gcp-project-id"
+
+container_image = "asia-northeast1-docker.pkg.dev/your-gcp-project-id/account-book/web@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+site_url         = "https://account-book-000000000000.asia-northeast1.run.app"
+supabase_url     = "https://your-project-ref.supabase.co"
+supabase_anon_key = "set-with-a-git-ignored-tfvars-or-TF_VAR-variable"
+
+# latestは使わず、登録済みのversion番号を固定します。
+allowed_google_emails_version = "1"
