@@ -45,10 +45,28 @@ export default async function GroupPage({
         <nav className="header-links" aria-label="グループ操作">
           <Link
             className="text-link"
+            href={`/groups/${encodeURIComponent(groupId)}/history`}
+          >
+            履歴
+          </Link>
+          <Link
+            className="text-link"
             href={`/groups/${encodeURIComponent(groupId)}/members`}
           >
             メンバー
           </Link>
+          <Link
+            className="text-link"
+            href={`/groups/${encodeURIComponent(groupId)}/categories`}
+          >
+            カテゴリ
+          </Link>
+          <a
+            className="text-link"
+            href={`/api/v1/groups/${encodeURIComponent(groupId)}/exports/transactions.csv`}
+          >
+            CSV出力
+          </a>
           <Link className="text-link" href="/app">
             グループ一覧
           </Link>
