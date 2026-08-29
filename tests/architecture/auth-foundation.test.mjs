@@ -86,9 +86,15 @@ test("OAuth開始は通常navigationでPKCE cookie付きredirectを返す", asyn
   assert.match(routeHandlerClient, /response\.headers\.set/);
 });
 
-test("Googleの2アカウント制限をAuth・server・DBで強制する", async () => {
+test("Googleの許可リスト制限をAuth・server・DBで強制する", async () => {
   const migration = await read(
     "supabase/migrations/202608250001_google_auth_allowlist.sql",
+  );
+  const syncMigration = await read(
+    "supabase/migrations/202608290001_google_allowlist_variable_size.sql",
+  );
+  const domainAccess = await read(
+    "src/modules/auth/domain/google-auth-access.ts",
   );
   const authAccess = await read(
     "src/modules/auth/infrastructure/google-auth-access.ts",
@@ -104,6 +110,12 @@ test("Googleの2アカウント制限をAuth・server・DBで強制する", asyn
   assert.match(migration, /is_allowed_google_identity/i);
   assert.match(migration, /drop policy "profiles_select_self"/i);
   assert.match(migration, /create or replace function public\.create_group/i);
+  assert.match(
+    syncMigration,
+    /create or replace function app_private\.sync_allowed_google_accounts/i,
+  );
+  assert.doesNotMatch(syncMigration, /=\s*2\b/);
+  assert.doesNotMatch(domainAccess, /length !== 2|length === 2/);
   assert.match(authAccess, /import "server-only"/);
   assert.match(authAccess, /AUTH_ALLOWED_GOOGLE_EMAILS/);
   assert.match(callback, /getAllowedGoogleUserId/);

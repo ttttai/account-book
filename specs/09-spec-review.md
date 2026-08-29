@@ -299,6 +299,16 @@
 
 実装確認: 実装済み8テーブルとSupabase Auth管理の`auth.users`をMermaid ER図へ記載し、migrationから抽出したテーブル一覧、主要関係、複合外部キーの注記、`daily_summaries`非実装を照合するarchitecture testを追加した。architecture test 30件、単体test 84件、format、lint、型検査、本番buildが成功した。
 
+### R-030 許可リストの件数上限撤廃
+
+指摘: 許可リストはサーバー(`parseAllowedGoogleAccounts`)とDB(`app_private.sync_allowed_google_accounts`)の両方で「重複のない有効な2件ちょうど」を要求しており、利用者を追加するたびにコード変更が必要になる。非公開MVPの利用者は今後増える可能性があり、件数はコードではなく環境変数`AUTH_ALLOWED_GOOGLE_EMAILS`だけで管理したい。
+
+対応: 許可リストの受け入れ条件を「大文字小文字と前後空白を正規化した、重複のない有効なメールアドレス1件以上」へ変更し、件数の上限を撤廃する。不正値、重複、空値を含む場合に有効な部分を採用せず全件を無効とするfail closedの検証は、サーバーとDBの両方で維持する。DB関数は新しいmigrationで`create or replace`し、既存の同期呼び出し(`scripts/apply-migrations.sh`)は変更しない。
+
+確認: 多層防御の構成(Auth登録前フック、callback・DALのサーバー検証、RLS・`security definer`関数)は件数に依存しないため変更不要である。単体testで1件・3件以上の受け入れと重複・不正値の全件拒否を、DB integration testで3件同期と不正入力の0件同期を検証する。
+
+判定: 制限の実体は許可リストの内容であり、件数上限の撤廃は多層防御とfail closedの設計を弱めない。`AC-AUTH-005-3`、`NFR-SEC-010`の更新と実装を承認する。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
