@@ -44,10 +44,15 @@ cp terraform.tfvars.example terraform.tfvars
 
 ### 2. local stateでbootstrapを作成する
 
-state bucket自体をTerraformで作るため、最初だけbackendを無効にする。
+state bucket自体をTerraformで作るため、最初のplanとapplyだけlocal backendで実行する。`versions.tf`は`backend "gcs" {}`を宣言しているため、`terraform init -backend=false`のままではplanを実行できない。Git管理外のoverride fileで初回だけbackendをlocalへ差し替える。
 
 ```sh
-terraform init -backend=false
+cat > backend_override.tf <<'EOF'
+terraform {
+  backend "local" {}
+}
+EOF
+terraform init
 terraform fmt -check -recursive
 terraform validate
 terraform plan -out=bootstrap.tfplan
@@ -66,9 +71,10 @@ terraform output -raw github_deploy_service_account_email
 
 ### 3. backend移行
 
-`backend.hcl.example`をGit管理外の`backend.hcl`へコピーし、bootstrap outputのbucket名を設定する。
+`backend_override.tf`を削除して宣言済みのGCS backendへ戻し、`backend.hcl.example`をGit管理外の`backend.hcl`へコピーして、bootstrapで作成したbucket名を設定する。
 
 ```sh
+rm backend_override.tf
 cp backend.hcl.example backend.hcl
 terraform init -migrate-state -backend-config=backend.hcl
 terraform state list
