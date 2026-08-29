@@ -119,10 +119,13 @@ Google OAuth client secretはSupabase Dashboardへ設定し、Cloud Run、Terraf
 
 例では値をplaceholderで示す。実値をcommand履歴へ残したくない場合は、Git管理外の環境設定から安全に渡す。
 
+Cloud Runは`linux/amd64`のimageだけを実行できる。Apple SiliconなどARM機でbuildすると既定で`linux/arm64`になり、Cloud Runで「container failed to start and listen on the port」で起動に失敗するため、初回の手元buildでは必ず`--platform linux/amd64`を指定する。GitHub ActionsのCDはamd64 runnerでbuildするため指定不要である。
+
 ```sh
 gcloud auth configure-docker asia-northeast1-docker.pkg.dev
 
 docker build \
+  --platform linux/amd64 \
   --build-arg NEXT_PUBLIC_SITE_URL=https://YOUR_PRODUCTION_ORIGIN \
   --build-arg NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co \
   --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_PUBLIC_KEY \
