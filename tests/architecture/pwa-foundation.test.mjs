@@ -82,6 +82,10 @@ test("NFR-PWA-003: 宣言済みアイコンとapple-touch-iconが宣言どおり
     width: 180,
     height: 180,
   });
+  assert.deepEqual(await readPngSize("src/app/icon.png"), {
+    width: 512,
+    height: 512,
+  });
 });
 
 test("NFR-PWA-004: Service Workerとオフラインキャッシュを導入しない", async () => {
