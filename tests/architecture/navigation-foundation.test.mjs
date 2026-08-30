@@ -101,3 +101,24 @@ test("375pxホームでカレンダーを初期viewportへ優先配置する", a
   assert.match(styles, /\.calendar-cell\s*\{[^}]*calc\(\(100dvh[^}]*\/ 6\)/s);
   assert.match(styles, /@media \(max-height: 700px\)/);
 });
+
+test("並行実装画面では共通ナビゲーションと重複するheader導線だけを隠す", async () => {
+  const styles = await read("src/app/styles.css");
+
+  assert.match(
+    styles,
+    /\.group-route-layout \.history-page > \.app-header \.header-links,/,
+  );
+  assert.match(
+    styles,
+    /\.group-route-layout \.member-page > \.app-header > \.text-link,/,
+  );
+  assert.match(
+    styles,
+    /\.group-route-layout \.category-page > \.app-header > \.text-link\s*\{[^}]*display:\s*none;/s,
+  );
+  assert.doesNotMatch(
+    styles,
+    /\.group-route-layout[^{}]*(history-controls|member-administration|category-manager)[^{}]*\{[^}]*display:\s*none;/s,
+  );
+});
