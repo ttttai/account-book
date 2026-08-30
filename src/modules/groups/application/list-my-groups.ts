@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   createServerSupabaseClient,
   getAllowedGoogleUserId,
+  isAuthenticationQueryError,
 } from "@/modules/auth/server";
 
 import type { GroupSummary } from "./group-types";
@@ -38,7 +39,11 @@ export async function listMyGroups(): Promise<readonly GroupSummary[]> {
     .eq("status", "active")
     .order("joined_at", { ascending: true });
 
-  if (error) throw new Error("グループ一覧を取得できませんでした。");
+  if (error) {
+    // 失効session等の認証起因の失敗はserver errorにせず、未認証としてログイン誘導へ合流させる。
+    if (isAuthenticationQueryError(error)) return [];
+    throw new Error("グループ一覧を取得できませんでした。");
+  }
 
   return z
     .array(membershipRowSchema)

@@ -4,7 +4,7 @@
 
 レビュー日: 2026-08-29
 
-対象バージョン: 0.2.14
+対象バージョン: 0.2.17
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.14の自動文書検査では、要件ID 98件、明示的な受け入れ条件ID 111件が一意であり、重複宣言はなかった。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
+バージョン0.2.17の自動文書検査では、要件ID 98件、明示的な受け入れ条件ID 112件が一意であり、重複宣言はなかった。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -452,6 +452,20 @@ MVP範囲確認: custom domain、load balancer、CDN、VPC、Cloud SQL、自動d
 MVP範囲確認: preview環境、canary、Cloud Deploy、独自domain、自動Terraform apply、DB migration自動適用は追加しない。低頻度のfoundation変更は従来どおり人がplanを確認してapplyし、高頻度のアプリrevisionだけをCDへ分離する。
 
 判定: `INF-012`、`INF-014`〜`INF-016`、`AC-INF-001-14`〜`AC-INF-001-18`は`NFR-MNT-008`、`NFR-MNT-009`、`NFR-OPS-*`、`NFR-SEC-004`と整合し、安全かつ実装可能である。受け入れ条件に対応する構造testを先に更新し、Terraform、workflow、日本語運用資料を実装し、実credentialと実cloud変更なしで検証することを条件に実装開始を承認する。
+
+### R-041 OAuthログイン直後の初回表示エラー耐性
+
+指摘: ブラウザに失効済みAuth cookieが残った状態でOAuthログインすると、`/auth/callback`要求中にProxyが旧refresh tokenでsession refreshを試みて`refresh_token_not_found`が発生し、直後の保護画面初回表示でもServer Componentの読み取りqueryが認証起因の失敗をserver errorとして扱い、error boundary（500）が表示される。reloadで回復するため実害は小さいが、ログイン直後の第一印象を損なう（Issue #30）。
+
+対応: `AC-AUTH-001-9`を追加する。Proxyのmatcherから`/auth`配下のRoute Handlerを除外し、PKCE cookie・session cookieを自ら管理する認証境界の要求中にProxyがrefreshを試みないようにする。読み取りqueryはPostgRESTの認証起因エラー（期限切れ・無効JWT）を判定する共有関数で未認証と同じ結果へ縮退させ、保護画面の未認証redirectへ合流させる。認証起因以外のquery失敗は引き続きエラーとして扱う。
+
+安全性確認: `/auth`配下をProxy対象外にしても、認可はProxyに依存せず各query/commandとRLSで再確認するため（AC-AUTH-004-3）、認可境界は弱まらない。認証エラーの縮退は読み取りだけに適用し、更新系の失敗を握りつぶさない。エラー詳細やtokenをlog以外へ出さない方針は変更しない。
+
+実装可能性確認: matcherの除外は正規表現の変更のみ。認証起因エラーの判定はPostgRESTのエラーcode（`PGRST30x`）とJWTメッセージで判定する純関数として切り出し、unit testできる。構造testでProxy除外と読み取りqueryの縮退を固定できる。
+
+MVP範囲確認: refresh競合自体の高度な排他制御（分散lock等）や全read関数の一括改修は行わず、ログイン初回表示の経路（プロフィール・グループ一覧）に限定する。他の読み取り関数への展開はIssue #30の後続とする。
+
+判定: `AC-AUTH-001-9`は`AC-AUTH-004-1`、`AC-AUTH-004-3`、NFR-UXの初回表示品質と整合し、安全かつ実装可能である。判定用純関数のunit testと構造testを先に作成し、実装後に幅375pxのログインフローを実画面確認することを条件に実装開始を承認する。
 
 ## 4. 要件と検証方法の対応
 
