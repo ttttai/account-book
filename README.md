@@ -4,7 +4,7 @@
 
 夫婦やグループで共有できる、スマートフォン優先の家計簿Webアプリです。仕様の正本は[`specs/`](specs/README.md)、開発ルールの正本は[`AGENTS.md`](AGENTS.md)です。
 
-デプロイとDB変更の運用手順は[`docs/operations/`](docs/operations)（[デプロイ運用](docs/operations/deployment.md) / [DB変更の運用](docs/operations/database-changes.md)）にまとめています。
+デプロイとDB変更の運用手順は[`docs/operations/`](docs/operations)（[デプロイ運用](docs/operations/deployment.md) / [DB変更の運用](docs/operations/database-changes.md)）にまとめています。週次LINE通知（段階導入中の構想）は[導入ガイド](docs/operations/line-notification.md)を参照してください。
 
 ## 必要な環境
 
