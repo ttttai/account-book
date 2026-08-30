@@ -63,6 +63,14 @@
 - `NFR-UI-007` グループ内の主要ナビゲーションはスマートフォンの片手操作を優先して画面下部へ固定し、safe areaを確保する。デスクトップでは同じ情報構造のサイドナビゲーションへ適応してよい。
 - `NFR-UI-008` 通常の375 x 812 CSS pixelではホームカレンダーの42日分を初期viewport内へ表示する。高さ不足や大きな文字設定では内容を切り捨てず、安全な縦スクロールへ切り替える。
 
+## インストール（PWA）
+
+- `NFR-PWA-001` アプリはWeb App Manifestを配信し、スマートフォンのホーム画面へインストールしてブラウザUIなしのstandalone表示で起動できる。
+- `NFR-PWA-002` manifestの名称は「わが家計」、`start_url`は`/`、`display`は`standalone`とし、`theme_color`と`background_color`はデザイントークンの背景色（`--background`）および`viewport.themeColor`と同じ値にする。
+- `NFR-PWA-003` manifestから192 x 192と512 x 512のPNGアイコンを配信し、maskable用途のアイコンは主要図案を中央の安全領域内へ収める。iOSホーム画面用にapple-touch-iconを配信する。
+- `NFR-PWA-004` MVPではService Workerを導入せず、オフラインキャッシュとプッシュ通知を実装しない。manifestとアイコンは認証不要の静的配信とし、家計データ・認証情報を含めない。インストール状態を認証・認可判断に使わない。
+- `NFR-PWA-005` standalone表示でも通常のブラウザ表示と同じ認証動作とする。未認証はログイン画面へ遷移し、Google OAuthログインが完了してホームが表示されることをiOS Safari実機または実機相当環境で確認する。
+
 ## 運用・費用
 
 - `NFR-OPS-001` ローカル開発は`docker compose up --watch`で起動する。

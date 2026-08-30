@@ -2,9 +2,9 @@
 
 状態: 実装開始を承認
 
-レビュー日: 2026-08-29
+レビュー日: 2026-08-30
 
-対象バージョン: 0.2.23
+対象バージョン: 0.2.26
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.25の自動文書検査では、要件ID 103件、明示的な受け入れ条件ID 124件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止し、UC-006の受け入れ条件を4件へ再定義した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
+バージョン0.2.26の自動文書検査では、要件ID 108件、明示的な受け入れ条件ID 124件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -607,6 +607,22 @@ MVP範囲確認: 削除の取り消しUI、ごみ箱、保持期間処理は追�
 
 判定: 変更後の`TXN-009`、`AC-TXN-009-1`〜`AC-TXN-009-4`、`NFR-REC-002`は互いに整合し、R-049の編集・競合検出部分とも矛盾しない。統合テストと構造テストを物理削除の受け入れ条件へ更新し、幅375pxで削除フローを再確認することを条件に、修正実装を承認する。
 
+### R-051 ホーム画面インストール可能化（PWA段階1）
+
+指摘: スマートフォン主用途の家計簿にもかかわらず、ブラウザのブックマーク経由でしか起動できず、毎日の記帳開始までの操作摩擦が大きい。非公開MVPではストア配布の選択肢がなく、ホーム画面インストールの手段がない。一方、Service Workerによるオフラインキャッシュは、キャッシュのキー・無効化・グループ分離テストが揃うまで追加しない規約（D-009、`AGENTS.md`）と競合しうる。
+
+対応: `NFR-PWA-001`〜`NFR-PWA-005`を追加し、範囲をWeb App Manifestとアイコンによるインストール可能化だけに限定する。`src/app/manifest.ts`でNext.jsのmetadata規約によりmanifestを配信し、名称「わが家計」、`start_url: /`、`display: standalone`、デザイントークン`--background`（`#f7f5ef`）と一致する`theme_color`・`background_color`、192・512・maskableのPNGアイコンを宣言する。iOS向けには`src/app/apple-icon.png`規約でapple-touch-iconを配信する。Service Worker、オフラインキャッシュ、プッシュ通知は延期機能として`08-decisions-and-deferred-scope.md`へ明記する。
+
+安全性確認: manifestとアイコンは家計データ・認証情報を含まない静的配信であり、認証・認可・RLS・Server Action・DBへ変更がない。standalone表示の`start_url: /`は既存の未認証ガード（`AUTH-004`）を通るため、インストール有無で認可判断が変わらない。Service Workerを導入しないため、家計データのキャッシュ規約（D-009）に抵触しない。
+
+実装可能性確認: Next.js 16.3.2はapp直下の`manifest.ts`と`apple-icon.png`のmetadata規約を標準サポートし、追加依存が不要である。構造testでmanifestの宣言内容、アイコンファイルの存在とPNG寸法、Service Worker不在を固定できる。既知のriskはiOS standalone表示でのOAuth redirect分断だが、失敗した場合もmanifest削除で即時に従来動作へ戻せるため撤退コストが低い。実機確認を受け入れ条件（モバイル手動確認）に含める。
+
+MVP範囲確認: インストール可能化のみで、オフライン対応、プッシュ通知、インストール促進UI、ネイティブアプリは含まない。画面・業務ロジック・データモデルを変更しない。
+
+判定: `NFR-PWA-001`〜`NFR-PWA-005`は`AUTH-004`、`NFR-SEC-007`（CSP）、`NFR-UI-005`、D-009と整合し、安全かつ実装可能である。構造testを先に追加し、375pxでログイン画面表示が変わらないこと、manifestが本番buildで配信されることを確認し、standalone表示のOAuth実機確認をリリース前手動確認へ含める条件で実装開始を承認する。
+
+実装確認: `src/app/manifest.ts`、`public/icon-192.png`・`icon-512.png`・`icon-maskable-512.png`（利用者提供のアイコン画像から生成、maskableは中央約78%へ縮小配置）、`src/app/apple-icon.png`を追加した。manifest宣言・アイコン寸法・Service Worker不在を対象とする構造test 4件を追加し、全体でarchitecture test 84件、component・unit test 279件、format、警告なしlint、型検査、本番buildが成功した。本番buildの標準出力に`/manifest.webmanifest`と`/apple-icon.png`が静的routeとして含まれ、standalone serverからmanifest本文、3つのアイコン、apple-touch-icon、`<link rel="manifest">`が配信されることを確認した。実画面では375 x 812と1280 x 800でログイン画面の表示が変更前と同一で、横scroll・重なりがないことを確認した。iPhone 17・iOS 26.5 SimulatorのSafariでは、共有シートの「ホーム画面に追加」ダイアログにmanifest由来の名称「わが家計」・アイコン・`start_url`（`/`）と「Webアプリとして開く」ONが表示され、追加後のホーム画面に正しいアイコンで登録された。起動するとSafari UIなしのstandalone表示で`start_url`が開き、未認証時はログイン画面が表示され、「Googleでログイン」からaccounts.google.comの認証ページが外部Safariへ分断されずアプリ内表示で開くことを確認した。実際のGoogleアカウントでのログイン完了と本番URLでの再確認だけが、リリース前手動確認として残る。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
@@ -627,6 +643,7 @@ MVP範囲確認: 削除の取り消しUI、ごみ箱、保持期間処理は追�
 | `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                      |
 | `NFR-OPS-*`            | Compose health check、deploy smoke test                |
 | `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                  |
+| `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認   |
 
 ## 5. 実装を妨げない延期事項
 
