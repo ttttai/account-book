@@ -1,0 +1,103 @@
+import assert from "node:assert/strict";
+import { readFile, stat } from "node:fs/promises";
+import test from "node:test";
+
+const root = new URL("../../", import.meta.url);
+
+async function read(path) {
+  return readFile(new URL(path, root), "utf8");
+}
+
+async function exists(path) {
+  try {
+    await stat(new URL(path, root));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+test("グループ配下を共通layoutと4項目ナビゲーションで包む", async () => {
+  assert.equal(await exists("src/app/groups/[groupId]/layout.tsx"), true);
+
+  const layout = await read("src/app/groups/[groupId]/layout.tsx");
+  const navigation = await read(
+    "src/modules/groups/presentation/group-navigation.tsx",
+  );
+
+  assert.match(layout, /params: Promise<\{ groupId: string \}>/);
+  assert.match(layout, /<GroupNavigation groupId=\{groupId\}/);
+  assert.match(layout, /@\/modules\/groups\/presentation/);
+  assert.doesNotMatch(layout, /getGroup|supabase|fetch\(/);
+
+  assert.match(navigation, /^"use client";/m);
+  assert.match(navigation, /usePathname\(\)/);
+  assert.match(navigation, /aria-label="グループ内ナビゲーション"/);
+  assert.match(navigation, /aria-current=\{isActive \? "page"/);
+  for (const label of ["ホーム", "履歴", "＋入力", "設定"]) {
+    assert.match(navigation, new RegExp(`label: "${label}"`));
+  }
+  assert.doesNotMatch(navigation, /label: "メンバー"/);
+});
+
+test("設定配下の画面を設定項目の現在地として扱う", async () => {
+  const navigation = await read(
+    "src/modules/groups/presentation/group-navigation.tsx",
+  );
+
+  assert.match(navigation, /\/settings/);
+  assert.match(navigation, /\/members/);
+  assert.match(navigation, /\/categories/);
+});
+
+test("設定ハブへ管理機能の入口を集約する", async () => {
+  assert.equal(
+    await exists("src/app/groups/[groupId]/settings/page.tsx"),
+    true,
+  );
+
+  const settings = await read("src/app/groups/[groupId]/settings/page.tsx");
+
+  assert.match(settings, /getCurrentProfile\(\)/);
+  assert.match(settings, /getGroupMembership\(groupId\)/);
+  assert.match(settings, /<ProfileForm/);
+  assert.match(settings, /<LogoutForm/);
+  assert.match(settings, /\/members/);
+  assert.match(settings, /\/categories/);
+  assert.match(settings, /\/exports\/transactions\.csv/);
+  assert.match(settings, /href="\/app"/);
+  assert.doesNotMatch(
+    settings,
+    /SERVICE_ROLE|@\/modules\/.+\/(?:application|infrastructure)\//,
+  );
+});
+
+test("モバイル下部配置とdesktopサイド配置をsafe area付きで定義する", async () => {
+  const styles = await read("src/app/styles.css");
+
+  assert.match(
+    styles,
+    /\.group-navigation\s*\{[^}]*position:\s*fixed;[^}]*bottom:\s*0;/s,
+  );
+  assert.match(
+    styles,
+    /\.group-navigation\s*\{[^}]*env\(safe-area-inset-bottom\)/s,
+  );
+  assert.match(styles, /\.group-navigation-link\s*\{[^}]*min-height:\s*44px;/s);
+  assert.match(
+    styles,
+    /@media \(min-width: 900px\)[\s\S]*\.group-navigation\s*\{[^}]*position:\s*sticky;/s,
+  );
+  assert.match(styles, /\.group-route-layout\s*\{[^}]*min-height:\s*100dvh;/s);
+});
+
+test("375pxホームでカレンダーを初期viewportへ優先配置する", async () => {
+  const page = await read("src/app/groups/[groupId]/page.tsx");
+  const styles = await read("src/app/styles.css");
+
+  assert.doesNotMatch(page, /header-links|group-primary-actions/);
+  assert.match(page, /calendar-home-header/);
+  assert.match(styles, /\.calendar-home-page\s*\{[^}]*min-height:\s*100dvh;/s);
+  assert.match(styles, /\.calendar-cell\s*\{[^}]*calc\(\(100dvh[^}]*\/ 6\)/s);
+  assert.match(styles, /@media \(max-height: 700px\)/);
+});
