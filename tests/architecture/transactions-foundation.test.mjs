@@ -112,4 +112,10 @@ test("支出カテゴリはモバイルで比較しやすいradio cardとして�
     styles,
     /\.category-option input:focus-visible \+ \.category-option-content/,
   );
+
+  // iOS Safariのdate inputがカードからはみ出さないよう、UA appearanceを無効化する
+  assert.match(
+    styles,
+    /\.expense-field input\[type="date"\]\s*\{[^}]*appearance:\s*none/s,
+  );
 });

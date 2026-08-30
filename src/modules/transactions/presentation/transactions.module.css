@@ -13,6 +13,8 @@
 .expense-form-grid {
   display: grid;
   gap: 0.4rem;
+  /* iOS Safariのdate inputは内在幅が大きく、縮小を許可しないとgridからはみ出す */
+  min-width: 0;
 }
 
 .expense-form-grid {
@@ -31,6 +33,7 @@
 .expense-field textarea,
 .custom-amount-wrap input {
   width: 100%;
+  min-width: 0;
   min-height: 48px;
   padding: 0.65rem 0.75rem;
   border: 1px solid #bdc7bd;
@@ -43,6 +46,12 @@
 .expense-field textarea {
   min-height: 5.5rem;
   resize: vertical;
+}
+
+/* iOS SafariはUAスタイルの内在幅でdate inputをカードからはみ出させるため、appearanceを無効化する */
+.expense-field input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .category-fieldset {
