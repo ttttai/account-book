@@ -36,7 +36,8 @@ function NavigationIcon({ id }: Readonly<{ id: NavigationItemId }>) {
   }
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7ZM19 12l2-1.2-2-3.5-2.1.8a7.6 7.6 0 0 0-1.4-.8L15.2 5h-4l-.3 2.3c-.5.2-1 .5-1.4.8l-2.1-.8-2 3.5 2 1.2v1.6l-2 1.2 2 3.5 2.1-.8c.4.3.9.6 1.4.8l.3 2.3h4l.3-2.3c.5-.2 1-.5 1.4-.8l2.1.8 2-3.5-2-1.2z" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   );
 }
@@ -87,11 +88,7 @@ export function GroupNavigation({ groupId }: Readonly<{ groupId: string }>) {
     <nav className="group-navigation" aria-label="グループ内ナビゲーション">
       {items.map((item) => {
         const isActive = isPathActive(pathname, item);
-        const className = [
-          "group-navigation-link",
-          item.id === "input" ? "group-navigation-input" : "",
-          isActive ? "is-active" : "",
-        ]
+        const className = ["group-navigation-link", isActive ? "is-active" : ""]
           .filter(Boolean)
           .join(" ");
 

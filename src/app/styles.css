@@ -326,25 +326,6 @@ a:focus-visible {
   background: var(--accent-soft);
 }
 
-.group-navigation-input {
-  min-height: 52px;
-  margin-top: -0.75rem;
-  border-color: var(--accent);
-  border-radius: 1rem;
-  color: white;
-  background: var(--accent);
-  box-shadow: 0 8px 20px rgb(47 111 85 / 25%);
-}
-
-.group-navigation-input.is-active {
-  border-color: #174d38;
-  color: white;
-  background: #245f48;
-  box-shadow:
-    0 0 0 3px var(--surface),
-    0 8px 20px rgb(47 111 85 / 28%);
-}
-
 .app-header {
   display: flex;
   align-items: center;
@@ -1793,11 +1774,6 @@ a:focus-visible {
     min-height: 60px;
     gap: 0.35rem;
     font-size: 0.75rem;
-  }
-
-  .group-navigation-input {
-    min-height: 60px;
-    margin-top: 0;
   }
 
   .shell {

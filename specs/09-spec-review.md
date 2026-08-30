@@ -515,6 +515,14 @@ MVP範囲確認: 履歴、メンバー、カテゴリの業務仕様やデータ
 
 実装確認: 共通layout内の履歴headerにある画面間nav、メンバー・カテゴリheader直下の戻るlinkだけを非表示にし、機能固有領域を非表示にしないarchitecture testを追加した。PR #33を基点とする一時worktreeへ#20、#21、#23を順にmergeした結果、#20は自動統合でき、#21は`styles.css`、#23は`styles.css`と`tests/integration/run-local.sql`で競合した。検証用mergeでは全機能のCSSと両integration SQLを保持して解決し、format、警告なしlint、型検査、本番build、architecture test 75件、component・unit test 279件が成功した。build結果に`/history`、`/members`、`/categories`、`/settings`の全routeが含まれることを確認した。iPhone 17・iOS 26.5 SimulatorのSafariでは、履歴headerの重複導線が表示されず、履歴固有のshortcut・絞り込み・明細を維持し、下部4項目navがsafe areaより上で固定され、横方向の欠落・重なりがないことを確認した。確認用routeと検証用mergeは各PRへ含めていない。
 
+### R-044 ナビゲーション入力項目の強調廃止と設定アイコン修正
+
+指摘: 実機確認で、下部ナビゲーションの「＋入力」だけを浮き上がる強調ボタンとして表示するデザインは過剰であり、他項目と同じ表示で良いという利用者判断があった。また設定アイコンは塗りつぶし前提のgear pathを線描画で表示していたため輪郭が崩れて見えた。
+
+対応: `NAV-003`、`AC-NAV-003-1`、画面仕様の該当記述を「他項目と同じデザインで表示する」へ更新し、強調用CSSと専用classを削除する。設定アイコンは線描画前提のgear（円と外形の2要素）へ差し替える。タップ領域44px以上、label表示、`aria-current`による現在地表示は変更しない。
+
+判定: 表示デザインのみの変更でroute、認可、データ処理へ影響せず、`NFR-UI-*`、`NFR-A11Y-003`との整合を保つ。既存のnavigation構造test・component testの通過を条件に承認する。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
