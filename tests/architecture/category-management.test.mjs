@@ -59,8 +59,8 @@ test("カテゴリqueryとcommandをserver-only境界へ隔離する", async () 
   );
   const commands = await Promise.all([
     read("src/modules/categories/application/add-category.ts"),
-    read("src/modules/categories/application/rename-category.ts"),
-    read("src/modules/categories/application/move-category.ts"),
+    read("src/modules/categories/application/update-category.ts"),
+    read("src/modules/categories/application/reposition-category.ts"),
     read("src/modules/categories/application/archive-category.ts"),
   ]);
 
@@ -90,9 +90,10 @@ test("カテゴリServer ActionはFormDataを検証して認可済みcommandだ�
 
   assert.match(action, /"use server"/);
   assert.match(action, /addCategorySchema\.safeParse/);
-  assert.match(action, /renameCategorySchema\.safeParse/);
-  assert.match(action, /moveCategorySchema\.safeParse/);
+  assert.match(action, /updateCategorySchema\.safeParse/);
+  assert.match(action, /repositionCategorySchema\.safeParse/);
   assert.match(action, /archiveCategorySchema\.safeParse/);
+  assert.doesNotMatch(action, /moveCategoryAction|renameCategoryAction/);
   assert.match(action, /revalidatePath/);
   assert.doesNotMatch(
     action,
@@ -114,6 +115,8 @@ test("App Routerはcategoriesモジュールの公開境界だけを使い権限
   assert.match(page, /notFound\(\)/);
   assert.match(page, /"forbidden"/);
   assert.match(page, /権限がありません/);
+  // 画面上の文言は「削除」へ統一する
+  assert.doesNotMatch(page, /アーカイブ/);
 
   // loading・error境界を用意する
   await read("src/app/groups/[groupId]/categories/loading.tsx");
@@ -132,15 +135,22 @@ test("カテゴリ操作は44px以上のタップ領域を持つform submitと�
   );
 
   assert.match(management, /<form\s/);
-  assert.match(management, /name="direction"/);
-  assert.match(management, /<details/);
+  // 一覧行は編集ボタンから編集パネルを開き、上へ・下へボタンは提供しない
+  assert.match(management, /aria-label=\{`\$\{category\.name\}を編集`\}/);
+  assert.doesNotMatch(management, /name="direction"|上へ|下へ/);
+  // 画面上の文言は「削除」へ統一し、アーカイブ表記を使わない
+  assert.match(management, /削除/);
+  assert.doesNotMatch(management, /アーカイブ/);
+  // 色はパレット（radio）から選ぶ
+  assert.match(management, /name="color"/);
+  assert.match(management, /type="radio"/);
   assert.match(
     styles,
-    /\.category-row-actions (?:button|.*)\s*{[\s\S]*?min-height:\s*(?:44|4[5-9]|[5-9]\d)px/,
+    /\.category-edit-button\s*\{[^}]*min-height:\s*(?:44|4[5-9]|[5-9]\d)px/s,
   );
   assert.match(
     styles,
-    /\.category-move-button\s*{[\s\S]*?min-width:\s*(?:44|4[5-9]|[5-9]\d)px/,
+    /\.category-color-option\s*\{[^}]*min-height:\s*(?:44|4[5-9]|[5-9]\d)px/s,
   );
 });
 
@@ -153,13 +163,14 @@ test("カテゴリはドラッグハンドルで任意位置へ並び替えで�
     "src/modules/categories/presentation/categories.module.css",
   );
 
-  // pointer操作のドラッグハンドルを提供し、キーボード向けの上下ボタンも残す
+  // pointer操作のドラッグハンドルを提供し、キーボードでは矢印キーで移動できる
   assert.match(management, /onPointerDown/);
   assert.match(
     management,
     /aria-label=\{`\$\{category\.name\}をドラッグして並び替え`\}/,
   );
-  assert.match(management, /name="direction"/);
+  assert.match(management, /ArrowUp/);
+  assert.match(management, /ArrowDown/);
 
   // ハンドルはドラッグ中の画面スクロールと衝突させず、44px以上のタップ領域を持つ
   assert.match(styles, /\.category-drag-handle\s*\{[^}]*touch-action:\s*none/s);
@@ -172,4 +183,24 @@ test("カテゴリはドラッグハンドルで任意位置へ並び替えで�
   assert.match(actions, /repositionCategoryAction/);
   assert.match(actions, /repositionCategorySchema\.safeParse/);
   assert.doesNotMatch(actions, /categoryIds/);
+});
+
+test("カテゴリ更新migrationは名称と色をowner/admin検証付きで更新する (AC-CAT-002-6)", async () => {
+  const migration = await read(
+    "supabase/migrations/202608300001_category_update.sql",
+  );
+
+  assert.match(
+    migration,
+    /create or replace function public\.update_group_category/i,
+  );
+  assert.match(migration, /security definer/i);
+  assert.match(migration, /set search_path = ''/i);
+  assert.match(migration, /assert_category_manager/i);
+  // 名称の正規化・重複拒否と、パレット外の色の拒否
+  assert.match(migration, /normalized_category_name/i);
+  assert.match(migration, /duplicate category name/i);
+  assert.match(migration, /invalid category color/i);
+  // テーブル変更はしない（関数追加のみ）
+  assert.doesNotMatch(migration, /create table|alter table|drop table/i);
 });
