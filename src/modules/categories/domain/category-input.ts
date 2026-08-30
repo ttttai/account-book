@@ -34,6 +34,12 @@ export const moveCategorySchema = z.object({
   direction: z.enum(["up", "down"]),
 });
 
+export const repositionCategorySchema = z.object({
+  groupId: z.uuid(),
+  categoryId: z.uuid(),
+  position: z.number().int().min(0),
+});
+
 export const archiveCategorySchema = z.object({
   groupId: z.uuid(),
   categoryId: z.uuid(),
@@ -44,3 +50,4 @@ export type AddCategoryInput = z.infer<typeof addCategorySchema>;
 export type RenameCategoryInput = z.infer<typeof renameCategorySchema>;
 export type MoveCategoryInput = z.infer<typeof moveCategorySchema>;
 export type ArchiveCategoryInput = z.infer<typeof archiveCategorySchema>;
+export type RepositionCategoryInput = z.infer<typeof repositionCategorySchema>;

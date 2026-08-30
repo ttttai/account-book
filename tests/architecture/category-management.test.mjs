@@ -143,3 +143,33 @@ test("カテゴリ操作は44px以上のタップ領域を持つform submitと�
     /\.category-move-button\s*{[\s\S]*?min-width:\s*(?:44|4[5-9]|[5-9]\d)px/,
   );
 });
+
+test("カテゴリはドラッグハンドルで任意位置へ並び替えできる (AC-CAT-002-5)", async () => {
+  const management = await read(
+    "src/modules/categories/presentation/category-management.tsx",
+  );
+  const actions = await read("src/modules/categories/presentation/actions.ts");
+  const styles = await read(
+    "src/modules/categories/presentation/categories.module.css",
+  );
+
+  // pointer操作のドラッグハンドルを提供し、キーボード向けの上下ボタンも残す
+  assert.match(management, /onPointerDown/);
+  assert.match(
+    management,
+    /aria-label=\{`\$\{category\.name\}をドラッグして並び替え`\}/,
+  );
+  assert.match(management, /name="direction"/);
+
+  // ハンドルはドラッグ中の画面スクロールと衝突させず、44px以上のタップ領域を持つ
+  assert.match(styles, /\.category-drag-handle\s*\{[^}]*touch-action:\s*none/s);
+  assert.match(
+    styles,
+    /\.category-drag-handle\s*\{[^}]*min-height:\s*(?:44|4[5-9]|[5-9]\d)px/s,
+  );
+
+  // クライアントは対象カテゴリと移動先位置だけを送り、全体順序はサーバーが組み立てる
+  assert.match(actions, /repositionCategoryAction/);
+  assert.match(actions, /repositionCategorySchema\.safeParse/);
+  assert.doesNotMatch(actions, /categoryIds/);
+});

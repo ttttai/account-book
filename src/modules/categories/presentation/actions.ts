@@ -7,11 +7,13 @@ import { archiveCategory } from "../application/archive-category";
 import { CategoryCommandError } from "../application/category-command-error";
 import { moveCategory } from "../application/move-category";
 import { renameCategory } from "../application/rename-category";
+import { repositionCategory } from "../application/reposition-category";
 import {
   addCategorySchema,
   archiveCategorySchema,
   moveCategorySchema,
   renameCategorySchema,
+  repositionCategorySchema,
 } from "../domain/category-input";
 import type { CategoryActionState } from "./action-state";
 
@@ -148,6 +150,42 @@ export async function moveCategoryAction(
       status: "success",
       message: "これ以上その方向へは移動できません。",
     };
+  }
+
+  revalidateCategoryScreens(result.data.groupId);
+  return { status: "success", message: "並び順を変更しました。" };
+}
+
+// ドラッグ並び替えの確定。対象カテゴリと移動先位置だけを受け取り、全体順序はサーバーが組み立てる
+export async function repositionCategoryAction(
+  groupId: string,
+  categoryId: string,
+  position: number,
+): Promise<CategoryActionState> {
+  const result = repositionCategorySchema.safeParse({
+    groupId,
+    categoryId,
+    position,
+  });
+  if (!result.success) {
+    return { status: "error", message: "並び替えの内容を確認してください。" };
+  }
+
+  let repositionResult: Awaited<ReturnType<typeof repositionCategory>>;
+  try {
+    repositionResult = await repositionCategory(result.data);
+  } catch (error) {
+    return toErrorState(error);
+  }
+
+  if (repositionResult === "not_found") {
+    return {
+      status: "error",
+      message: "対象のカテゴリが見つかりません。表示を更新してください。",
+    };
+  }
+  if (repositionResult === "unchanged") {
+    return { status: "success", message: "並び順は変更されていません。" };
   }
 
   revalidateCategoryScreens(result.data.groupId);
