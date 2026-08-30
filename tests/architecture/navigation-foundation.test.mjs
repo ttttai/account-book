@@ -34,7 +34,7 @@ test("グループ配下を共通layoutと4項目ナビゲーションで包む"
   assert.match(navigation, /usePathname\(\)/);
   assert.match(navigation, /aria-label="グループ内ナビゲーション"/);
   assert.match(navigation, /aria-current=\{isActive \? "page"/);
-  for (const label of ["ホーム", "履歴", "＋入力", "設定"]) {
+  for (const label of ["ホーム", "履歴", "入力", "設定"]) {
     assert.match(navigation, new RegExp(`label: "${label}"`));
   }
   assert.doesNotMatch(navigation, /label: "メンバー"/);

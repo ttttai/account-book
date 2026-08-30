@@ -68,7 +68,7 @@ export function GroupNavigation({ groupId }: Readonly<{ groupId: string }>) {
     },
     {
       id: "input",
-      label: "＋入力",
+      label: "入力",
       href: `${groupBase}/transactions/new`,
       activePaths: [`${groupBase}/transactions`],
     },

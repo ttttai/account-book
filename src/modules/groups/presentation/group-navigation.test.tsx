@@ -28,7 +28,7 @@ describe("GroupNavigation", () => {
     expect(links.map((link) => link.textContent)).toEqual([
       "ホーム",
       "履歴",
-      "＋入力",
+      "入力",
       "設定",
     ]);
     expect(links[0]?.getAttribute("aria-current")).toBe("page");
@@ -52,7 +52,7 @@ describe("GroupNavigation", () => {
     render(<GroupNavigation groupId={groupId} />);
 
     expect(
-      screen.getByRole("link", { name: "＋入力" }).getAttribute("aria-current"),
+      screen.getByRole("link", { name: "入力" }).getAttribute("aria-current"),
     ).toBe("page");
   });
 });
