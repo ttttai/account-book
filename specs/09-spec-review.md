@@ -4,7 +4,7 @@
 
 レビュー日: 2026-08-29
 
-対象バージョン: 0.2.14
+対象バージョン: 0.2.17
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.14の自動文書検査では、要件ID 98件、明示的な受け入れ条件ID 111件が一意であり、重複宣言はなかった。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
+バージョン0.2.17の自動文書検査では、要件ID 98件、明示的な受け入れ条件ID 112件が一意であり、重複宣言はなかった。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -412,6 +412,74 @@
 確認: `categories`テーブルは`archived_at`と`sort_order`を持ち、スキーマ変更なしでcommand関数だけを追加できる。DB・RLSテストでowner/admin限定、別グループ拒否、順序一意性、アーカイブ後の取引参照維持を証明する。
 
 判定: `CAT-002`、`CAT-003`、認可マトリクスに整合する。実装開始を承認する。
+
+### R-INF-001 Cloud Run本番基盤とTerraform責務
+
+指摘: `D-007`と`NFR-OPS-*`はCloud Run、managed Supabase、費用上限の方針を定めているが、state、secret、image、IAM、初回構築順、IaCの管理境界が未確定だった。単一rootでstate bucketとCloud Runを同時管理すると、初回backend作成が循環し、日常のrevision変更がfoundation資源へ波及する。Next.jsの`NEXT_PUBLIC_*`をCloud Runのruntime変数だけで渡すと、browser bundleへproduction値が入らない。
+
+対応: `11-production-infrastructure.md`を追加し、`bootstrap`と`environments/prod`を独立したTerraform root・stateへ分ける。bootstrapはversioning済みGCS state bucket、必要API、Artifact Registry、runtime service account、secret containerとsecret単位IAM、billing budgetを管理する。prodはCloud Run v2と公開invokerだけを管理する。imageは同一regionのArtifact Registry digest参照に限定し、4つの`NEXT_PUBLIC_*`はproduction imageのbuild時とCloud Run runtimeで一致させる。secret payloadとversion作成はTerraform外とし、Cloud Runは指定versionを参照する。
+
+確認: Cloud Run公式資料はrequest-based billing、service-level min 0、max instance制限、Secret Managerの環境変数で特定versionを使う構成、専用service identityへのsecret単位accessorを提供している。Cloud Runの既定`run.app` endpointはHTTPSであり、公開invokerにしてもアプリのGoogle OAuth、許可リスト、membership、RLSを認証・認可境界として維持できる。Next.js公式資料は`NEXT_PUBLIC_*`がbuild時に固定されると明記している。GCS backendはlockingを備え、versioningが誤削除からの復旧に推奨される。Supabase Terraform ProviderはPublic Alphaで、現状の管理資源だけではGoogle OAuth secretとBefore User Created Hookを含む初回設定を完全に表現できないため、managed Supabaseのcontrol planeは今回のIaCから除外し、migrationとproduction checklistを正本とする。
+
+安全性確認: Terraform source、example、state、planへsecret payloadを入れず、service account keyを作らない。runtime IAMは対象secretのaccessorだけとし、project-levelの広いroleを付与しない。production deletion protection、state bucketのpublic access prevention・`force_destroy = false`・削除防止を要求する。公開invokerはWebアプリとOAuth callbackに必要であり、DBアクセスはuser sessionとRLSで分離する。budget通知はhard capでないこと、min 0によるcold start、max 3による混雑時の遅延を明示した。
+
+実装可能性確認: 初回はbootstrapをlocal stateでapplyし、作成後のGCS bucketへstateをmigrateする。その後secret versionとdigest固定imageを準備してprodをplanする順序なら循環しない。Cloud Run URLが初回作成まで不明なため、初回に限り仮imageでserviceを作成し、確定URLをSupabase、Google OAuth、production buildへ反映する二段階手順を許容する。実credentialなしの構造test、`terraform fmt`、`terraform init -backend=false`、`terraform validate`でPR時の静的検証が可能である。
+
+MVP範囲確認: custom domain、load balancer、CDN、VPC、Cloud SQL、自動deploy、Workload Identity Federation、Supabase control planeのTerraform管理、自動DB backupは追加しない。実cloud資源への`apply`も本PRで行わず、人が承認したplanを別作業で適用する。低利用の非公開MVPに必要な再現性、秘密管理、費用監視へ範囲を限定している。
+
+判定: `INF-001`〜`INF-012`、`AC-INF-001-1`〜`AC-INF-001-12`は既存の`D-007`、`D-008`、`NFR-OPS-*`、`NFR-PERF-005`、`NFR-SEC-*`と整合し、安全かつ実装可能な非公開MVPの本番基盤仕様である。受け入れ条件に対応する構造testを先に作成し、Terraformと日本語運用資料を実装して、実資源を変更せず静的検証することを条件に実装開始を承認する。
+
+### R-INF-002 Terraform生成物のDocker build context混入防止
+
+指摘: Provider取得後のproduction Docker buildで、各rootの`.terraform`が合計246MBのbuild contextへ含まれることを確認した。`.gitignore`はDocker daemonへ送るfileを制御しないため、Git管理外のProvider cacheだけでなく、将来作成するlocal state、plan、実値tfvars、backend設定がbuild contextや中間layerへ混入するおそれがある。
+
+対応: `INF-013`と`AC-INF-001-13`を追加し、Terraform生成物と実値を`.dockerignore`でも明示的に除外する。構造testで`.terraform`、state、plan、tfvars、backend設定の除外を先に固定し、production Docker buildを再実行する。
+
+判定: app実行fileやTerraform sourceは変更せず、機密情報混入と不要な転送量を減らす安全なbuild境界の修正である。既存の`NFR-SEC-004`、`NFR-SEC-005`、`INF-001`、`INF-011`に整合し、test先行とDocker build再確認を条件に実装開始を承認する。
+
+実装確認: `bootstrap`と`environments/prod`を独立rootとして実装し、Google Provider v7.46.0をlockした。state bucket、必要API、Artifact Registryのdry-run cleanup、keyなしruntime service account、payloadを持たないSecret Manager containerとsecret単位IAM、50%・80%・100%のbilling budget、Cloud Run v2のTokyo・Gen2・1 vCPU・512 MiB・request-based billing・min 0・max 3・deletion protection・digest入力・固定secret version・公開invokerを宣言した。日本語運用資料にbackend移行、secret登録、Next.js build時公開値、Supabase・Google OAuth前提、plan確認、rotation、rollback、smoke testを記録した。最新`origin/main`へrebase後、Terraform構造test 8件を含むarchitecture test 48件と単体test 180件、format、警告なしlint、型検査、本番Next.js build、両rootの`terraform validate`が成功した。production Docker imageを再buildし、`.dockerignore`修正によってbuild contextが約246MBから1MB未満へ減少したことを確認した。実credentialをTerraformへ渡さず、`plan`と`apply`は実行していない。
+
+### R-INF-003 Terraform固定構成とGitHub Actions revision deployの分離
+
+指摘: R-INF-001ではTerraformがCloud Runのimage digestも継続管理するため、アプリの各releaseでprod root全体のplan・applyが必要になる。GitHub Actionsから別途`gcloud run deploy`するとTerraformが古いimageへ戻そうとしてdriftが発生する。一方、Cloud Run template全体を`ignore_changes`にするとCPU、memory、scaling、環境変数、secret、runtime identityまでIaCの管理外になる。長期service account keyをGitHub Secretsへ保存する構成も避ける必要がある。
+
+対応: TerraformはfoundationとCloud Runの固定service構成を管理し、service作成に必要な`initial_container_image`だけを入力する。`lifecycle.ignore_changes`はcontainer imageの正確な属性だけに限定する。GitHub ActionsはmainのCI成功後にWIFで専用deploy service accountをimpersonateし、production imageをbuild・Artifact Registryへpushして、取得したdigestで既存Cloud Run serviceのimageだけを更新する。bootstrapは再利用されないnumeric repository ID・owner IDとmain branchへ制約したWIF、deploy identity、repository単位Writer、runtime identity単位Service Account Userを管理し、prodは対象service単位Cloud Run Developerを管理する。workflowは`production` Environmentと直列concurrencyを使う。Environment変数はjobがrunnerへ送られた後に利用可能になるため、起動スイッチだけはRepository variable `PRODUCTION_CD_ENABLED`とし、初期構築後に`true`を明示するまでjobをskipする。Cloud Runの固定構成を変更するflagは禁止する。
+
+安全性確認: WIFにより長期credentialをGitHubへ保存しない。Google Cloud公式が名前fieldのcybersquatting対策として推奨するnumeric `repository_id`と`repository_owner_id`を使い、repository削除・rename後に同名を取得した主体を信頼しない。deploy identityとruntime identityを分離し、deploy identityはSecret Manager payloadを読めない。GitHub workflowへ許可メール一覧、OAuth client secret、Supabase service role keyを渡さない。WIF Actionがworkspaceへ一時生成する`gha-creds-*.json`はGitとDocker build contextの両方から除外する。imageはmutable tagではなく解決済みdigestでdeployし、commit SHA、digest、Cloud Run実参照を照合する。外部Actionは完全commit SHAへ固定し、production Environmentでbranch・承認を追加できる。
+
+実装可能性確認: Cloud Run v2 resourceは作成時imageが必須だが、初回imageを手動でpushしてからprod Terraformをapplyすれば循環しない。以後の`gcloud run deploy --image`は既存設定を保持したままrevisionを作成でき、Terraformはimage属性だけを無視するため固定構成のdrift検知を維持できる。CI workflowの`workflow_run`成功eventから検証済みhead SHAをcheckoutし、手動実行はmainだけに制限できる。構造testでtrigger、WIF、digest、禁止flag、IAM scope、ignore対象を固定できる。
+
+MVP範囲確認: preview環境、canary、Cloud Deploy、独自domain、自動Terraform apply、DB migration自動適用は追加しない。低頻度のfoundation変更は従来どおり人がplanを確認してapplyし、高頻度のアプリrevisionだけをCDへ分離する。
+
+判定: `INF-012`、`INF-014`〜`INF-016`、`AC-INF-001-14`〜`AC-INF-001-18`は`NFR-MNT-008`、`NFR-MNT-009`、`NFR-OPS-*`、`NFR-SEC-004`と整合し、安全かつ実装可能である。受け入れ条件に対応する構造testを先に更新し、Terraform、workflow、日本語運用資料を実装し、実credentialと実cloud変更なしで検証することを条件に実装開始を承認する。
+
+### R-041 OAuthログイン直後の初回表示エラー耐性
+
+指摘: ブラウザに失効済みAuth cookieが残った状態でOAuthログインすると、`/auth/callback`要求中にProxyが旧refresh tokenでsession refreshを試みて`refresh_token_not_found`が発生し、直後の保護画面初回表示でもServer Componentの読み取りqueryが認証起因の失敗をserver errorとして扱い、error boundary（500）が表示される。reloadで回復するため実害は小さいが、ログイン直後の第一印象を損なう（Issue #30）。
+
+対応: `AC-AUTH-001-9`を追加する。Proxyのmatcherから`/auth`配下のRoute Handlerを除外し、PKCE cookie・session cookieを自ら管理する認証境界の要求中にProxyがrefreshを試みないようにする。読み取りqueryはPostgRESTの認証起因エラー（期限切れ・無効JWT）を判定する共有関数で未認証と同じ結果へ縮退させ、保護画面の未認証redirectへ合流させる。認証起因以外のquery失敗は引き続きエラーとして扱う。
+
+安全性確認: `/auth`配下をProxy対象外にしても、認可はProxyに依存せず各query/commandとRLSで再確認するため（AC-AUTH-004-3）、認可境界は弱まらない。認証エラーの縮退は読み取りだけに適用し、更新系の失敗を握りつぶさない。エラー詳細やtokenをlog以外へ出さない方針は変更しない。
+
+実装可能性確認: matcherの除外は正規表現の変更のみ。認証起因エラーの判定はPostgRESTのエラーcode（`PGRST30x`）とJWTメッセージで判定する純関数として切り出し、unit testできる。構造testでProxy除外と読み取りqueryの縮退を固定できる。
+
+MVP範囲確認: refresh競合自体の高度な排他制御（分散lock等）や全read関数の一括改修は行わず、ログイン初回表示の経路（プロフィール・グループ一覧）に限定する。他の読み取り関数への展開はIssue #30の後続とする。
+
+判定: `AC-AUTH-001-9`は`AC-AUTH-004-1`、`AC-AUTH-004-3`、NFR-UXの初回表示品質と整合し、安全かつ実装可能である。判定用純関数のunit testと構造testを先に作成し、実装後に幅375pxのログインフローを実画面確認することを条件に実装開始を承認する。
+
+### R-INF-004 ドキュメントのみの変更に対するCI・CDのskip
+
+指摘: `docs/**`やroot `README.md`だけを変更するpushでも、CIがDocker Composeの起動と本番container buildを含む全ジョブを実行し、mainへのmerge後はCDが同一内容のアプリを再build・pushして新しいCloud Run revisionを作成する。アプリの挙動に影響しない変更に対して、Actionsの実行時間、Artifact Registryの保存量、本番revisionの増加が無駄に発生する。
+
+対応: `INF-017`、`AC-INF-001-19`、`AC-INF-001-20`を追加する。docsのみ判定を`scripts/docs-only-diff.sh`へ集約し、対象を`docs/**`・root `README.md`・`CLAUDE.md`に限定する。CIは判定用の軽量jobを追加し、docsのみの場合は重い検証ジョブ（Quality、Docker integration）をskipする一方、markdown自体を検証するformat checkは独立jobとして常に実行する。CDは、`Build and deploy` jobが実際に成功した直近runのcommitと今回のdeploy対象commitの差分がdocsのみの場合だけdeployをskipする。
+
+安全性確認: architecture testが内容を検証する`specs/**`と`AGENTS.md`はドキュメント扱いにせず、変更時は従来どおり全CIを実行する。branch protectionのrequired checkは、workflowレベルの`paths-ignore`ではなくjobレベルの条件でskipするため、docsのみのPRでもcheckが待機状態のまま残らない（GitHubはskipされたjobを合格として扱う）。作業ブランチの判定は直前pushとの差分ではなくmainとの分岐点からの差分で行い、コード変更を含むブランチへdocs commitを積んでも重い検証がskipされない。CDの基準はdeployをskipしただけの成功runを含めないため、CD無効期間や`cancel-in-progress`によるCI取り消しで未deployのコード変更が取り残されない。判定不能・初回・手動実行では必ず実行側へ倒す（fail open for verification and deploy）。
+
+実装可能性確認: CIはpush eventの`before` SHAと`git merge-base`、CDはGitHub Actions APIの`gh api`（`actions: read`権限のみ追加）とcheckout済みhistoryで判定でき、新しい外部Actionや資格情報を追加しない。判定scriptと両workflowの構造は既存のarchitecture testと同じ方式で固定できる。
+
+MVP範囲確認: workflowレベルの`paths-ignore`、外部のpaths-filter Action、mergeキュー、preview環境は導入しない。判定はdocsのみか否かの二値に限定し、ファイル種別ごとの細かいジョブ分割は行わない。
+
+判定: `INF-017`、`AC-INF-001-19`、`AC-INF-001-20`は`INF-012`、`INF-016`、`NFR-OPS-*`、`NFR-MNT-005`と整合し、安全かつ実装可能である。受け入れ条件に対応する構造testを先に作成し、実装後にformat、lint、型検査、architecture test、本番buildで検証することを条件に実装開始を承認する。
 
 ## 4. 要件と検証方法の対応
 

@@ -32,6 +32,7 @@ function value(formData: FormData, name: string): string {
   return typeof field === "string" ? field : "";
 }
 
+// グループ作成フォームのServer Action。成功時は新グループ画面へredirectする
 export async function createGroupAction(
   _previousState: GroupActionState,
   formData: FormData,
@@ -63,6 +64,7 @@ export async function createGroupAction(
   redirect(`/groups/${groupId}`);
 }
 
+// 招待リンク作成のServer Action。groupIdはbindで固定して受け取る
 export async function createInvitationAction(
   groupId: string,
   _previousState: CreateInvitationActionState,
@@ -98,6 +100,7 @@ export async function createInvitationAction(
   }
 }
 
+// 招待受諾が成立しなかった理由ごとの利用者向けメッセージ
 const invitationErrorMessages = {
   not_found: "招待リンクが無効です。新しいリンクを作成者へ依頼してください。",
   expired:
@@ -106,6 +109,7 @@ const invitationErrorMessages = {
   used: "この招待リンクはすでに別のユーザーが使用しています。",
 } as const;
 
+// 招待受諾のServer Action。参加成立時は関連画面のキャッシュを更新する
 export async function acceptInvitationAction(
   _previousState: AcceptInvitationActionState,
   formData: FormData,
@@ -144,12 +148,14 @@ export async function acceptInvitationAction(
   }
 }
 
+// 権限変更の結果メッセージで使う役割の表示名
 const memberRoleLabels = {
   owner: "オーナー",
   admin: "管理者",
   member: "メンバー",
 } as const;
 
+// メンバー権限変更のServer Action。最後のオーナーの降格は拒否される
 export async function changeMemberRoleAction(
   groupId: string,
   _previousState: MemberAdministrationActionState,
@@ -195,6 +201,7 @@ export async function changeMemberRoleAction(
   }
 }
 
+// メンバーをグループから外すServer Action。最後のオーナーは外せない
 export async function removeMemberAction(
   groupId: string,
   _previousState: MemberAdministrationActionState,
@@ -240,6 +247,7 @@ export async function removeMemberAction(
   }
 }
 
+// 招待取り消しのServer Action。対象は引数bindで特定する
 export async function revokeInvitationAction(
   groupId: string,
   invitationId: string,

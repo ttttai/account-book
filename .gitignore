@@ -14,6 +14,7 @@
 .env
 .env.*
 !.env.example
+gha-creds-*.json
 
 # local database data
 /supabase/.branches
@@ -23,3 +24,19 @@
 *.tsbuildinfo
 .DS_Store
 npm-debug.log*
+
+# Terraform generated files and local values
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+backend.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+!*.tfvars.example
+!*.hcl.example

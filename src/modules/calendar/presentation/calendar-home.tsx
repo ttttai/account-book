@@ -13,6 +13,7 @@ function formatMonth(month: string): string {
   return `${year}年${monthNumber}月`;
 }
 
+// 月・集計対象・日付の表示条件をquery文字列にしたカレンダーURLを組み立てる
 function createCalendarUrl(
   groupId: string,
   input: Readonly<{
@@ -32,6 +33,7 @@ function createCalendarUrl(
   return `/groups/${encodeURIComponent(groupId)}?${search.toString()}`;
 }
 
+// 表示条件が不正なときのエラー表示と、今月表示へ戻るリンク
 export function CalendarValidationError({
   data,
 }: Readonly<{ data: CalendarInvalidData }>) {
@@ -52,6 +54,7 @@ export function CalendarValidationError({
   );
 }
 
+// グループ・自分・メンバー別の集計対象を切り替えるナビゲーション
 function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
   return (
     <nav className="calendar-scope-nav" aria-label="カレンダーの集計対象">
@@ -112,6 +115,7 @@ function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
   );
 }
 
+// 月ナビゲーション・集計対象・月間合計を組み合わせたカレンダー画面のルートコンポーネント
 export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
   const previousMonth = shiftMonth(data.month, -1);
   const nextMonth = shiftMonth(data.month, 1);

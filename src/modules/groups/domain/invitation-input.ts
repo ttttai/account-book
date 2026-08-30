@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// 32byte乱数のbase64url表現（常に43文字）だけをトークンとして受け付ける
 const invitationTokenSchema = z
   .string()
   .regex(/^[A-Za-z0-9_-]{43}$/, "招待リンクが正しくありません。");

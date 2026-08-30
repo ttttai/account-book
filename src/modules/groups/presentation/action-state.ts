@@ -1,3 +1,4 @@
+// グループ作成フォームのuseActionState用の状態
 export type GroupActionState = Readonly<{
   status: "idle" | "error";
   message?: string;

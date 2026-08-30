@@ -39,6 +39,8 @@ const invitationRowSchema = z.object({
   created_at: z.string(),
 });
 
+// グループ情報・メンバー一覧・（管理者向けの）保留招待をまとめて取得する
+// 未認証や非メンバーはnullを返し、閲覧不可として扱う
 export async function getGroupMembership(
   unsafeGroupId: string,
 ): Promise<GroupMembershipDetails | null> {
@@ -77,6 +79,7 @@ export async function getGroupMembership(
   const currentMembership = memberships.find(
     (membership) => membership.user_id === userId,
   );
+  // 自分がactiveなメンバーでなければグループ自体を見せない
   if (!currentMembership) return null;
 
   const memberUserIds = memberships.map((membership) => membership.user_id);
@@ -101,6 +104,7 @@ export async function getGroupMembership(
   }));
 
   let pendingInvitations: readonly PendingInvitationSummary[] = [];
+  // 保留中の招待はowner/adminにのみ開示する
   if (["owner", "admin"].includes(currentMembership.role)) {
     const { data, error } = await supabase.rpc(
       "list_pending_group_invitations",

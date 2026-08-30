@@ -23,10 +23,12 @@ const createdRowSchema = z.object({
   expires_at: z.string(),
 });
 
+// 共有URLの基点。未設定時はローカル開発用アドレスにfallbackする
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000";
 }
 
+// 招待トークンを発行し、ハッシュのみをDBへ保存して共有URLを返す
 export async function createInvitation(
   input: CreateInvitationInput,
 ): Promise<CreatedInvitation> {
@@ -38,6 +40,7 @@ export async function createInvitation(
     throw new Error("UNAUTHENTICATED");
   }
 
+  // 生トークンはこのレスポンスでしか渡らない。DBにはハッシュだけを残す
   const rawToken = generateInvitationToken();
   const tokenHash = await hashInvitationToken(rawToken);
   const { data, error } = await supabase.rpc("create_group_invitation", {

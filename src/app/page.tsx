@@ -7,6 +7,7 @@ const implementationSteps = [
   "次は月間カレンダーとメンバー別集計",
 ];
 
+// 未ログイン向けトップページ（サービス紹介とログイン導線）
 export default function HomePage() {
   return (
     <main className="shell">

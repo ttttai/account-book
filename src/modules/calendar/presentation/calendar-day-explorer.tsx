@@ -43,6 +43,7 @@ function formatDay(date: string): string {
   return `${year}年${month}月${day}日`;
 }
 
+// 現在の表示条件を保ったまま、日付選択を反映したカレンダーURLを組み立てる
 function createCalendarDayUrl(
   data: CalendarDayExplorerData,
   day?: string,
@@ -58,6 +59,7 @@ function createCalendarDayUrl(
   return `/groups/${encodeURIComponent(data.group.id)}?${search.toString()}`;
 }
 
+// 修飾キーなしの左クリックだけをアプリ内遷移に置き換える（新規タブ等はブラウザに任せる）
 function isPlainPrimaryClick(
   event: ReactMouseEvent<HTMLAnchorElement>,
 ): boolean {
@@ -76,6 +78,7 @@ type JpyDigitGroup = Readonly<{
   isLast: boolean;
 }>;
 
+// 狭い画面で3桁区切りごとに折り返せるよう、金額を桁グループへ分割する
 function splitJpyDigitGroups(amountMinor: number): readonly JpyDigitGroup[] {
   const digitGroups = formatCalendarCellJpy(amountMinor).split(",");
   let offset = 0;
@@ -110,11 +113,13 @@ function CalendarCellAmount({
   );
 }
 
+// ブラウザの戻る・進む時に、URLのday paramから選択日を復元する
 function selectedDayFromLocation(selectableDates: ReadonlySet<string>) {
   const unsafeDay = new URLSearchParams(window.location.search).get("day");
   return unsafeDay && selectableDates.has(unsafeDay) ? unsafeDay : undefined;
 }
 
+// 選択日の合計と取引一覧を表示するパネル
 function DayPanel({
   data,
   selectedDay,
@@ -184,6 +189,7 @@ function DayPanel({
   );
 }
 
+// カレンダーグリッドと日別パネルを、ページ再取得なしのURL同期（pushState）で切り替えるClient Component
 export function CalendarDayExplorer({
   data,
   header,
@@ -237,6 +243,7 @@ export function CalendarDayExplorer({
     event.preventDefault();
     const previouslySelectedDay = selectedDay;
     updateSelectedDay(undefined);
+    // パネルを閉じたら、開く前に選んでいた日付セルへfocusを戻す
     if (previouslySelectedDay) {
       dayLinks.current.get(previouslySelectedDay)?.focus();
     }

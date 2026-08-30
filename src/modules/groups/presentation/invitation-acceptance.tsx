@@ -20,6 +20,7 @@ function AcceptButton() {
   );
 }
 
+// 招待受諾画面。URLフラグメントのトークンを検証し、参加操作を提供する
 export function InvitationAcceptance({
   isAuthenticated,
 }: {
@@ -34,6 +35,7 @@ export function InvitationAcceptance({
   );
 
   useEffect(() => {
+    // フラグメント優先でトークンを取得し、ログイン往復に備えてsessionStorageへ退避する
     const fragmentToken = new URLSearchParams(
       window.location.hash.slice(1),
     ).get("token");
@@ -48,6 +50,7 @@ export function InvitationAcceptance({
       window.sessionStorage.removeItem(STORAGE_KEY);
     }
 
+    // トークンを含むフラグメントは履歴に残さないよう即座に消す
     if (window.location.hash) {
       window.history.replaceState(null, "", window.location.pathname);
     }

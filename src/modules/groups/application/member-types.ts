@@ -31,6 +31,7 @@ export type CreatedInvitation = Readonly<{
   shareUrl: string;
 }>;
 
+// 招待受諾の結果。参加成立時のみgroupIdを持つ判別可能union
 export type InvitationAcceptanceResult =
   | Readonly<{
       status: "accepted" | "already_accepted";

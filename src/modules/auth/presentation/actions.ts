@@ -23,6 +23,7 @@ function validationError(fieldErrors: FieldErrors): AuthActionState {
   };
 }
 
+// 表示名を検証して更新するServer Action。未認証ならログインへリダイレクトする
 export async function updateProfileAction(
   _previousState: AuthActionState,
   formData: FormData,
@@ -36,6 +37,7 @@ export async function updateProfileAction(
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
+  // クレームを再検証し、許可ユーザー以外には更新させない
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) redirect("/login");
 
@@ -54,6 +56,7 @@ export async function updateProfileAction(
   return { status: "success", message: "表示名を更新しました。" };
 }
 
+// ログアウトしてログイン画面へ遷移するServer Action
 export async function signOutAction(
   _previousState: AuthActionState,
   _formData: FormData,
