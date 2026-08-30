@@ -1,23 +1,23 @@
 export {
   addCategorySchema,
   archiveCategorySchema,
+  categoryColorSchema,
   categoryTypeSchema,
-  moveCategorySchema,
   normalizeCategoryName,
-  renameCategorySchema,
+  repositionCategorySchema,
+  updateCategorySchema,
+  CATEGORY_COLORS,
   CATEGORY_NAME_MAX_LENGTH,
 } from "./domain/category-input";
 export type {
   AddCategoryInput,
   ArchiveCategoryInput,
+  CategoryColor,
   CategoryType,
-  MoveCategoryInput,
-  RenameCategoryInput,
+  RepositionCategoryInput,
+  UpdateCategoryInput,
 } from "./domain/category-input";
-export { buildMovedCategoryIds } from "./domain/category-order";
-export type {
-  MoveCategoryOrderResult,
-  MoveDirection,
-} from "./domain/category-order";
+export { buildRepositionedCategoryIds } from "./domain/category-order";
+export type { RepositionCategoryOrderResult } from "./domain/category-order";
 export { toCategorySummaries } from "./domain/category-summary";
 export type { CategorySummary } from "./domain/category-summary";

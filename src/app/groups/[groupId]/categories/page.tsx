@@ -54,7 +54,7 @@ export default async function CategoriesPage({ params }: CategoriesPageProps) {
         </Link>
       </header>
       <p className="category-page-description">
-        アーカイブしたカテゴリは一覧と新規取引の選択肢に表示されません。過去の取引の表示は変わりません。
+        削除したカテゴリは一覧と新規取引の選択肢に表示されません。過去の取引の表示と集計は変わりません。
       </p>
       <CategoryManagement
         expenseCategories={view.data.expenseCategories}

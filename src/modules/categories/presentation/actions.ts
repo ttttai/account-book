@@ -5,15 +5,13 @@ import { revalidatePath } from "next/cache";
 import { addCategory } from "../application/add-category";
 import { archiveCategory } from "../application/archive-category";
 import { CategoryCommandError } from "../application/category-command-error";
-import { moveCategory } from "../application/move-category";
-import { renameCategory } from "../application/rename-category";
+import { updateCategory } from "../application/update-category";
 import { repositionCategory } from "../application/reposition-category";
 import {
   addCategorySchema,
   archiveCategorySchema,
-  moveCategorySchema,
-  renameCategorySchema,
   repositionCategorySchema,
+  updateCategorySchema,
 } from "../domain/category-input";
 import type { CategoryActionState } from "./action-state";
 
@@ -88,16 +86,18 @@ export async function addCategoryAction(
   return { status: "success", message: "カテゴリを追加しました。" };
 }
 
-export async function renameCategoryAction(
+// 編集パネルの保存。名称と色を1つの操作で更新する
+export async function updateCategoryAction(
   groupId: string,
   categoryId: string,
   _previousState: CategoryActionState,
   formData: FormData,
 ): Promise<CategoryActionState> {
-  const result = renameCategorySchema.safeParse({
+  const result = updateCategorySchema.safeParse({
     groupId,
     categoryId,
     name: value(formData, "name"),
+    color: value(formData, "color"),
   });
   if (!result.success) {
     return {
@@ -108,52 +108,13 @@ export async function renameCategoryAction(
   }
 
   try {
-    await renameCategory(result.data);
+    await updateCategory(result.data);
   } catch (error) {
     return toErrorState(error);
   }
 
   revalidateCategoryScreens(result.data.groupId);
-  return { status: "success", message: "カテゴリ名を変更しました。" };
-}
-
-export async function moveCategoryAction(
-  groupId: string,
-  categoryId: string,
-  _previousState: CategoryActionState,
-  formData: FormData,
-): Promise<CategoryActionState> {
-  const result = moveCategorySchema.safeParse({
-    groupId,
-    categoryId,
-    direction: value(formData, "direction"),
-  });
-  if (!result.success) {
-    return { status: "error", message: "並び替えの内容を確認してください。" };
-  }
-
-  let moveResult: Awaited<ReturnType<typeof moveCategory>>;
-  try {
-    moveResult = await moveCategory(result.data);
-  } catch (error) {
-    return toErrorState(error);
-  }
-
-  if (moveResult === "not_found") {
-    return {
-      status: "error",
-      message: "対象のカテゴリが見つかりません。表示を更新してください。",
-    };
-  }
-  if (moveResult === "at_edge") {
-    return {
-      status: "success",
-      message: "これ以上その方向へは移動できません。",
-    };
-  }
-
-  revalidateCategoryScreens(result.data.groupId);
-  return { status: "success", message: "並び順を変更しました。" };
+  return { status: "success", message: "カテゴリを更新しました。" };
 }
 
 // ドラッグ並び替えの確定。対象カテゴリと移動先位置だけを受け取り、全体順序はサーバーが組み立てる
@@ -215,6 +176,6 @@ export async function archiveCategoryAction(
   revalidateCategoryScreens(result.data.groupId);
   return {
     status: "success",
-    message: "カテゴリをアーカイブしました。過去の取引の表示は変わりません。",
+    message: "カテゴリを削除しました。過去の取引の表示は変わりません。",
   };
 }

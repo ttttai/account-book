@@ -6,12 +6,13 @@ import {
   useId,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { CategorySummary } from "../application/category-types";
-import type { CategoryType } from "../domain/category-input";
+import { CATEGORY_COLORS, type CategoryType } from "../domain/category-input";
 import {
   INITIAL_CATEGORY_ACTION_STATE,
   type CategoryActionState,
@@ -19,9 +20,8 @@ import {
 import {
   addCategoryAction,
   archiveCategoryAction,
-  moveCategoryAction,
-  renameCategoryAction,
   repositionCategoryAction,
+  updateCategoryAction,
 } from "./actions";
 
 import styles from "./categories.module.css";
@@ -102,153 +102,156 @@ function AddCategoryForm({
   );
 }
 
-function RenameCategoryForm({
+const colorLabels: Readonly<Record<string, string>> = {
+  food: "レッド",
+  daily: "ブルー",
+  home: "ブラウン",
+  utilities: "イエロー",
+  transport: "ブルーグリーン",
+  leisure: "パープル",
+  other: "グレー",
+  salary: "グリーン",
+  extra: "ピンク",
+};
+
+// 名称・色の変更と削除をまとめた行内編集パネル。結果は親のメッセージ領域へ通知する
+function CategoryEditPanel({
   groupId,
   category,
+  onFinished,
+  onClose,
 }: {
   groupId: string;
   category: CategorySummary;
+  onFinished: (state: CategoryActionState) => void;
+  onClose: () => void;
 }) {
-  const action = renameCategoryAction.bind(null, groupId, category.id);
-  const [state, formAction] = useActionState(
-    action,
+  const updateAction = updateCategoryAction.bind(null, groupId, category.id);
+  const [updateState, updateFormAction] = useActionState(
+    updateAction,
     INITIAL_CATEGORY_ACTION_STATE,
   );
-  const inputId = useId();
+  const deleteAction = archiveCategoryAction.bind(null, groupId, category.id);
+  const [deleteState, deleteFormAction] = useActionState(
+    deleteAction,
+    INITIAL_CATEGORY_ACTION_STATE,
+  );
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const nameId = useId();
+
+  // 保存・削除が成功したらパネルを閉じ、結果メッセージを一覧側へ引き継ぐ
+  useEffect(() => {
+    if (updateState.status === "success" && updateState.message) {
+      onFinished(updateState);
+    }
+  }, [updateState, onFinished]);
+  useEffect(() => {
+    if (deleteState.status === "success" && deleteState.message) {
+      onFinished(deleteState);
+    }
+  }, [deleteState, onFinished]);
 
   return (
-    <div className={styles["category-rename"]}>
-      <form action={formAction} className={styles["category-rename-form"]}>
-        <label className={styles["category-sr-label"]} htmlFor={inputId}>
-          {category.name}の新しい名称
-        </label>
+    <div className={styles["category-edit-panel"]}>
+      <form action={updateFormAction} className={styles["category-edit-form"]}>
+        <label htmlFor={nameId}>名前</label>
         <input
           autoComplete="off"
           defaultValue={category.name}
-          id={inputId}
+          id={nameId}
           key={category.name}
           maxLength={30}
           name="name"
           required
         />
-        <PendingButton
-          className={`secondary-button ${styles["category-rename-button"]}`}
-          idleLabel="名称を保存"
-          pendingLabel="保存中…"
-        />
+        {updateState.fieldErrors?.name?.[0] && (
+          <p className="field-error">{updateState.fieldErrors.name[0]}</p>
+        )}
+        <fieldset className={styles["category-color-fieldset"]}>
+          <legend>色</legend>
+          <div className={styles["category-color-options"]}>
+            {CATEGORY_COLORS.map((color) => (
+              <label
+                className={styles["category-color-option"]}
+                key={color}
+                title={colorLabels[color]}
+              >
+                <input
+                  aria-label={colorLabels[color]}
+                  defaultChecked={category.color === color}
+                  name="color"
+                  type="radio"
+                  value={color}
+                />
+                <span
+                  aria-hidden="true"
+                  className={styles["category-color-swatch"]}
+                  data-category-color={color}
+                />
+                <span
+                  aria-hidden="true"
+                  className={styles["category-color-check"]}
+                >
+                  ✓
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <div className={styles["category-edit-actions"]}>
+          <PendingButton
+            className="primary-button"
+            idleLabel="保存"
+            pendingLabel="保存中…"
+          />
+          <button className="secondary-button" onClick={onClose} type="button">
+            キャンセル
+          </button>
+        </div>
+        {updateState.status === "error" && (
+          <ActionMessage state={updateState} />
+        )}
       </form>
-      {state.fieldErrors?.name?.[0] && (
-        <p className="field-error">{state.fieldErrors.name[0]}</p>
-      )}
-      <ActionMessage state={state} />
-    </div>
-  );
-}
 
-function MoveCategoryForm({
-  groupId,
-  category,
-  isFirst,
-  isLast,
-}: {
-  groupId: string;
-  category: CategorySummary;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
-  const action = moveCategoryAction.bind(null, groupId, category.id);
-  const [state, formAction, pending] = useActionState(
-    action,
-    INITIAL_CATEGORY_ACTION_STATE,
-  );
-
-  return (
-    <div className="category-move">
-      <form action={formAction} className={styles["category-move-form"]}>
-        <button
-          aria-label={`${category.name}を上へ移動`}
-          className={`secondary-button ${styles["category-move-button"]}`}
-          disabled={pending || isFirst}
-          name="direction"
-          type="submit"
-          value="up"
-        >
-          上へ
-        </button>
-        <button
-          aria-label={`${category.name}を下へ移動`}
-          className={`secondary-button ${styles["category-move-button"]}`}
-          disabled={pending || isLast}
-          name="direction"
-          type="submit"
-          value="down"
-        >
-          下へ
-        </button>
-      </form>
-      <ActionMessage state={state} />
-    </div>
-  );
-}
-
-function ArchiveCategoryForm({
-  groupId,
-  category,
-}: {
-  groupId: string;
-  category: CategorySummary;
-}) {
-  const action = archiveCategoryAction.bind(null, groupId, category.id);
-  const [state, formAction] = useActionState(
-    action,
-    INITIAL_CATEGORY_ACTION_STATE,
-  );
-
-  return (
-    <details className={styles["category-archive"]}>
-      <summary className={styles["category-archive-summary"]}>
-        アーカイブ…
-      </summary>
-      <p className="field-hint">
-        「{category.name}
-        」を新規取引の選択肢から外します。過去の取引の表示は変わりません。
-      </p>
-      <form action={formAction} className={styles["category-archive-form"]}>
-        <PendingButton
-          className={`secondary-button danger-text ${styles["category-archive-button"]}`}
-          idleLabel="アーカイブする"
-          pendingLabel="アーカイブ中…"
-        />
-      </form>
-      <ActionMessage state={state} />
-    </details>
-  );
-}
-
-function CategoryRowContent({
-  groupId,
-  category,
-  isFirst,
-  isLast,
-}: {
-  groupId: string;
-  category: CategorySummary;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
-  return (
-    <>
-      <div className={styles["category-row-actions"]}>
-        <RenameCategoryForm category={category} groupId={groupId} />
-        <MoveCategoryForm
-          category={category}
-          groupId={groupId}
-          isFirst={isFirst}
-          isLast={isLast}
-        />
+      <div className={styles["category-delete"]}>
+        {confirmingDelete ? (
+          <>
+            <p className="field-hint">
+              「{category.name}
+              」を削除すると、新規入力の選択肢から外れます。過去の取引の表示と集計は変わりません。
+            </p>
+            <form
+              action={deleteFormAction}
+              className={styles["category-edit-actions"]}
+            >
+              <PendingButton
+                className="secondary-button danger-text"
+                idleLabel="削除する"
+                pendingLabel="削除中…"
+              />
+              <button
+                className="secondary-button"
+                onClick={() => setConfirmingDelete(false)}
+                type="button"
+              >
+                やめる
+              </button>
+            </form>
+          </>
+        ) : (
+          <button
+            className="text-button danger-text"
+            onClick={() => setConfirmingDelete(true)}
+            type="button"
+          >
+            このカテゴリを削除…
+          </button>
+        )}
+        {deleteState.status === "error" && (
+          <ActionMessage state={deleteState} />
+        )}
       </div>
-      <ArchiveCategoryForm category={category} groupId={groupId} />
-    </>
+    </div>
   );
 }
 
@@ -298,6 +301,9 @@ function CategoryTypeSection({
     INITIAL_CATEGORY_ACTION_STATE,
   );
   const [isReordering, setIsReordering] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null,
+  );
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
   const dragSessionRef = useRef<DragSession | null>(null);
   const orderedCategoriesRef = useRef(orderedCategories);
@@ -316,32 +322,54 @@ function CategoryTypeSection({
     };
   }, []);
 
-  async function finishDrag(session: DragSession, pointerY: number) {
-    const targetIndex = computeDestinationIndex(
-      session.rects,
-      session.fromIndex,
-      pointerY,
-    );
-    if (targetIndex === session.fromIndex) return;
-
-    // 先に表示を並び替え、保存に失敗したら元の順序へ戻す
+  // 先に表示を並び替え、保存に失敗したら元の順序へ戻す
+  async function commitReposition(
+    categoryId: string,
+    fromIndex: number,
+    targetIndex: number,
+  ) {
     const previousOrder = orderedCategoriesRef.current;
-    const dragged = previousOrder[session.fromIndex];
-    if (!dragged) return;
+    const dragged = previousOrder[fromIndex];
+    if (!dragged || targetIndex === fromIndex) return;
     const nextOrder = previousOrder.filter(
-      (category) => category.id !== session.categoryId,
+      (category) => category.id !== categoryId,
     );
     nextOrder.splice(targetIndex, 0, dragged);
     setOrderedCategories(nextOrder);
     setIsReordering(true);
     const state = await repositionCategoryAction(
       groupId,
-      session.categoryId,
+      categoryId,
       targetIndex,
     );
     if (state.status === "error") setOrderedCategories(previousOrder);
     setReorderState(state);
     setIsReordering(false);
+  }
+
+  async function finishDrag(session: DragSession, pointerY: number) {
+    const targetIndex = computeDestinationIndex(
+      session.rects,
+      session.fromIndex,
+      pointerY,
+    );
+    await commitReposition(session.categoryId, session.fromIndex, targetIndex);
+  }
+
+  // ハンドルにfocusした状態の上下矢印キーで1つずつ移動する（キーボード並び替え）
+  function handleHandleKeyDown(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    categoryId: string,
+    index: number,
+  ) {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    event.preventDefault();
+    if (isReordering || dragSessionRef.current) return;
+    const targetIndex = event.key === "ArrowUp" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= orderedCategoriesRef.current.length) {
+      return;
+    }
+    void commitReposition(categoryId, index, targetIndex);
   }
 
   // pointer captureへ依存せず、drag中だけwindowでpointerを追跡する（iOS Safari対応）
@@ -461,11 +489,14 @@ function CategoryTypeSection({
                     : undefined
                 }
               >
-                <div className={styles["category-row-header"]}>
+                <div className={styles["category-row-main"]}>
                   <button
                     aria-label={`${category.name}をドラッグして並び替え`}
                     className={styles["category-drag-handle"]}
                     disabled={isReordering}
+                    onKeyDown={(event) =>
+                      handleHandleKeyDown(event, category.id, index)
+                    }
                     onPointerDown={(event) =>
                       handleDragStart(event, category.id, index)
                     }
@@ -473,13 +504,39 @@ function CategoryTypeSection({
                   >
                     <span aria-hidden="true">⠿</span>
                   </button>
+                  <span
+                    aria-hidden="true"
+                    className={styles["category-item-dot"]}
+                    data-category-color={category.color}
+                  />
+                  <span className={styles["category-item-name"]}>
+                    {category.name}
+                  </span>
+                  <button
+                    aria-expanded={editingCategoryId === category.id}
+                    aria-label={`${category.name}を編集`}
+                    className={styles["category-edit-button"]}
+                    onClick={() =>
+                      setEditingCategoryId((current) =>
+                        current === category.id ? null : category.id,
+                      )
+                    }
+                    type="button"
+                  >
+                    編集
+                  </button>
                 </div>
-                <CategoryRowContent
-                  category={category}
-                  groupId={groupId}
-                  isFirst={index === 0}
-                  isLast={index === orderedCategories.length - 1}
-                />
+                {editingCategoryId === category.id && (
+                  <CategoryEditPanel
+                    category={category}
+                    groupId={groupId}
+                    onClose={() => setEditingCategoryId(null)}
+                    onFinished={(state) => {
+                      setEditingCategoryId(null);
+                      setReorderState(state);
+                    }}
+                  />
+                )}
               </li>
             );
           })}

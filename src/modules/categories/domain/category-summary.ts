@@ -1,11 +1,13 @@
 export type CategorySummary = Readonly<{
   id: string;
   name: string;
+  color: string;
 }>;
 
 type CategoryRowLike = Readonly<{
   id: string;
   name: string;
+  color: string;
   sort_order: number;
 }>;
 
@@ -14,5 +16,5 @@ export function toCategorySummaries(
 ): readonly CategorySummary[] {
   return [...rows]
     .sort((left, right) => left.sort_order - right.sort_order)
-    .map((row) => ({ id: row.id, name: row.name }));
+    .map((row) => ({ id: row.id, name: row.name, color: row.color }));
 }
