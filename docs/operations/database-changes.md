@@ -139,13 +139,13 @@ cd <リポジトリのルート> && docker run --rm \
   postgres:17 sh -c "psql \"\$PROD_DB_URL\" -c 'select version from public.schema_migrations order by version'"
 ```
 
-未適用ファイルの適用（`<対象ファイル名>`は拡張子`.sql`を除いたファイル名に置き換える。psql変数`v`経由で台帳へ記録するため、値の意味は本節2の手順と同じ）:
+未適用ファイルの適用（`<対象ファイル名>`は拡張子`.sql`を除いたファイル名に2箇所とも置き換える。psqlの`--command`はpsql変数を展開しないため、台帳へ記録する値は変数にせずリテラルで書く）:
 
 ```bash
 cd <リポジトリのルート> && docker run --rm \
   -v "$PWD/supabase/migrations:/migrations:ro" \
   -e PROD_DB_URL="$(grep '^PROD_DB_URL=' .env | cut -d= -f2-)" \
-  postgres:17 sh -c "psql \"\$PROD_DB_URL\" --single-transaction --set ON_ERROR_STOP=1 --set=v=<対象ファイル名> --file=/migrations/<対象ファイル名>.sql --command=\"insert into public.schema_migrations (version) values (:'v')\""
+  postgres:17 sh -c "psql \"\$PROD_DB_URL\" --single-transaction --set ON_ERROR_STOP=1 --file=/migrations/<対象ファイル名>.sql --command=\"insert into public.schema_migrations (version) values ('<対象ファイル名>')\""
 ```
 
 事前dumpも同様に実行できる（dumpの扱いは前節のとおり）:
