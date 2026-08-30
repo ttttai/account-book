@@ -1,5 +1,6 @@
 const MONTH_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
+// 出力対象期間。月未指定の全期間か、月初〜翌月初（排他的終端）の1か月かを表す
 export type ExportPeriod =
   | Readonly<{ kind: "all"; label: "all" }>
   | Readonly<{
@@ -13,6 +14,7 @@ export type ExportPeriodResult =
   | Readonly<{ success: true; period: ExportPeriod }>
   | Readonly<{ success: false }>;
 
+// month paramを検証し、未指定は全期間、YYYY-MM指定時は月初〜翌月初の範囲へ変換する
 export function parseExportPeriod(
   unsafeMonth: string | null,
 ): ExportPeriodResult {

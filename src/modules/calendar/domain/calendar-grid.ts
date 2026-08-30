@@ -22,6 +22,7 @@ function daysInMonth(year: number, month: number): number {
   return [4, 6, 9, 11].includes(month) ? 30 : 31;
 }
 
+// 範囲外の月・日を繰り上げ・繰り下げして正規の年月日へ丸める（Dateオブジェクト非依存）
 function normalizeDate(year: number, month: number, day: number) {
   let normalizedYear = year;
   let normalizedMonth = month;
@@ -61,6 +62,7 @@ function formatDate(year: number, month: number, day: number): string {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+// Sakamotoのアルゴリズムで曜日（0=日曜）を求める
 function dayOfWeek(year: number, month: number, day: number): number {
   const offsets = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
   let adjustedYear = year;
@@ -76,6 +78,7 @@ function dayOfWeek(year: number, month: number, day: number): number {
   );
 }
 
+// 月初日と翌月初日（排他的終端）をYYYY-MM-DDで返す
 export function getMonthRange(monthValue: string): Readonly<{
   start: string;
   endExclusive: string;
@@ -88,12 +91,14 @@ export function getMonthRange(monthValue: string): Readonly<{
   };
 }
 
+// 前月または翌月のYYYY-MM文字列を返す
 export function shiftMonth(monthValue: string, offset: -1 | 1): string {
   const { year, month } = parseMonth(monthValue);
   const shifted = normalizeDate(year, month + offset, 1);
   return `${String(shifted.year).padStart(4, "0")}-${String(shifted.month).padStart(2, "0")}`;
 }
 
+// 週の開始曜日に合わせ、前後月の日を含む6週42マスのカレンダーグリッドを組み立てる
 export function createCalendarGrid(
   monthValue: string,
   weekStartsOn: WeekStartsOn,

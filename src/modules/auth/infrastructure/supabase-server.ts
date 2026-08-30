@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 
 import { getSupabaseServerEnvironment } from "./supabase-environment";
 
+// Server Component・Server Action用のSupabaseクライアントを生成する
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies();
   const { url, publishableKey } = getSupabaseServerEnvironment();

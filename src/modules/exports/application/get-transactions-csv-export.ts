@@ -17,6 +17,7 @@ import { buildCsvContentDisposition } from "../domain/export-filename";
 import { parseExportPeriod } from "../domain/export-month";
 import type { TransactionsCsvExport } from "./export-types";
 
+// Excel\u3067UTF-8\u3068\u3057\u3066\u958B\u3051\u308B\u3088\u3046\u5148\u982D\u306BBOM\u3092\u4ED8\u4E0E\u3059\u308B
 const UTF8_BOM = "\uFEFF";
 const FALLBACK_DISPLAY_NAME = "メンバー";
 
@@ -57,6 +58,7 @@ const transactionRowSchema = z.object({
 
 type MembershipRow = z.infer<typeof membershipRowSchema>;
 
+// membership IDから表示名を引く関数を作る（退会者やprofile欠損はフォールバック名）
 function createDisplayNameResolver(
   memberships: readonly MembershipRow[],
   displayNameByUserId: ReadonlyMap<string, string>,
@@ -72,6 +74,7 @@ function createDisplayNameResolver(
     FALLBACK_DISPLAY_NAME;
 }
 
+// 認証・所属確認のうえ、指定期間の取引をCSV文字列とダウンロード用ヘッダー値へ組み立てる
 export async function getTransactionsCsvExport(
   unsafeGroupId: string,
   unsafeMonth: string | null,
@@ -170,6 +173,7 @@ export async function getTransactionsCsvExport(
           ? transaction.payer_member_id
           : transaction.recipient_member_id,
       ),
+      // 負担内訳はメンバーの参加順で並べ、出力を安定させる
       allocations: [...transaction.transaction_allocations]
         .sort(
           (left, right) =>

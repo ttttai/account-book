@@ -6,6 +6,7 @@ const roleLabels = {
   member: "メンバー",
 } as const;
 
+// グループメンバーの一覧を役割ラベル付きで表示する
 export function MemberList({
   members,
 }: {

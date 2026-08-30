@@ -15,6 +15,7 @@ type ExpenseFormProps = Readonly<{
 
 const yenFormatter = new Intl.NumberFormat("ja-JP");
 
+// 送信中は無効化して二重送信を防ぐ保存ボタン
 function SaveButton() {
   const { pending } = useFormStatus();
   return (
@@ -28,12 +29,14 @@ function SaveButton() {
   );
 }
 
+// 入力文字列を1以上の安全な整数として解釈する（不正な間はnull）
 function safeAmount(value: string): number | null {
   if (!/^[1-9]\d*$/.test(value)) return null;
   const amount = Number(value);
   return Number.isSafeInteger(amount) ? amount : null;
 }
 
+// 前回選択した支払者をlocalStorageから読み出す
 function readLastPayer(groupId: string): string | null {
   try {
     return window.localStorage.getItem(`account-book:last-payer:${groupId}`);
@@ -50,6 +53,7 @@ function saveLastPayer(groupId: string, memberId: string): void {
   }
 }
 
+// 支出登録フォーム。負担方法の切り替えと負担額のリアルタイムプレビューを備えるClient Component
 export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
   const actionWithGroup = createExpenseAction.bind(null, options.group.id);
   const [state, action] = useActionState(
@@ -73,6 +77,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
     Readonly<Record<string, string>>
   >({});
 
+  // 前回の支払者が現メンバーに含まれていれば初期選択へ反映する
   useEffect(() => {
     const storedMemberId = readLastPayer(options.group.id);
     if (
@@ -83,6 +88,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
     }
   }, [options.group.id, options.members]);
 
+  // 入力中の値で負担配分を試算する確認用プレビュー（不成立の間はnull）
   const preview = useMemo(() => {
     const amount = safeAmount(amountMinor);
     if (amount === null) return null;
@@ -107,6 +113,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
     selectedMemberIds,
   ]);
 
+  // 負担方法の切り替え時に、選択メンバーを方法ごとの妥当な初期値へ整える
   function chooseAllocationMethod(method: "equal" | "single" | "custom") {
     setAllocationMethod(method);
     if (method === "equal" && selectedMemberIds.length === 0) {

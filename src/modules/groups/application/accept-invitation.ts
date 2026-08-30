@@ -14,6 +14,7 @@ import {
 import { hashInvitationToken } from "../domain/invitation-token";
 import type { InvitationAcceptanceResult } from "./member-types";
 
+// accept_group_invitation RPCが返す行の形（resultで受諾結果の状態を表す）
 const acceptanceRowSchema = z.object({
   result: z.enum([
     "accepted",
@@ -26,6 +27,7 @@ const acceptanceRowSchema = z.object({
   group_id: z.uuid().nullable(),
 });
 
+// 招待トークンを検証し、RPC経由でグループ参加を確定する
 export async function acceptInvitation(
   input: AcceptInvitationInput,
 ): Promise<InvitationAcceptanceResult> {
@@ -37,6 +39,7 @@ export async function acceptInvitation(
     throw new Error("UNAUTHENTICATED");
   }
 
+  // 生トークンはDBに渡さず、ハッシュのみで照合する
   const tokenHash = await hashInvitationToken(validatedInput.token);
   const { data, error } = await supabase.rpc("accept_group_invitation", {
     p_token_hash: tokenHash,
@@ -46,6 +49,7 @@ export async function acceptInvitation(
   const [acceptance] = z.array(acceptanceRowSchema).parse(data ?? []);
   if (!acceptance) throw new Error("INVITATION_ACCEPT_FAILED");
 
+  // 参加成立時のみgroup_idが返る。それ以外は失敗理由をそのまま返す
   if (
     acceptance.result === "accepted" ||
     acceptance.result === "already_accepted"

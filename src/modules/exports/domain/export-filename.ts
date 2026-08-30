@@ -9,6 +9,7 @@ export type CsvExportFilename = Readonly<{
   utf8Filename: string;
 }>;
 
+// ASCII英数字と一部記号以外を_に置換した、旧ブラウザ向けフォールバック名を作る
 function toAsciiSafeName(groupName: string): string {
   const replaced = groupName
     .replace(ASCII_SAFE_PATTERN, "_")
@@ -17,6 +18,7 @@ function toAsciiSafeName(groupName: string): string {
   return replaced === "" ? FILENAME_FALLBACK : replaced;
 }
 
+// 制御文字とパス区切り等の危険文字だけを除いた、日本語を保持するファイル名を作る
 function toUtf8SafeName(groupName: string): string {
   const replaced = groupName
     .replace(UNSAFE_NAME_CHARACTER_PATTERN, "_")
@@ -25,6 +27,7 @@ function toUtf8SafeName(groupName: string): string {
   return replaced === "" ? FILENAME_FALLBACK : replaced;
 }
 
+// filename*用にRFC 5987でencodeする（encodeURIComponentが残す記号も変換）
 function encodeRfc5987(value: string): string {
   return encodeURIComponent(value).replaceAll(
     /[!'()*]/g,
@@ -33,6 +36,7 @@ function encodeRfc5987(value: string): string {
   );
 }
 
+// グループ名と期間から、ASCII版とUTF-8版の2種類のCSVファイル名を生成する
 export function buildCsvExportFilename(
   groupName: string,
   periodLabel: string,
@@ -43,6 +47,7 @@ export function buildCsvExportFilename(
   };
 }
 
+// filename（ASCII）とfilename*（UTF-8）を併記したContent-Dispositionヘッダー値を作る
 export function buildCsvContentDisposition(
   groupName: string,
   periodLabel: string,

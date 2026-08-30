@@ -14,6 +14,7 @@ function matchesPath(pathname: string, roots: readonly string[]): boolean {
   );
 }
 
+// Proxyで毎リクエスト実行し、Supabaseセッションを更新して認証状態に応じたリダイレクトを行う
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
   const authResponseHeaders = new Map<string, string>();
@@ -21,6 +22,7 @@ export async function updateSession(request: NextRequest) {
   const supabase = createServerClient(url, publishableKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
+      // token更新で発行されたCookieをrequestと新しいresponseの両方へ反映する
       setAll(cookiesToSet, headers) {
         for (const { name, value } of cookiesToSet) {
           request.cookies.set(name, value);
@@ -41,6 +43,7 @@ export async function updateSession(request: NextRequest) {
   const isAuthenticated = getAllowedGoogleUserId(data?.claims) !== null;
   const pathname = request.nextUrl.pathname;
 
+  // リダイレクト時も更新済みの認証Cookie・headerを失わないよう引き継ぐ
   function redirectWithAuthState(url: URL) {
     const redirectResponse = NextResponse.redirect(url);
     for (const cookie of response.cookies.getAll()) {
@@ -52,6 +55,7 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
+  // 未認証で保護ページへ来た場合、検証済みのnextパス付きでログインへ誘導する
   if (!isAuthenticated && matchesPath(pathname, PROTECTED_PATHS)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";

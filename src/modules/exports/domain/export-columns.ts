@@ -28,12 +28,14 @@ const TYPE_LABELS: Readonly<Record<ExportTransaction["type"], string>> = {
   income: "収入",
 };
 
+// 負担内訳を「名前:金額」のセミコロン区切りで1セルにまとめる
 function formatAllocations(allocations: readonly ExportAllocation[]): string {
   return allocations
     .map((allocation) => `${allocation.displayName}:${allocation.amountMinor}`)
     .join("; ");
 }
 
+// 取引をヘッダー列の順序に対応したCSV行の配列へ変換する
 export function buildTransactionCsvRows(
   transactions: readonly ExportTransaction[],
 ): string[][] {
