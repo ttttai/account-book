@@ -537,26 +537,41 @@ MVP範囲確認: 見た目の変更、デザイントークンの再設計、Tai
 
 判定: `NFR-MNT-010`は`NFR-MNT-002`、`NFR-MNT-003`と整合し、安全かつ実装可能である。構造testを先に更新し、移行前後で幅375pxと1280pxの主要画面表示が一致することを実画面で確認する条件で実装開始を承認する。
 
+### R-045 週次支出集計のLINE通知
+
+指摘: 家計の共有相手が日常的に閲覧するのはLINEであり、アプリを開かないと週の支出状況を把握できない。通知の粒度（カテゴリ別内訳まで）、送信先（家族のLINEグループトーク）、頻度（週末の週1回）は2026-08-30に利用者が決定した。
+
+対応: `specs/12-line-weekly-notification.md`を新設し、`NOTIF-001`〜`NOTIF-010`と受け入れ条件を定義する。毎週日曜21:00 JSTにCloud Schedulerが専用ジョブendpointを呼び、直近7日間（月〜日、`transaction_date`基準）の支出合計・カテゴリ別内訳・前週比をLINE Messaging APIのpushでグループトークへ送る。LINE連携はbotのグループ招待時のjoin eventをWebhookで受けて登録する。
+
+安全性確認: Webhookは`X-Line-Signature`のHMAC-SHA256を定数時間比較で検証し、ジョブendpointはCloud SchedulerのOIDCトークンをaudienceとservice account emailで検証する。DBアクセスは通知専用のNOLOGINロール（通知用SECURITY DEFINER関数のみEXECUTE可、テーブル直接権限なし）で行い、service role keyを導入しない。channel secret・access token・接続文字列はSecret Manager管理とし、ログ・クライアントへ出さない。通知内容は集計値のみで個人名・メモ・明細を含めず、環境変数未設定時はfail closedで機能全体が無効になる。二重送信は`(group_id, week_start_date)`一意の通知記録で防ぐ。
+
+実装可能性確認: 集計は既存の`transactions`と`categories`に対するSQL関数で実現でき、期間計算・文面組み立て・署名検証は純関数としてunit testできる。ロールの最小権限は統合テストで証明できる。エンドポイントが未設定時に無効となるため、Terraform（Cloud Scheduler・secret）を後続PRへ分割しても先行mergeで本番挙動が変わらない。
+
+MVP範囲確認: 家計グループ1件との単一対応、テキストメッセージ1通、支出のみに限定する。Flex Message、収入・メンバー別通知、複数グループ、LINEからの操作、通知設定UIは延期する。LINE無料枠（push 200通/月）に対し週1通で十分収まる。
+
+判定: `NOTIF-001`〜`NOTIF-010`は`NFR-SEC-*`（最小権限・秘密管理）、`NFR-PRI-*`（外部へ送る家計情報の限定）、`D-007`、`INF-016`と整合し、安全かつ実装可能である。受け入れ条件に対応するunit・統合・構造テストを先に作成し、段階1（アプリ+DB）を実装して検証することを条件に実装開始を承認する。段階2のTerraform変更は`specs/11`の更新とあわせて別途レビューする。
+
 ## 4. 要件と検証方法の対応
 
-| 要件範囲               | 主な検証方法                                           |
-| ---------------------- | ------------------------------------------------------ |
-| `AUTH-001`〜`AUTH-005` | 認証integration test、モバイルE2E                      |
-| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                    |
-| `CAT-001`〜`CAT-003`   | category integration、権限test                         |
-| `TXN-001`〜`TXN-013`   | 金額・負担単体test、取引integration、E2E               |
-| `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E               |
-| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認         |
-| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                      |
-| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E        |
-| `NFR-SEC-*`            | RLS、server境界、production設定review                  |
-| `NFR-PRI-*`            | 認可test、UI文言review                                 |
-| `NFR-PERF-*`           | query plan/index review、代表値測定                    |
-| `NFR-REC-*`            | 論理削除・復元test、migration手順review                |
-| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認 |
-| `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                      |
-| `NFR-OPS-*`            | Compose health check、deploy smoke test                |
-| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                  |
+| 要件範囲               | 主な検証方法                                               |
+| ---------------------- | ---------------------------------------------------------- |
+| `AUTH-001`〜`AUTH-005` | 認証integration test、モバイルE2E                          |
+| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                        |
+| `CAT-001`〜`CAT-003`   | category integration、権限test                             |
+| `TXN-001`〜`TXN-013`   | 金額・負担単体test、取引integration、E2E                   |
+| `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E                   |
+| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認             |
+| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                          |
+| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E            |
+| `NFR-SEC-*`            | RLS、server境界、production設定review                      |
+| `NFR-PRI-*`            | 認可test、UI文言review                                     |
+| `NFR-PERF-*`           | query plan/index review、代表値測定                        |
+| `NFR-REC-*`            | 論理削除・復元test、migration手順review                    |
+| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認     |
+| `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                          |
+| `NFR-OPS-*`            | Compose health check、deploy smoke test                    |
+| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                      |
+| `NOTIF-*`              | 期間・文面unit test、署名/OIDC検証test、ロール権限統合test |
 
 ## 5. 実装を妨げない延期事項
 
