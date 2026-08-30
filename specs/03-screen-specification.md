@@ -234,6 +234,13 @@ MVP入力項目:
 
 カテゴリ管理の標準URLは`/groups/{groupId}/categories`とし、owner/adminだけが開ける。種別（支出・収入）ごとに並び順でアクティブカテゴリを一覧表示し、追加、名称変更、並び替え、アーカイブを提供する。各操作は44 x 44 CSS pixel以上のタップ領域を持ち、確認と結果（成功・検証エラー・権限不足）を画面へ表示する。アーカイブ済みカテゴリは通常一覧と新規取引の選択肢に表示しない。memberが直接URLを開いた場合は権限不足として拒否し、カテゴリデータを返さない。
 
+## 11. スタイル構成
+
+- `src/app/styles.css`（global）に置くもの: デザイントークン（CSS変数）、reset、基本タイポグラフィ、`src/app`のpage・layout・loading・errorが使うroute shell（例: `protected-shell`、`app-header`、`group-route-layout`、各routeのpage marker）、複数機能が共有するプリミティブ（button・link・form message・status・empty state・見出し装飾）。
+- 機能のpresentationコンポーネントだけが使うスタイルは、当該presentationディレクトリに併置した機能単位のCSS Modules（例: `src/modules/calendar/presentation/calendar.module.css`）で管理し、コンポーネントからimportして参照する。
+- module CSS内からglobalクラスと組み合わせる複合セレクタは`:global(...)`で明示する。globalへ機能固有セレクタを追加しない。
+- どの機能からも使われないセレクタを残さない。
+
 ## 10. アクセシビリティ・表記
 
 - formには視認できるlabelと、関連付けられたエラーメッセージを表示する。

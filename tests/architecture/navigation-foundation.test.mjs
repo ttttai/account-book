@@ -74,18 +74,24 @@ test("設定ハブへ管理機能の入口を集約する", async () => {
 
 test("モバイル下部配置とdesktopサイド配置をsafe area付きで定義する", async () => {
   const styles = await read("src/app/styles.css");
+  const groupsStyles = await read(
+    "src/modules/groups/presentation/groups.module.css",
+  );
 
   assert.match(
-    styles,
+    groupsStyles,
     /\.group-navigation\s*\{[^}]*position:\s*fixed;[^}]*bottom:\s*0;/s,
   );
   assert.match(
-    styles,
+    groupsStyles,
     /\.group-navigation\s*\{[^}]*env\(safe-area-inset-bottom\)/s,
   );
-  assert.match(styles, /\.group-navigation-link\s*\{[^}]*min-height:\s*44px;/s);
   assert.match(
-    styles,
+    groupsStyles,
+    /\.group-navigation-link\s*\{[^}]*min-height:\s*44px;/s,
+  );
+  assert.match(
+    groupsStyles,
     /@media \(min-width: 900px\)[\s\S]*\.group-navigation\s*\{[^}]*position:\s*sticky;/s,
   );
   assert.match(styles, /\.group-route-layout\s*\{[^}]*min-height:\s*100dvh;/s);
@@ -94,12 +100,18 @@ test("モバイル下部配置とdesktopサイド配置をsafe area付きで定�
 test("375pxホームでカレンダーを初期viewportへ優先配置する", async () => {
   const page = await read("src/app/groups/[groupId]/page.tsx");
   const styles = await read("src/app/styles.css");
+  const calendarStyles = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
 
   assert.doesNotMatch(page, /header-links|group-primary-actions/);
   assert.match(page, /calendar-home-header/);
   assert.match(styles, /\.calendar-home-page\s*\{[^}]*min-height:\s*100dvh;/s);
-  assert.match(styles, /\.calendar-cell\s*\{[^}]*calc\(\(100dvh[^}]*\/ 6\)/s);
-  assert.match(styles, /@media \(max-height: 700px\)/);
+  assert.match(
+    calendarStyles,
+    /\.calendar-cell\s*\{[^}]*calc\(\(100dvh[^}]*\/ 6\)/s,
+  );
+  assert.match(calendarStyles, /@media \(max-height: 700px\)/);
 });
 
 test("並行実装画面では共通ナビゲーションと重複するheader導線だけを隠す", async () => {

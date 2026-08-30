@@ -10,6 +10,8 @@ import type {
 import { historyDefaultPageSize } from "../domain/history-filter";
 import { HistoryList } from "./history-list";
 
+import styles from "./history.module.css";
+
 function filterToParams(filter: HistoryAppliedFilter): Record<string, string> {
   const params: Record<string, string> = {};
   if (filter.month) params.month = filter.month;
@@ -78,9 +80,13 @@ function ShortcutChips({ data }: Readonly<{ data: HistoryReadyData }>) {
     data.filter.payerMemberId === data.currentMembershipId;
 
   return (
-    <nav className="history-shortcuts" aria-label="よく使う絞り込み">
+    <nav className={styles["history-shortcuts"]} aria-label="よく使う絞り込み">
       <Link
-        className={isMyShareActive ? "history-chip is-active" : "history-chip"}
+        className={
+          isMyShareActive
+            ? `${styles["history-chip"]} is-active`
+            : styles["history-chip"]
+        }
         aria-current={isMyShareActive ? "true" : undefined}
         href={createHistoryUrl(
           data.group.id,
@@ -93,7 +99,9 @@ function ShortcutChips({ data }: Readonly<{ data: HistoryReadyData }>) {
       </Link>
       <Link
         className={
-          isMyPaymentActive ? "history-chip is-active" : "history-chip"
+          isMyPaymentActive
+            ? `${styles["history-chip"]} is-active`
+            : styles["history-chip"]
         }
         aria-current={isMyPaymentActive ? "true" : undefined}
         href={createHistoryUrl(
@@ -153,11 +161,11 @@ function FilterSheet({ data }: Readonly<{ data: HistoryReadyData }>) {
   );
 
   return (
-    <details className="history-filter-sheet" open={hasSheetFilter}>
+    <details className={styles["history-filter-sheet"]} open={hasSheetFilter}>
       <summary>絞り込み</summary>
       <Form
         action={`/groups/${encodeURIComponent(data.group.id)}/history`}
-        className="history-filter-form"
+        className={styles["history-filter-form"]}
       >
         {filter.limit !== historyDefaultPageSize ? (
           <input type="hidden" name="limit" value={filter.limit} />
@@ -271,7 +279,10 @@ function AppliedFilters({ data }: Readonly<{ data: HistoryReadyData }>) {
   if (chips.length === 0) return null;
 
   return (
-    <ul className="history-applied-filters" aria-label="適用中の絞り込み">
+    <ul
+      className={styles["history-applied-filters"]}
+      aria-label="適用中の絞り込み"
+    >
       {chips.map((chip) => (
         <li key={chip.key}>
           <span>{chip.label}</span>
@@ -295,8 +306,11 @@ export function HistoryView({ data }: Readonly<{ data: HistoryReadyData }>) {
   const listKey = `${new URLSearchParams(params).toString()}|${data.appliedCursor ?? ""}`;
 
   return (
-    <div className="history-layout">
-      <section className="history-controls" aria-label="履歴の絞り込み">
+    <div className={styles["history-layout"]}>
+      <section
+        className={styles["history-controls"]}
+        aria-label="履歴の絞り込み"
+      >
         <ShortcutChips data={data} />
         <FilterSheet data={data} />
         <AppliedFilters data={data} />

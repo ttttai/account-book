@@ -10,6 +10,8 @@ import {
   INITIAL_REVOKE_INVITATION_STATE,
 } from "./invitation-action-state";
 
+import styles from "./groups.module.css";
+
 const roleLabels = { admin: "管理者", member: "メンバー" } as const;
 const dateTimeFormatter = new Intl.DateTimeFormat("ja-JP", {
   timeZone: "Asia/Tokyo",
@@ -41,7 +43,7 @@ function RevokeInvitationButton({
   );
 
   return (
-    <form action={formAction} className="inline-action-form">
+    <form action={formAction} className={styles["inline-action-form"]}>
       <button
         className="text-button danger-text"
         disabled={pending}
@@ -89,17 +91,20 @@ export function InvitationManagement({
   }
 
   return (
-    <section className="invitation-panel" aria-labelledby="invitation-title">
-      <div className="panel-heading">
+    <section
+      className={styles["invitation-panel"]}
+      aria-labelledby="invitation-title"
+    >
+      <div className={styles["panel-heading"]}>
         <div>
           <p className="eyebrow">新しい共有</p>
           <h2 id="invitation-title">メンバーを招待</h2>
         </div>
       </div>
-      <p className="panel-description">
+      <p className={styles["panel-description"]}>
         メールは送信しません。作成したリンクを安全な方法で相手へ共有してください。
       </p>
-      <form action={formAction} className="invitation-form">
+      <form action={formAction} className={styles["invitation-form"]}>
         <label htmlFor="invitationRole">参加後の権限</label>
         <select defaultValue="member" id="invitationRole" name="role">
           <option value="member">メンバー</option>
@@ -120,7 +125,7 @@ export function InvitationManagement({
         </p>
       )}
       {state.status === "success" && state.shareUrl && (
-        <div className="share-link-result">
+        <div className={styles["share-link-result"]}>
           <label htmlFor="shareLink">共有リンク</label>
           <input id="shareLink" readOnly value={state.shareUrl} />
           <button
@@ -142,7 +147,7 @@ export function InvitationManagement({
         </div>
       )}
 
-      <div className="pending-invitations">
+      <div className={styles["pending-invitations"]}>
         <h3>保留中の招待</h3>
         {invitations.length === 0 ? (
           <p className="field-hint">現在、保留中の招待はありません。</p>

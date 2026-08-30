@@ -13,6 +13,8 @@ import {
 import type { CalendarReadyData } from "../application/calendar-types";
 import { formatCalendarCellJpy, formatJpy } from "../domain/calendar-summary";
 
+import styles from "./calendar.module.css";
+
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
 type CalendarDayExplorerData = Readonly<
@@ -100,7 +102,7 @@ function CalendarCellAmount({
   amountMinor,
 }: Readonly<{ amountMinor: number }>) {
   return (
-    <span className="calendar-cell-amount" aria-hidden="true">
+    <span className={styles["calendar-cell-amount"]} aria-hidden="true">
       {amountMinor <= maxUnwrappedAmountMinor
         ? formatCalendarCellJpy(amountMinor)
         : splitJpyDigitGroups(amountMinor).map((digitGroup) => (
@@ -133,15 +135,18 @@ function DayPanel({
   const dayTransactions = data.dayTransactionsByDate[selectedDay] ?? [];
 
   return (
-    <aside className="calendar-day-panel" aria-labelledby="selected-day-title">
+    <aside
+      className={styles["calendar-day-panel"]}
+      aria-labelledby="selected-day-title"
+    >
       <header>
         <div>
           <p className="eyebrow">選択日</p>
           <h2 id="selected-day-title">{formatDay(selectedDay)}</h2>
-          <p className="calendar-day-total">{formatJpy(dayTotal)}</p>
+          <p className={styles["calendar-day-total"]}>{formatJpy(dayTotal)}</p>
         </div>
         <a
-          className="calendar-close-link"
+          className={styles["calendar-close-link"]}
           href={createCalendarDayUrl(data)}
           aria-label="日別取引を閉じる"
           onClick={onClose}
@@ -150,14 +155,16 @@ function DayPanel({
         </a>
       </header>
       {dayTransactions.length === 0 ? (
-        <p className="calendar-empty-message">この対象の支出はありません。</p>
+        <p className={styles["calendar-empty-message"]}>
+          この対象の支出はありません。
+        </p>
       ) : (
-        <ul className="calendar-day-transactions">
+        <ul className={styles["calendar-day-transactions"]}>
           {dayTransactions.map((transaction) => (
             <li key={transaction.id}>
-              <div className="calendar-transaction-heading">
+              <div className={styles["calendar-transaction-heading"]}>
                 <span
-                  className={`category-dot category-${transaction.categoryColor}`}
+                  className={`${styles["category-dot"]} category-${transaction.categoryColor}`}
                 />
                 <strong>{transaction.categoryName}</strong>
                 <span>{formatJpy(transaction.amountMinor)}</span>
@@ -180,7 +187,7 @@ function DayPanel({
         </ul>
       )}
       <a
-        className="secondary-link calendar-day-add"
+        className={`secondary-link ${styles["calendar-day-add"]}`}
         href={`/groups/${encodeURIComponent(data.group.id)}/transactions/new?date=${selectedDay}`}
       >
         この日付で支出を追加
@@ -252,19 +259,25 @@ export function CalendarDayExplorer({
   return (
     <div
       className={
-        selectedDay ? "calendar-layout has-day-panel" : "calendar-layout"
+        selectedDay
+          ? `${styles["calendar-layout"]} ${styles["has-day-panel"]}`
+          : styles["calendar-layout"]
       }
     >
       <section className="calendar-card" aria-labelledby="calendar-title">
         {header}
         <table
-          className="calendar-grid"
+          className={styles["calendar-grid"]}
           aria-label={`${formatMonth(data.month)}の支出`}
         >
           <thead>
             <tr>
               {weekdays.map((weekday) => (
-                <th key={weekday} className="calendar-weekday" scope="col">
+                <th
+                  key={weekday}
+                  className={styles["calendar-weekday"]}
+                  scope="col"
+                >
                   {weekday}
                 </th>
               ))}
@@ -281,10 +294,12 @@ export function CalendarDayExplorer({
                     : undefined;
                   const isSelected = cell.date === selectedDay;
                   const className = [
-                    "calendar-cell",
-                    cell.isCurrentMonth ? "is-current-month" : "is-other-month",
-                    cell.isToday ? "is-today" : "",
-                    isSelected ? "is-selected" : "",
+                    styles["calendar-cell"],
+                    cell.isCurrentMonth
+                      ? styles["is-current-month"]
+                      : styles["is-other-month"],
+                    cell.isToday ? styles["is-today"] : "",
+                    isSelected ? styles["is-selected"] : "",
                   ]
                     .filter(Boolean)
                     .join(" ");
@@ -300,13 +315,13 @@ export function CalendarDayExplorer({
                             if (link) dayLinks.current.set(cell.date, link);
                             else dayLinks.current.delete(cell.date);
                           }}
-                          className="calendar-cell-link"
+                          className={styles["calendar-cell-link"]}
                           href={createCalendarDayUrl(data, cell.date)}
                           aria-label={exactLabel}
                           aria-current={cell.isToday ? "date" : undefined}
                           onClick={(event) => handleDayClick(event, cell.date)}
                         >
-                          <span className="calendar-day-number">
+                          <span className={styles["calendar-day-number"]}>
                             {cell.day}
                           </span>
                           {amount ? (
@@ -314,8 +329,8 @@ export function CalendarDayExplorer({
                           ) : null}
                         </a>
                       ) : (
-                        <span className="calendar-cell-link">
-                          <span className="calendar-day-number">
+                        <span className={styles["calendar-cell-link"]}>
+                          <span className={styles["calendar-day-number"]}>
                             {cell.day}
                           </span>
                         </span>

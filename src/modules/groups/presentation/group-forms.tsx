@@ -6,6 +6,8 @@ import { useFormStatus } from "react-dom";
 import { INITIAL_GROUP_ACTION_STATE } from "./action-state";
 import { createGroupAction } from "./actions";
 
+import styles from "./groups.module.css";
+
 function CreateButton() {
   const { pending } = useFormStatus();
   return (
@@ -23,7 +25,7 @@ export function CreateGroupForm() {
   );
 
   return (
-    <form action={action} className="group-form" noValidate>
+    <form action={action} className={styles["group-form"]} noValidate>
       <label htmlFor="groupName">グループ名</label>
       <input
         aria-describedby="groupName-error"
@@ -39,11 +41,11 @@ export function CreateGroupForm() {
 
       <fieldset>
         <legend>週の開始曜日</legend>
-        <label className="radio-option">
+        <label className={styles["radio-option"]}>
           <input defaultChecked name="weekStartsOn" type="radio" value="0" />
           日曜日
         </label>
-        <label className="radio-option">
+        <label className={styles["radio-option"]}>
           <input name="weekStartsOn" type="radio" value="1" />
           月曜日
         </label>
@@ -51,7 +53,7 @@ export function CreateGroupForm() {
 
       <fieldset>
         <legend>標準の支出負担</legend>
-        <label className="radio-option">
+        <label className={styles["radio-option"]}>
           <input
             defaultChecked
             name="defaultAllocation"
@@ -60,7 +62,7 @@ export function CreateGroupForm() {
           />
           メンバーで均等
         </label>
-        <label className="radio-option">
+        <label className={styles["radio-option"]}>
           <input name="defaultAllocation" type="radio" value="self" />
           自分が全額負担
         </label>

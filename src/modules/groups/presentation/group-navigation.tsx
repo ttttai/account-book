@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import styles from "./groups.module.css";
+
 type NavigationItemId = "home" | "history" | "input" | "settings";
 
 type NavigationItem = Readonly<{
@@ -85,10 +87,16 @@ export function GroupNavigation({ groupId }: Readonly<{ groupId: string }>) {
   ];
 
   return (
-    <nav className="group-navigation" aria-label="グループ内ナビゲーション">
+    <nav
+      className={styles["group-navigation"]}
+      aria-label="グループ内ナビゲーション"
+    >
       {items.map((item) => {
         const isActive = isPathActive(pathname, item);
-        const className = ["group-navigation-link", isActive ? "is-active" : ""]
+        const className = [
+          styles["group-navigation-link"],
+          isActive ? "is-active" : "",
+        ]
           .filter(Boolean)
           .join(" ");
 

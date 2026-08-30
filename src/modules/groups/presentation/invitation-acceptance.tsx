@@ -9,6 +9,8 @@ import { acceptInvitationSchema } from "../domain/invitation-input";
 import { acceptInvitationAction } from "./actions";
 import { INITIAL_ACCEPT_INVITATION_STATE } from "./invitation-action-state";
 
+import styles from "./groups.module.css";
+
 const STORAGE_KEY = "account-book.pending-invitation-token";
 
 function AcceptButton() {
@@ -77,10 +79,10 @@ export function InvitationAcceptance({
 
   if (!isAuthenticated) {
     return (
-      <div className="invitation-login-prompt">
+      <div className={styles["invitation-login-prompt"]}>
         <p>参加するには、許可されたGoogleアカウントでログインしてください。</p>
         <Link
-          className="primary-link centered-link"
+          className={`primary-link ${styles["centered-link"]}`}
           href="/login?next=/invitations/accept"
         >
           ログインへ進む
@@ -90,7 +92,7 @@ export function InvitationAcceptance({
   }
 
   return (
-    <form action={formAction} className="accept-invitation-form">
+    <form action={formAction} className={styles["accept-invitation-form"]}>
       <input name="token" type="hidden" value={token} />
       <p>
         参加すると、このグループの家計データをほかのメンバーと共有できます。

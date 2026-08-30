@@ -8,6 +8,8 @@ import { shiftMonth } from "../domain/calendar-grid";
 import { formatJpy } from "../domain/calendar-summary";
 import { CalendarDayExplorer } from "./calendar-day-explorer";
 
+import styles from "./calendar.module.css";
+
 function formatMonth(month: string): string {
   const [year, monthNumber] = month.split("-").map(Number);
   return `${year}年${monthNumber}月`;
@@ -57,7 +59,10 @@ export function CalendarValidationError({
 // グループ・自分・メンバー別の集計対象を切り替えるナビゲーション
 function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
   return (
-    <nav className="calendar-scope-nav" aria-label="カレンダーの集計対象">
+    <nav
+      className={styles["calendar-scope-nav"]}
+      aria-label="カレンダーの集計対象"
+    >
       <Link
         className={data.scope === "group" ? "is-active" : undefined}
         href={createCalendarUrl(data.group.id, {
@@ -79,19 +84,19 @@ function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
         自分
       </Link>
       <details
-        className="calendar-member-picker"
+        className={styles["calendar-member-picker"]}
         open={data.scope === "member"}
       >
         <summary className={data.scope === "member" ? "is-active" : undefined}>
           {data.scope === "member" ? data.selectedMemberLabel : "メンバー"}
         </summary>
-        <div className="calendar-member-options">
+        <div className={styles["calendar-member-options"]}>
           {data.members.map((member) => (
             <Link
               key={member.membershipId}
               className={
                 data.selectedMemberId === member.membershipId
-                  ? "is-selected"
+                  ? styles["is-selected"]
                   : undefined
               }
               href={createCalendarUrl(data.group.id, {
@@ -134,7 +139,7 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
       data={data}
       header={
         <>
-          <header className="calendar-month-navigation">
+          <header className={styles["calendar-month-navigation"]}>
             <Link
               href={createCalendarUrl(data.group.id, {
                 month: previousMonth,
@@ -162,7 +167,7 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
           <ScopeNavigation data={data} />
 
           <section
-            className="calendar-total"
+            className={styles["calendar-total"]}
             aria-label={`${selectedTarget}の月間合計`}
           >
             <p>{selectedTarget}</p>
@@ -175,7 +180,7 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
       }
       footer={
         data.monthlyTotal === 0 ? (
-          <p className="calendar-empty-message">
+          <p className={styles["calendar-empty-message"]}>
             この月の支出はまだありません。
           </p>
         ) : null

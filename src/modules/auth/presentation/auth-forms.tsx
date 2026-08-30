@@ -10,6 +10,8 @@ import {
 } from "./action-state";
 import { signOutAction, updateProfileAction } from "./actions";
 
+import styles from "./auth.module.css";
+
 function FieldError({
   state,
   name,
@@ -55,7 +57,7 @@ export function ProfileForm({ displayName }: { displayName: string }) {
   );
 
   return (
-    <form action={action} className="profile-form" noValidate>
+    <form action={action} className={styles["profile-form"]} noValidate>
       <label htmlFor="profileDisplayName">表示名</label>
       <input
         aria-describedby="displayName-error"
@@ -89,7 +91,7 @@ export function LogoutForm() {
   );
 
   return (
-    <form action={action} className="logout-form">
+    <form action={action} className={styles["logout-form"]}>
       <LogoutButton />
       <FormMessage state={state} />
     </form>

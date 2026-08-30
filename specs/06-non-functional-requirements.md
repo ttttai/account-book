@@ -84,6 +84,7 @@
 - `NFR-MNT-007` 実装を要件IDまたは受け入れ条件IDへ紐付ける。
 - `NFR-MNT-008` 作業branchと`main`を含むすべてのbranchへのpushでCIを自動実行し、format、lint、型検査、architecture・単体test、DB・RLS test、HTTP integration test、本番buildの失敗をmerge前に検出する。同一commitに対する`push`と`pull_request`の二重実行は行わず、pushで作成されたcheckをpull requestのhead commitへ紐付ける。
 - `NFR-MNT-009` CIの`GITHUB_TOKEN`権限は読み取り最小限とし、外部Actionは完全なcommit SHAへ固定する。本番秘密情報や実GoogleアカウントをCIへ渡さず、CI専用のローカル資格情報と架空の許可アカウントだけを利用する。
+- `NFR-MNT-010` スタイルは所有権で分離する。`src/app/styles.css`はデザイントークン、reset、基本タイポグラフィ、`src/app`の画面組み立てが使うroute shellと共通プリミティブだけを持ち、単一機能のpresentationだけが使うスタイルは当該機能のpresentationに併置したCSS Modulesで管理する。追加依存（Tailwind、CSS-in-JS）は導入しない。
 
 ## 対応ブラウザ
 

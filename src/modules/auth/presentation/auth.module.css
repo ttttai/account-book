@@ -1,0 +1,48 @@
+.profile-form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.profile-form label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.profile-form input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #bdc7bd;
+  border-radius: 10px;
+  color: var(--text);
+  background: white;
+  font: inherit;
+}
+
+.profile-form :global(.primary-button) {
+  margin-top: 0.35rem;
+}
+
+.logout-form {
+  display: grid;
+  justify-items: end;
+  gap: 0.25rem;
+}
+
+.logout-form :global(.form-message) {
+  max-width: 12rem;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+:global(.settings-panel) .profile-form {
+  margin-top: 0.85rem;
+}
+
+.profile-form + :global(.settings-row-link) {
+  margin-top: 1rem;
+}
+
+:global(.settings-session-panel) .logout-form {
+  justify-items: end;
+}
