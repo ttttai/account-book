@@ -209,6 +209,8 @@ Cloud Run、Supabase、Google OAuth、上記Environment値が揃った後、Repo
 
 workflowはCPU、memory、環境変数、secret、service account、ingress、IAMを変更しない。CD後のTerraform planでimage以外の差分がないことを確認する。
 
+前回deploy以降の変更がドキュメント（`docs/**`、root `README.md`、`CLAUDE.md`）のみの場合、CDはdeployをskipする。判定は`scripts/docs-only-diff.sh`と、`Build and deploy` jobが実際に成功した直近runのcommitとの差分で行い、判定できない場合はdeployする。`workflow_dispatch`の手動実行はこの判定を行わず常にdeployするため、強制deployが必要な場合は手動実行を使う。
+
 ## スモークテスト
 
 apply後、最低限次を手動確認する。

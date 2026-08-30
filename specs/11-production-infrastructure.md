@@ -2,9 +2,9 @@
 
 状態: 実装承認済み
 
-バージョン: 0.2.0
+バージョン: 0.3.0
 
-最終更新日: 2026-08-29
+最終更新日: 2026-08-30
 
 ## 1. 目的
 
@@ -30,6 +30,7 @@
 - `INF-014`: TerraformはCloud Run作成時の初回imageだけを要求し、その後のcontainer image変更を無視する。GitHub Actionsはimageだけを更新し、CPU、memory、scaling、環境変数、secret、service identity、ingress、IAMを変更しない。
 - `INF-015`: GitHub Actionsはservice account keyを使わず、再利用されないnumeric repository ID・owner IDとmain branchへ制約したWorkload Identity Federationから専用deploy service accountをimpersonateする。deploy identityにはArtifact Registryへのpush、既存Cloud Run serviceのrevision更新、runtime identityの利用に必要な最小権限だけを付与する。
 - `INF-016`: production CDはRepository variable `PRODUCTION_CD_ENABLED=true`を明示した場合だけ起動し、GitHub Environment `production`の接続値・secret・保護規則を使って同時deployを直列化する。実値tfvarsやcredential fileをGitへ追加せず、許可Googleアカウント一覧、Google OAuth client secret、Supabase service role keyをworkflowへ渡さない。
+- `INF-017`: 変更がアプリの挙動に影響しないドキュメント（`docs/**`、root `README.md`、`CLAUDE.md`）のみの場合、CIはformat検証だけを実行して重い検証ジョブをskipし、production CDは実際にdeployへ成功した直近commitとの差分で判定してdeployをskipする。testが内容を検証する`specs/**`と`AGENTS.md`はドキュメント扱いにしない。docsのみ判定は単一のscriptへ集約し、初回・判定不能・手動実行では必ず検証とdeployを実行する側へ倒す。
 
 ## 3. 対象構成
 
@@ -148,6 +149,8 @@ workflowは次だけを行う。
 
 workflowから`--set-env-vars`、`--update-secrets`、`--service-account`、CPU・memory・scaling・ingress・IAMを変更するflagを渡さない。GitHub Actionsが追加する管理labelもTerraformとの競合を避けるため付けない。deploy失敗時は直前revisionへのtrafficを維持し、確認済みの過去digestを指定する手動rollbackを可能にする。
 
+変更がドキュメント（`docs/**`、root `README.md`、`CLAUDE.md`）のみの場合、CIは重い検証ジョブをskipし、CDは`Build and deploy` jobが最後に成功したrunのcommitとの差分がdocsのみであればdeployをskipする（`INF-017`）。deployをskipしたrunや失敗したrunは差分の基準にしない。基準commitを特定できない場合は必ずdeployし、`workflow_dispatch`の手動実行はこの判定を行わず常にdeployする。
+
 ### 4.4 runtime環境変数
 
 | 変数                               | 供給元                      | 性質                             |
@@ -245,6 +248,8 @@ apply後は次をsmoke testする。
 - `AC-INF-001-16`: prodがdeploy identityへ対象Cloud Run service単位のCloud Run Developerだけを付与する。
 - `AC-INF-001-17`: production CDがRepository variable `PRODUCTION_CD_ENABLED=true`かつmainのCI成功後またはmainの手動実行だけで起動し、未設定ではjobをskipする。起動時は`production` Environmentを使い、WIF認証、production build、push、digest deploy、image一致確認、HTTPS smoke testを直列実行する。
 - `AC-INF-001-18`: CDはimage以外のCloud Run構成を変更するflagを使わず、実値tfvars、長期credential、許可メール一覧、OAuth client secret、Supabase service role keyをworkflowへ含めない。
+- `AC-INF-001-19`: docsのみ判定は`scripts/docs-only-diff.sh`に集約され、対象を`docs/**`・root `README.md`・`CLAUDE.md`に限定し、`specs/**`と`AGENTS.md`を含まない。CIの重い検証ジョブは、作業ブランチではmainとの分岐点、mainでは直前commitとの差分がdocsのみの場合だけskipされ、format検証は常に実行される。
+- `AC-INF-001-20`: production CDは、`Build and deploy` jobが実際に成功した直近runのcommitとの差分がdocsのみの場合だけdeployをskipする。deployをskipしたrunを基準にせず、基準を特定できない場合と手動実行では必ずdeployする。
 
 ## 10. worktree境界
 
