@@ -3,9 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   addCategorySchema,
   archiveCategorySchema,
-  moveCategorySchema,
   normalizeCategoryName,
-  renameCategorySchema,
+  updateCategorySchema,
 } from "./category-input";
 
 const groupId = "11111111-1111-4111-8111-111111111111";
@@ -56,39 +55,38 @@ describe("addCategorySchema", () => {
   });
 });
 
-describe("renameCategorySchema", () => {
-  it("名称をtrimして変更入力を受け取る", () => {
+describe("updateCategorySchema", () => {
+  it("名称をtrimし、パレット内の色を受け取る", () => {
     expect(
-      renameCategorySchema.parse({ groupId, categoryId, name: " 定期購入 " }),
-    ).toEqual({ groupId, categoryId, name: "定期購入" });
+      updateCategorySchema.parse({
+        groupId,
+        categoryId,
+        name: " 定期購入 ",
+        color: "leisure",
+      }),
+    ).toEqual({ groupId, categoryId, name: "定期購入", color: "leisure" });
+  });
+
+  it("パレット外の色を拒否する", () => {
+    expect(
+      updateCategorySchema.safeParse({
+        groupId,
+        categoryId,
+        name: "定期購入",
+        color: "#ff0000",
+      }).success,
+    ).toBe(false);
   });
 
   it("不正なcategoryIdを拒否する", () => {
     expect(
-      renameCategorySchema.safeParse({
+      updateCategorySchema.safeParse({
         groupId,
-        categoryId: "1; drop table categories",
+        categoryId: "not-a-uuid",
         name: "定期購入",
+        color: "food",
       }).success,
     ).toBe(false);
-  });
-});
-
-describe("moveCategorySchema", () => {
-  it("上下の移動方向だけを受け取る", () => {
-    expect(
-      moveCategorySchema.parse({ groupId, categoryId, direction: "up" }),
-    ).toEqual({ groupId, categoryId, direction: "up" });
-    expect(
-      moveCategorySchema.safeParse({ groupId, categoryId, direction: "top" })
-        .success,
-    ).toBe(false);
-  });
-
-  it("移動方向の欠落をfail closedで拒否する", () => {
-    expect(moveCategorySchema.safeParse({ groupId, categoryId }).success).toBe(
-      false,
-    );
   });
 });
 

@@ -20,7 +20,10 @@ function formatHistoryDate(date: string): string {
   return `${year}年${month}月${day}日`;
 }
 
-function HistoryRowItem({ row }: Readonly<{ row: HistoryRow }>) {
+function HistoryRowItem({
+  row,
+  editHref,
+}: Readonly<{ row: HistoryRow; editHref?: string }>) {
   return (
     <li className={styles["history-row"]}>
       <div className={styles["history-row-heading"]}>
@@ -62,6 +65,14 @@ function HistoryRowItem({ row }: Readonly<{ row: HistoryRow }>) {
       {row.memo ? (
         <p className={styles["history-row-memo"]}>{row.memo}</p>
       ) : null}
+      {editHref ? (
+        <a
+          className={`secondary-link ${styles["history-row-edit"]}`}
+          href={editHref}
+        >
+          編集
+        </a>
+      ) : null}
     </li>
   );
 }
@@ -76,6 +87,12 @@ export function HistoryList({
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+
+  // 編集から戻るときに現在の絞り込みを復元できるよう、適用中条件つきの履歴URLを組み立てる
+  const historySearch = new URLSearchParams(filterParams).toString();
+  const historyReturnUrl = `/groups/${groupId}/history${
+    historySearch ? `?${historySearch}` : ""
+  }`;
 
   async function handleLoadMore() {
     if (!nextCursor || isLoading) return;
@@ -111,7 +128,15 @@ export function HistoryList({
       ) : (
         <ol className={styles["history-rows"]}>
           {rows.map((row) => (
-            <HistoryRowItem key={row.id} row={row} />
+            <HistoryRowItem
+              editHref={
+                row.type === "expense"
+                  ? `/groups/${encodeURIComponent(groupId)}/transactions/${row.id}/edit?from=${encodeURIComponent(historyReturnUrl)}`
+                  : undefined
+              }
+              key={row.id}
+              row={row}
+            />
           ))}
         </ol>
       )}

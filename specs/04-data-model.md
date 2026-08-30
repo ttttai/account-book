@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.7
+バージョン: 0.2.8
 
 ## 1. 設計目標
 
@@ -131,7 +131,7 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 | `updated_by`          | uuid FK              | 認証ユーザー                       |
 | `created_at`          | timestamptz          | UTC                                |
 | `updated_at`          | timestamptz          | UTC                                |
-| `deleted_at`          | timestamptz nullable | 論理削除                           |
+| `deleted_at`          | timestamptz nullable | 未使用（物理削除の採用により残置） |
 | `deleted_by`          | uuid nullable FK     |                                    |
 
 制約:
@@ -221,10 +221,8 @@ RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB�
 
 ## 7. 削除・保持
 
-- 取引は論理削除する。
-- 通常読み取りは`deleted_at is not null`を除外する。
-- `deleted_at`から30日以内だけ復元できる。
-- 物理削除は延期する。期限切れの論理削除行がMVPのDBに残ることを許容する。
+- 取引の削除は、取引本体と負担行を同じtransactionで物理削除する。復元機能は提供しない。
+- `deleted_at`・`deleted_by`列と関連部分インデックスは適用済みmigrationのため残置するが、新規に値を設定しない。既存queryの`deleted_at is null`条件は互換のため維持してよい。
 - メンバー削除時は所属行を削除せず状態変更し、履歴を残す。
 - カテゴリアーカイブで過去取引を変更しない。
 

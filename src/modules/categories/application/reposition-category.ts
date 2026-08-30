@@ -8,10 +8,10 @@ import {
 } from "@/modules/auth/server";
 
 import {
-  moveCategorySchema,
-  type MoveCategoryInput,
+  repositionCategorySchema,
+  type RepositionCategoryInput,
 } from "../domain/category-input";
-import { buildMovedCategoryIds } from "../domain/category-order";
+import { buildRepositionedCategoryIds } from "../domain/category-order";
 import {
   CategoryCommandError,
   toCategoryCommandError,
@@ -26,12 +26,13 @@ const orderRowSchema = z.object({
   sort_order: z.number().int(),
 });
 
-export type MoveCategoryResult = "moved" | "at_edge" | "not_found";
+export type RepositionCategoryResult = "moved" | "unchanged" | "not_found";
 
-export async function moveCategory(
-  input: MoveCategoryInput,
-): Promise<MoveCategoryResult> {
-  const validatedInput = moveCategorySchema.parse(input);
+// 対象カテゴリを指定位置へ移動する。全体順序はサーバー側の現在の並びから組み立てる
+export async function repositionCategory(
+  input: RepositionCategoryInput,
+): Promise<RepositionCategoryResult> {
+  const validatedInput = repositionCategorySchema.parse(input);
 
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
@@ -64,17 +65,17 @@ export async function moveCategory(
     .array(orderRowSchema)
     .parse(orderData ?? [])
     .map((row) => row.id);
-  const moveResult = buildMovedCategoryIds(
+  const repositionResult = buildRepositionedCategoryIds(
     orderedCategoryIds,
     validatedInput.categoryId,
-    validatedInput.direction,
+    validatedInput.position,
   );
-  if (moveResult.kind !== "moved") return moveResult.kind;
+  if (repositionResult.kind !== "moved") return repositionResult.kind;
 
   const { error } = await supabase.rpc("reorder_group_categories", {
     p_group_id: validatedInput.groupId,
     p_type: target.type,
-    p_category_ids: [...moveResult.categoryIds],
+    p_category_ids: [...repositionResult.categoryIds],
   });
   if (error) throw toCategoryCommandError(error);
 

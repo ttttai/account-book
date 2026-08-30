@@ -22,6 +22,7 @@ const categoryRowSchema = z.object({
   id: z.uuid(),
   name: z.string(),
   type: z.enum(["expense", "income"]),
+  color: z.string(),
   sort_order: z.number().int(),
 });
 
@@ -70,7 +71,7 @@ export async function getCategoryManagement(
 
   const { data: categoryData, error: categoryError } = await supabase
     .from("categories")
-    .select("id, name, type, sort_order")
+    .select("id, name, type, color, sort_order")
     .eq("group_id", groupIdResult.data)
     .is("archived_at", null)
     .order("sort_order", { ascending: true });
