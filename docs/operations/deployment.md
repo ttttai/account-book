@@ -32,9 +32,17 @@ flowchart LR
    6. Cloud Runの参照digestが一致することと、`/login`がHTTPSで応答することを確認する。
 4. デプロイ完了後、GitHub ActionsのProduction CDが成功していることを確認する。失敗した場合はtrafficが直前のrevisionに残るため、慌てて再実行せずlogから原因を特定する。
 
+### ドキュメントのみの変更はskipされる
+
+変更が`docs/**`、root `README.md`、`CLAUDE.md`のみの場合、CIは`Quality`と`Docker integration`をskipし（format checkは常に実行）、CDは前回deployとの差分を判定して`Build and deploy`をskipする（`INF-017`）。skipされたjobはbranch protectionで合格として扱われるため、docsのみのPRもそのままマージできる。
+
+- 判定の対象と条件は`scripts/docs-only-diff.sh`が正本である。テストが内容を検証する`specs/**`と`AGENTS.md`はドキュメント扱いにならず、変更時は全CIとdeployが実行される。
+- CDの差分基準は「`Build and deploy` jobが実際に成功した直近runのcommit」であり、判定できない場合は必ずdeployする（fail open）。
+- docsのみの状態でも強制的にdeployしたい場合は、後述の手動デプロイ（`workflow_dispatch`）を使う。手動実行はskip判定を行わず常にdeployする。
+
 ### 手動デプロイ
 
-Actionsの`Production CD`をmainに対して`workflow_dispatch`で手動実行できる。CIをbypassするものではなく、mainの現在のHEADをデプロイする。CD失敗後の再実行や、Environment変数を更新した後の再buildに使う。
+Actionsの`Production CD`をmainに対して`workflow_dispatch`で手動実行できる。CIをbypassするものではなく、mainの現在のHEADをデプロイする。CD失敗後の再実行や、Environment変数を更新した後の再build、docsのみskip後の強制deployに使う。
 
 ## CDが行わないこと（重要）
 
