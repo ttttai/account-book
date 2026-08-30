@@ -93,16 +93,6 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
               </span>
               <span aria-hidden="true">↓</span>
             </a>
-            <Link
-              className="settings-row-link"
-              href={`/groups/${encodedGroupId}/transactions/deleted`}
-            >
-              <span>
-                <strong>削除済み取引の復元</strong>
-                <small>削除後30日以内の取引を元に戻します</small>
-              </span>
-              <span aria-hidden="true">›</span>
-            </Link>
           </nav>
         </section>
 

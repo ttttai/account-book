@@ -22,18 +22,6 @@ export type ExpenseEditData = Readonly<{
   transaction: ExpenseEditTransaction;
 }>;
 
-export type RecoverableTransaction = Readonly<{
-  id: string;
-  amountMinor: number;
-  transactionDate: string;
-  categoryName: string;
-  categoryColor: string;
-  payerDisplayName: string;
-  deletedAt: string;
-  restoreDeadline: string;
-  version: number;
-}>;
-
 export type TransactionCommandResult =
   | Readonly<{ kind: "ok" }>
   | Readonly<{ kind: "conflict" }>

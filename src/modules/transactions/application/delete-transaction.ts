@@ -16,7 +16,7 @@ const inputSchema = z.object({
   expectedVersion: z.number().int().min(1),
 });
 
-// 認証を確認したうえでDB関数により取引を論理削除する（再送は冪等に成功する）
+// 認証を確認したうえでDB関数により取引と負担行を物理削除する（再送は冪等に成功する）
 export async function deleteTransaction(
   input: z.infer<typeof inputSchema>,
 ): Promise<TransactionCommandResult> {

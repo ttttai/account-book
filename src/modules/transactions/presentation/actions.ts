@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { createExpense } from "../application/create-expense";
 import { deleteTransaction } from "../application/delete-transaction";
 import type { TransactionCommandResult } from "../application/edit-types";
-import { restoreTransaction } from "../application/restore-transaction";
 import { updateExpense } from "../application/update-expense";
 import { resolveEditReturnPath } from "../domain/edit-return-path";
 import { calculateExpenseAllocations } from "../domain/expense-allocation";
@@ -113,11 +112,10 @@ function commandErrorMessage(
   return "処理を完了できませんでした。接続状態を確認して、もう一度お試しください。";
 }
 
-// 変更後のグループ画面（ホーム・履歴・復元一覧）を再検証する
+// 変更後のグループ画面（ホーム・履歴）を再検証する
 function revalidateGroupScreens(groupId: string): void {
   revalidatePath(`/groups/${groupId}`);
   revalidatePath(`/groups/${groupId}/history`);
-  revalidatePath(`/groups/${groupId}/transactions/deleted`);
 }
 
 // 支出編集フォームのServer Action。楽観的ロック付きで更新し、検証済みの遷移元へ戻す
@@ -183,7 +181,7 @@ export async function updateExpenseAction(
   redirect(resolveEditReturnPath(unsafeReturnTo, result.data.groupId));
 }
 
-// 取引削除のServer Action。楽観的ロック付きで論理削除し、検証済みの遷移元へ戻す
+// 取引削除のServer Action。楽観的ロック付きで物理削除し、検証済みの遷移元へ戻す
 export async function deleteTransactionAction(
   groupId: string,
   transactionId: string,
@@ -210,31 +208,4 @@ export async function deleteTransactionAction(
 
   revalidateGroupScreens(groupId);
   redirect(resolveEditReturnPath(unsafeReturnTo, groupId));
-}
-
-// 削除済み取引の復元Server Action。成功時は復元一覧へ戻り、期限切れ・競合は行の近くへ表示する
-export async function restoreTransactionAction(
-  groupId: string,
-  _previousState: ExpenseActionState,
-  formData: FormData,
-): Promise<ExpenseActionState> {
-  const commandResult = await restoreTransaction({
-    groupId,
-    transactionId: value(formData, "transactionId"),
-    expectedVersion: Number(value(formData, "expectedVersion")),
-  });
-  if (commandResult.kind !== "ok") {
-    return {
-      status: "error",
-      message: commandErrorMessage(
-        commandResult,
-        "復元期限を過ぎているため、この取引は復元できません。",
-      ),
-    };
-  }
-
-  revalidateGroupScreens(groupId);
-  redirect(
-    `/groups/${encodeURIComponent(groupId)}/transactions/deleted?restored=1`,
-  );
 }

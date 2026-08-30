@@ -82,35 +82,6 @@ begin
 end;
 $$;
 
-create function pg_temp.assert_restore_denied(
-  expected_sqlstate text,
-  target_group_id uuid,
-  target_transaction_id uuid,
-  expected_version integer,
-  message text
-)
-returns void
-language plpgsql
-as $$
-begin
-  begin
-    perform public.restore_transaction(
-      target_group_id,
-      target_transaction_id,
-      expected_version
-    );
-  exception
-    when others then
-      if sqlstate = expected_sqlstate then
-        return;
-      end if;
-      raise exception 'integration assertion failed: %（想定外SQLSTATE %）',
-        message, sqlstate;
-  end;
-  raise exception 'integration assertion failed: %', message;
-end;
-$$;
-
 create function pg_temp.assert_direct_update_denied(target_transaction_id uuid)
 returns void
 language plpgsql
@@ -459,7 +430,7 @@ select pg_temp.assert_true(
   '現在のカテゴリがアーカイブ済みでも変更しなければ保存できる'
 );
 
--- 別グループのメンバーは編集・削除・復元できない（RLSと同じ判断）
+-- 別グループのメンバーは編集・削除できない（RLSと同じ判断）
 select set_config(
   'request.jwt.claims',
   '{"sub":"50000000-0000-4000-8000-000000000001","role":"authenticated","email":"edit-a@example.test","app_metadata":{"provider":"google"}}',
@@ -486,13 +457,6 @@ select pg_temp.assert_delete_denied(
   1,
   '非メンバーによる削除を拒否する'
 );
-select pg_temp.assert_restore_denied(
-  '42501',
-  :'b_only_group_id',
-  :'b_only_transaction_id',
-  1,
-  '非メンバーによる復元を拒否する'
-);
 select pg_temp.assert_true(
   (
     select count(*) = 0
@@ -517,14 +481,12 @@ select pg_temp.assert_delete_denied(
   'Google以外のプロバイダによる削除を拒否する'
 );
 
--- 論理削除: 物理削除せず削除情報を設定する（AC-TXN-009-1、AC-TXN-009-2）
+-- 未削除の取引への削除は古いversionを競合として拒否する（AC-TXN-009-3）
 select set_config(
   'request.jwt.claims',
   '{"sub":"50000000-0000-4000-8000-000000000002","role":"authenticated","email":"edit-b@example.test","app_metadata":{"provider":"google"}}',
   true
 );
-
--- 未削除の取引への削除は古いversionを競合として拒否する
 select pg_temp.assert_delete_denied(
   '40001',
   :'edit_group_id',
@@ -532,30 +494,33 @@ select pg_temp.assert_delete_denied(
   1,
   '古いversionの削除を競合として拒否する'
 );
-
-select public.delete_transaction(:'edit_group_id', :'edit_transaction_id', 3);
-
-select deleted_at as deleted_at_first
-from public.transactions
-where id = :'edit_transaction_id' \gset
-
 select pg_temp.assert_true(
   (
-    select deleted_at is not null
-      and deleted_by = '50000000-0000-4000-8000-000000000002'
-      and version = 4
+    select count(*) = 1
     from public.transactions
     where id = :'edit_transaction_id'
   ),
-  '削除時は物理削除せず削除情報とversionを設定する'
+  '競合時に取引を削除しない'
+);
+
+-- 物理削除: 本体と負担行を同じtransactionで削除する（AC-TXN-009-1、AC-TXN-009-2）
+select public.delete_transaction(:'edit_group_id', :'edit_transaction_id', 3);
+
+select pg_temp.assert_true(
+  (
+    select count(*) = 0
+    from public.transactions
+    where id = :'edit_transaction_id'
+  ),
+  '削除で取引本体を物理削除する'
 );
 select pg_temp.assert_true(
   (
-    select count(*) = 2
+    select count(*) = 0
     from public.transaction_allocations
     where transaction_id = :'edit_transaction_id'
   ),
-  '論理削除後も負担行を保持する'
+  '削除で負担行も同時に物理削除する'
 );
 select pg_temp.assert_true(
   (
@@ -563,25 +528,25 @@ select pg_temp.assert_true(
     from public.transactions
     where group_id = :'edit_group_id'
       and type = 'expense'
-      and deleted_at is null
       and transaction_date >= '2026-08-01'
       and transaction_date < '2026-09-01'
   ),
-  '削除済み取引を通常のカレンダー・履歴合計から除外する'
+  '削除した取引をカレンダー・履歴の合計から除外する'
 );
 
--- 削除の再送は状態を変更せず成功する（AC-TXN-009-5）
+-- 削除の再送（存在しない対象）は状態を変更せず成功する（AC-TXN-009-4）
 select public.delete_transaction(:'edit_group_id', :'edit_transaction_id', 3);
+select public.delete_transaction(:'edit_group_id', :'edit_transaction_id', 999);
 select pg_temp.assert_true(
   (
-    select version = 4 and deleted_at = :'deleted_at_first'::timestamptz
+    select count(*) = 0
     from public.transactions
     where id = :'edit_transaction_id'
   ),
-  '削除の再送は削除情報とversionを変更しない'
+  '削除の再送は冪等に成功する'
 );
 
--- 削除済み取引は編集できない
+-- 削除済み（存在しない）取引は編集できない
 select pg_temp.assert_update_denied(
   'P0002',
   :'edit_group_id',
@@ -595,107 +560,6 @@ select pg_temp.assert_update_denied(
     jsonb_build_object('member_id', :'edit_b_member_id', 'amount_minor', 8100)
   ),
   '削除済み取引の編集を拒否する'
-);
-
--- 削除済み取引はメンバーの復元一覧から参照できる
-select pg_temp.assert_true(
-  (
-    select count(*) = 1
-    from public.transactions
-    where group_id = :'edit_group_id'
-      and deleted_at is not null
-      and deleted_at > timezone('utc', now()) - interval '30 days'
-  ),
-  '削除から30日以内の取引を復元一覧として参照できる'
-);
-
--- 復元: 30日以内なら合計へ戻る（AC-TXN-009-3）
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"50000000-0000-4000-8000-000000000001","email":"edit-a@example.test","role":"authenticated","app_metadata":{"provider":"google"}}',
-  true
-);
-select pg_temp.assert_restore_denied(
-  '40001',
-  :'edit_group_id',
-  :'edit_transaction_id',
-  3,
-  '古いversionの復元を競合として拒否する'
-);
-select public.restore_transaction(:'edit_group_id', :'edit_transaction_id', 4);
-select pg_temp.assert_true(
-  (
-    select deleted_at is null
-      and deleted_by is null
-      and version = 5
-      and updated_by = '50000000-0000-4000-8000-000000000001'
-    from public.transactions
-    where id = :'edit_transaction_id'
-  ),
-  '復元で削除情報を解除しversionを加算する'
-);
-select pg_temp.assert_true(
-  (
-    select sum(amount_minor) = 8100
-    from public.transactions
-    where group_id = :'edit_group_id'
-      and type = 'expense'
-      and deleted_at is null
-      and transaction_date >= '2026-08-01'
-      and transaction_date < '2026-09-01'
-  ),
-  '復元した取引を合計へ戻す'
-);
-
--- 復元の再送（未削除への要求）は状態を変更せず成功する（AC-TXN-009-5）
-select public.restore_transaction(:'edit_group_id', :'edit_transaction_id', 4);
-select pg_temp.assert_true(
-  (
-    select version = 5 and deleted_at is null
-    from public.transactions
-    where id = :'edit_transaction_id'
-  ),
-  '復元の再送は状態を変更しない'
-);
-
--- 復元期限（30日）を過ぎた取引の復元を拒否する（AC-TXN-009-4）
-select public.delete_transaction(:'edit_group_id', :'edit_transaction_id', 5);
-
-reset role;
-update public.transactions
-set deleted_at = timezone('utc', now()) - interval '31 days'
-where id = :'edit_transaction_id';
-
-set local role authenticated;
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"50000000-0000-4000-8000-000000000001","role":"authenticated","email":"edit-a@example.test","app_metadata":{"provider":"google"}}',
-  true
-);
-select pg_temp.assert_restore_denied(
-  '22023',
-  :'edit_group_id',
-  :'edit_transaction_id',
-  6,
-  '復元期限後の復元を拒否する'
-);
-select pg_temp.assert_true(
-  (
-    select deleted_at is not null
-    from public.transactions
-    where id = :'edit_transaction_id'
-  ),
-  '期限切れの取引は削除済みのまま残る'
-);
-select pg_temp.assert_true(
-  (
-    select count(*) = 0
-    from public.transactions
-    where group_id = :'edit_group_id'
-      and deleted_at is not null
-      and deleted_at > timezone('utc', now()) - interval '30 days'
-  ),
-  '復元期限を過ぎた取引を復元一覧の条件から除外する'
 );
 
 rollback;

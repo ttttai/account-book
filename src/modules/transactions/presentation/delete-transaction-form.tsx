@@ -31,7 +31,7 @@ function ConfirmDeleteButton() {
   );
 }
 
-// 取引削除の2段階確認フォーム。復元可能期間を明示してから論理削除を実行するClient Component
+// 取引削除の2段階確認フォーム。元に戻せないことを明示してから物理削除を実行するClient Component
 export function DeleteTransactionForm({
   groupId,
   transactionId,
@@ -64,7 +64,7 @@ export function DeleteTransactionForm({
         >
           <p id="delete-transaction-confirm-title">
             {summary}
-            の支出を削除します。削除後30日以内は、設定の「削除済み取引の復元」から元に戻せます。
+            の支出を削除します。削除した取引は元に戻せません。
           </p>
           <form action={action}>
             <input

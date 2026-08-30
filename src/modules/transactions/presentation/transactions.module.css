@@ -375,7 +375,7 @@
   }
 }
 
-/* 取引の編集・削除・復元 */
+/* 取引の編集・削除 */
 
 .edit-note {
   margin: 0.35rem 0 0;
@@ -424,96 +424,4 @@
 
 :global(.primary-button).danger-button {
   background: #a3342f;
-}
-
-.restore-empty-message {
-  margin: 1rem 0;
-  color: var(--muted);
-}
-
-.restore-list {
-  display: grid;
-  gap: 0.7rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.restore-row {
-  display: grid;
-  gap: 0.4rem;
-  padding: 0.85rem;
-  border: 1px solid var(--border);
-  border-radius: 0.85rem;
-  background: var(--surface);
-}
-
-.restore-row-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.restore-amount {
-  margin-left: auto;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.restore-row-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.9rem;
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
-.restore-row-deadline {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-.restore-form {
-  display: grid;
-  gap: 0.5rem;
-  justify-items: start;
-}
-
-.restore-form :global(.secondary-button) {
-  min-height: 44px;
-  min-width: 7.5rem;
-}
-
-.restore-category-dot {
-  flex: 0 0 auto;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  background: #758178;
-}
-
-.restore-category-dot[data-category-color="food"] {
-  background: #d8664f;
-}
-
-.restore-category-dot[data-category-color="daily"] {
-  background: #6582c4;
-}
-
-.restore-category-dot[data-category-color="home"] {
-  background: #a06a45;
-}
-
-.restore-category-dot[data-category-color="utilities"] {
-  background: #d29a35;
-}
-
-.restore-category-dot[data-category-color="transport"] {
-  background: #397f8f;
-}
-
-.restore-category-dot[data-category-color="leisure"] {
-  background: #8a67ae;
 }
