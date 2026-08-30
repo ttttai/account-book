@@ -16,7 +16,10 @@ describe("resolveEditReturnPath", () => {
       ),
     ).toBe(`/groups/${groupId}?month=2026-08&day=2026-08-15`);
     expect(
-      resolveEditReturnPath(`/groups/${groupId}/history?month=2026-08`, groupId),
+      resolveEditReturnPath(
+        `/groups/${groupId}/history?month=2026-08`,
+        groupId,
+      ),
     ).toBe(`/groups/${groupId}/history?month=2026-08`);
   });
 
@@ -37,9 +40,9 @@ describe("resolveEditReturnPath", () => {
       ),
     ).toBe(fallback);
     expect(resolveEditReturnPath("/app", groupId)).toBe(fallback);
-    expect(
-      resolveEditReturnPath(`/groups/${groupId}/members`, groupId),
-    ).toBe(fallback);
+    expect(resolveEditReturnPath(`/groups/${groupId}/members`, groupId)).toBe(
+      fallback,
+    );
     expect(
       resolveEditReturnPath(`/groups/${groupId}?month=2026-08\nx`, groupId),
     ).toBe(fallback);

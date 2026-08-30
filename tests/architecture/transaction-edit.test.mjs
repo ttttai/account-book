@@ -21,7 +21,10 @@ test("編集・削除・復元のDB関数を認証・認可・楽観的ロック
     assert.match(migration, new RegExp(`public\\.${fn}`, "i"));
     assert.match(
       migration,
-      new RegExp(`grant execute on function public\\.${fn}[\\s\\S]+?to authenticated`, "i"),
+      new RegExp(
+        `grant execute on function public\\.${fn}[\\s\\S]+?to authenticated`,
+        "i",
+      ),
     );
   }
 
@@ -72,12 +75,17 @@ test("編集・削除・復元のquery/commandをserver-only境界へ隔離す�
   assert.match(update, /update_expense_transaction/);
   assert.match(remove, /delete_transaction/);
   assert.match(restore, /restore_transaction/);
-  // 競合はCONFLICTとして呼び出し側へ区別して返す
-  assert.match(update, /40001/);
-  assert.match(remove, /40001/);
-  assert.match(restore, /40001/);
+  // 競合・対象なし・検証エラーは共有のSQLSTATE変換で区別して返す
+  const errorMapper = await read(
+    "src/modules/transactions/application/command-error.ts",
+  );
+  assert.match(errorMapper, /40001/);
+  assert.match(errorMapper, /P0002/);
+  for (const source of [update, remove, restore]) {
+    assert.match(source, /mapTransactionCommandError/);
+  }
   // 復元一覧は30日以内へ限定する
-  assert.match(list, /30/);
+  assert.match(list, /RESTORE_WINDOW_DAYS/);
 });
 
 test("編集・復元の画面routeと導線を提供する", async () => {

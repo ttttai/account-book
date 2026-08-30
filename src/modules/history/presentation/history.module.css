@@ -251,3 +251,10 @@
     margin: 0 auto;
   }
 }
+
+.history-row-edit {
+  min-height: 44px;
+  margin-top: 0.5rem;
+  padding: 6px 16px;
+  font-size: 0.82rem;
+}

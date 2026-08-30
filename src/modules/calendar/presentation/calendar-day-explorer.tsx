@@ -182,6 +182,12 @@ function DayPanel({
                   )
                   .join(" / ")}
               </p>
+              <a
+                className={`secondary-link ${styles["calendar-transaction-edit"]}`}
+                href={`/groups/${encodeURIComponent(data.group.id)}/transactions/${transaction.id}/edit?from=${encodeURIComponent(createCalendarDayUrl(data, selectedDay))}`}
+              >
+                編集
+              </a>
             </li>
           ))}
         </ul>

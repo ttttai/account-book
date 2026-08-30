@@ -130,10 +130,10 @@ test("負担方法は1人を先頭にして初期選択にする (AC-TXN-001-10)
     form,
     /\["single", "1人"\],\s*\["equal", "均等"\],\s*\["custom", "カスタム"\]/s,
   );
-  // 初期選択は常に1人で、グループの標準負担方法へ依存しない
+  // 登録時の初期選択は常に1人で、グループの標準負担方法へ依存しない（編集時は保存済み負担から復元する）
   assert.match(
     form,
-    /useState<\s*"equal" \| "single" \| "custom"\s*>\("single"\)/s,
+    /useState<\s*"equal" \| "single" \| "custom"\s*>\(editTransaction\?\.allocationMethod \?\? "single"\)/s,
   );
   assert.doesNotMatch(
     form,
