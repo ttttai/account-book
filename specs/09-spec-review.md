@@ -499,6 +499,8 @@ MVP範囲確認: 履歴、メンバー、カテゴリの業務仕様やデータ
 
 判定: `AC-NAV-001-4`、`NAV-001`〜`NAV-004`、既存の`HIS-*`、`GRP-007`〜`GRP-008`、`CAT-002`〜`CAT-003`と整合し、安全かつ実装可能である。限定selectorのtestを先に追加し、4branch一時統合で全品質gateとレスポンシブ表示を確認することを条件に実装開始を承認する。
 
+実装確認: 共通layout内の履歴headerにある画面間nav、メンバー・カテゴリheader直下の戻るlinkだけを非表示にし、機能固有領域を非表示にしないarchitecture testを追加した。PR #33を基点とする一時worktreeへ#20、#21、#23を順にmergeした結果、#20は自動統合でき、#21は`styles.css`、#23は`styles.css`と`tests/integration/run-local.sql`で競合した。検証用mergeでは全機能のCSSと両integration SQLを保持して解決し、format、警告なしlint、型検査、本番build、architecture test 75件、component・unit test 279件が成功した。build結果に`/history`、`/members`、`/categories`、`/settings`の全routeが含まれることを確認した。iPhone 17・iOS 26.5 SimulatorのSafariでは、履歴headerの重複導線が表示されず、履歴固有のshortcut・絞り込み・明細を維持し、下部4項目navがsafe areaより上で固定され、横方向の欠落・重なりがないことを確認した。確認用routeと検証用mergeは各PRへ含めていない。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
