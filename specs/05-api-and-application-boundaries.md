@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.7
+バージョン: 0.2.8
 
 ## 1. Next.js境界方針
 
@@ -112,6 +112,8 @@ restoreTransaction(groupId, transactionId, expectedVersion)
 ```
 
 `createTransaction`の最初の縦切りは支出だけを受け付ける。Server Actionは`groupId`をbind引数として受け取っても未信頼入力としてUUID検証し、FormDataの金額、日付、カテゴリ、支払者、負担方法、負担メンバー・金額、メモ、`client_request_id`をschemaで検証する。commandは検証済みGoogle sessionを取得し、ユーザーsession付きSupabase clientで原子的なDB関数を呼ぶ。DB関数はアクティブ所属、カテゴリ種別、支払者・負担者の同一グループ所属、合計一致、冪等性を再確認する。
+
+`updateTransaction`、`deleteTransaction`、`restoreTransaction`は、検証済みGoogle sessionとアクティブ所属を確認し、ユーザーsession付きSupabase clientで原子的なDB関数を呼ぶ。DB関数は対象行をlockし、`expectedVersion`と現在versionの不一致を`CONFLICT`として返し、成功時にversionを加算して操作者と日時を記録する。`updateTransaction`は削除済み取引を対象にできず、金額・負担額合計・支払者と負担者のアクティブ所属・カテゴリ種別を登録時と同じ規則で再検証する。カテゴリだけは、変更しない場合に限り既存行と同じアーカイブ済みカテゴリを許可する。`deleteTransaction`は削除済み取引への再要求を、`restoreTransaction`は未削除取引への再要求を、それぞれ状態を変更しない成功として冪等に扱う。`restoreTransaction`は`deleted_at`から30日を過ぎた取引を期限切れとして拒否する。`listRecoverableTransactions`は削除から30日以内の取引だけを、最小DTOとして削除日時の新しい順で返す。
 
 支出登録画面のServer Componentは、サーバー専用queryからグループ、現在のmembership、アクティブメンバー、未アーカイブの支出カテゴリだけを含む最小DTOを受け取る。Client Componentへuser ID、DB行全体、認証tokenを渡さない。
 
