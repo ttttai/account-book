@@ -345,12 +345,6 @@ a:focus-visible {
     0 8px 20px rgb(47 111 85 / 28%);
 }
 
-.group-route-layout .history-page > .app-header .header-links,
-.group-route-layout .member-page > .app-header > .text-link,
-.group-route-layout .category-page > .app-header > .text-link {
-  display: none;
-}
-
 .app-header {
   display: flex;
   align-items: center;
@@ -372,6 +366,12 @@ a:focus-visible {
   color: var(--accent);
   font-weight: 700;
   text-decoration: none;
+}
+
+.group-route-layout .history-page > .app-header .header-links,
+.group-route-layout .member-page > .app-header > .text-link,
+.group-route-layout .category-page > .app-header > .text-link {
+  display: none;
 }
 
 .profile-name {
