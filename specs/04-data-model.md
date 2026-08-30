@@ -235,3 +235,11 @@ RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB�
 - 更新対象0件の場合は競合として返す。
 - 招待承認とグループ作成は原子的に処理する。
 - 複数テーブルにまたがるcommandは、複数の独立したブラウザ要求ではなく、DB関数またはサーバー側transaction境界を使う。
+
+## 9. 週次LINE通知
+
+詳細は`12-line-weekly-notification.md`を正本とする。
+
+- `app_private.line_notification_targets`は家計グループとLINEグループトークの対応を保持する。MVPは家計グループ1件との単一対応で、`group_id`を主キーとする。
+- `app_private.weekly_notification_log`は`(group_id, week_start_date)`を主キーとし、同一週の二重送信を防ぐ。
+- 両テーブルはRLS対象外の`app_private`に置き、`anon`・`authenticated`からアクセスできない。操作は通知専用ロール`line_notifier`がEXECUTEできるSECURITY DEFINER関数に限る。

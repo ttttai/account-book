@@ -5,3 +5,4 @@
 \ir transactions-local.sql
 \ir category-management-local.sql
 \ir member-administration-local.sql
+\ir line-notification-local.sql

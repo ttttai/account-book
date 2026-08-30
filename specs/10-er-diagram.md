@@ -35,6 +35,18 @@ erDiagram
         timestamptz created_at
     }
 
+    LINE_NOTIFICATION_TARGETS {
+        uuid group_id PK,FK
+        text line_group_id
+        timestamptz linked_at
+    }
+
+    WEEKLY_NOTIFICATION_LOG {
+        uuid group_id PK,FK
+        date week_start_date PK
+        timestamptz sent_at
+    }
+
     GROUPS {
         uuid id PK
         text name
@@ -122,6 +134,8 @@ erDiagram
     GROUPS ||--o{ CATEGORIES : "カテゴリを持つ"
     GROUPS ||--o{ TRANSACTIONS : "取引を持つ"
     GROUPS ||--o{ TRANSACTION_ALLOCATIONS : "負担額を分離する"
+    GROUPS ||--o| LINE_NOTIFICATION_TARGETS : "LINE通知先を持つ"
+    GROUPS ||--o{ WEEKLY_NOTIFICATION_LOG : "週次通知記録を持つ"
 
     CATEGORIES ||--o{ TRANSACTIONS : "分類する"
     GROUP_MEMBERS o|--o{ TRANSACTIONS : "支払者・受取者になる"

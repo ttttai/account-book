@@ -6,6 +6,8 @@ const repositoryRoot = process.cwd();
 
 const diagramEntityByTable = {
   "app_private.allowed_google_accounts": "ALLOWED_GOOGLE_ACCOUNTS",
+  "app_private.line_notification_targets": "LINE_NOTIFICATION_TARGETS",
+  "app_private.weekly_notification_log": "WEEKLY_NOTIFICATION_LOG",
   "public.categories": "CATEGORIES",
   "public.group_invitations": "GROUP_INVITATIONS",
   "public.group_members": "GROUP_MEMBERS",
