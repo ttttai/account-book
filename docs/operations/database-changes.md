@@ -49,6 +49,15 @@ docker compose --profile test run --rm integration-tests
 
 **ローカルDB volumeは通常操作で削除しない。** migrationの再検証のためにDBを作り直したい場合は、影響を確認したうえで明示的に行う。
 
+### migrationを含むPRの記載事項
+
+本番へのmigration適用は自動化されておらず手動運用のため、mergeする人が「このPRはmerge前にDB作業が必要である」ことをPR本文だけで判断できるようにする。**migrationを含むPRには、その旨と次の内容をPR本文へ必ず明記する。**
+
+- 追加したmigrationファイル名（例: `supabase/migrations/YYYYMMDDNNNN_xxx.sql`）
+- 本番への適用が必要であることと、適用のタイミング（原則: merge前。「本番への適用とデプロイの順序」を参照）
+- 高riskな変更（データ移行、delete/update文、制約の強化など）を含むか。含む場合は事前dumpが必要である旨
+- 旧コード（現在の本番revision）と互換な追加的変更であるか。非互換な場合は多段階のどの段階かと、前後のPRへの参照
+
 ## 新しいテーブルを追加するときのチェックリスト
 
 既存テーブルの設計パターン（`202608270001_expense_transactions.sql`が代表例）に合わせ、次を満たす。
