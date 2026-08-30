@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import {
+  useActionState,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { useFormStatus } from "react-dom";
 
 import type { CategorySummary } from "../application/category-types";
@@ -14,6 +21,7 @@ import {
   archiveCategoryAction,
   moveCategoryAction,
   renameCategoryAction,
+  repositionCategoryAction,
 } from "./actions";
 
 import styles from "./categories.module.css";
@@ -217,7 +225,7 @@ function ArchiveCategoryForm({
   );
 }
 
-function CategoryRow({
+function CategoryRowContent({
   groupId,
   category,
   isFirst,
@@ -229,7 +237,7 @@ function CategoryRow({
   isLast: boolean;
 }) {
   return (
-    <li className={styles["category-row"]}>
+    <>
       <div className={styles["category-row-actions"]}>
         <RenameCategoryForm category={category} groupId={groupId} />
         <MoveCategoryForm
@@ -240,8 +248,38 @@ function CategoryRow({
         />
       </div>
       <ArchiveCategoryForm category={category} groupId={groupId} />
-    </li>
+    </>
   );
+}
+
+type DragState = Readonly<{
+  categoryId: string;
+  fromIndex: number;
+  startY: number;
+  currentY: number;
+  targetIndex: number;
+}>;
+
+type DragSession = Readonly<{
+  categoryId: string;
+  fromIndex: number;
+  startY: number;
+  rects: readonly DOMRect[];
+  dispose: () => void;
+}>;
+
+// ドラッグ位置から、対象を除いた並びへの挿入位置を求める
+function computeDestinationIndex(
+  rects: readonly DOMRect[],
+  fromIndex: number,
+  pointerY: number,
+): number {
+  let destination = 0;
+  for (const [index, rect] of rects.entries()) {
+    if (index === fromIndex) continue;
+    if (rect.top + rect.height / 2 < pointerY) destination += 1;
+  }
+  return Math.min(destination, rects.length - 1);
 }
 
 function CategoryTypeSection({
@@ -254,26 +292,200 @@ function CategoryTypeSection({
   categories: readonly CategorySummary[];
 }) {
   const headingId = `category-section-${type}`;
+  const [orderedCategories, setOrderedCategories] = useState(categories);
+  const [dragState, setDragState] = useState<DragState | null>(null);
+  const [reorderState, setReorderState] = useState<CategoryActionState>(
+    INITIAL_CATEGORY_ACTION_STATE,
+  );
+  const [isReordering, setIsReordering] = useState(false);
+  const rowRefs = useRef(new Map<string, HTMLLIElement>());
+  const dragSessionRef = useRef<DragSession | null>(null);
+  const orderedCategoriesRef = useRef(orderedCategories);
+  orderedCategoriesRef.current = orderedCategories;
+
+  // サーバー側で確定した並びを表示へ同期する
+  useEffect(() => {
+    setOrderedCategories(categories);
+  }, [categories]);
+
+  // 画面離脱時にdrag中のwindowリスナーを解放する
+  useEffect(() => {
+    return () => {
+      dragSessionRef.current?.dispose();
+      dragSessionRef.current = null;
+    };
+  }, []);
+
+  async function finishDrag(session: DragSession, pointerY: number) {
+    const targetIndex = computeDestinationIndex(
+      session.rects,
+      session.fromIndex,
+      pointerY,
+    );
+    if (targetIndex === session.fromIndex) return;
+
+    // 先に表示を並び替え、保存に失敗したら元の順序へ戻す
+    const previousOrder = orderedCategoriesRef.current;
+    const dragged = previousOrder[session.fromIndex];
+    if (!dragged) return;
+    const nextOrder = previousOrder.filter(
+      (category) => category.id !== session.categoryId,
+    );
+    nextOrder.splice(targetIndex, 0, dragged);
+    setOrderedCategories(nextOrder);
+    setIsReordering(true);
+    const state = await repositionCategoryAction(
+      groupId,
+      session.categoryId,
+      targetIndex,
+    );
+    if (state.status === "error") setOrderedCategories(previousOrder);
+    setReorderState(state);
+    setIsReordering(false);
+  }
+
+  // pointer captureへ依存せず、drag中だけwindowでpointerを追跡する（iOS Safari対応）
+  function handleDragStart(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    categoryId: string,
+    index: number,
+  ) {
+    if (isReordering || dragSessionRef.current) return;
+    event.preventDefault();
+    const rects = orderedCategoriesRef.current.map(
+      (category) =>
+        rowRefs.current.get(category.id)?.getBoundingClientRect() ??
+        new DOMRect(),
+    );
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      const session = dragSessionRef.current;
+      if (!session) return;
+      moveEvent.preventDefault();
+      setDragState({
+        categoryId: session.categoryId,
+        fromIndex: session.fromIndex,
+        startY: session.startY,
+        currentY: moveEvent.clientY,
+        targetIndex: computeDestinationIndex(
+          session.rects,
+          session.fromIndex,
+          moveEvent.clientY,
+        ),
+      });
+    };
+    const handleUp = (upEvent: PointerEvent) => {
+      const session = dragSessionRef.current;
+      if (!session) return;
+      session.dispose();
+      dragSessionRef.current = null;
+      setDragState(null);
+      void finishDrag(session, upEvent.clientY);
+    };
+    const handleCancel = () => {
+      dragSessionRef.current?.dispose();
+      dragSessionRef.current = null;
+      setDragState(null);
+    };
+    const dispose = () => {
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleCancel);
+    };
+    window.addEventListener("pointermove", handleMove, { passive: false });
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleCancel);
+
+    dragSessionRef.current = {
+      categoryId,
+      fromIndex: index,
+      startY: event.clientY,
+      rects,
+      dispose,
+    };
+    setDragState({
+      categoryId,
+      fromIndex: index,
+      startY: event.clientY,
+      currentY: event.clientY,
+      targetIndex: index,
+    });
+  }
+
+  // ドロップ予定位置の直前・直後を示す行（ドラッグ前の並びにおける位置）
+  const indicatorIndex =
+    dragState && dragState.targetIndex !== dragState.fromIndex
+      ? dragState.targetIndex <= dragState.fromIndex
+        ? dragState.targetIndex
+        : dragState.targetIndex + 1
+      : null;
+
   return (
     <section aria-labelledby={headingId} className={styles["category-section"]}>
       <h2 id={headingId}>{typeLabels[type]}</h2>
-      {categories.length === 0 ? (
+      {orderedCategories.length === 0 ? (
         <p className="field-hint">
           アクティブなカテゴリがありません。下のフォームから追加してください。
         </p>
       ) : (
         <ul className={styles["category-list"]}>
-          {categories.map((category, index) => (
-            <CategoryRow
-              category={category}
-              groupId={groupId}
-              isFirst={index === 0}
-              isLast={index === categories.length - 1}
-              key={category.id}
-            />
-          ))}
+          {orderedCategories.map((category, index) => {
+            const isDragging = dragState?.categoryId === category.id;
+            const rowClassNames = [
+              styles["category-row"],
+              isDragging ? styles["category-row-dragging"] : "",
+              indicatorIndex === index && !isDragging
+                ? styles["category-drop-before"]
+                : "",
+              indicatorIndex === orderedCategories.length &&
+              index === orderedCategories.length - 1 &&
+              !isDragging
+                ? styles["category-drop-after"]
+                : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <li
+                className={rowClassNames}
+                key={category.id}
+                ref={(element) => {
+                  if (element) rowRefs.current.set(category.id, element);
+                  else rowRefs.current.delete(category.id);
+                }}
+                style={
+                  isDragging && dragState
+                    ? {
+                        transform: `translateY(${dragState.currentY - dragState.startY}px)`,
+                      }
+                    : undefined
+                }
+              >
+                <div className={styles["category-row-header"]}>
+                  <button
+                    aria-label={`${category.name}をドラッグして並び替え`}
+                    className={styles["category-drag-handle"]}
+                    disabled={isReordering}
+                    onPointerDown={(event) =>
+                      handleDragStart(event, category.id, index)
+                    }
+                    type="button"
+                  >
+                    <span aria-hidden="true">⠿</span>
+                  </button>
+                </div>
+                <CategoryRowContent
+                  category={category}
+                  groupId={groupId}
+                  isFirst={index === 0}
+                  isLast={index === orderedCategories.length - 1}
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
+      <ActionMessage state={reorderState} />
       <AddCategoryForm groupId={groupId} type={type} />
     </section>
   );
