@@ -4,6 +4,8 @@
 
 夫婦やグループで共有できる、スマートフォン優先の家計簿Webアプリです。仕様の正本は[`specs/`](specs/README.md)、開発ルールの正本は[`AGENTS.md`](AGENTS.md)です。
 
+デプロイとDB変更の運用手順は[`docs/operations/`](docs/operations)（[デプロイ運用](docs/operations/deployment.md) / [DB変更の運用](docs/operations/database-changes.md)）にまとめています。
+
 ## 必要な環境
 
 - Docker DesktopまたはDocker Engine
