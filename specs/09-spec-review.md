@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.26の自動文書検査では、要件ID 108件、明示的な受け入れ条件ID 124件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.2.27の自動文書検査では、要件ID 108件、明示的な受け入れ条件ID 126件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -622,6 +622,20 @@ MVP範囲確認: インストール可能化のみで、オフライン対応、
 判定: `NFR-PWA-001`〜`NFR-PWA-005`は`AUTH-004`、`NFR-SEC-007`（CSP）、`NFR-UI-005`、D-009と整合し、安全かつ実装可能である。構造testを先に追加し、375pxでログイン画面表示が変わらないこと、manifestが本番buildで配信されることを確認し、standalone表示のOAuth実機確認をリリース前手動確認へ含める条件で実装開始を承認する。
 
 実装確認: `src/app/manifest.ts`、`public/icon-192.png`・`icon-512.png`・`icon-maskable-512.png`（利用者提供のアイコン画像から生成、maskableは中央約78%へ縮小配置）、`src/app/apple-icon.png`を追加した。manifest宣言・アイコン寸法・Service Worker不在を対象とする構造test 4件を追加し、全体でarchitecture test 84件、component・unit test 279件、format、警告なしlint、型検査、本番buildが成功した。本番buildの標準出力に`/manifest.webmanifest`と`/apple-icon.png`が静的routeとして含まれ、standalone serverからmanifest本文、3つのアイコン、apple-touch-icon、`<link rel="manifest">`が配信されることを確認した。実画面では375 x 812と1280 x 800でログイン画面の表示が変更前と同一で、横scroll・重なりがないことを確認した。iPhone 17・iOS 26.5 SimulatorのSafariでは、共有シートの「ホーム画面に追加」ダイアログにmanifest由来の名称「わが家計」・アイコン・`start_url`（`/`）と「Webアプリとして開く」ONが表示され、追加後のホーム画面に正しいアイコンで登録された。起動するとSafari UIなしのstandalone表示で`start_url`が開き、未認証時はログイン画面が表示され、「Googleでログイン」からaccounts.google.comの認証ページが外部Safariへ分断されずアプリ内表示で開くことを確認した。ブラウザのタブ・履歴表示用に同一図案のfavicon（`src/app/icon.png`、512 x 512）を追加し、`<link rel="icon">`として配信されることを確認した。実際のGoogleアカウントでのログイン完了と本番URLでの再確認だけが、リリース前手動確認として残る。
+
+### R-051 収入の登録・編集（受取者フロー）
+
+指摘: `TXN-002`・`TXN-013`と`UC-010`は承認済みだが、実装は支出のみで、収入の入力導線（種別切替）、収入編集の規則、DB commandの分割方針が未確定だった。履歴・CSV・カレンダー除外（AC-CAL-001-6）は実装済みで収入行に対応している。
+
+対応: `03-screen-specification.md`の取引入力へ種別切替（初期選択は支出）と収入選択時の挙動（収入カテゴリへの切替、受取者必須・初期値は現在のメンバー、負担UI非表示、冪等性・遷移は支出と同一）を定義した。取引編集へ、収入は受取者と収入カテゴリを支出と同じ規則で扱うこと、種別は編集で変更できないことを追記した。`UC-010`へ`AC-TXN-013-5`（client_request_idによる冪等登録）と`AC-TXN-013-6`（編集時の再検証と種別固定）を追加した。`05-api-and-application-boundaries.md`で、登録・更新を種別ごとの原子的DB関数（`create_income_transaction`・`update_income_transaction`を追加）で行い、収入は負担行を作成しないことを明文化した。
+
+安全性確認: 収入commandも支出と同一の多層防御（検証済みGoogle session、アクティブ所属、`security definer`関数内での受取者・カテゴリ再検証、RLS、直接insert/update拒否）に従う。`transactions_party_by_type`制約により収入は`recipient_member_id`必須・`payer_member_id`禁止がDBでも強制される。冪等性は既存の`(group_id, client_request_id)`一意制約と同じ仕組みを使う。カレンダー集計は`type = 'expense'`条件を既に持ち、収入が支出合計・日別取引sheetへ混入しないことを統合testで再確認する。
+
+実装可能性確認: スキーマ変更は不要（`type`・`recipient_member_id`・初期収入カテゴリは実装済み）。DB関数2件の追加migrationだけで実装できる。フォームは既存の支出フォームへ種別切替と受取者選択を加え、編集は既存の楽観的ロック・戻り先検証・エラーマッピングを再利用する。入力schemaの単体test、DB/RLS統合test、構造testで受け入れ条件を固定できる。
+
+MVP範囲確認: 収入の負担・分配、収入カレンダー・収入集計の表示、種別の変更（支出⇔収入の転換）、定期収入は追加しない。日別取引sheetは仕様どおり支出のみの表示を維持し、収入は履歴とCSVで確認する。
+
+判定: `TXN-002`、`TXN-011`、`TXN-013`、`AC-TXN-013-1`〜`AC-TXN-013-6`、`AC-CAL-001-6`と整合し、安全かつ実装可能である。入力schemaの単体testとDB/RLS統合testを先に作成し、実装後に幅375pxと1280pxで収入の登録・編集フローを実画面確認することを条件に実装開始を承認する。
 
 ## 4. 要件と検証方法の対応
 
