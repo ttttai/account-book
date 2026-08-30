@@ -565,6 +565,8 @@ MVP範囲確認: インストール可能化のみで、オフライン対応、
 
 判定: `NFR-PWA-001`〜`NFR-PWA-005`は`AUTH-004`、`NFR-SEC-007`（CSP）、`NFR-UI-005`、D-009と整合し、安全かつ実装可能である。構造testを先に追加し、375pxでログイン画面表示が変わらないこと、manifestが本番buildで配信されることを確認し、standalone表示のOAuth実機確認をリリース前手動確認へ含める条件で実装開始を承認する。
 
+実装確認: `src/app/manifest.ts`、`public/icon-192.png`・`icon-512.png`・`icon-maskable-512.png`（利用者提供のアイコン画像から生成、maskableは中央約78%へ縮小配置）、`src/app/apple-icon.png`を追加した。manifest宣言・アイコン寸法・Service Worker不在を対象とする構造test 4件を追加し、全体でarchitecture test 84件、component・unit test 279件、format、警告なしlint、型検査、本番buildが成功した。本番buildの標準出力に`/manifest.webmanifest`と`/apple-icon.png`が静的routeとして含まれ、standalone serverからmanifest本文、3つのアイコン、apple-touch-icon、`<link rel="manifest">`が配信されることを確認した。実画面では375 x 812と1280 x 800でログイン画面の表示が変更前と同一で、横scroll・重なりがないことを確認した。iOS実機のホーム画面追加とstandalone表示でのGoogle OAuth完了確認は、リリース前手動確認として残る。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
