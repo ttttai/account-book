@@ -483,6 +483,8 @@ MVP範囲確認: 新しい業務機能、設定更新command、依存package、D
 
 判定: `NAV-001`〜`NAV-004`、`AC-NAV-001-1`〜`AC-NAV-004-2`、`CAL-001`、`NFR-UI-001`〜`NFR-UI-008`、`NFR-A11Y-003`に整合する。受け入れ条件に対応する構造・component testを先に追加し、format、lint、型検査、本番build、320px・375 x 667・375 x 812・390px・430px・1280 x 800の実画面確認を条件に実装開始を承認する。
 
+実装確認: 動的segmentの共通layoutと4項目ナビゲーション、設定ハブ、カレンダー優先ホームを実装した。ナビゲーションのroute・現在地・設定集約・safe area・viewport規則を対象とするarchitecture test 5件とcomponent test 5件を追加し、全体ではarchitecture test 57件、component・unit test 189件、format、警告なしlint、型検査、本番buildが成功した。実画面では320 x 812と375 x 812で横scrollがなく、42日分の最下段が固定ナビゲーションより上に収まることを確認した。高さ667px以下は構造testで44pxセルと縦scrollへのfallbackを固定した。1280px幅では同じ4項目が左サイドへ切り替わり、横scrollなしでカレンダーが利用可能幅へ適応することを確認した。DB、RLS、認証、query、command、金額計算は変更していない。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
