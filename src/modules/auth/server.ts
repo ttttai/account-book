@@ -1,6 +1,7 @@
 import "server-only";
 
 export { getCurrentProfile } from "./application/get-current-profile";
+export { isAuthenticationQueryError } from "./domain/postgrest-auth-error";
 export { resolveSafeNextPath } from "./domain/safe-next-path";
 export {
   getAllowedGoogleUserId,

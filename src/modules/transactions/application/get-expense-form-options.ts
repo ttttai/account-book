@@ -34,6 +34,7 @@ const categoryRowSchema = z.object({
   sort_order: z.number().int(),
 });
 
+// 指定タイムゾーンにおける日付をYYYY-MM-DD形式で得る
 function dateInTimeZone(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -45,6 +46,7 @@ function dateInTimeZone(date: Date, timeZone: string): string {
   return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
 }
 
+// 支出登録フォームに必要なグループ・メンバー・カテゴリ情報を集めて返す（未所属や不正IDはnull）
 export async function getExpenseFormOptions(
   unsafeGroupId: string,
   unsafeInitialDate?: unknown,

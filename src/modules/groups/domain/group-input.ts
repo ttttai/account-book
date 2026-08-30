@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// グループ作成フォーム入力の検証スキーマ（週開始曜日は文字列から数値へ変換）
 export const createGroupSchema = z.object({
   name: z
     .string()

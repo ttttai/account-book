@@ -8,6 +8,7 @@ const roleLabels = {
   member: "メンバー",
 } as const;
 
+// 参加中グループの一覧。0件のときは何も描画しない
 export function GroupList({ groups }: { groups: readonly GroupSummary[] }) {
   if (groups.length === 0) return null;
 

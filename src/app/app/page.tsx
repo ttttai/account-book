@@ -5,6 +5,7 @@ import { LogoutForm, ProfileForm } from "@/modules/auth/presentation";
 import { CreateGroupForm, GroupList } from "@/modules/groups/presentation";
 import { listMyGroups } from "@/modules/groups/server";
 
+// ログイン後のホーム画面（プロフィール編集と所属グループの一覧・作成）
 export default async function ProtectedAppPage() {
   const [profile, groups] = await Promise.all([
     getCurrentProfile(),

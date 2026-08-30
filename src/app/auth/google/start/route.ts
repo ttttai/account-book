@@ -26,6 +26,7 @@ function disableCaching(response: NextResponse) {
   return response;
 }
 
+// プロキシ経由のヘッダも考慮してリクエスト元のオリジンを復元する
 function requestOrigin(request: NextRequest): string | null {
   const host = request.headers.get("host");
   const forwardedProtocol = request.headers
@@ -42,6 +43,7 @@ function requestOrigin(request: NextRequest): string | null {
   }
 }
 
+// Googleログインの開始エンドポイント。正規オリジンへ寄せてからOAuth認可URLへ転送する
 export async function GET(request: NextRequest) {
   const siteOrigin = getConfiguredSiteOrigin();
   if (!siteOrigin) {

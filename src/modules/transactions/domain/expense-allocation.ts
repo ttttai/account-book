@@ -10,6 +10,7 @@ type CalculateExpenseAllocationsInput = Readonly<{
   customAllocations: readonly ExpenseAllocation[];
 }>;
 
+// memberIdの重複を除き昇順に整列する（端数を配る順序の基準になる）
 function uniqueSortedMemberIds(memberIds: readonly string[]): string[] {
   return [...new Set(memberIds)].sort((left, right) =>
     left.localeCompare(right),
@@ -22,6 +23,7 @@ function assertSafePositiveAmount(amountMinor: number): void {
   }
 }
 
+// 負担方法に応じて各メンバーの負担額を算出する（合計は必ず取引金額と一致する）
 export function calculateExpenseAllocations(
   input: CalculateExpenseAllocationsInput,
 ): readonly ExpenseAllocation[] {
@@ -31,6 +33,7 @@ export function calculateExpenseAllocations(
     const memberIds = uniqueSortedMemberIds(input.selectedMemberIds);
     if (memberIds.length === 0) throw new Error("MEMBER_REQUIRED");
 
+    // 均等割の端数はmemberId昇順の先頭から1円ずつ上乗せし、0円になるメンバーは除外する
     const quotient = Math.floor(input.amountMinor / memberIds.length);
     const remainder = input.amountMinor % memberIds.length;
     return memberIds
@@ -54,6 +57,7 @@ export function calculateExpenseAllocations(
     throw new Error("DUPLICATE_MEMBER");
   }
 
+  // カスタム負担では0円の入力を除外し、残りは正の安全な整数のみ許可する
   const allocations = input.customAllocations
     .filter((allocation) => allocation.amountMinor !== 0)
     .map((allocation) => {
@@ -63,6 +67,7 @@ export function calculateExpenseAllocations(
     .sort((left, right) => left.memberId.localeCompare(right.memberId));
   if (allocations.length === 0) throw new Error("MEMBER_REQUIRED");
 
+  // 負担額の合計が取引金額と一致しない入力は登録させない
   const total = allocations.reduce(
     (sum, allocation) => sum + allocation.amountMinor,
     0,

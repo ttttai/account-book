@@ -15,6 +15,7 @@ function CreateButton() {
   );
 }
 
+// グループ作成フォーム。検証エラーはフィールド単位で表示する
 export function CreateGroupForm() {
   const [state, action] = useActionState(
     createGroupAction,

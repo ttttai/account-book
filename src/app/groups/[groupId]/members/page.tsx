@@ -12,6 +12,7 @@ type MembersPageProps = Readonly<{
   params: Promise<{ groupId: string }>;
 }>;
 
+// グループのメンバー一覧画面（招待管理はowner/adminのみ表示）
 export default async function MembersPage({ params }: MembersPageProps) {
   const { groupId } = await params;
   const profile = await getCurrentProfile();

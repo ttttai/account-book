@@ -1,5 +1,6 @@
 import { acceptInvitationSchema } from "./invitation-input";
 
+// origin以外（path・query・認証情報付きなど）のURLを共有基点として拒否する
 function parseSiteOrigin(value: string): URL | null {
   try {
     const url = new URL(value);
@@ -19,6 +20,7 @@ function parseSiteOrigin(value: string): URL | null {
   }
 }
 
+// 招待トークンのSHA-256ハッシュ（hex）を計算する。DBには生トークンを保存しない
 export async function hashInvitationToken(rawToken: string): Promise<string> {
   const digest = await globalThis.crypto.subtle.digest(
     "SHA-256",
@@ -29,6 +31,7 @@ export async function hashInvitationToken(rawToken: string): Promise<string> {
   ).join("");
 }
 
+// 招待受諾ページへの共有URLを組み立てる。不正な基点やトークンならnull
 export function buildInvitationShareUrl(
   siteUrl: string,
   rawToken: string,
@@ -42,6 +45,7 @@ export function buildInvitationShareUrl(
   }
 
   const shareUrl = new URL("/invitations/accept", siteOrigin.origin);
+  // トークンはURLフラグメントに載せ、サーバーログやRefererへ漏れないようにする
   shareUrl.hash = new URLSearchParams({ token: rawToken }).toString();
   return shareUrl.toString();
 }

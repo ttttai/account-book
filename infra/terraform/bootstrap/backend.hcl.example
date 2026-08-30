@@ -1,0 +1,3 @@
+# state bucket作成後のbackend移行に使います。実値ファイルはGitへcommitしないでください。
+bucket = "your-globally-unique-account-book-tfstate"
+prefix = "account-book/bootstrap"

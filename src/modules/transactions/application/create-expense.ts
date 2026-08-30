@@ -10,6 +10,7 @@ import {
 import type { ExpenseAllocation } from "../domain/expense-allocation";
 import type { CreateExpenseInput } from "../domain/expense-input";
 
+// 認証を確認したうえでDB関数により支出取引と負担配分を登録し、作成された取引IDを返す
 export async function createExpense(
   input: CreateExpenseInput,
   allocations: readonly ExpenseAllocation[],
@@ -21,6 +22,7 @@ export async function createExpense(
     throw new Error("UNAUTHENTICATED");
   }
 
+  // clientRequestIdをDB側で照合するため、二重送信でも同一取引が返る（冪等性）
   const { data, error } = await supabase.rpc("create_expense_transaction", {
     p_group_id: input.groupId,
     p_amount_minor: input.amountMinor,

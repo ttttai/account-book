@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getCurrentProfile } from "@/modules/auth/server";
 import { InvitationAcceptance } from "@/modules/groups/presentation";
 
+// 招待リンクからグループ参加を受け付ける画面
 export default async function InvitationAcceptancePage() {
   const profile = await getCurrentProfile();
 

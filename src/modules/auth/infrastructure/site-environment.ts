@@ -2,6 +2,7 @@ import "server-only";
 
 const DEFAULT_LOCAL_SITE_ORIGIN = "http://127.0.0.1:3000";
 
+// 環境変数からサイトのoriginを検証付きで取得する。origin以外を含む不正な設定はnull
 export function getConfiguredSiteOrigin(): URL | null {
   try {
     const siteUrl = new URL(

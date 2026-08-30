@@ -47,6 +47,7 @@ function SubmitButton({ children }: { children: string }) {
   );
 }
 
+// 表示名を編集するフォーム。Server Actionの結果に応じてエラー・成功メッセージを表示する
 export function ProfileForm({ displayName }: { displayName: string }) {
   const [state, action] = useActionState(
     updateProfileAction,
@@ -80,6 +81,7 @@ function LogoutButton() {
   );
 }
 
+// ログアウト用フォーム。失敗時のみメッセージを表示する
 export function LogoutForm() {
   const [state, action] = useActionState(
     signOutAction,

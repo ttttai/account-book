@@ -197,3 +197,28 @@ test("Composeで必要最小限のローカルSupabase Authを構成する", asy
     "Postgres entrypointから実行できる権限が必要です",
   );
 });
+
+test("ログイン直後の初回表示をserver errorにしない (AC-AUTH-001-9)", async () => {
+  // Proxyは/auth配下の認証境界に対してsession refreshを試みない。
+  const proxy = await read("proxy.ts");
+  assert.match(proxy, /auth\//);
+  assert.match(
+    proxy,
+    /\(\?!(?=[^)]*auth\/)[^)]*\)/,
+    "proxy matcherの否定先読みへauth/を含める必要があります",
+  );
+
+  // 認証起因のquery失敗を判定する純関数をauthモジュールが公開する。
+  const authErrorDomain = await read(
+    "src/modules/auth/domain/postgrest-auth-error.ts",
+  );
+  assert.match(authErrorDomain, /isAuthenticationQueryError/);
+  const serverEntry = await read("src/modules/auth/server.ts");
+  assert.match(serverEntry, /isAuthenticationQueryError/);
+
+  // グループ一覧の読み取りは認証起因の失敗を未認証として縮退させる。
+  const listMyGroups = await read(
+    "src/modules/groups/application/list-my-groups.ts",
+  );
+  assert.match(listMyGroups, /isAuthenticationQueryError\(error\)/);
+});

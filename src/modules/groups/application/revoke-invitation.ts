@@ -14,6 +14,7 @@ import {
 
 const revocationResultSchema = z.enum(["revoked", "not_found"]);
 
+// 保留中の招待をRPCで取り消す。取り消せた場合のみtrueを返す
 export async function revokeInvitation(
   input: RevokeInvitationInput,
 ): Promise<boolean> {
