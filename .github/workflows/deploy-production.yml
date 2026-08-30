@@ -9,15 +9,16 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: production-deploy
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Build and deploy
+  # 前回のdeploy以降の変更がドキュメントのみの場合、deployをskipする(INF-017)。
+  # このjobは過去のdeploy実績の照会と差分判定だけを行い、GCPの資格情報を持たない。
+  changes:
+    name: Detect app changes since last deploy
     if: >-
       vars.PRODUCTION_CD_ENABLED == 'true' &&
       ((github.event_name == 'workflow_run' &&
@@ -25,8 +26,85 @@ jobs:
         github.event.workflow_run.head_branch == 'main') ||
        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      # 過去のworkflow runとjobの結果を照会するために必要
+      actions: read
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+    outputs:
+      deploy: ${{ steps.decide.outputs.deploy }}
+    steps:
+      - name: Checkout the verified commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          # 前回deploy commitとの比較に全historyが必要
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Compare with the last deployed commit
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # 手動実行はskip判定を行わず必ずdeployする。
+          # docsのみの状態でも強制的にdeployし直せる逃げ道として残す。
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "手動実行のため判定せずdeployします"
+            echo "deploy=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          # 差分の基準は「Build and deploy jobが実際に成功した(=本当にdeployした)直近runのcommit」。
+          # deployをskipしただけの成功runを基準にすると、CD無効期間やCIの
+          # cancel-in-progressで未deployのコード変更が取り残されるため、含めない。
+          last_deployed=""
+          runs="$(gh api \
+            "repos/${REPOSITORY}/actions/workflows/deploy-production.yml/runs?branch=main&status=success&per_page=15" \
+            --jq '.workflow_runs[] | "\(.id) \(.head_sha)"' 2>/dev/null || true)"
+          while read -r run_id head_sha; do
+            [[ -n "${run_id}" ]] || continue
+            deployed="$(gh api "repos/${REPOSITORY}/actions/runs/${run_id}/jobs" \
+              --jq '[.jobs[] | select(.name == "Build and deploy" and .conclusion == "success")] | length' \
+              2>/dev/null || echo 0)"
+            if [[ "${deployed}" -ge 1 ]]; then
+              last_deployed="${head_sha}"
+              break
+            fi
+          done <<< "${runs}"
+
+          # 既定はdeployする。基準commitを特定できない場合(初回deployやAPI失敗)も
+          # 安全側に倒してdeployする(fail open)。
+          deploy=true
+          if [[ -n "${last_deployed}" ]] && git cat-file -e "${last_deployed}" 2>/dev/null; then
+            if ./scripts/docs-only-diff.sh "${last_deployed}" "${DEPLOY_SHA}"; then
+              # 前回deploy以降の変更がドキュメントのみのため、deployをskipする
+              deploy=false
+            fi
+          fi
+
+          echo "判定結果: deploy=${deploy} (前回deploy=${last_deployed:-特定できず})"
+          echo "deploy=${deploy}" >> "${GITHUB_OUTPUT}"
+
+  deploy:
+    # このjob名はchanges jobの照会条件と構造testが参照するため変更しない
+    name: Build and deploy
+    needs: changes
+    # 前回deploy以降がドキュメントのみの変更ならskipする(判定はchanges jobを参照)
+    if: needs.changes.outputs.deploy == 'true'
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: production
+    permissions:
+      contents: read
+      # Workload Identity FederationのOIDC token発行に必要
+      id-token: write
     env:
       DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
       GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
