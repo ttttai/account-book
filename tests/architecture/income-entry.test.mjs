@@ -32,7 +32,10 @@ test("収入の登録・編集DB関数を認証・認可・冪等性つきで定
   assert.match(migration, /raise serialization_failure/i);
   // 収入は負担行を作成しない (AC-TXN-013-2)
   assert.doesNotMatch(migration, /transaction_allocations/i);
-  assert.doesNotMatch(migration, /grant (insert|update) on table public\.transactions/i);
+  assert.doesNotMatch(
+    migration,
+    /grant (insert|update) on table public\.transactions/i,
+  );
 });
 
 test("収入のDB/RLS integration testを実行対象に含める", async () => {

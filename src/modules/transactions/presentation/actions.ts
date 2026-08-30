@@ -4,13 +4,19 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createExpense } from "../application/create-expense";
+import { createIncome } from "../application/create-income";
 import { deleteTransaction } from "../application/delete-transaction";
 import type { TransactionCommandResult } from "../application/edit-types";
 import { updateExpense } from "../application/update-expense";
+import { updateIncome } from "../application/update-income";
 import { resolveEditReturnPath } from "../domain/edit-return-path";
 import { calculateExpenseAllocations } from "../domain/expense-allocation";
 import type { ExpenseAllocation } from "../domain/expense-allocation";
 import { createExpenseInputSchema } from "../domain/expense-input";
+import {
+  createIncomeInputSchema,
+  updateIncomeInputSchema,
+} from "../domain/income-input";
 import { updateExpenseInputSchema } from "../domain/update-expense-input";
 import type { ExpenseActionState } from "./action-state";
 
@@ -208,4 +214,95 @@ export async function deleteTransactionAction(
 
   revalidateGroupScreens(groupId);
   redirect(resolveEditReturnPath(unsafeReturnTo, groupId));
+}
+
+// 収入登録フォームのServer Action。入力検証を経て収入を登録し、グループ画面へ戻す
+export async function createIncomeAction(
+  groupId: string,
+  _previousState: ExpenseActionState,
+  formData: FormData,
+): Promise<ExpenseActionState> {
+  const result = createIncomeInputSchema.safeParse({
+    groupId,
+    amountMinor: value(formData, "amountMinor"),
+    transactionDate: value(formData, "transactionDate"),
+    categoryId: value(formData, "categoryId"),
+    recipientMemberId: value(formData, "recipientMemberId"),
+    memo: value(formData, "memo"),
+    clientRequestId: value(formData, "clientRequestId"),
+  });
+
+  if (!result.success) {
+    return {
+      status: "error",
+      message: "入力内容を確認してください。",
+      fieldErrors: result.error.flatten().fieldErrors,
+    };
+  }
+
+  try {
+    await createIncome(result.data);
+  } catch {
+    return {
+      status: "error",
+      message:
+        "収入を登録できませんでした。所属と接続状態を確認して、もう一度お試しください。",
+    };
+  }
+
+  revalidateGroupScreens(result.data.groupId);
+  redirect(`/groups/${result.data.groupId}?created=income`);
+}
+
+// 取引登録の入口Action。フォームの種別に応じて支出・収入のActionへ振り分ける
+export async function createTransactionAction(
+  groupId: string,
+  previousState: ExpenseActionState,
+  formData: FormData,
+): Promise<ExpenseActionState> {
+  return value(formData, "transactionType") === "income"
+    ? createIncomeAction(groupId, previousState, formData)
+    : createExpenseAction(groupId, previousState, formData);
+}
+
+// 収入編集フォームのServer Action。楽観的ロック付きで更新し、検証済みの遷移元へ戻す
+export async function updateIncomeAction(
+  groupId: string,
+  transactionId: string,
+  unsafeReturnTo: string,
+  _previousState: ExpenseActionState,
+  formData: FormData,
+): Promise<ExpenseActionState> {
+  const result = updateIncomeInputSchema.safeParse({
+    groupId,
+    transactionId,
+    expectedVersion: value(formData, "expectedVersion"),
+    amountMinor: value(formData, "amountMinor"),
+    transactionDate: value(formData, "transactionDate"),
+    categoryId: value(formData, "categoryId"),
+    recipientMemberId: value(formData, "recipientMemberId"),
+    memo: value(formData, "memo"),
+  });
+
+  if (!result.success) {
+    return {
+      status: "error",
+      message: "入力内容を確認してください。",
+      fieldErrors: result.error.flatten().fieldErrors,
+    };
+  }
+
+  const commandResult = await updateIncome(result.data);
+  if (commandResult.kind !== "ok") {
+    return {
+      status: "error",
+      message: commandErrorMessage(
+        commandResult,
+        "入力内容を確認してください。",
+      ),
+    };
+  }
+
+  revalidateGroupScreens(result.data.groupId);
+  redirect(resolveEditReturnPath(unsafeReturnTo, result.data.groupId));
 }

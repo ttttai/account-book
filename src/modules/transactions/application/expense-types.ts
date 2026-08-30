@@ -21,5 +21,8 @@ export type ExpenseFormOptions = Readonly<{
   }>;
   today: string;
   members: readonly ExpenseFormMember[];
+  /** 未アーカイブの支出カテゴリ（並び順どおり） */
   categories: readonly ExpenseFormCategory[];
+  /** 未アーカイブの収入カテゴリ（並び順どおり） */
+  incomeCategories: readonly ExpenseFormCategory[];
 }>;
