@@ -1,43 +1,55 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMovedCategoryIds } from "./category-order";
+import { buildRepositionedCategoryIds } from "./category-order";
 
-const ids = ["a", "b", "c"] as const;
+describe("buildRepositionedCategoryIds", () => {
+  const ids = ["a", "b", "c", "d"] as const;
 
-describe("buildMovedCategoryIds", () => {
-  it("対象を1つ上のカテゴリと入れ替える", () => {
-    expect(buildMovedCategoryIds(ids, "b", "up")).toEqual({
+  it("対象を指定位置へ移動する（前方へ）", () => {
+    expect(buildRepositionedCategoryIds(ids, "c", 0)).toEqual({
       kind: "moved",
-      categoryIds: ["b", "a", "c"],
+      categoryIds: ["c", "a", "b", "d"],
     });
   });
 
-  it("対象を1つ下のカテゴリと入れ替える", () => {
-    expect(buildMovedCategoryIds(ids, "b", "down")).toEqual({
+  it("対象を指定位置へ移動する（後方へ）", () => {
+    expect(buildRepositionedCategoryIds(ids, "a", 2)).toEqual({
       kind: "moved",
-      categoryIds: ["a", "c", "b"],
+      categoryIds: ["b", "c", "a", "d"],
     });
   });
 
-  it("元の並びを変更しない", () => {
-    const source = ["a", "b", "c"];
-    buildMovedCategoryIds(source, "a", "down");
-    expect(source).toEqual(["a", "b", "c"]);
+  it("末尾位置への移動を受け付ける", () => {
+    expect(buildRepositionedCategoryIds(ids, "a", 3)).toEqual({
+      kind: "moved",
+      categoryIds: ["b", "c", "d", "a"],
+    });
   });
 
-  it("先頭の上移動と末尾の下移動をat_edgeとして扱う", () => {
-    expect(buildMovedCategoryIds(ids, "a", "up")).toEqual({ kind: "at_edge" });
-    expect(buildMovedCategoryIds(ids, "c", "down")).toEqual({
-      kind: "at_edge",
+  it("同じ位置への移動をunchangedとして扱う", () => {
+    expect(buildRepositionedCategoryIds(ids, "b", 1)).toEqual({
+      kind: "unchanged",
+    });
+  });
+
+  it("範囲外の位置をnot_foundとして扱う", () => {
+    expect(buildRepositionedCategoryIds(ids, "a", 4)).toEqual({
+      kind: "not_found",
+    });
+    expect(buildRepositionedCategoryIds(ids, "a", -1)).toEqual({
+      kind: "not_found",
     });
   });
 
   it("並びに存在しないカテゴリをnot_foundとして扱う", () => {
-    expect(buildMovedCategoryIds(ids, "x", "up")).toEqual({
+    expect(buildRepositionedCategoryIds(ids, "x", 0)).toEqual({
       kind: "not_found",
     });
-    expect(buildMovedCategoryIds([], "a", "down")).toEqual({
-      kind: "not_found",
-    });
+  });
+
+  it("元の並びを変更しない", () => {
+    const source = ["a", "b", "c", "d"];
+    buildRepositionedCategoryIds(source, "a", 3);
+    expect(source).toEqual(["a", "b", "c", "d"]);
   });
 });

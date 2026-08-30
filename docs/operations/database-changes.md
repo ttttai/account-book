@@ -127,6 +127,38 @@ psql "本番の接続文字列" --single-transaction --set ON_ERROR_STOP=1 --fil
 
 適用が途中で失敗した場合、そのファイルはトランザクションごとrollbackされ台帳にも記録されない。原因を修正した新しいmigrationを追加するか、同ファイルが未適用のままなら修正して再適用する（**未適用のファイルに限り**修正してよい）。
 
+### psqlが手元に無い場合（Docker経由の実行形）
+
+macOS等でpsqlをインストールしていない場合、`postgres`イメージのpsqlを使って上記手順をそのまま実行できる。接続文字列はGit管理外の`.env`へ`PROD_DB_URL=<本番の接続文字列>`として保存しておくと、shell historyへ残さず再利用できる（`.env`は`.gitignore`済み。値はSupabase DashboardのConnectからSession poolerのURIを取得する）。
+
+台帳の確認:
+
+```bash
+cd <リポジトリのルート> && docker run --rm \
+  -e PROD_DB_URL="$(grep '^PROD_DB_URL=' .env | cut -d= -f2-)" \
+  postgres:17 sh -c "psql \"\$PROD_DB_URL\" -c 'select version from public.schema_migrations order by version'"
+```
+
+未適用ファイルの適用（`<対象ファイル名>`は拡張子`.sql`を除いたファイル名に2箇所とも置き換える。psqlの`--command`はpsql変数を展開しないため、台帳へ記録する値は変数にせずリテラルで書く）:
+
+```bash
+cd <リポジトリのルート> && docker run --rm \
+  -v "$PWD/supabase/migrations:/migrations:ro" \
+  -e PROD_DB_URL="$(grep '^PROD_DB_URL=' .env | cut -d= -f2-)" \
+  postgres:17 sh -c "psql \"\$PROD_DB_URL\" --single-transaction --set ON_ERROR_STOP=1 --file=/migrations/<対象ファイル名>.sql --command=\"insert into public.schema_migrations (version) values ('<対象ファイル名>')\""
+```
+
+事前dumpも同様に実行できる（dumpの扱いは前節のとおり）:
+
+```bash
+cd <リポジトリのルート> && docker run --rm \
+  -v "$PWD:/backup" \
+  -e PROD_DB_URL="$(grep '^PROD_DB_URL=' .env | cut -d= -f2-)" \
+  postgres:17 sh -c "pg_dump \"\$PROD_DB_URL\" --format=custom --file=/backup/backup-\$(date +%Y%m%d%H%M%S).dump"
+```
+
+Docker経由でも手順自体（1ファイルずつ・単一トランザクション・台帳記録・適用後の検証）は本節の定めに従う。
+
 ### 許可リストの同期
 
 ローカルでは起動時に`apply-migrations.sh`が`.env`の`AUTH_ALLOWED_GOOGLE_EMAILS`を`app_private.allowed_google_accounts`へ同期するが、**本番ではこの同期も手動運用**である。許可リストを変更した場合（Secret Managerのrotationと合わせて）、次を本番へ実行する。値はコマンドライン引数に直書きせず、psqlの変数として渡す。

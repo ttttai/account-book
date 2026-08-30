@@ -22,16 +22,31 @@ export const addCategorySchema = z.object({
   name: categoryNameSchema,
 });
 
-export const renameCategorySchema = z.object({
+export const CATEGORY_COLORS = [
+  "food",
+  "daily",
+  "home",
+  "utilities",
+  "transport",
+  "leisure",
+  "other",
+  "salary",
+  "extra",
+] as const;
+
+export const categoryColorSchema = z.enum(CATEGORY_COLORS);
+
+export const updateCategorySchema = z.object({
   groupId: z.uuid(),
   categoryId: z.uuid(),
   name: categoryNameSchema,
+  color: categoryColorSchema,
 });
 
-export const moveCategorySchema = z.object({
+export const repositionCategorySchema = z.object({
   groupId: z.uuid(),
   categoryId: z.uuid(),
-  direction: z.enum(["up", "down"]),
+  position: z.number().int().min(0),
 });
 
 export const archiveCategorySchema = z.object({
@@ -41,6 +56,7 @@ export const archiveCategorySchema = z.object({
 
 export type CategoryType = z.infer<typeof categoryTypeSchema>;
 export type AddCategoryInput = z.infer<typeof addCategorySchema>;
-export type RenameCategoryInput = z.infer<typeof renameCategorySchema>;
-export type MoveCategoryInput = z.infer<typeof moveCategorySchema>;
+export type CategoryColor = z.infer<typeof categoryColorSchema>;
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type ArchiveCategoryInput = z.infer<typeof archiveCategorySchema>;
+export type RepositionCategoryInput = z.infer<typeof repositionCategorySchema>;
