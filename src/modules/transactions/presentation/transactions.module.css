@@ -374,3 +374,54 @@
     margin-left: auto;
   }
 }
+
+/* 取引の編集・削除 */
+
+.edit-note {
+  margin: 0.35rem 0 0;
+  color: #8a5a24;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.delete-transaction-section {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.delete-transaction-open {
+  min-height: 44px;
+  border-color: #cf9a96;
+  color: #a3342f;
+}
+
+.delete-transaction-confirm {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border: 1px solid #cf9a96;
+  border-radius: 0.85rem;
+  background: #f9efee;
+}
+
+.delete-transaction-confirm p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+.delete-transaction-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.delete-transaction-actions :global(.primary-button),
+.delete-transaction-actions :global(.secondary-button) {
+  min-height: 44px;
+}
+
+:global(.primary-button).danger-button {
+  background: #a3342f;
+}

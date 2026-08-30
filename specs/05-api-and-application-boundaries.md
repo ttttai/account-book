@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.7
+バージョン: 0.2.9
 
 ## 1. Next.js境界方針
 
@@ -90,7 +90,6 @@ getDayTransactions(groupId, date, scope)
 listTransactions(groupId, filters, cursor)
 listGroupMembers(groupId)
 listCategories(groupId, type)
-listRecoverableTransactions(groupId)
 ```
 
 ### Command
@@ -108,10 +107,11 @@ archiveCategory(groupId, categoryId)
 createTransaction(groupId, input)
 updateTransaction(groupId, transactionId, expectedVersion, input)
 deleteTransaction(groupId, transactionId, expectedVersion)
-restoreTransaction(groupId, transactionId, expectedVersion)
 ```
 
 `createTransaction`の最初の縦切りは支出だけを受け付ける。Server Actionは`groupId`をbind引数として受け取っても未信頼入力としてUUID検証し、FormDataの金額、日付、カテゴリ、支払者、負担方法、負担メンバー・金額、メモ、`client_request_id`をschemaで検証する。commandは検証済みGoogle sessionを取得し、ユーザーsession付きSupabase clientで原子的なDB関数を呼ぶ。DB関数はアクティブ所属、カテゴリ種別、支払者・負担者の同一グループ所属、合計一致、冪等性を再確認する。
+
+`updateTransaction`と`deleteTransaction`は、検証済みGoogle sessionとアクティブ所属を確認し、ユーザーsession付きSupabase clientで原子的なDB関数を呼ぶ。DB関数は対象行をlockし、`expectedVersion`と現在versionの不一致を`CONFLICT`として返す。`updateTransaction`は成功時にversionを加算して操作者と日時を記録し、金額・負担額合計・支払者と負担者のアクティブ所属・カテゴリ種別を登録時と同じ規則で再検証する。カテゴリだけは、変更しない場合に限り既存行と同じアーカイブ済みカテゴリを許可する。`deleteTransaction`は取引本体と負担行を同じtransactionで物理削除し、対象が存在しない（すでに削除済みの）再要求を状態を変更しない成功として冪等に扱う。復元用のcommand・queryは提供しない。
 
 支出登録画面のServer Componentは、サーバー専用queryからグループ、現在のmembership、アクティブメンバー、未アーカイブの支出カテゴリだけを含む最小DTOを受け取る。Client Componentへuser ID、DB行全体、認証tokenを渡さない。
 
@@ -135,7 +135,6 @@ GET    /api/v1/groups/{groupId}/transactions
 POST   /api/v1/groups/{groupId}/transactions
 PATCH  /api/v1/groups/{groupId}/transactions/{transactionId}
 DELETE /api/v1/groups/{groupId}/transactions/{transactionId}
-POST   /api/v1/groups/{groupId}/transactions/{transactionId}/restore
 GET    /api/v1/groups/{groupId}/exports/transactions.csv
 ```
 

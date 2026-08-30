@@ -3,22 +3,29 @@
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { useFormStatus } from "react-dom";
 
+import type { ExpenseEditTransaction } from "../application/edit-types";
 import type { ExpenseFormOptions } from "../application/expense-types";
 import { calculateExpenseAllocations } from "../domain/expense-allocation";
 import { INITIAL_EXPENSE_ACTION_STATE } from "./action-state";
-import { createExpenseAction } from "./actions";
+import { createExpenseAction, updateExpenseAction } from "./actions";
 
 import styles from "./transactions.module.css";
 
 type ExpenseFormProps = Readonly<{
   options: ExpenseFormOptions;
-  clientRequestId: string;
+  /** 登録モードで使う二重送信防止ID（editと同時指定しない） */
+  clientRequestId?: string;
+  /** 編集モードの対象取引と検証済みの戻り先 */
+  edit?: Readonly<{
+    transaction: ExpenseEditTransaction;
+    returnTo: string;
+  }>;
 }>;
 
 const yenFormatter = new Intl.NumberFormat("ja-JP");
 
 // 送信中は無効化して二重送信を防ぐ保存ボタン
-function SaveButton() {
+function SaveButton({ label }: Readonly<{ label: string }>) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -26,7 +33,7 @@ function SaveButton() {
       disabled={pending}
       type="submit"
     >
-      {pending ? "保存中…" : "支出を保存"}
+      {pending ? "保存中…" : label}
     </button>
   );
 }
@@ -55,30 +62,88 @@ function saveLastPayer(groupId: string, memberId: string): void {
   }
 }
 
-// 支出登録フォーム。負担方法の切り替えと負担額のリアルタイムプレビューを備えるClient Component
-export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
-  const actionWithGroup = createExpenseAction.bind(null, options.group.id);
+// 保存済みの選択メンバーから、編集フォームの初期選択を負担方法別に組み立てる
+function initialSelectedMemberIds(
+  options: ExpenseFormOptions,
+  transaction: ExpenseEditTransaction | undefined,
+): readonly string[] {
+  if (!transaction) return [options.group.currentMembershipId];
+  const activeMemberIds = new Set(
+    options.members.map((member) => member.membershipId),
+  );
+  const savedActiveIds = transaction.allocations
+    .map((allocation) => allocation.memberId)
+    .filter((memberId) => activeMemberIds.has(memberId));
+  if (transaction.allocationMethod === "single") {
+    return savedActiveIds.length === 1
+      ? savedActiveIds
+      : [options.group.currentMembershipId];
+  }
+  return savedActiveIds.length > 0
+    ? savedActiveIds
+    : [options.group.currentMembershipId];
+}
+
+// 支出の登録・編集フォーム。負担方法の切り替えと負担額のリアルタイムプレビューを備えるClient Component
+export function ExpenseForm({
+  options,
+  clientRequestId,
+  edit,
+}: ExpenseFormProps) {
+  const editTransaction = edit?.transaction;
+  const boundAction = edit
+    ? updateExpenseAction.bind(
+        null,
+        options.group.id,
+        edit.transaction.id,
+        edit.returnTo,
+      )
+    : createExpenseAction.bind(null, options.group.id);
   const [state, action] = useActionState(
-    actionWithGroup,
+    boundAction,
     INITIAL_EXPENSE_ACTION_STATE,
   );
-  // 初期の負担方法は常に「1人」（現在のメンバーが全額負担）とする (AC-TXN-001-10)
-  const defaultMemberIds = [options.group.currentMembershipId];
-  const [amountMinor, setAmountMinor] = useState("");
-  const [payerMemberId, setPayerMemberId] = useState(
-    options.group.currentMembershipId,
+  const [amountMinor, setAmountMinor] = useState(
+    editTransaction ? String(editTransaction.amountMinor) : "",
   );
+  const [payerMemberId, setPayerMemberId] = useState(
+    editTransaction?.payerIsActive
+      ? editTransaction.payerMemberId
+      : options.group.currentMembershipId,
+  );
+  // 登録時の初期負担方法は常に「1人」(AC-TXN-001-10)、編集時は保存済み負担から復元する
   const [allocationMethod, setAllocationMethod] = useState<
     "equal" | "single" | "custom"
-  >("single");
-  const [selectedMemberIds, setSelectedMemberIds] =
-    useState<readonly string[]>(defaultMemberIds);
+  >(editTransaction?.allocationMethod ?? "single");
+  const [selectedMemberIds, setSelectedMemberIds] = useState<readonly string[]>(
+    () => initialSelectedMemberIds(options, editTransaction),
+  );
   const [customAmounts, setCustomAmounts] = useState<
     Readonly<Record<string, string>>
-  >({});
+  >(() =>
+    editTransaction
+      ? Object.fromEntries(
+          editTransaction.allocations.map((allocation) => [
+            allocation.memberId,
+            String(allocation.amountMinor),
+          ]),
+        )
+      : {},
+  );
 
-  // 前回の支払者が現メンバーに含まれていれば初期選択へ反映する
+  // 削除済みメンバーが負担へ含まれる場合、そのままでは保存できないことを説明する
+  const hasRemovedAllocationMember = Boolean(
+    editTransaction?.allocations.some(
+      (allocation) =>
+        !options.members.some(
+          (member) => member.membershipId === allocation.memberId,
+        ),
+    ),
+  );
+
+  // 前回の支払者が現メンバーに含まれていれば初期選択へ反映する（登録時のみ）
   useEffect(() => {
+    if (editTransaction) return;
     const storedMemberId = readLastPayer(options.group.id);
     if (
       storedMemberId &&
@@ -86,7 +151,20 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
     ) {
       setPayerMemberId(storedMemberId);
     }
-  }, [options.group.id, options.members]);
+  }, [editTransaction, options.group.id, options.members]);
+
+  // 編集時は現在のカテゴリがアーカイブ済みでも選択肢へ残す（変更しない場合だけ保存できる）
+  const categoryChoices = editTransaction?.archivedCategory
+    ? [
+        ...options.categories,
+        {
+          id: editTransaction.archivedCategory.id,
+          name: `${editTransaction.archivedCategory.name}（アーカイブ済み）`,
+          color: editTransaction.archivedCategory.color,
+          icon: "",
+        },
+      ]
+    : options.categories;
 
   // 入力中の値で負担配分を試算する確認用プレビュー（不成立の間はnull）
   const preview = useMemo(() => {
@@ -137,7 +215,15 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
 
   return (
     <form action={action} className={styles["expense-form"]} noValidate>
-      <input name="clientRequestId" type="hidden" value={clientRequestId} />
+      {editTransaction ? (
+        <input
+          name="expectedVersion"
+          type="hidden"
+          value={editTransaction.version}
+        />
+      ) : (
+        <input name="clientRequestId" type="hidden" value={clientRequestId} />
+      )}
 
       <div className={`${styles["expense-field"]} ${styles["amount-field"]}`}>
         <label htmlFor="amountMinor">金額</label>
@@ -168,7 +254,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
           <label htmlFor="transactionDate">使った日</label>
           <input
             aria-describedby="transactionDate-error"
-            defaultValue={options.today}
+            defaultValue={editTransaction?.transactionDate ?? options.today}
             id="transactionDate"
             name="transactionDate"
             type="date"
@@ -186,10 +272,14 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         >
           <legend>カテゴリ</legend>
           <div className={styles["category-options"]}>
-            {options.categories.map((category, index) => (
+            {categoryChoices.map((category, index) => (
               <label className={styles["category-option"]} key={category.id}>
                 <input
-                  defaultChecked={index === 0}
+                  defaultChecked={
+                    editTransaction
+                      ? category.id === editTransaction.categoryId
+                      : index === 0
+                  }
                   name="categoryId"
                   required
                   type="radio"
@@ -239,6 +329,12 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
               </option>
             ))}
           </select>
+          {editTransaction && !editTransaction.payerIsActive && (
+            <p className={styles["edit-note"]}>
+              これまでの支払者「{editTransaction.payerDisplayName}
+              」はグループから外れています。アクティブメンバーへ変更しないと保存できません。
+            </p>
+          )}
           {state.fieldErrors?.payerMemberId?.[0] && (
             <p className="field-error" id="payerMemberId-error">
               {state.fieldErrors.payerMemberId[0]}
@@ -249,6 +345,11 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
 
       <fieldset className={styles["allocation-fieldset"]}>
         <legend>負担方法</legend>
+        {hasRemovedAllocationMember && (
+          <p className={styles["edit-note"]}>
+            保存済みの負担にグループから外れたメンバーが含まれています。アクティブメンバーだけで負担を設定し直してください。
+          </p>
+        )}
         <div className={styles["segmented-control"]}>
           {(
             [
@@ -371,6 +472,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         <label htmlFor="memo">メモ（任意）</label>
         <textarea
           aria-describedby="memo-error"
+          defaultValue={editTransaction?.memo ?? undefined}
           id="memo"
           maxLength={500}
           name="memo"
@@ -389,7 +491,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         </p>
       )}
       <div className={styles["expense-submit-bar"]}>
-        <SaveButton />
+        <SaveButton label={editTransaction ? "変更を保存" : "支出を保存"} />
       </div>
     </form>
   );
