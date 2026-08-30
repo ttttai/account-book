@@ -14,6 +14,7 @@ type RouteContext = Readonly<{
   params: Promise<{ groupId: string }>;
 }>;
 
+// 指定グループの取引をCSVでダウンロードさせるエンドポイント（monthクエリで対象月を指定）
 export async function GET(
   request: NextRequest,
   context: RouteContext,

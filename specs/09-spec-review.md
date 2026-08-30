@@ -467,6 +467,20 @@ MVP範囲確認: refresh競合自体の高度な排他制御（分散lock等）�
 
 判定: `AC-AUTH-001-9`は`AC-AUTH-004-1`、`AC-AUTH-004-3`、NFR-UXの初回表示品質と整合し、安全かつ実装可能である。判定用純関数のunit testと構造testを先に作成し、実装後に幅375pxのログインフローを実画面確認することを条件に実装開始を承認する。
 
+### R-INF-004 ドキュメントのみの変更に対するCI・CDのskip
+
+指摘: `docs/**`やroot `README.md`だけを変更するpushでも、CIがDocker Composeの起動と本番container buildを含む全ジョブを実行し、mainへのmerge後はCDが同一内容のアプリを再build・pushして新しいCloud Run revisionを作成する。アプリの挙動に影響しない変更に対して、Actionsの実行時間、Artifact Registryの保存量、本番revisionの増加が無駄に発生する。
+
+対応: `INF-017`、`AC-INF-001-19`、`AC-INF-001-20`を追加する。docsのみ判定を`scripts/docs-only-diff.sh`へ集約し、対象を`docs/**`・root `README.md`・`CLAUDE.md`に限定する。CIは判定用の軽量jobを追加し、docsのみの場合は重い検証ジョブ（Quality、Docker integration）をskipする一方、markdown自体を検証するformat checkは独立jobとして常に実行する。CDは、`Build and deploy` jobが実際に成功した直近runのcommitと今回のdeploy対象commitの差分がdocsのみの場合だけdeployをskipする。
+
+安全性確認: architecture testが内容を検証する`specs/**`と`AGENTS.md`はドキュメント扱いにせず、変更時は従来どおり全CIを実行する。branch protectionのrequired checkは、workflowレベルの`paths-ignore`ではなくjobレベルの条件でskipするため、docsのみのPRでもcheckが待機状態のまま残らない（GitHubはskipされたjobを合格として扱う）。作業ブランチの判定は直前pushとの差分ではなくmainとの分岐点からの差分で行い、コード変更を含むブランチへdocs commitを積んでも重い検証がskipされない。CDの基準はdeployをskipしただけの成功runを含めないため、CD無効期間や`cancel-in-progress`によるCI取り消しで未deployのコード変更が取り残されない。判定不能・初回・手動実行では必ず実行側へ倒す（fail open for verification and deploy）。
+
+実装可能性確認: CIはpush eventの`before` SHAと`git merge-base`、CDはGitHub Actions APIの`gh api`（`actions: read`権限のみ追加）とcheckout済みhistoryで判定でき、新しい外部Actionや資格情報を追加しない。判定scriptと両workflowの構造は既存のarchitecture testと同じ方式で固定できる。
+
+MVP範囲確認: workflowレベルの`paths-ignore`、外部のpaths-filter Action、mergeキュー、preview環境は導入しない。判定はdocsのみか否かの二値に限定し、ファイル種別ごとの細かいジョブ分割は行わない。
+
+判定: `INF-017`、`AC-INF-001-19`、`AC-INF-001-20`は`INF-012`、`INF-016`、`NFR-OPS-*`、`NFR-MNT-005`と整合し、安全かつ実装可能である。受け入れ条件に対応する構造testを先に作成し、実装後にformat、lint、型検査、architecture test、本番buildで検証することを条件に実装開始を承認する。
+
 ### R-042 モバイル共通ナビゲーションとカレンダー優先ホーム
 
 指摘: 承認済み画面仕様は下部ナビゲーションを5項目としていたが、実装はグループホーム上部の複数linkと支出追加ボタンに分散し、固定ナビゲーションがなかった。片手操作では画面上部の履歴・メンバー・設定系linkへ届きにくく、プロフィールやグループ切替を含む管理操作の入口も分散していた。また、ホームは大きなheader、上部操作、月間集計、42日カレンダーを縦に並べており、375 x 812でカレンダー全体を初期viewportに収める要件がなかった。

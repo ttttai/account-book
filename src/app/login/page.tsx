@@ -6,6 +6,7 @@ type LoginPageProps = Readonly<{
   searchParams: Promise<{ next?: string; oauth?: string; error?: string }>;
 }>;
 
+// Google OAuth専用のログイン画面（未設定時やOAuthエラー時の案内も表示）
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const nextPath = resolveSafeNextPath(params.next);

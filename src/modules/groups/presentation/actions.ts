@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { acceptInvitation } from "../application/accept-invitation";
+import { changeMemberRole } from "../application/change-member-role";
 import { createInvitation } from "../application/create-invitation";
 import { createGroup } from "../application/create-group";
+import { removeMember } from "../application/remove-member";
 import { revokeInvitation } from "../application/revoke-invitation";
 import { createGroupSchema } from "../domain/group-input";
 import {
@@ -13,18 +15,24 @@ import {
   createInvitationSchema,
   revokeInvitationSchema,
 } from "../domain/invitation-input";
+import {
+  changeMemberRoleSchema,
+  removeMemberSchema,
+} from "../domain/member-administration-input";
 import type { GroupActionState } from "./action-state";
 import type {
   AcceptInvitationActionState,
   CreateInvitationActionState,
   RevokeInvitationActionState,
 } from "./invitation-action-state";
+import type { MemberAdministrationActionState } from "./member-administration-action-state";
 
 function value(formData: FormData, name: string): string {
   const field = formData.get(name);
   return typeof field === "string" ? field : "";
 }
 
+// グループ作成フォームのServer Action。成功時は新グループ画面へredirectする
 export async function createGroupAction(
   _previousState: GroupActionState,
   formData: FormData,
@@ -56,6 +64,7 @@ export async function createGroupAction(
   redirect(`/groups/${groupId}`);
 }
 
+// 招待リンク作成のServer Action。groupIdはbindで固定して受け取る
 export async function createInvitationAction(
   groupId: string,
   _previousState: CreateInvitationActionState,
@@ -91,6 +100,7 @@ export async function createInvitationAction(
   }
 }
 
+// 招待受諾が成立しなかった理由ごとの利用者向けメッセージ
 const invitationErrorMessages = {
   not_found: "招待リンクが無効です。新しいリンクを作成者へ依頼してください。",
   expired:
@@ -99,6 +109,7 @@ const invitationErrorMessages = {
   used: "この招待リンクはすでに別のユーザーが使用しています。",
 } as const;
 
+// 招待受諾のServer Action。参加成立時は関連画面のキャッシュを更新する
 export async function acceptInvitationAction(
   _previousState: AcceptInvitationActionState,
   formData: FormData,
@@ -137,6 +148,106 @@ export async function acceptInvitationAction(
   }
 }
 
+// 権限変更の結果メッセージで使う役割の表示名
+const memberRoleLabels = {
+  owner: "オーナー",
+  admin: "管理者",
+  member: "メンバー",
+} as const;
+
+// メンバー権限変更のServer Action。最後のオーナーの降格は拒否される
+export async function changeMemberRoleAction(
+  groupId: string,
+  _previousState: MemberAdministrationActionState,
+  formData: FormData,
+): Promise<MemberAdministrationActionState> {
+  const result = changeMemberRoleSchema.safeParse({
+    groupId,
+    membershipId: value(formData, "membershipId"),
+    role: value(formData, "role"),
+  });
+  if (!result.success) {
+    return { status: "error", message: "変更内容を確認してください。" };
+  }
+
+  try {
+    const outcome = await changeMemberRole(result.data);
+    switch (outcome) {
+      case "changed":
+      case "unchanged":
+        revalidatePath(`/groups/${result.data.groupId}/members`);
+        return {
+          status: "success",
+          message: `権限を${memberRoleLabels[result.data.role]}にしました。`,
+        };
+      case "last_owner":
+        return {
+          status: "error",
+          message:
+            "最後のオーナーの権限は変更できません。先に別のメンバーをオーナーへ昇格してください。",
+        };
+      case "not_found":
+        return {
+          status: "error",
+          message:
+            "対象のメンバーが見つかりません。画面を再読み込みしてください。",
+        };
+    }
+  } catch {
+    return {
+      status: "error",
+      message: "権限を変更できませんでした。権限と接続状態を確認してください。",
+    };
+  }
+}
+
+// メンバーをグループから外すServer Action。最後のオーナーは外せない
+export async function removeMemberAction(
+  groupId: string,
+  _previousState: MemberAdministrationActionState,
+  formData: FormData,
+): Promise<MemberAdministrationActionState> {
+  const result = removeMemberSchema.safeParse({
+    groupId,
+    membershipId: value(formData, "membershipId"),
+  });
+  if (!result.success) {
+    return { status: "error", message: "対象のメンバーを確認してください。" };
+  }
+
+  try {
+    const outcome = await removeMember(result.data);
+    switch (outcome) {
+      case "removed":
+        revalidatePath(`/groups/${result.data.groupId}/members`);
+        return {
+          status: "success",
+          message:
+            "メンバーをグループから外しました。過去の取引の表示は残ります。",
+        };
+      case "owner_not_removable":
+        return {
+          status: "error",
+          message:
+            "オーナーはグループから外せません。先に権限を変更してください。",
+        };
+      case "not_found":
+        return {
+          status: "error",
+          message:
+            "対象のメンバーが見つかりません。画面を再読み込みしてください。",
+        };
+    }
+  } catch {
+    return {
+      status: "error",
+      message:
+        "メンバーをグループから外せませんでした。権限と接続状態を確認してください。",
+    };
+  }
+}
+
+// 招待取り消しのServer Action。対象は引数bindで特定する
 export async function revokeInvitationAction(
   groupId: string,
   invitationId: string,

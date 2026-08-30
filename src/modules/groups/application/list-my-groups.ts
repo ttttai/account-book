@@ -23,6 +23,7 @@ const membershipRowSchema = z.object({
   }),
 });
 
+// ログイン中ユーザーが参加しているグループを参加順で返す（未認証は空配列）
 export async function listMyGroups(): Promise<readonly GroupSummary[]> {
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =

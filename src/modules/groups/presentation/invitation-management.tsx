@@ -26,6 +26,7 @@ function SubmitInvitationButton() {
   );
 }
 
+// 保留中招待1件を取り消すボタン（招待ごとに独立した送信状態を持つ）
 function RevokeInvitationButton({
   groupId,
   invitationId,
@@ -60,6 +61,7 @@ function RevokeInvitationButton({
   );
 }
 
+// 招待リンクの作成・コピー・保留中招待の管理をまとめた管理者向けパネル
 export function InvitationManagement({
   groupId,
   invitations,

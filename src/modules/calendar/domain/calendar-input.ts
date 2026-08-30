@@ -52,11 +52,13 @@ function isDayInMonth(value: string, monthValue: string): boolean {
   return day >= 1 && day <= daysInMonth(year, month);
 }
 
+// 未指定はundefined、文字列以外（配列など）はnullを返して不正扱いにする
 function optionalString(value: unknown): string | undefined | null {
   if (value === undefined) return undefined;
   return typeof value === "string" ? value : null;
 }
 
+// search paramsのmonth/scope/member/dayを検証し、カレンダーの表示条件へ変換する
 export function parseCalendarSelection(
   input: CalendarSearchInput,
   currentMonth: string,

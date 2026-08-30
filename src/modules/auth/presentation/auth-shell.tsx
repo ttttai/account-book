@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+// 認証系画面共通のレイアウト（ブランド表示と説明文付きのカード枠）
 export function AuthShell({
   title,
   introduction,

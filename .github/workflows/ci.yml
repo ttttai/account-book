@@ -15,10 +15,65 @@ env:
   NEXT_TELEMETRY_DISABLED: "1"
 
 jobs:
-  quality:
-    name: Quality
+  # 変更がドキュメントのみかを判定し、重い検証ジョブ(Quality、Docker integration)を
+  # skipするかを決める(INF-017)。判定条件はscripts/docs-only-diff.shへ集約している。
+  # workflowレベルのpaths-ignoreを使うとrequired checkが待機状態のまま残るため、
+  # workflowは常に起動してjobレベルの条件でskipする(skipされたjobは合格として扱われる)。
+  changes:
+    name: Detect docs-only changes
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 5
+    outputs:
+      docs_only: ${{ steps.decide.outputs.docs_only }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # 分岐点や直前commitとの比較に全historyが必要
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Decide whether the push is docs-only
+        id: decide
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          # 既定は「アプリに影響あり」とし、docsのみと確定できた場合だけskipへ倒す
+          docs_only=false
+          base=""
+
+          if [[ "${EVENT_NAME}" == "push" ]]; then
+            if [[ "${REF}" == "refs/heads/main" ]]; then
+              # mainへのpushは直前のmain先頭commitと比較する。
+              # branch新規作成(BEFOREが全ゼロ)やforce pushで基点が無い場合は判定しない。
+              if [[ ! "${BEFORE_SHA}" =~ ^0+$ ]] && git cat-file -e "${BEFORE_SHA}" 2>/dev/null; then
+                base="${BEFORE_SHA}"
+              fi
+            else
+              # 作業ブランチは直前pushとの差分ではなく、mainとの分岐点から比較する。
+              # 直前pushの検証が失敗していても、コード変更を含むブランチへdocs commitを
+              # 積んだだけで重い検証がskipされ、失敗が隠れることを防ぐため。
+              base="$(git merge-base origin/main HEAD 2>/dev/null || true)"
+            fi
+          fi
+
+          if [[ -n "${base}" ]] && ./scripts/docs-only-diff.sh "${base}" HEAD; then
+            docs_only=true
+          fi
+
+          echo "判定結果: docs_only=${docs_only} (base=${base:-判定不能})"
+          echo "docs_only=${docs_only}" >> "${GITHUB_OUTPUT}"
+
+  # markdownの整形崩れはドキュメントのみの変更でも起きるため、
+  # format checkだけはskip対象にせず常に実行する。
+  format:
+    name: Format check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -38,6 +93,29 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
+  quality:
+    name: Quality
+    needs: changes
+    # ドキュメントのみの変更ではskipする(format checkは上の独立jobで実行済み)
+    if: needs.changes.outputs.docs_only != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Lint
         run: npm run lint
 
@@ -52,6 +130,9 @@ jobs:
 
   integration:
     name: Docker integration
+    needs: changes
+    # ドキュメントのみの変更ではskipする
+    if: needs.changes.outputs.docs_only != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

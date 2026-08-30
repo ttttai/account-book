@@ -9,6 +9,7 @@ import {
 
 import type { CreateGroupInput } from "../domain/group-input";
 
+// 認証済みユーザーの新規グループをRPCで作成し、作成されたグループIDを返す
 export async function createGroup(input: CreateGroupInput): Promise<string> {
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =

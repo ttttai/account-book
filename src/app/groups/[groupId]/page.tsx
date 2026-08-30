@@ -15,6 +15,7 @@ type GroupPageProps = Readonly<{
   searchParams: Promise<CalendarSearchInput>;
 }>;
 
+// グループのホーム画面（月間カレンダーと履歴・メンバー・カテゴリ等への導線）
 export default async function GroupPage({
   params,
   searchParams,

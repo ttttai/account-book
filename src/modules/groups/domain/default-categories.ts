@@ -6,6 +6,7 @@ export type DefaultCategory = Readonly<{
   sortOrder: number;
 }>;
 
+// グループ作成時に自動投入する初期カテゴリ一覧
 export const DEFAULT_CATEGORIES = [
   {
     type: "expense",

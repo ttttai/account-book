@@ -20,6 +20,7 @@ function values(formData: FormData, name: string): string[] {
     .filter((field): field is string => typeof field === "string");
 }
 
+// "customAmount:<memberId>"形式のフィールドからカスタム負担入力を組み立てる（空欄は0円扱い）
 function customAllocations(formData: FormData) {
   return [...formData.entries()]
     .filter(
@@ -32,6 +33,7 @@ function customAllocations(formData: FormData) {
     }));
 }
 
+// 支出登録フォームのServer Action。入力検証と負担額計算を経て支出を登録し、グループ画面へ戻す
 export async function createExpenseAction(
   groupId: string,
   _previousState: ExpenseActionState,

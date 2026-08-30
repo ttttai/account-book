@@ -4,6 +4,7 @@ type OAuthAuthorizationUrlInput = Readonly<{
   publicSupabaseUrl: string;
 }>;
 
+// originのみ（パス・クエリ・資格情報なし）のhttp(s) URLだけをベースURLとして許可する
 function parseSupabaseBaseUrl(value: string): URL | null {
   try {
     const url = new URL(value);
@@ -23,6 +24,7 @@ function parseSupabaseBaseUrl(value: string): URL | null {
   }
 }
 
+// サーバー内部URLで発行されたOAuth認可URLを、ブラウザから到達できる公開URLへ安全に書き換える
 export function resolveBrowserOAuthAuthorizationUrl({
   authorizationUrl,
   internalSupabaseUrl,
@@ -34,6 +36,7 @@ export function resolveBrowserOAuthAuthorizationUrl({
 
   try {
     const authorization = new URL(authorizationUrl);
+    // 想定したSupabase originの /auth/v1/authorize 以外へは誘導しない（open redirect対策）
     const allowedOrigins = new Set([
       internalBaseUrl.origin,
       publicBaseUrl.origin,
