@@ -6,6 +6,8 @@ import {
 } from "../domain/member-administration-policy";
 import { MemberAdministration } from "./member-administration";
 
+import styles from "./groups.module.css";
+
 const roleLabels = {
   owner: "オーナー",
   admin: "管理者",
@@ -27,15 +29,18 @@ export function MemberList({
   ).length;
 
   return (
-    <section className="member-panel" aria-labelledby="member-list-title">
-      <div className="panel-heading">
+    <section
+      className={styles["member-panel"]}
+      aria-labelledby="member-list-title"
+    >
+      <div className={styles["panel-heading"]}>
         <div>
           <p className="eyebrow">共有中</p>
           <h2 id="member-list-title">メンバー</h2>
         </div>
-        <span className="count-badge">{members.length}人</span>
+        <span className={styles["count-badge"]}>{members.length}人</span>
       </div>
-      <ul className="member-list">
+      <ul className={styles["member-list"]}>
         {members.map((member) => {
           const actions = getMemberRowActions({
             currentRole,
@@ -48,14 +53,16 @@ export function MemberList({
           return (
             <li
               className={
-                showAdministration ? "has-member-administration" : undefined
+                showAdministration
+                  ? styles["has-member-administration"]
+                  : undefined
               }
               key={member.membershipId}
             >
-              <span className="member-avatar" aria-hidden="true">
+              <span className={styles["member-avatar"]} aria-hidden="true">
                 {member.displayName.slice(0, 1)}
               </span>
-              <span className="member-summary">
+              <span className={styles["member-summary"]}>
                 <strong>
                   {member.displayName}
                   {member.isCurrentUser && <small>（あなた）</small>}

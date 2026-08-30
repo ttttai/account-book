@@ -8,6 +8,8 @@ import { calculateExpenseAllocations } from "../domain/expense-allocation";
 import { INITIAL_EXPENSE_ACTION_STATE } from "./action-state";
 import { createExpenseAction } from "./actions";
 
+import styles from "./transactions.module.css";
+
 type ExpenseFormProps = Readonly<{
   options: ExpenseFormOptions;
   clientRequestId: string;
@@ -20,7 +22,7 @@ function SaveButton() {
   const { pending } = useFormStatus();
   return (
     <button
-      className="primary-button expense-save-button"
+      className={`primary-button ${styles["expense-save-button"]}`}
       disabled={pending}
       type="submit"
     >
@@ -135,12 +137,12 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
   }
 
   return (
-    <form action={action} className="expense-form" noValidate>
+    <form action={action} className={styles["expense-form"]} noValidate>
       <input name="clientRequestId" type="hidden" value={clientRequestId} />
 
-      <div className="expense-field amount-field">
+      <div className={`${styles["expense-field"]} ${styles["amount-field"]}`}>
         <label htmlFor="amountMinor">金額</label>
-        <div className="amount-input-wrap">
+        <div className={styles["amount-input-wrap"]}>
           <span aria-hidden="true">¥</span>
           <input
             aria-describedby="amountMinor-error"
@@ -162,8 +164,8 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         )}
       </div>
 
-      <div className="expense-form-grid">
-        <div className="expense-field">
+      <div className={styles["expense-form-grid"]}>
+        <div className={styles["expense-field"]}>
           <label htmlFor="transactionDate">使った日</label>
           <input
             aria-describedby="transactionDate-error"
@@ -181,12 +183,12 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
 
         <fieldset
           aria-describedby="categoryId-error"
-          className="category-fieldset"
+          className={styles["category-fieldset"]}
         >
           <legend>カテゴリ</legend>
-          <div className="category-options">
+          <div className={styles["category-options"]}>
             {options.categories.map((category, index) => (
-              <label className="category-option" key={category.id}>
+              <label className={styles["category-option"]} key={category.id}>
                 <input
                   defaultChecked={index === 0}
                   name="categoryId"
@@ -194,14 +196,17 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
                   type="radio"
                   value={category.id}
                 />
-                <span className="category-option-content">
+                <span className={styles["category-option-content"]}>
                   <span
                     aria-hidden="true"
-                    className="category-option-dot"
+                    className={styles["category-option-dot"]}
                     data-category-color={category.color}
                   />
                   <span className="category-option-name">{category.name}</span>
-                  <span aria-hidden="true" className="category-option-check">
+                  <span
+                    aria-hidden="true"
+                    className={styles["category-option-check"]}
+                  >
                     ✓
                   </span>
                 </span>
@@ -215,7 +220,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
           )}
         </fieldset>
 
-        <div className="expense-field">
+        <div className={styles["expense-field"]}>
           <label htmlFor="payerMemberId">支払った人</label>
           <select
             aria-describedby="payerMemberId-error"
@@ -243,9 +248,9 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         </div>
       </div>
 
-      <fieldset className="allocation-fieldset">
+      <fieldset className={styles["allocation-fieldset"]}>
         <legend>負担方法</legend>
-        <div className="segmented-control">
+        <div className={styles["segmented-control"]}>
           {(
             [
               ["equal", "均等"],
@@ -267,9 +272,12 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         </div>
 
         {allocationMethod === "equal" && (
-          <div className="allocation-members">
+          <div className={styles["allocation-members"]}>
             {options.members.map((member) => (
-              <label className="check-option" key={member.membershipId}>
+              <label
+                className={styles["check-option"]}
+                key={member.membershipId}
+              >
                 <input
                   checked={selectedMemberIds.includes(member.membershipId)}
                   name="selectedMemberIds"
@@ -287,7 +295,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         )}
 
         {allocationMethod === "single" && (
-          <div className="expense-field allocation-single">
+          <div className={`${styles["expense-field"]} allocation-single`}>
             <label htmlFor="singleMemberId">負担する人</label>
             <select
               id="singleMemberId"
@@ -306,14 +314,14 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         )}
 
         {allocationMethod === "custom" && (
-          <div className="custom-allocation-list">
+          <div className={styles["custom-allocation-list"]}>
             {options.members.map((member) => (
               <label key={member.membershipId}>
                 <span>
                   {member.displayName}
                   {member.isCurrentUser ? "（自分）" : ""}
                 </span>
-                <span className="custom-amount-wrap">
+                <span className={styles["custom-amount-wrap"]}>
                   <span aria-hidden="true">¥</span>
                   <input
                     inputMode="numeric"
@@ -339,7 +347,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         )}
       </fieldset>
 
-      <section className="allocation-preview" aria-live="polite">
+      <section className={styles["allocation-preview"]} aria-live="polite">
         <h2>負担額の確認</h2>
         {preview ? (
           <dl>
@@ -360,7 +368,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         )}
       </section>
 
-      <div className="expense-field">
+      <div className={styles["expense-field"]}>
         <label htmlFor="memo">メモ（任意）</label>
         <textarea
           aria-describedby="memo-error"
@@ -381,7 +389,7 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
           {state.message}
         </p>
       )}
-      <div className="expense-submit-bar">
+      <div className={styles["expense-submit-bar"]}>
         <SaveButton />
       </div>
     </form>

@@ -16,6 +16,8 @@ import {
   renameCategoryAction,
 } from "./actions";
 
+import styles from "./categories.module.css";
+
 const typeLabels: Readonly<Record<CategoryType, string>> = {
   expense: "支出カテゴリ",
   income: "収入カテゴリ",
@@ -66,9 +68,9 @@ function AddCategoryForm({
 
   return (
     <div className="category-add">
-      <form action={formAction} className="category-add-form">
+      <form action={formAction} className={styles["category-add-form"]}>
         <label htmlFor={inputId}>新しいカテゴリ名</label>
-        <div className="category-add-controls">
+        <div className={styles["category-add-controls"]}>
           <input
             autoComplete="off"
             id={inputId}
@@ -78,7 +80,7 @@ function AddCategoryForm({
             required
           />
           <PendingButton
-            className="primary-button category-add-button"
+            className={`primary-button ${styles["category-add-button"]}`}
             idleLabel="追加"
             pendingLabel="追加中…"
           />
@@ -107,9 +109,9 @@ function RenameCategoryForm({
   const inputId = useId();
 
   return (
-    <div className="category-rename">
-      <form action={formAction} className="category-rename-form">
-        <label className="category-sr-label" htmlFor={inputId}>
+    <div className={styles["category-rename"]}>
+      <form action={formAction} className={styles["category-rename-form"]}>
+        <label className={styles["category-sr-label"]} htmlFor={inputId}>
           {category.name}の新しい名称
         </label>
         <input
@@ -122,7 +124,7 @@ function RenameCategoryForm({
           required
         />
         <PendingButton
-          className="secondary-button category-rename-button"
+          className={`secondary-button ${styles["category-rename-button"]}`}
           idleLabel="名称を保存"
           pendingLabel="保存中…"
         />
@@ -154,10 +156,10 @@ function MoveCategoryForm({
 
   return (
     <div className="category-move">
-      <form action={formAction} className="category-move-form">
+      <form action={formAction} className={styles["category-move-form"]}>
         <button
           aria-label={`${category.name}を上へ移動`}
-          className="secondary-button category-move-button"
+          className={`secondary-button ${styles["category-move-button"]}`}
           disabled={pending || isFirst}
           name="direction"
           type="submit"
@@ -167,7 +169,7 @@ function MoveCategoryForm({
         </button>
         <button
           aria-label={`${category.name}を下へ移動`}
-          className="secondary-button category-move-button"
+          className={`secondary-button ${styles["category-move-button"]}`}
           disabled={pending || isLast}
           name="direction"
           type="submit"
@@ -195,15 +197,17 @@ function ArchiveCategoryForm({
   );
 
   return (
-    <details className="category-archive">
-      <summary className="category-archive-summary">アーカイブ…</summary>
+    <details className={styles["category-archive"]}>
+      <summary className={styles["category-archive-summary"]}>
+        アーカイブ…
+      </summary>
       <p className="field-hint">
         「{category.name}
         」を新規取引の選択肢から外します。過去の取引の表示は変わりません。
       </p>
-      <form action={formAction} className="category-archive-form">
+      <form action={formAction} className={styles["category-archive-form"]}>
         <PendingButton
-          className="secondary-button danger-text category-archive-button"
+          className={`secondary-button danger-text ${styles["category-archive-button"]}`}
           idleLabel="アーカイブする"
           pendingLabel="アーカイブ中…"
         />
@@ -225,8 +229,8 @@ function CategoryRow({
   isLast: boolean;
 }) {
   return (
-    <li className="category-row">
-      <div className="category-row-actions">
+    <li className={styles["category-row"]}>
+      <div className={styles["category-row-actions"]}>
         <RenameCategoryForm category={category} groupId={groupId} />
         <MoveCategoryForm
           category={category}
@@ -251,14 +255,14 @@ function CategoryTypeSection({
 }) {
   const headingId = `category-section-${type}`;
   return (
-    <section aria-labelledby={headingId} className="category-section">
+    <section aria-labelledby={headingId} className={styles["category-section"]}>
       <h2 id={headingId}>{typeLabels[type]}</h2>
       {categories.length === 0 ? (
         <p className="field-hint">
           アクティブなカテゴリがありません。下のフォームから追加してください。
         </p>
       ) : (
-        <ul className="category-list">
+        <ul className={styles["category-list"]}>
           {categories.map((category, index) => (
             <CategoryRow
               category={category}
@@ -285,7 +289,7 @@ export function CategoryManagement({
   incomeCategories: readonly CategorySummary[];
 }) {
   return (
-    <div className="category-manager">
+    <div className={styles["category-manager"]}>
       <CategoryTypeSection
         categories={expenseCategories}
         groupId={groupId}

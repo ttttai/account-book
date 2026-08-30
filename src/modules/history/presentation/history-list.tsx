@@ -6,6 +6,8 @@ import { formatHistoryJpy } from "../domain/history-jpy";
 import { appendHistoryRows, type HistoryRow } from "../domain/history-row";
 import { loadMoreHistoryAction } from "./actions";
 
+import styles from "./history.module.css";
+
 type HistoryListProps = Readonly<{
   groupId: string;
   filterParams: Readonly<Record<string, string>>;
@@ -20,21 +22,25 @@ function formatHistoryDate(date: string): string {
 
 function HistoryRowItem({ row }: Readonly<{ row: HistoryRow }>) {
   return (
-    <li className="history-row">
-      <div className="history-row-heading">
+    <li className={styles["history-row"]}>
+      <div className={styles["history-row-heading"]}>
         <span
-          className="history-category-dot"
+          className={styles["history-category-dot"]}
           data-category-color={row.categoryColor}
         />
         <strong>{row.categoryName}</strong>
-        <span className={`history-type history-type-${row.type}`}>
+        <span
+          className={`${styles["history-type"]} ${
+            styles[`history-type-${row.type}`] ?? ""
+          }`}
+        >
           {row.type === "expense" ? "支出" : "収入"}
         </span>
-        <span className="history-amount">
+        <span className={styles["history-amount"]}>
           {formatHistoryJpy(row.amountMinor)}
         </span>
       </div>
-      <p className="history-row-meta">
+      <p className={styles["history-row-meta"]}>
         <time dateTime={row.transactionDate}>
           {formatHistoryDate(row.transactionDate)}
         </time>
@@ -43,7 +49,7 @@ function HistoryRowItem({ row }: Readonly<{ row: HistoryRow }>) {
         </span>
       </p>
       {row.allocations.length > 0 ? (
-        <p className="history-row-allocations">
+        <p className={styles["history-row-allocations"]}>
           負担{" "}
           {row.allocations
             .map(
@@ -53,7 +59,9 @@ function HistoryRowItem({ row }: Readonly<{ row: HistoryRow }>) {
             .join(" / ")}
         </p>
       ) : null}
-      {row.memo ? <p className="history-row-memo">{row.memo}</p> : null}
+      {row.memo ? (
+        <p className={styles["history-row-memo"]}>{row.memo}</p>
+      ) : null}
     </li>
   );
 }
@@ -95,26 +103,26 @@ export function HistoryList({
   }
 
   return (
-    <section className="history-results" aria-label="取引履歴の一覧">
+    <section className={styles["history-results"]} aria-label="取引履歴の一覧">
       {rows.length === 0 ? (
-        <p className="history-empty-message">
+        <p className={styles["history-empty-message"]}>
           条件に一致する取引はありません。
         </p>
       ) : (
-        <ol className="history-rows">
+        <ol className={styles["history-rows"]}>
           {rows.map((row) => (
             <HistoryRowItem key={row.id} row={row} />
           ))}
         </ol>
       )}
       {errorMessage ? (
-        <p className="history-error-message" role="alert">
+        <p className={styles["history-error-message"]} role="alert">
           {errorMessage}
         </p>
       ) : null}
       {nextCursor ? (
         <button
-          className="secondary-button history-load-more"
+          className={`secondary-button ${styles["history-load-more"]}`}
           type="button"
           disabled={isLoading}
           onClick={handleLoadMore}

@@ -88,15 +88,17 @@ test("支出カテゴリはモバイルで比較しやすいradio cardとして�
   const form = await read(
     "src/modules/transactions/presentation/expense-form.tsx",
   );
-  const styles = await read("src/app/styles.css");
+  const styles = await read(
+    "src/modules/transactions/presentation/transactions.module.css",
+  );
 
   assert.match(
     form,
-    /<fieldset\s+[\s\S]*?className="category-fieldset"[\s\S]*?>/,
+    /<fieldset\s+[\s\S]*?className=\{styles\["category-fieldset"\]\}[\s\S]*?>/,
   );
   assert.match(form, /name="categoryId"/);
   assert.match(form, /type="radio"/);
-  assert.match(form, /className="category-option"/);
+  assert.match(form, /className=\{styles\["category-option"\]\}/);
   assert.doesNotMatch(form, /<select[\s\S]+name="categoryId"/);
   assert.match(
     styles,

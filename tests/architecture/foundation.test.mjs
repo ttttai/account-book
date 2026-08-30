@@ -178,3 +178,71 @@ test("GitHub Actionsで最小権限の品質・統合CIを実行する", async (
   assert.match(environmentSetup, /LOCAL_GOOGLE_OAUTH_ENABLED/);
   assert.match(environmentSetup, /LOCAL_ALLOWED_GOOGLE_EMAILS/);
 });
+
+test("スタイルを所有権で分離する (NFR-MNT-010)", async () => {
+  const globalCss = await read("src/app/styles.css");
+
+  // 単一機能のpresentationだけが使う機能固有セレクタをglobalへ残さない。
+  const featureSelectors = [
+    "calendar-grid",
+    "calendar-day-panel",
+    "expense-form",
+    "segmented-control",
+    "category-option",
+    "group-navigation-link",
+    "invitation-panel",
+    "member-list",
+    "history-row",
+    "history-filter-form",
+    "category-manager",
+    "category-row",
+    "logout-form",
+    "profile-form",
+  ];
+  for (const cls of featureSelectors) {
+    assert.doesNotMatch(
+      globalCss,
+      new RegExp(`\\.${cls}(?![a-zA-Z0-9_-])`),
+      `.${cls}はglobalではなく機能のCSS Modulesに置く必要があります`,
+    );
+  }
+
+  // 旧メール認証の未使用セレクタを残さない。
+  for (const cls of ["auth-form", "auth-links", "auth-separator"]) {
+    assert.doesNotMatch(globalCss, new RegExp(`\\.${cls}(?![a-zA-Z0-9_-])`));
+  }
+
+  // 機能単位のCSS Modulesがpresentationに併置され、コンポーネントから参照される。
+  const featureModules = [
+    [
+      "src/modules/auth/presentation/auth.module.css",
+      "src/modules/auth/presentation/auth-forms.tsx",
+    ],
+    [
+      "src/modules/calendar/presentation/calendar.module.css",
+      "src/modules/calendar/presentation/calendar-home.tsx",
+    ],
+    [
+      "src/modules/categories/presentation/categories.module.css",
+      "src/modules/categories/presentation/category-management.tsx",
+    ],
+    [
+      "src/modules/groups/presentation/groups.module.css",
+      "src/modules/groups/presentation/group-navigation.tsx",
+    ],
+    [
+      "src/modules/history/presentation/history.module.css",
+      "src/modules/history/presentation/history-view.tsx",
+    ],
+    [
+      "src/modules/transactions/presentation/transactions.module.css",
+      "src/modules/transactions/presentation/expense-form.tsx",
+    ],
+  ];
+  for (const [cssPath, tsxPath] of featureModules) {
+    const moduleCss = await read(cssPath);
+    assert.ok(moduleCss.length > 0, `${cssPath}が必要です`);
+    const tsx = await read(tsxPath);
+    assert.match(tsx, /import styles from ".\/[a-z]+\.module\.css"/);
+  }
+});

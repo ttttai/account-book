@@ -127,12 +127,13 @@ test("カテゴリ操作は44px以上のタップ領域を持つform submitと�
   const management = await read(
     "src/modules/categories/presentation/category-management.tsx",
   );
-  const styles = await read("src/app/styles.css");
+  const styles = await read(
+    "src/modules/categories/presentation/categories.module.css",
+  );
 
   assert.match(management, /<form\s/);
   assert.match(management, /name="direction"/);
   assert.match(management, /<details/);
-  assert.match(styles, /\/\* ===== category management ===== \*\//);
   assert.match(
     styles,
     /\.category-row-actions (?:button|.*)\s*{[\s\S]*?min-height:\s*(?:44|4[5-9]|[5-9]\d)px/,
