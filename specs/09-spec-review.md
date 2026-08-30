@@ -4,7 +4,7 @@
 
 レビュー日: 2026-08-29
 
-対象バージョン: 0.2.17
+対象バージョン: 0.2.19
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.17の自動文書検査では、要件ID 98件、明示的な受け入れ条件ID 112件が一意であり、重複宣言はなかった。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
+バージョン0.2.19の自動文書検査では、要件ID 104件、明示的な受け入れ条件ID 122件が一意であり、重複宣言はなかった。過去版のレビューに記載した要件ID件数には集計誤りがあったため、本版で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -481,6 +481,48 @@ MVP範囲確認: workflowレベルの`paths-ignore`、外部のpaths-filter Acti
 
 判定: `INF-017`、`AC-INF-001-19`、`AC-INF-001-20`は`INF-012`、`INF-016`、`NFR-OPS-*`、`NFR-MNT-005`と整合し、安全かつ実装可能である。受け入れ条件に対応する構造testを先に作成し、実装後にformat、lint、型検査、architecture test、本番buildで検証することを条件に実装開始を承認する。
 
+### R-042 モバイル共通ナビゲーションとカレンダー優先ホーム
+
+指摘: 承認済み画面仕様は下部ナビゲーションを5項目としていたが、実装はグループホーム上部の複数linkと支出追加ボタンに分散し、固定ナビゲーションがなかった。片手操作では画面上部の履歴・メンバー・設定系linkへ届きにくく、プロフィールやグループ切替を含む管理操作の入口も分散していた。また、ホームは大きなheader、上部操作、月間集計、42日カレンダーを縦に並べており、375 x 812でカレンダー全体を初期viewportに収める要件がなかった。
+
+対応: グループ配下の共通ナビゲーションを「ホーム、履歴、＋入力、設定」の4項目へ整理し、モバイルではsafe area対応の画面下部、広い画面では同じ順序・意味のサイドナビゲーションとして表示する。入力を中央の主要操作とし、現在地を`aria-current`と色以外の形状で示す。メンバー、カテゴリ、CSV、プロフィール、グループ切替・作成、グループ設定、ログアウトの入口は`/groups/{groupId}/settings`へ集約する。各管理routeの認証・認可は従来どおり遷移先で再確認する。
+
+ホームは選択中グループの月間カレンダーと明確化し、通常文字サイズの375 x 812ではコンパクトなグループheader、月移動、対象切替、月間合計、曜日、42日分、下部ナビゲーションを初期viewportへ収める。特定機種名や固定画面高で分岐せず、`100dvh`、可変grid、`clamp()`、safe areaを使う。375 x 667や大きな文字設定で高さが不足する場合は、情報を切る代わりにページの縦scrollを許可する。日別取引は従来どおりbottom sheetで重ね、カレンダー本文を押し下げない。
+
+安全性確認: 変更はroute間の導線、表示密度、共通layout、設定ハブに限定し、DB、RLS、認証、取引更新、金額計算、カレンダーqueryを変更しない。設定ハブは権限を付与せず、memberがowner/admin向けURLを直接開いた場合の拒否を各既存境界へ委ねる。外部入力や秘密値を新たにClient Componentへ渡さない。
+
+実装可能性確認: Next.js 16.3.2同梱ガイドでは動的segmentの`layout.tsx`で子routeへ共通UIを提供し、現在pathnameだけを必要とする小さなClient Componentで`usePathname`を利用できる。共通layoutはデータ取得を行わず、`params`のgroup IDから安全に内部URLを構成する。履歴、メンバー、カテゴリの並行PRとは公開URLだけで接続し、各機能moduleの内部を変更しない。構造testで4項目、route、現在地、設定集約、safe area、viewport規則を固定できる。
+
+MVP範囲確認: 新しい業務機能、設定更新command、依存package、DB migration、ネイティブアプリ化は追加しない。設定ハブは実装済みまたは承認済みの管理画面への入口を集約する範囲とし、未実装機能の内部実装は各既存PRへ委ねる。
+
+判定: `NAV-001`〜`NAV-004`、`AC-NAV-001-1`〜`AC-NAV-004-2`、`CAL-001`、`NFR-UI-001`〜`NFR-UI-008`、`NFR-A11Y-003`に整合する。受け入れ条件に対応する構造・component testを先に追加し、format、lint、型検査、本番build、320px・375 x 667・375 x 812・390px・430px・1280 x 800の実画面確認を条件に実装開始を承認する。
+
+実装確認: 動的segmentの共通layoutと4項目ナビゲーション、設定ハブ、カレンダー優先ホームを実装した。ナビゲーションのroute・現在地・設定集約・safe area・viewport規則を対象とするarchitecture test 5件とcomponent test 5件を追加し、全体ではarchitecture test 57件、component・unit test 189件、format、警告なしlint、型検査、本番buildが成功した。実画面では320 x 812と375 x 812で横scrollがなく、42日分の最下段が固定ナビゲーションより上に収まることを確認した。高さ667px以下は構造testで44pxセルと縦scrollへのfallbackを固定した。1280px幅では同じ4項目が左サイドへ切り替わり、横scrollなしでカレンダーが利用可能幅へ適応することを確認した。DB、RLS、認証、query、command、金額計算は変更していない。
+
+### R-043 並行PR画面と共通ナビゲーションの統合
+
+指摘: 履歴PR #21はheaderへ「ホーム」「グループ一覧」、メンバーPR #20とカテゴリPR #23は「ホームへ戻る」を持つ。これらを共通layoutと同時に表示すると、同じ画面間導線が上部と下部または左側へ重複し、モバイルの表示領域と操作の一貫性を損なう。一方、未マージの各PRから戻る導線を削除すると、各PRを単独確認した場合に画面から戻りにくくなる。4つのPRが同じ`styles.css`へ追加しているため、個別CIだけでは統合後の競合とbuild成功も証明できない。
+
+対応: 各機能PRを単独で動かすためのheader linkは維持し、共通layoutが存在する最終構成でだけ、履歴・メンバー・カテゴリheaderの重複する画面間linkをCSSで非表示にする。履歴の絞り込み、メンバー権限変更、カテゴリ編集など画面固有操作は変更しない。PR #33を基点とする一時統合worktreeへ#20、#21、#23をmergeし、競合解消結果、全test、本番build、現在地、375px・1280px表示を確認する。一時統合commitは各PRへ混入させない。
+
+安全性確認: 表示する導線だけの変更であり、各画面の認証、所属・role認可、Server Action、DB command、migration、RLSは変更しない。非表示対象は共通layout内部かつ対象page header直下へ限定し、エラー回復や機能固有の操作を隠さない。
+
+実装可能性確認: 動的segmentの共通layoutは対象3routeを自動的に包むため、機能PR側へ共通componentの重複実装は不要である。限定selectorとarchitecture testで最終構成の表示規則を固定できる。実際の4branch統合でCSSの順序、型、公開境界を検証する。
+
+MVP範囲確認: 履歴、メンバー、カテゴリの業務仕様やデータ処理を拡張せず、承認済み画面を共通ナビゲーションへ統合する範囲に限定する。
+
+判定: `AC-NAV-001-4`、`NAV-001`〜`NAV-004`、既存の`HIS-*`、`GRP-007`〜`GRP-008`、`CAT-002`〜`CAT-003`と整合し、安全かつ実装可能である。限定selectorのtestを先に追加し、4branch一時統合で全品質gateとレスポンシブ表示を確認することを条件に実装開始を承認する。
+
+実装確認: 共通layout内の履歴headerにある画面間nav、メンバー・カテゴリheader直下の戻るlinkだけを非表示にし、機能固有領域を非表示にしないarchitecture testを追加した。PR #33を基点とする一時worktreeへ#20、#21、#23を順にmergeした結果、#20は自動統合でき、#21は`styles.css`、#23は`styles.css`と`tests/integration/run-local.sql`で競合した。検証用mergeでは全機能のCSSと両integration SQLを保持して解決し、format、警告なしlint、型検査、本番build、architecture test 75件、component・unit test 279件が成功した。build結果に`/history`、`/members`、`/categories`、`/settings`の全routeが含まれることを確認した。iPhone 17・iOS 26.5 SimulatorのSafariでは、履歴headerの重複導線が表示されず、履歴固有のshortcut・絞り込み・明細を維持し、下部4項目navがsafe areaより上で固定され、横方向の欠落・重なりがないことを確認した。確認用routeと検証用mergeは各PRへ含めていない。
+
+### R-044 ナビゲーション入力項目の強調廃止と設定アイコン修正
+
+指摘: 実機確認で、下部ナビゲーションの「＋入力」だけを浮き上がる強調ボタンとして表示するデザインは過剰であり、他項目と同じ表示で良いという利用者判断があった。また設定アイコンは塗りつぶし前提のgear pathを線描画で表示していたため輪郭が崩れて見えた。
+
+対応: `NAV-003`、`AC-NAV-003-1`、画面仕様の該当記述を「他項目と同じデザインで表示する」へ更新し、強調用CSSと専用classを削除する。labelも「＋入力」から「入力」へ変更し、記号による強調を残さない。設定アイコンは線描画前提のgear（円と外形の2要素）へ差し替える。タップ領域44px以上、label表示、`aria-current`による現在地表示は変更しない。
+
+判定: 表示デザインのみの変更でroute、認可、データ処理へ影響せず、`NFR-UI-*`、`NFR-A11Y-003`との整合を保つ。既存のnavigation構造test・component testの通過を条件に承認する。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                           |
@@ -490,6 +532,7 @@ MVP範囲確認: workflowレベルの`paths-ignore`、外部のpaths-filter Acti
 | `CAT-001`〜`CAT-003`   | category integration、権限test                         |
 | `TXN-001`〜`TXN-013`   | 金額・負担単体test、取引integration、E2E               |
 | `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E               |
+| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認         |
 | `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                      |
 | `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E        |
 | `NFR-SEC-*`            | RLS、server境界、production設定review                  |
