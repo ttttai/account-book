@@ -59,7 +59,7 @@
 - カテゴリ追加・名称変更・並び替え・アーカイブcommandがowner/admin限定、名称制約、順序検証、冪等なアーカイブを満たすこと
 - 共通ナビゲーションが4項目、44px以上のタップ領域、現在地、safe areaを持ち、メンバーを設定配下として扱うこと
 - Web App Manifestが名称「わが家計」、`start_url: /`、`display: standalone`、デザイントークンと一致する`theme_color`・`background_color`、192 x 192・512 x 512・maskableのPNGアイコンを宣言すること
-- manifestが宣言するアイコンファイルとapple-touch-icon用ファイルが存在し、宣言どおりのPNG寸法であること
+- manifestが宣言するアイコンファイル、apple-touch-icon用ファイル、favicon用ファイルが存在し、宣言どおりのPNG寸法であること
 - Service Worker登録コードとオフラインキャッシュが存在しないこと
 - 履歴・メンバー・カテゴリの並行PRを共通layoutと一時統合し、headerの画面間導線が重複せず、各画面固有操作と現在地表示が維持されること
 - 設定ハブが既存管理機能への入口を集約し、各遷移先の認証・認可境界を迂回しないこと
