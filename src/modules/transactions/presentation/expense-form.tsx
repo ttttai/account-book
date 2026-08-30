@@ -62,17 +62,15 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
     actionWithGroup,
     INITIAL_EXPENSE_ACTION_STATE,
   );
-  const defaultMemberIds =
-    options.group.defaultAllocation === "equal"
-      ? options.members.map((member) => member.membershipId)
-      : [options.group.currentMembershipId];
+  // 初期の負担方法は常に「1人」（現在のメンバーが全額負担）とする (AC-TXN-001-10)
+  const defaultMemberIds = [options.group.currentMembershipId];
   const [amountMinor, setAmountMinor] = useState("");
   const [payerMemberId, setPayerMemberId] = useState(
     options.group.currentMembershipId,
   );
   const [allocationMethod, setAllocationMethod] = useState<
     "equal" | "single" | "custom"
-  >(options.group.defaultAllocation === "equal" ? "equal" : "single");
+  >("single");
   const [selectedMemberIds, setSelectedMemberIds] =
     useState<readonly string[]>(defaultMemberIds);
   const [customAmounts, setCustomAmounts] = useState<
@@ -118,7 +116,8 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
   // 負担方法の切り替え時に、選択メンバーを方法ごとの妥当な初期値へ整える
   function chooseAllocationMethod(method: "equal" | "single" | "custom") {
     setAllocationMethod(method);
-    if (method === "equal" && selectedMemberIds.length === 0) {
+    // 均等へ切り替えた時点で複数選択を調整していなければ、全アクティブメンバーを選択する
+    if (method === "equal" && selectedMemberIds.length <= 1) {
       setSelectedMemberIds(
         options.members.map((member) => member.membershipId),
       );
@@ -253,8 +252,8 @@ export function ExpenseForm({ options, clientRequestId }: ExpenseFormProps) {
         <div className={styles["segmented-control"]}>
           {(
             [
-              ["equal", "均等"],
               ["single", "1人"],
+              ["equal", "均等"],
               ["custom", "カスタム"],
             ] as const
           ).map(([value, label]) => (

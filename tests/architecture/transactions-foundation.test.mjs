@@ -119,3 +119,24 @@ test("支出カテゴリはモバイルで比較しやすいradio cardとして�
     /\.expense-field input\[type="date"\]\s*\{[^}]*appearance:\s*none/s,
   );
 });
+
+test("負担方法は1人を先頭にして初期選択にする (AC-TXN-001-10)", async () => {
+  const form = await read(
+    "src/modules/transactions/presentation/expense-form.tsx",
+  );
+
+  // 表示順: 1人、均等、カスタム
+  assert.match(
+    form,
+    /\["single", "1人"\],\s*\["equal", "均等"\],\s*\["custom", "カスタム"\]/s,
+  );
+  // 初期選択は常に1人で、グループの標準負担方法へ依存しない
+  assert.match(
+    form,
+    /useState<\s*"equal" \| "single" \| "custom"\s*>\("single"\)/s,
+  );
+  assert.doesNotMatch(
+    form,
+    /defaultAllocation === "equal"\s*\?\s*"equal"\s*:\s*"single"/,
+  );
+});
