@@ -18,6 +18,7 @@ export type CalendarSummary = Readonly<{
   dailyTotals: Readonly<Record<string, number>>;
 }>;
 
+// 加算のたびに安全な整数範囲を検証し、金額の桁あふれを例外にする
 function safeAdd(left: number, right: number): number {
   if (
     !Number.isSafeInteger(left) ||
@@ -32,6 +33,7 @@ function safeAdd(left: number, right: number): number {
   return result;
 }
 
+// 対象（グループ全体または特定メンバーの負担額）で月間合計と日別合計を集計する
 export function calculateCalendarSummary(
   expenses: readonly CalendarExpense[],
   target: CalendarSummaryTarget,
@@ -71,6 +73,7 @@ export function calculateCalendarSummary(
   };
 }
 
+// 金額を3桁区切りの数字文字列にする
 // server renderとclient hydrationで同一文字列にするため、locale実装に依存しない
 export function formatCalendarCellJpy(amountMinor: number): string {
   if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) {
@@ -79,6 +82,7 @@ export function formatCalendarCellJpy(amountMinor: number): string {
   return String(amountMinor).replace(/\B(?=(\d{3})+$)/g, ",");
 }
 
+// 円記号付きの表示用金額文字列にする
 export function formatJpy(amountMinor: number): string {
   return `￥${formatCalendarCellJpy(amountMinor)}`;
 }

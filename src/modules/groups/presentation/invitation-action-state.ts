@@ -1,3 +1,4 @@
+// 招待リンク作成の状態。shareUrlは成功直後の1度だけ画面に表示される
 export type CreateInvitationActionState = Readonly<{
   status: "idle" | "error" | "success";
   message?: string;

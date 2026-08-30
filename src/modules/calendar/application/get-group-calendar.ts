@@ -59,6 +59,7 @@ const transactionRowSchema = z.object({
   ),
 });
 
+// 指定タイムゾーンでの日付をYYYY-MM-DDで得る（Intlのparts分解でDateのローカル依存を避ける）
 function dateInTimeZone(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -70,6 +71,7 @@ function dateInTimeZone(date: Date, timeZone: string): string {
   return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
 }
 
+// 日別パネル用に、対象者の負担額が0より大きい取引だけを登録の新しい順で日付別にまとめる
 function createDayTransactionsByDate(
   expenses: readonly CalendarExpense[],
   targetMembershipId: string | undefined,
@@ -119,6 +121,7 @@ function createDayTransactionsByDate(
   return transactionsByDate;
 }
 
+// 認証・所属確認と表示条件の検証を行い、グループカレンダー画面の表示データ一式を取得する
 export async function getGroupCalendar(
   unsafeGroupId: string,
   search: CalendarSearchInput,
@@ -172,6 +175,7 @@ export async function getGroupCalendar(
   }
 
   const selection = selectionResult.value;
+  // scopeに応じて集計対象メンバーを決める（member指定時は実在するメンバーか確認）
   const targetMembership =
     selection.scope === "group"
       ? undefined

@@ -32,6 +32,7 @@ const memoSchema = z
   .refine((value) => value.length <= 500, "メモは500文字以内です。")
   .transform((value) => (value === "" ? null : value));
 
+// 支出登録入力の検証スキーマ（FormData由来の文字列を数値やnull許容メモへ変換する）
 export const createExpenseInputSchema = z.object({
   groupId: z.uuid(),
   amountMinor: amountMinorSchema,

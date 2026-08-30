@@ -17,6 +17,7 @@ function disableCaching(response: NextResponse) {
   return response;
 }
 
+// Google OAuthのコールバック。認可コードをセッションへ交換し、許可アカウントのみ通す
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const siteOrigin = getConfiguredSiteOrigin();
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      // 許可外アカウントはセッションを破棄してログイン画面へ戻す
       await supabase.auth.signOut();
       return disableCaching(
         applyToResponse(

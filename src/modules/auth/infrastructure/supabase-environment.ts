@@ -8,6 +8,7 @@ export type SupabasePublicEnvironment = Readonly<{
 
 export type SupabaseServerEnvironment = SupabasePublicEnvironment;
 
+// ブラウザへ公開可能なSupabase接続情報を環境変数から取得する。未設定なら例外
 export function getSupabasePublicEnvironment(): SupabasePublicEnvironment {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -19,6 +20,7 @@ export function getSupabasePublicEnvironment(): SupabasePublicEnvironment {
   return { url, publishableKey };
 }
 
+// サーバー用のSupabase接続情報を取得する。コンテナ内部URLが設定されていれば優先する
 export function getSupabaseServerEnvironment(): SupabaseServerEnvironment {
   const publicEnvironment = getSupabasePublicEnvironment();
 

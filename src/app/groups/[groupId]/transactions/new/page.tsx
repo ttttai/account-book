@@ -12,6 +12,7 @@ type NewExpensePageProps = Readonly<{
   searchParams: Promise<{ date?: string | string[] }>;
 }>;
 
+// 支出登録画面。表示ごとにclientRequestIdを発行し、二重送信時の重複登録を防ぐ
 export default async function NewExpensePage({
   params,
   searchParams,

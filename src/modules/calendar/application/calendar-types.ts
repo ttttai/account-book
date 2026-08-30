@@ -56,6 +56,7 @@ export type CalendarInvalidData = Readonly<{
   reason: "invalid_month" | "invalid_scope" | "invalid_member" | "invalid_day";
 }>;
 
+// 表示条件の検証結果に応じて「表示可能」か「不正」のどちらかになる状態union
 export type GroupCalendarData = CalendarReadyData | CalendarInvalidData;
 
 export type CalendarSearchInput = Readonly<{

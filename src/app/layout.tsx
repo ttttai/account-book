@@ -17,6 +17,7 @@ export const viewport: Viewport = {
 
 type RootLayoutProps = Readonly<{ children: ReactNode }>;
 
+// 全画面共通のルートレイアウト（日本語設定と共通スタイルの適用）
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ja">
