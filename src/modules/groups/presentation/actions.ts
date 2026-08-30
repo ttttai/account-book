@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { acceptInvitation } from "../application/accept-invitation";
+import { changeMemberRole } from "../application/change-member-role";
 import { createInvitation } from "../application/create-invitation";
 import { createGroup } from "../application/create-group";
+import { removeMember } from "../application/remove-member";
 import { revokeInvitation } from "../application/revoke-invitation";
 import { createGroupSchema } from "../domain/group-input";
 import {
@@ -13,12 +15,17 @@ import {
   createInvitationSchema,
   revokeInvitationSchema,
 } from "../domain/invitation-input";
+import {
+  changeMemberRoleSchema,
+  removeMemberSchema,
+} from "../domain/member-administration-input";
 import type { GroupActionState } from "./action-state";
 import type {
   AcceptInvitationActionState,
   CreateInvitationActionState,
   RevokeInvitationActionState,
 } from "./invitation-action-state";
+import type { MemberAdministrationActionState } from "./member-administration-action-state";
 
 function value(formData: FormData, name: string): string {
   const field = formData.get(name);
@@ -137,6 +144,105 @@ export async function acceptInvitationAction(
     return {
       status: "error",
       message: "招待を承認できませんでした。ログイン状態を確認してください。",
+    };
+  }
+}
+
+// 権限変更の結果メッセージで使う役割の表示名
+const memberRoleLabels = {
+  owner: "オーナー",
+  admin: "管理者",
+  member: "メンバー",
+} as const;
+
+// メンバー権限変更のServer Action。最後のオーナーの降格は拒否される
+export async function changeMemberRoleAction(
+  groupId: string,
+  _previousState: MemberAdministrationActionState,
+  formData: FormData,
+): Promise<MemberAdministrationActionState> {
+  const result = changeMemberRoleSchema.safeParse({
+    groupId,
+    membershipId: value(formData, "membershipId"),
+    role: value(formData, "role"),
+  });
+  if (!result.success) {
+    return { status: "error", message: "変更内容を確認してください。" };
+  }
+
+  try {
+    const outcome = await changeMemberRole(result.data);
+    switch (outcome) {
+      case "changed":
+      case "unchanged":
+        revalidatePath(`/groups/${result.data.groupId}/members`);
+        return {
+          status: "success",
+          message: `権限を${memberRoleLabels[result.data.role]}にしました。`,
+        };
+      case "last_owner":
+        return {
+          status: "error",
+          message:
+            "最後のオーナーの権限は変更できません。先に別のメンバーをオーナーへ昇格してください。",
+        };
+      case "not_found":
+        return {
+          status: "error",
+          message:
+            "対象のメンバーが見つかりません。画面を再読み込みしてください。",
+        };
+    }
+  } catch {
+    return {
+      status: "error",
+      message: "権限を変更できませんでした。権限と接続状態を確認してください。",
+    };
+  }
+}
+
+// メンバーをグループから外すServer Action。最後のオーナーは外せない
+export async function removeMemberAction(
+  groupId: string,
+  _previousState: MemberAdministrationActionState,
+  formData: FormData,
+): Promise<MemberAdministrationActionState> {
+  const result = removeMemberSchema.safeParse({
+    groupId,
+    membershipId: value(formData, "membershipId"),
+  });
+  if (!result.success) {
+    return { status: "error", message: "対象のメンバーを確認してください。" };
+  }
+
+  try {
+    const outcome = await removeMember(result.data);
+    switch (outcome) {
+      case "removed":
+        revalidatePath(`/groups/${result.data.groupId}/members`);
+        return {
+          status: "success",
+          message:
+            "メンバーをグループから外しました。過去の取引の表示は残ります。",
+        };
+      case "owner_not_removable":
+        return {
+          status: "error",
+          message:
+            "オーナーはグループから外せません。先に権限を変更してください。",
+        };
+      case "not_found":
+        return {
+          status: "error",
+          message:
+            "対象のメンバーが見つかりません。画面を再読み込みしてください。",
+        };
+    }
+  } catch {
+    return {
+      status: "error",
+      message:
+        "メンバーをグループから外せませんでした。権限と接続状態を確認してください。",
     };
   }
 }

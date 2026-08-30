@@ -4,3 +4,4 @@
 \ir groups-sharing-local.sql
 \ir transactions-local.sql
 \ir category-management-local.sql
+\ir member-administration-local.sql
