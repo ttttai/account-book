@@ -21,7 +21,7 @@ function formatDate(value: string): string {
   return `${year}年${month}月${day}日`;
 }
 
-// 支出編集画面。保存済みの内容を初期表示し、楽観的ロック付きの更新と削除を提供する
+// 取引（支出・収入）編集画面。保存済みの内容を初期表示し、楽観的ロック付きの更新と削除を提供する
 export default async function EditExpensePage({
   params,
   searchParams,
@@ -52,7 +52,9 @@ export default async function EditExpensePage({
       <header className="app-header expense-header">
         <div>
           <p className="eyebrow">{data.options.group.name}</p>
-          <h1 className="group-page-title">支出を編集</h1>
+          <h1 className="group-page-title">
+            {data.transaction.type === "income" ? "収入を編集" : "支出を編集"}
+          </h1>
         </div>
         <Link className="text-link" href={returnTo}>
           キャンセル

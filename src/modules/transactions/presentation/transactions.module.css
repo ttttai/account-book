@@ -359,6 +359,7 @@
     padding: 1.5rem;
   }
   .amount-field,
+  .type-fieldset,
   .expense-form-grid,
   .expense-submit-bar,
   .expense-form > :global(.form-message) {
@@ -490,4 +491,10 @@
 
 :global(.primary-button).danger-button {
   background: #a3342f;
+}
+
+/* 種別切替（支出・収入） */
+
+.type-fieldset {
+  padding: 0.6rem 0.9rem 0.9rem;
 }

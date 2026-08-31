@@ -366,3 +366,55 @@
     box-shadow: 0 18px 48px rgb(30 45 38 / 12%);
   }
 }
+
+/* 収入の表示（支出と色で区別し、＋表記を併用する） */
+
+.calendar-cell-income {
+  color: #2d5da8;
+}
+
+/* 月間合計の右側は支払額と収入を縦積みし、grid領域の重なりを防ぐ */
+.calendar-total-aside {
+  display: grid;
+  gap: 0.1rem;
+  justify-items: end;
+}
+
+/* 内側の値は親spanのgrid配置を継がず、1列に縦積みする */
+.calendar-total-aside span {
+  grid-column: 1;
+  grid-row: auto;
+}
+
+/* 緑バナー上でも読めるよう、収入は明るい青で示す（＋表記と併用し色だけに依存しない） */
+.calendar-total .calendar-total-income {
+  color: #cfe0ff;
+  font-weight: 700;
+}
+
+/* 狭い画面では金額が横に収まらないため、右側の値を合計の下へ縦積みして重なりを防ぐ */
+@media (max-width: 359px) {
+  .calendar-total {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .calendar-total span {
+    grid-column: 1;
+    grid-row: auto;
+    text-align: left;
+  }
+  .calendar-total-aside {
+    justify-items: start;
+  }
+}
+
+.calendar-day-income-total {
+  margin: 0.15rem 0 0;
+  color: #2d5da8;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.calendar-income-amount {
+  color: #2d5da8;
+  font-weight: 700;
+}

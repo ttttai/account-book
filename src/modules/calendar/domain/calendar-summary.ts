@@ -8,6 +8,15 @@ export type CalendarExpense = Readonly<{
   allocations: readonly Readonly<{ memberId: string; amountMinor: number }>[];
 }>;
 
+export type CalendarIncome = Readonly<{
+  id: string;
+  date: string;
+  amountMinor: number;
+  recipientMemberId: string;
+  createdAt: string;
+  category: Readonly<{ name: string; color: string; icon: string }>;
+}>;
+
 type CalendarSummaryTarget =
   | Readonly<{ scope: "group" }>
   | Readonly<{ scope: "member"; memberId: string }>;
@@ -71,6 +80,37 @@ export function calculateCalendarSummary(
     ...(target.scope === "member" ? { monthlyPaidTotal } : {}),
     dailyTotals,
   };
+}
+
+export type CalendarIncomeSummary = Readonly<{
+  monthlyIncomeTotal: number;
+  incomeDailyTotals: Readonly<Record<string, number>>;
+}>;
+
+// 対象（グループ全体または受取者が特定メンバー）の月間・日別の収入を集計する (AC-CAL-012-2)
+// 支出とは別に集計し、純額を作らない (CAL-009、CAL-012)
+export function calculateCalendarIncomeSummary(
+  incomes: readonly CalendarIncome[],
+  target: CalendarSummaryTarget,
+): CalendarIncomeSummary {
+  let monthlyIncomeTotal = 0;
+  const incomeDailyTotals: Record<string, number> = {};
+
+  for (const income of incomes) {
+    if (
+      target.scope === "member" &&
+      income.recipientMemberId !== target.memberId
+    ) {
+      continue;
+    }
+    monthlyIncomeTotal = safeAdd(monthlyIncomeTotal, income.amountMinor);
+    incomeDailyTotals[income.date] = safeAdd(
+      incomeDailyTotals[income.date] ?? 0,
+      income.amountMinor,
+    );
+  }
+
+  return { monthlyIncomeTotal, incomeDailyTotals };
 }
 
 // 金額を3桁区切りの数字文字列にする

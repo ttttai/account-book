@@ -29,6 +29,7 @@ const profileRowSchema = z.object({
 const categoryRowSchema = z.object({
   id: z.uuid(),
   name: z.string(),
+  type: z.enum(["expense", "income"]),
   color: z.string(),
   icon: z.string(),
   sort_order: z.number().int(),
@@ -74,10 +75,10 @@ export async function getExpenseFormOptions(
       .order("joined_at", { ascending: true }),
     supabase
       .from("categories")
-      .select("id, name, color, icon, sort_order")
+      .select("id, name, type, color, icon, sort_order")
       .eq("group_id", groupIdResult.data)
-      .eq("type", "expense")
       .is("archived_at", null)
+      .order("type", { ascending: true })
       .order("sort_order", { ascending: true }),
   ]);
 
@@ -113,6 +114,16 @@ export async function getExpenseFormOptions(
       .map((profile) => [profile.user_id, profile.display_name]),
   );
 
+  const activeCategories = z
+    .array(categoryRowSchema)
+    .parse(categoryResult.data ?? []);
+  const toFormCategory = (category: z.infer<typeof categoryRowSchema>) => ({
+    id: category.id,
+    name: category.name,
+    color: category.color,
+    icon: category.icon,
+  });
+
   return {
     group: {
       id: group.id,
@@ -130,14 +141,11 @@ export async function getExpenseFormOptions(
       displayName: profileByUserId.get(membership.user_id) ?? "メンバー",
       isCurrentUser: membership.user_id === userId,
     })),
-    categories: z
-      .array(categoryRowSchema)
-      .parse(categoryResult.data ?? [])
-      .map((category) => ({
-        id: category.id,
-        name: category.name,
-        color: category.color,
-        icon: category.icon,
-      })),
+    categories: activeCategories
+      .filter((category) => category.type === "expense")
+      .map(toFormCategory),
+    incomeCategories: activeCategories
+      .filter((category) => category.type === "income")
+      .map(toFormCategory),
   };
 }

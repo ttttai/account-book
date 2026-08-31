@@ -2,6 +2,7 @@ import type { ExpenseAllocation } from "../domain/expense-allocation";
 import type { ExpenseFormOptions } from "./expense-types";
 
 export type ExpenseEditTransaction = Readonly<{
+  type: "expense";
   id: string;
   amountMinor: number;
   transactionDate: string;
@@ -17,9 +18,27 @@ export type ExpenseEditTransaction = Readonly<{
   allocations: readonly ExpenseAllocation[];
 }>;
 
+export type IncomeEditTransaction = Readonly<{
+  type: "income";
+  id: string;
+  amountMinor: number;
+  transactionDate: string;
+  categoryId: string;
+  archivedCategory?: Readonly<{ id: string; name: string; color: string }>;
+  recipientMemberId: string;
+  recipientIsActive: boolean;
+  recipientDisplayName: string;
+  memo: string | null;
+  version: number;
+}>;
+
+// 編集対象は種別つきのunionとし、フォームは種別に応じた項目だけを表示する
+export type TransactionEditTransaction =
+  ExpenseEditTransaction | IncomeEditTransaction;
+
 export type ExpenseEditData = Readonly<{
   options: ExpenseFormOptions;
-  transaction: ExpenseEditTransaction;
+  transaction: TransactionEditTransaction;
 }>;
 
 export type TransactionCommandResult =

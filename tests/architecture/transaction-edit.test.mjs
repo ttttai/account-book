@@ -149,6 +149,8 @@ test("DB command失敗を操作名とcodeだけでlogへ残す (NFR-OPS-008)", a
     ["create-expense.ts", "createExpense"],
     ["update-expense.ts", "updateExpense"],
     ["delete-transaction.ts", "deleteTransaction"],
+    ["create-income.ts", "createIncome"],
+    ["update-income.ts", "updateIncome"],
   ]) {
     const command = await read(`src/modules/transactions/application/${file}`);
     assert.match(

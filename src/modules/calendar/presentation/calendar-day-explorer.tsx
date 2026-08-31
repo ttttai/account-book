@@ -25,6 +25,7 @@ type CalendarDayExplorerData = Readonly<
     | "selectedMemberId"
     | "selectedDay"
     | "dailyTotals"
+    | "incomeDailyTotals"
     | "grid"
     | "dayTransactionsByDate"
   > & {
@@ -100,9 +101,15 @@ const maxUnwrappedAmountMinor = 99999;
 
 function CalendarCellAmount({
   amountMinor,
-}: Readonly<{ amountMinor: number }>) {
+  variant,
+}: Readonly<{ amountMinor: number; variant?: "income" }>) {
+  const className =
+    variant === "income"
+      ? `${styles["calendar-cell-amount"]} ${styles["calendar-cell-income"]}`
+      : styles["calendar-cell-amount"];
   return (
-    <span className={styles["calendar-cell-amount"]} aria-hidden="true">
+    <span className={className} aria-hidden="true">
+      {variant === "income" ? "+" : null}
       {amountMinor <= maxUnwrappedAmountMinor
         ? formatCalendarCellJpy(amountMinor)
         : splitJpyDigitGroups(amountMinor).map((digitGroup) => (
@@ -132,6 +139,7 @@ function DayPanel({
   onClose: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
 }>) {
   const dayTotal = data.dailyTotals[selectedDay] ?? 0;
+  const dayIncomeTotal = data.incomeDailyTotals[selectedDay] ?? 0;
   const dayTransactions = data.dayTransactionsByDate[selectedDay] ?? [];
 
   return (
@@ -144,6 +152,11 @@ function DayPanel({
           <p className="eyebrow">選択日</p>
           <h2 id="selected-day-title">{formatDay(selectedDay)}</h2>
           <p className={styles["calendar-day-total"]}>{formatJpy(dayTotal)}</p>
+          {dayIncomeTotal > 0 ? (
+            <p className={styles["calendar-day-income-total"]}>
+              収入 ＋{formatJpy(dayIncomeTotal)}
+            </p>
+          ) : null}
         </div>
         <a
           className={styles["calendar-close-link"]}
@@ -156,7 +169,7 @@ function DayPanel({
       </header>
       {dayTransactions.length === 0 ? (
         <p className={styles["calendar-empty-message"]}>
-          この対象の支出はありません。
+          この対象の取引はありません。
         </p>
       ) : (
         <ul className={styles["calendar-day-transactions"]}>
@@ -167,21 +180,32 @@ function DayPanel({
                   className={`${styles["category-dot"]} category-${transaction.categoryColor}`}
                 />
                 <strong>{transaction.categoryName}</strong>
-                <span>{formatJpy(transaction.amountMinor)}</span>
+                {transaction.type === "income" ? (
+                  <span className={styles["calendar-income-amount"]}>
+                    ＋{formatJpy(transaction.amountMinor)}
+                  </span>
+                ) : (
+                  <span>{formatJpy(transaction.amountMinor)}</span>
+                )}
               </div>
-              {data.scope !== "group" ? (
+              {transaction.type === "expense" && data.scope !== "group" ? (
                 <p>利用額 {formatJpy(transaction.targetAmountMinor)}</p>
               ) : null}
-              <p>支払者 {transaction.payerDisplayName}</p>
               <p>
-                負担{" "}
-                {transaction.allocations
-                  .map(
-                    (allocation) =>
-                      `${allocation.displayName} ${formatJpy(allocation.amountMinor)}`,
-                  )
-                  .join(" / ")}
+                {transaction.type === "income" ? "受取者" : "支払者"}{" "}
+                {transaction.partyDisplayName}
               </p>
+              {transaction.type === "expense" ? (
+                <p>
+                  負担{" "}
+                  {transaction.allocations
+                    .map(
+                      (allocation) =>
+                        `${allocation.displayName} ${formatJpy(allocation.amountMinor)}`,
+                    )
+                    .join(" / ")}
+                </p>
+              ) : null}
               <a
                 className={`secondary-link ${styles["calendar-transaction-edit"]}`}
                 href={`/groups/${encodeURIComponent(data.group.id)}/transactions/${transaction.id}/edit?from=${encodeURIComponent(createCalendarDayUrl(data, selectedDay))}`}
@@ -274,7 +298,7 @@ export function CalendarDayExplorer({
         {header}
         <table
           className={styles["calendar-grid"]}
-          aria-label={`${formatMonth(data.month)}の支出`}
+          aria-label={`${formatMonth(data.month)}の取引`}
         >
           <thead>
             <tr>
@@ -298,6 +322,9 @@ export function CalendarDayExplorer({
                   const amount = cell.isCurrentMonth
                     ? data.dailyTotals[cell.date]
                     : undefined;
+                  const incomeAmount = cell.isCurrentMonth
+                    ? data.incomeDailyTotals[cell.date]
+                    : undefined;
                   const isSelected = cell.date === selectedDay;
                   const className = [
                     styles["calendar-cell"],
@@ -309,9 +336,12 @@ export function CalendarDayExplorer({
                   ]
                     .filter(Boolean)
                     .join(" ");
-                  const exactLabel = amount
-                    ? `${formatDay(cell.date)}、${formatJpy(amount)}`
-                    : `${formatDay(cell.date)}、支出なし`;
+                  const expenseLabel = amount
+                    ? `支出${formatJpy(amount)}`
+                    : "支出なし";
+                  const exactLabel = incomeAmount
+                    ? `${formatDay(cell.date)}、${expenseLabel}、収入${formatJpy(incomeAmount)}`
+                    : `${formatDay(cell.date)}、${expenseLabel}`;
 
                   return (
                     <td key={cell.date} className={className}>
@@ -332,6 +362,12 @@ export function CalendarDayExplorer({
                           </span>
                           {amount ? (
                             <CalendarCellAmount amountMinor={amount} />
+                          ) : null}
+                          {incomeAmount ? (
+                            <CalendarCellAmount
+                              amountMinor={incomeAmount}
+                              variant="income"
+                            />
                           ) : null}
                         </a>
                       ) : (

@@ -18,11 +18,15 @@ const data: CalendarReadyData = {
   scope: "group",
   members: [],
   monthlyTotal: 3000,
+  monthlyIncomeTotal: 300000,
   dailyTotals: {
     "2026-08-15": 1000,
     "2026-08-16": 2000,
     "2026-08-20": 1234567,
     "2026-08-21": 99999,
+  },
+  incomeDailyTotals: {
+    "2026-08-15": 300000,
   },
   grid: Array.from({ length: 42 }, (_, index) => {
     const day = index + 1;
@@ -38,12 +42,24 @@ const data: CalendarReadyData = {
     "2026-08-15": [
       {
         id: "00000000-0000-4000-8000-000000000101",
+        type: "expense",
         amountMinor: 1000,
         targetAmountMinor: 1000,
         categoryName: "食費",
         categoryColor: "green",
         categoryIcon: "food",
-        payerDisplayName: "A",
+        partyDisplayName: "A",
+        allocations: [],
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000102",
+        type: "income",
+        amountMinor: 300000,
+        targetAmountMinor: 300000,
+        categoryName: "給与",
+        categoryColor: "gray",
+        categoryIcon: "salary",
+        partyDisplayName: "B",
         allocations: [],
       },
     ],
@@ -65,23 +81,25 @@ describe("CalendarDayExplorer", () => {
   it("月間カレンダーを維持したまま日付とURLを即時に切り替える", () => {
     render(<CalendarDayExplorer data={data} />);
     const calendar = screen.getByRole("table", {
-      name: "2026年8月の支出",
+      name: "2026年8月の取引",
     });
 
     fireEvent.click(
-      screen.getByRole("link", { name: "2026年8月15日、￥1,000" }),
+      screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      }),
     );
 
     expect(screen.getByRole("heading", { name: "2026年8月15日" })).toBeTruthy();
     expect(new URLSearchParams(window.location.search).get("day")).toBe(
       "2026-08-15",
     );
-    expect(screen.getByRole("table", { name: "2026年8月の支出" })).toBe(
+    expect(screen.getByRole("table", { name: "2026年8月の取引" })).toBe(
       calendar,
     );
 
     fireEvent.click(
-      screen.getByRole("link", { name: "2026年8月16日、￥2,000" }),
+      screen.getByRole("link", { name: "2026年8月16日、支出￥2,000" }),
     );
 
     expect(screen.getByRole("heading", { name: "2026年8月16日" })).toBeTruthy();
@@ -93,7 +111,7 @@ describe("CalendarDayExplorer", () => {
   it("閉じる操作でdayを削除し、選択した日付へfocusを戻す", () => {
     render(<CalendarDayExplorer data={data} />);
     const dayLink = screen.getByRole("link", {
-      name: "2026年8月15日、￥1,000",
+      name: "2026年8月15日、支出￥1,000、収入￥300,000",
     });
     fireEvent.click(dayLink);
 
@@ -107,14 +125,14 @@ describe("CalendarDayExplorer", () => {
   it("5桁以下のセル金額は折り返し機会を与えず1行で表示する", () => {
     render(<CalendarDayExplorer data={data} />);
     const amount = screen
-      .getByRole("link", { name: "2026年8月15日、￥1,000" })
+      .getByRole("link", { name: "2026年8月15日、支出￥1,000、収入￥300,000" })
       .querySelector(".calendar-cell-amount");
 
     expect(amount?.textContent).toBe("1,000");
     expect(amount?.innerHTML).toBe("1,000");
 
     const fiveDigitAmount = screen
-      .getByRole("link", { name: "2026年8月21日、￥99,999" })
+      .getByRole("link", { name: "2026年8月21日、支出￥99,999" })
       .querySelector(".calendar-cell-amount");
     expect(fiveDigitAmount?.textContent).toBe("99,999");
     expect(fiveDigitAmount?.innerHTML).toBe("99,999");
@@ -123,7 +141,7 @@ describe("CalendarDayExplorer", () => {
   it("6桁以上のセル金額は桁区切り位置にだけ折り返し機会を与え、けたの途中で分断しない", () => {
     render(<CalendarDayExplorer data={data} />);
     const largeAmount = screen
-      .getByRole("link", { name: "2026年8月20日、￥1,234,567" })
+      .getByRole("link", { name: "2026年8月20日、支出￥1,234,567" })
       .querySelector(".calendar-cell-amount");
 
     expect(largeAmount?.textContent).toBe("1,234,567");

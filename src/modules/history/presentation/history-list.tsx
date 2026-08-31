@@ -129,11 +129,7 @@ export function HistoryList({
         <ol className={styles["history-rows"]}>
           {rows.map((row) => (
             <HistoryRowItem
-              editHref={
-                row.type === "expense"
-                  ? `/groups/${encodeURIComponent(groupId)}/transactions/${row.id}/edit?from=${encodeURIComponent(historyReturnUrl)}`
-                  : undefined
-              }
+              editHref={`/groups/${encodeURIComponent(groupId)}/transactions/${row.id}/edit?from=${encodeURIComponent(historyReturnUrl)}`}
               key={row.id}
               row={row}
             />

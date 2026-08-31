@@ -64,7 +64,7 @@ export function DeleteTransactionForm({
         >
           <p id="delete-transaction-confirm-title">
             {summary}
-            の支出を削除します。削除した取引は元に戻せません。
+            の取引を削除します。削除した取引は元に戻せません。
           </p>
           <form action={action}>
             <input

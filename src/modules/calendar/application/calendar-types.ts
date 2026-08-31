@@ -15,12 +15,15 @@ export type CalendarAllocationDetail = Readonly<{
 
 export type CalendarDayTransaction = Readonly<{
   id: string;
+  /** 種別。収入は「＋」表記・収入用の色・受取者表示で支出と区別する (CAL-012) */
+  type: "expense" | "income";
   amountMinor: number;
   targetAmountMinor: number;
   categoryName: string;
   categoryColor: string;
   categoryIcon: string;
-  payerDisplayName: string;
+  /** 支出は支払者、収入は受取者の表示名 */
+  partyDisplayName: string;
   allocations: readonly CalendarAllocationDetail[];
 }>;
 
@@ -42,7 +45,9 @@ export type CalendarReadyData = Readonly<{
   members: readonly CalendarMember[];
   monthlyTotal: number;
   monthlyPaidTotal?: number;
+  monthlyIncomeTotal: number;
   dailyTotals: Readonly<Record<string, number>>;
+  incomeDailyTotals: Readonly<Record<string, number>>;
   grid: readonly CalendarGridCell[];
   dayTransactionsByDate: Readonly<
     Record<string, readonly CalendarDayTransaction[]>

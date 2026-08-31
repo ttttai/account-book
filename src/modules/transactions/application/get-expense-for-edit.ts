@@ -19,6 +19,7 @@ const transactionRowSchema = z.object({
   transaction_date: z.string(),
   category_id: z.uuid(),
   payer_member_id: z.uuid().nullable(),
+  recipient_member_id: z.uuid().nullable(),
   memo: z.string().nullable(),
   version: z.number().int(),
   deleted_at: z.string().nullable(),
@@ -41,7 +42,33 @@ const profileRowSchema = z.object({
   display_name: z.string(),
 });
 
-// 編集画面用に、対象支出の現在値とフォーム選択肢をまとめて返す（削除済み・非対象はnull）
+type Supabase = Awaited<ReturnType<typeof createServerSupabaseClient>>;
+
+// 削除済みメンバーの表示名を履歴用に解決する（RLSで読めない場合はfallback）
+async function resolveRemovedMemberName(
+  supabase: Supabase,
+  groupId: string,
+  memberId: string,
+): Promise<string> {
+  const { data: memberData } = await supabase
+    .from("group_members")
+    .select("id, user_id")
+    .eq("id", memberId)
+    .eq("group_id", groupId)
+    .maybeSingle();
+  const removedMember = memberRowSchema.safeParse(memberData);
+  if (!removedMember.success) return "削除済みメンバー";
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("user_id, display_name")
+    .eq("user_id", removedMember.data.user_id)
+    .maybeSingle();
+  const profile = profileRowSchema.safeParse(profileData);
+  return profile.success ? profile.data.display_name : "削除済みメンバー";
+}
+
+// 編集画面用に、対象取引（支出・収入）の現在値とフォーム選択肢をまとめて返す（削除済み・非対象はnull）
 export async function getExpenseForEdit(
   unsafeGroupId: string,
   unsafeTransactionId: string,
@@ -63,7 +90,7 @@ export async function getExpenseForEdit(
     supabase
       .from("transactions")
       .select(
-        "id, type, amount_minor, transaction_date, category_id, payer_member_id, memo, version, deleted_at",
+        "id, type, amount_minor, transaction_date, category_id, payer_member_id, recipient_member_id, memo, version, deleted_at",
       )
       .eq("id", transactionIdResult.data)
       .eq("group_id", groupIdResult.data)
@@ -78,24 +105,16 @@ export async function getExpenseForEdit(
   if (!transactionResult.data) return null;
 
   const transaction = transactionRowSchema.parse(transactionResult.data);
-  // 削除済み取引と（将来の）収入は編集対象にしない
-  if (
-    transaction.deleted_at !== null ||
-    transaction.type !== "expense" ||
-    transaction.payer_member_id === null
-  ) {
-    return null;
-  }
-
-  const allocations = z
-    .array(allocationRowSchema)
-    .parse(allocationResult.data ?? [])
-    .map((row) => ({ memberId: row.member_id, amountMinor: row.amount_minor }));
+  if (transaction.deleted_at !== null) return null;
 
   // 現在のカテゴリがアクティブ一覧に無い場合はアーカイブ済みとして追加表示する
+  const activeCategoriesForType =
+    transaction.type === "expense"
+      ? options.categories
+      : options.incomeCategories;
   let archivedCategory: ExpenseEditData["transaction"]["archivedCategory"];
   if (
-    !options.categories.some(
+    !activeCategoriesForType.some(
       (category) => category.id === transaction.category_id,
     )
   ) {
@@ -109,37 +128,62 @@ export async function getExpenseForEdit(
     archivedCategory = categoryRowSchema.parse(categoryData);
   }
 
+  if (transaction.type === "income") {
+    if (transaction.recipient_member_id === null) return null;
+
+    // 受取者が削除済みメンバーの場合は履歴用表示名を示し、フォームで変更を求める
+    const activeRecipient = options.members.find(
+      (member) => member.membershipId === transaction.recipient_member_id,
+    );
+    const recipientDisplayName =
+      activeRecipient?.displayName ??
+      (await resolveRemovedMemberName(
+        supabase,
+        groupIdResult.data,
+        transaction.recipient_member_id,
+      ));
+
+    return {
+      options,
+      transaction: {
+        type: "income",
+        id: transaction.id,
+        amountMinor: transaction.amount_minor,
+        transactionDate: transaction.transaction_date,
+        categoryId: transaction.category_id,
+        archivedCategory,
+        recipientMemberId: transaction.recipient_member_id,
+        recipientIsActive: Boolean(activeRecipient),
+        recipientDisplayName,
+        memo: transaction.memo,
+        version: transaction.version,
+      },
+    };
+  }
+
+  if (transaction.payer_member_id === null) return null;
+
+  const allocations = z
+    .array(allocationRowSchema)
+    .parse(allocationResult.data ?? [])
+    .map((row) => ({ memberId: row.member_id, amountMinor: row.amount_minor }));
+
   // 支払者が削除済みメンバーの場合は履歴用表示名を示し、フォームで変更を求める
   const activePayer = options.members.find(
     (member) => member.membershipId === transaction.payer_member_id,
   );
-  let payerDisplayName = activePayer?.displayName ?? "";
-  if (!activePayer) {
-    const { data: memberData } = await supabase
-      .from("group_members")
-      .select("id, user_id")
-      .eq("id", transaction.payer_member_id)
-      .eq("group_id", groupIdResult.data)
-      .maybeSingle();
-    const removedMember = memberRowSchema.safeParse(memberData);
-    if (removedMember.success) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("user_id, display_name")
-        .eq("user_id", removedMember.data.user_id)
-        .maybeSingle();
-      const profile = profileRowSchema.safeParse(profileData);
-      payerDisplayName = profile.success
-        ? profile.data.display_name
-        : "削除済みメンバー";
-    } else {
-      payerDisplayName = "削除済みメンバー";
-    }
-  }
+  const payerDisplayName =
+    activePayer?.displayName ??
+    (await resolveRemovedMemberName(
+      supabase,
+      groupIdResult.data,
+      transaction.payer_member_id,
+    ));
 
   return {
     options,
     transaction: {
+      type: "expense",
       id: transaction.id,
       amountMinor: transaction.amount_minor,
       transactionDate: transaction.transaction_date,
