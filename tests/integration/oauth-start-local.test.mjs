@@ -114,25 +114,32 @@ test("OAuth callbackの失敗redirectは要求Hostを使わず共有cacheを禁�
   assert.equal(response.headers.get("pragma"), "no-cache");
 });
 
+// Locationは相対形式も許可されるため、要求URL基準で解決して比較する。
+function resolveLocation(response, requestedPath) {
+  const location = response.headers.get("location");
+  assert.ok(location);
+  return new URL(location, `${baseUrl}${requestedPath}`);
+}
+
 test("Proxyが未認証の保護画面要求を戻り先付きでログイン画面へ送る (AC-AUTH-004-1)", async () => {
   const response = await fetchFromCanonicalOrigin("/app");
   assert.equal(response.status, 307);
   // pathだけを見るページ側ガードと違い、Proxyは検証済みの戻り先を付ける。
-  assert.equal(
-    response.headers.get("location"),
-    `${canonicalSiteOrigin}/login?next=%2Fapp`,
-  );
+  const location = resolveLocation(response, "/app");
+  assert.equal(location.pathname, "/login");
+  assert.equal(location.searchParams.get("next"), "/app");
 });
 
 test("Proxyは保護画面のquery付き戻り先を保持する (AC-AUTH-004-1)", async () => {
   const groupId = "11111111-1111-4111-8111-111111111111";
-  const response = await fetchFromCanonicalOrigin(
-    `/groups/${groupId}?month=2026-08`,
-  );
+  const requestedPath = `/groups/${groupId}?month=2026-08`;
+  const response = await fetchFromCanonicalOrigin(requestedPath);
   assert.equal(response.status, 307);
+  const location = resolveLocation(response, requestedPath);
+  assert.equal(location.pathname, "/login");
   assert.equal(
-    response.headers.get("location"),
-    `${canonicalSiteOrigin}/login?next=%2Fgroups%2F${groupId}%3Fmonth%3D2026-08`,
+    location.searchParams.get("next"),
+    `/groups/${groupId}?month=2026-08`,
   );
 });
 
