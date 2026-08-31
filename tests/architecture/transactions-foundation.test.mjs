@@ -99,10 +99,13 @@ test("支出カテゴリはモバイルで比較しやすいradio cardとして�
   assert.match(form, /name="categoryId"/);
   assert.match(form, /type="radio"/);
   assert.match(form, /className=\{styles\["category-option"\]\}/);
-  assert.doesNotMatch(form, /<select[\s\S]+name="categoryId"/);
+  // カテゴリをselectへ戻さない（同一タグ内にname="categoryId"を持つselectが無いこと）
+  assert.doesNotMatch(form, /<select[^>]*\sname="categoryId"/);
+  // 既定は1行の横scroll、「すべて」で展開したときだけ2列grid (TXN-015)
+  assert.match(styles, /\.category-options\s*\{[^}]*overflow-x:\s*auto/s);
   assert.match(
     styles,
-    /\.category-options\s*{[\s\S]*grid-template-columns:\s*repeat\(2,/,
+    /\[data-category-expanded="true"\][^{]*\.category-options\s*\{[^}]*grid-template-columns:\s*repeat\(2,/s,
   );
   assert.match(
     styles,
@@ -141,31 +144,60 @@ test("負担方法は1人を先頭にして初期選択にする (AC-TXN-001-10)
   );
 });
 
-test("固定した保存バーと画面下部ナビの間に隙間を作らない (R-055)", async () => {
+test("入力ドックと画面下部ナビの間に隙間を作らない (R-055, R-058)", async () => {
+  const form = await read(
+    "src/modules/transactions/presentation/expense-form.tsx",
+  );
   const styles = await read(
     "src/modules/transactions/presentation/transactions.module.css",
   );
 
-  const submitBar = styles.slice(
-    styles.indexOf(".expense-submit-bar {"),
+  // カテゴリ・テンキー・保存を1つの入力ドックへまとめ、画面下部へ固定する。
+  assert.match(form, /className=\{styles\["input-dock"\]\}/);
+
+  const dock = styles.slice(
+    styles.indexOf(".input-dock {"),
     styles.indexOf("@media (min-width: 900px)"),
   );
 
-  // 保存ボタンの固定位置は変えない。
+  assert.match(dock, /position:\s*fixed/);
+  // 下端を画面下端に合わせ、ナビゲーションの高さぶんを自身の不透明な背景で塗る。
+  // ナビゲーションの実高に依存しないため、文字サイズが変わっても隙間が生まれない。
+  assert.match(dock, /bottom:\s*0/);
   assert.match(
-    submitBar,
-    /position:\s*sticky;[\s\S]*bottom:\s*calc\(4\.25rem \+ env\(safe-area-inset-bottom\)\)/,
+    dock,
+    /padding-bottom:\s*calc\(4\.25rem \+ env\(safe-area-inset-bottom\)\)/,
   );
-  // バー下端から画面下端までを不透明色で覆い、背後のフォームを見せない。
-  assert.match(submitBar, /\.expense-submit-bar::after\s*\{[\s\S]*top:\s*100%/);
+  assert.match(dock, /background:\s*var\(--surface\)/);
+  // 画面下部ナビゲーション（z-index: 30）より下に重ね、ナビを隠さない。
+  assert.match(dock, /z-index:\s*20/);
+
+  // PCでは固定を解除し、既存の2カラム配置へ子要素を流し込む。
+  const desktop = styles.slice(styles.indexOf("@media (min-width: 900px)"));
+  assert.match(desktop, /\.input-dock\s*\{[^}]*display:\s*contents/s);
+});
+
+test("金額はOSの仮想キーボードを開かず画面内テンキーで入力する (TXN-014)", async () => {
+  const form = await read(
+    "src/modules/transactions/presentation/expense-form.tsx",
+  );
+  const styles = await read(
+    "src/modules/transactions/presentation/transactions.module.css",
+  );
+
+  // OSの仮想キーボードを抑止しつつ、物理キーボードからの入力は維持する。
+  assert.match(form, /inputMode="none"/);
+  assert.doesNotMatch(form, /id="amountMinor"[\s\S]{0,400}readOnly/);
+  // テンキーのキーは送信ボタンにしない。
   assert.match(
-    submitBar,
-    /\.expense-submit-bar::after\s*\{[\s\S]*height:\s*calc\(4\.25rem \+ env\(safe-area-inset-bottom\)\)/,
+    form,
+    /className=\{styles\["keypad-key"\]\}\s*\n?\s*[\s\S]{0,200}type="button"/,
   );
+  // 桁あふれを安全な整数で判定する。
+  assert.match(form, /Number\.isSafeInteger/);
+  // キーは44 x 44 CSS pixel以上のタップ領域を持つ。
   assert.match(
-    submitBar,
-    /\.expense-submit-bar::after\s*\{[\s\S]*background:\s*var\(--surface\)/,
+    styles,
+    /\.keypad-key\s*\{[^}]*min-height:\s*(?:44|4[5-9]|[5-9]\d)px/s,
   );
-  // 静止時に覆いがカードの外へ出ないよう切り取る（clipはscroll containerを作らずstickyを壊さない）。
-  assert.match(styles, /\.expense-form\s*\{[^}]*overflow:\s*clip/s);
 });

@@ -3,13 +3,12 @@
   gap: 1rem;
   margin-top: 1.5rem;
   padding: 1rem;
+  /* 固定した入力ドックの実高（ResizeObserverで反映）ぶんを空け、最後の入力を隠さない */
+  padding-bottom: calc(var(--input-dock-height, 19rem) + 1rem);
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   background: var(--surface);
   box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
-  /* 保存バーの覆い（.expense-submit-bar::after）が、固定解除時にカードの外へ
-     はみ出さないよう切り取る。clipはscroll containerを作らないためstickyの基準は画面のまま */
-  overflow: clip;
 }
 
 .expense-field,
@@ -69,13 +68,52 @@
   padding: 0;
 }
 
+/* 既定はドック内の横1行。カテゴリが増えても行の高さを変えず横scrollで到達する (TXN-015) */
 .category-options {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: none;
+}
+
+.category-options::-webkit-scrollbar {
+  display: none;
+}
+
+/* 「すべて」で展開したときだけ2列grid。同じradio群のまま表示だけを切り替える */
+[data-category-expanded="true"] .category-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
+  max-height: 42vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.category-select {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.4rem;
+}
+
+.category-expand-toggle {
+  min-height: 48px;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #bdc7bd;
+  border-radius: 0.75rem;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 .category-option {
+  flex: 0 0 auto;
   min-width: 0;
   cursor: pointer;
 }
@@ -100,6 +138,15 @@
   font-size: 0.88rem;
   font-weight: 700;
   line-height: 1.25;
+}
+
+/* 1行表示では名称を折り返さず、展開時は通常どおり折り返す */
+.category-option-content {
+  white-space: nowrap;
+}
+
+[data-category-expanded="true"] .category-option-content {
+  white-space: normal;
 }
 
 .category-option-dot {
@@ -329,27 +376,85 @@
   font-weight: 800;
 }
 
-.expense-submit-bar {
-  position: sticky;
-  bottom: calc(4.25rem + env(safe-area-inset-bottom));
-  margin: 0 -1rem -1rem;
-  padding: 0.75rem 1rem max(0.75rem, env(safe-area-inset-bottom));
+/* カテゴリ・テンキー・保存の入力ドック。下端を画面下端に合わせ、画面下部ナビゲーションの
+   高さぶんを自身の不透明な背景で塗ることで、ナビの実高に依存せず隙間と透けを防ぐ (R-055, R-058) */
+.input-dock {
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.6rem;
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
   border-top: 1px solid var(--border);
-  border-radius: 0 0 1.25rem 1.25rem;
-  background: rgb(255 253 248 / 96%);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
+  box-shadow: 0 -10px 30px rgb(36 49 38 / 9%);
 }
 
-/* バー下端から画面下端までを塞ぎ、画面下部ナビとの高さの差でできる隙間から
-   背後のフォームが見えないようにする。ナビはz-indexが上のため覆いを隠す */
-.expense-submit-bar::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  right: 0;
-  left: 0;
-  height: calc(4.25rem + env(safe-area-inset-bottom));
-  background: var(--surface);
+.input-dock .category-fieldset > legend {
+  margin-bottom: 0.3rem;
+  font-size: 0.78rem;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 0.4rem;
+}
+
+.keypad-digits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.keypad-side {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.4rem;
+}
+
+.keypad-key {
+  display: grid;
+  min-height: 48px;
+  padding: 0.35rem;
+  border: 1px solid #bdc7bd;
+  border-radius: 0.75rem;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.35rem;
+  font-weight: 800;
+  place-items: center;
+  cursor: pointer;
+}
+
+.keypad-key:active {
+  background: #eef1ed;
+}
+
+.keypad-key[data-key="0"] {
+  grid-column: span 2;
+}
+
+.keypad-key[data-key="00"] {
+  font-size: 1.1rem;
+}
+
+.keypad-save {
+  display: grid;
+}
+
+.keypad-save > button {
+  width: 100%;
+  height: 100%;
+  padding: 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
 }
 
 @media (min-width: 900px) {
@@ -358,12 +463,30 @@
     gap: 1.25rem;
     padding: 1.5rem;
   }
-  .amount-field,
-  .type-fieldset,
-  .expense-form-grid,
-  .expense-submit-bar,
-  .expense-form > :global(.form-message) {
+  /* PCでは入力ドックを固定せず、子要素を既存の2カラムへ流し込む */
+  .input-dock {
+    display: contents;
+  }
+  .expense-form {
+    padding-bottom: 1.5rem;
+  }
+  /* 自動配置に任せると入力ドックの子要素と行が競合するため、PCでは全ブロックの行を明示する */
+  .amount-field {
+    grid-row: 2;
     grid-column: 1 / -1;
+  }
+  .expense-form-grid {
+    grid-row: 3;
+    grid-column: 1 / -1;
+  }
+  .expense-form > :global(.form-message) {
+    grid-row: 7;
+    grid-column: 1 / -1;
+  }
+  /* メモは金額欄以外の直下の入力欄（他はgrid内・ドック内にある） */
+  .expense-form > .expense-field:not(.amount-field) {
+    grid-row: 6;
+    grid-column: 1;
   }
   /* PCでは入力欄をモバイルのタップ用サイズより細身にし、間延びを防ぐ */
   .expense-field input,
@@ -388,18 +511,50 @@
     min-height: 3.25rem;
     font-size: 2rem;
   }
-  /* 使った日・支払った人を左に縦積みし、カテゴリへ広い右列を割り当てる */
+  /* 使った日と支払った人を横に並べる（カテゴリはドック側へ移動済み） */
   .expense-form-grid {
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;
   }
   /* カテゴリ列の高さに合わせて入力欄が縦へ引き伸ばされないよう、行を上詰めにする */
   .expense-form-grid > .expense-field {
     align-content: start;
   }
+  /* PCではカテゴリを常に2列で表示し、展開操作を不要にする */
   .category-fieldset {
-    grid-row: 1 / 3;
+    grid-row: 4 / 6;
     grid-column: 2;
+    align-content: start;
+  }
+  .expense-form {
+    grid-auto-rows: min-content;
+  }
+  .category-select {
+    display: block;
+  }
+  .category-options,
+  [data-category-expanded="true"] .category-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-height: none;
+    overflow: visible;
+  }
+  .category-option-content {
+    white-space: normal;
+  }
+  .category-expand-toggle {
+    display: none;
+  }
+  /* テンキーは左列の下へ静的に置き、幅を広げすぎない */
+  .keypad {
+    grid-row: 5;
+    grid-column: 1;
+    max-width: 22rem;
+  }
+  .keypad-key {
+    min-height: 44px;
+    font-size: 1.15rem;
   }
   .category-option-content {
     min-height: 40px;
@@ -409,27 +564,21 @@
     min-height: 38px;
   }
   .allocation-fieldset {
+    grid-row: 4;
     grid-column: 1;
   }
+  /* 種別は負担方法と同じ.allocation-fieldsetを共有するため、後段で行を上書きする */
+  .type-fieldset {
+    grid-row: 1;
+    grid-column: 1 / -1;
+  }
   .allocation-preview {
+    grid-row: 6;
     grid-column: 2;
-    grid-row: 3;
     align-self: start;
   }
-  .expense-submit-bar {
-    position: static;
-    bottom: auto;
-    display: flex;
-    justify-content: flex-end;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    backdrop-filter: none;
-  }
-  /* PCでは固定表示しないため、隙間を塞ぐ覆いも不要にする */
-  .expense-submit-bar::after {
-    display: none;
+  .keypad-save > button {
+    font-size: 0.95rem;
   }
   .expense-save-button {
     width: min(100%, 20rem);

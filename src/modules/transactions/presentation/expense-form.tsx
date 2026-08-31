@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { TransactionEditTransaction } from "../application/edit-types";
@@ -53,6 +53,14 @@ function safeAmount(value: string): number | null {
   if (!/^[1-9]\d*$/.test(value)) return null;
   const amount = Number(value);
   return Number.isSafeInteger(amount) ? amount : null;
+}
+
+// テンキーで1桁追加した結果を返す。先頭0と安全な整数を超える桁は追加しない (AC-TXN-014-4)
+function appendAmountDigit(current: string, digit: string): string {
+  if (current === "" && /^0+$/.test(digit)) return current;
+  const next = `${current}${digit}`;
+  if (!/^\d+$/.test(next)) return current;
+  return Number.isSafeInteger(Number(next)) ? next : current;
 }
 
 // 前回選択した支払者をlocalStorageから読み出す
@@ -184,6 +192,15 @@ export function ExpenseForm({
       : {},
   );
 
+  // カテゴリ一覧の展開状態。既定は1行表示 (TXN-015)
+  const [categoryExpanded, setCategoryExpanded] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
+    editTransaction?.categoryId ?? "",
+  );
+  const formRef = useRef<HTMLFormElement>(null);
+  const dockRef = useRef<HTMLDivElement>(null);
+  const categoryOptionsRef = useRef<HTMLDivElement>(null);
+
   // 削除済みメンバーが負担へ含まれる場合、そのままでは保存できないことを説明する
   const hasRemovedAllocationMember = Boolean(
     expenseEdit?.allocations.some(
@@ -206,10 +223,45 @@ export function ExpenseForm({
     }
   }, [editTransaction, options.group.id, options.members]);
 
+  // 固定した入力ドックの見える高さぶんだけフォーム下端を空け、最後の入力が隠れないようにする。
+  // ドック下端のナビゲーション用paddingは共通layoutが確保済みのため差し引く。
+  useEffect(() => {
+    const dock = dockRef.current;
+    const form = formRef.current;
+    if (!dock || !form || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      const navReserve = Number.parseFloat(
+        window.getComputedStyle(dock).paddingBottom,
+      );
+      const visibleHeight = dock.offsetHeight - (navReserve || 0);
+      form.style.setProperty("--input-dock-height", `${visibleHeight}px`);
+    });
+    observer.observe(dock);
+    return () => observer.disconnect();
+  }, []);
+
+  // 折りたたみ表示でも選択中カテゴリが見えるよう、行内だけを横scrollする (AC-TXN-015-1)
+  useEffect(() => {
+    if (categoryExpanded) return;
+    const container = categoryOptionsRef.current;
+    const selected = container
+      ?.querySelector<HTMLInputElement>('input[name="categoryId"]:checked')
+      ?.closest("label");
+    if (!container || !selected) return;
+    container.scrollLeft =
+      selected.offsetLeft - (container.clientWidth - selected.clientWidth) / 2;
+  }, [categoryExpanded]);
+
   const categoryChoices = isIncome
     ? categoryChoicesFor(options.incomeCategories, incomeEdit)
     : categoryChoicesFor(options.categories, expenseEdit);
   const hasNoIncomeCategory = isIncome && categoryChoices.length === 0;
+  // 選択中カテゴリが現在の選択肢に無ければ先頭へ戻す（種別切替時の整合）
+  const effectiveCategoryId = categoryChoices.some(
+    (category) => category.id === selectedCategoryId,
+  )
+    ? selectedCategoryId
+    : (categoryChoices[0]?.id ?? "");
 
   // 入力中の値で負担配分を試算する確認用プレビュー（不成立の間はnull）
   const preview = useMemo(() => {
@@ -261,7 +313,12 @@ export function ExpenseForm({
   }
 
   return (
-    <form action={action} className={styles["expense-form"]} noValidate>
+    <form
+      action={action}
+      className={styles["expense-form"]}
+      noValidate
+      ref={formRef}
+    >
       {editTransaction ? (
         <input
           name="expectedVersion"
@@ -299,6 +356,8 @@ export function ExpenseForm({
         </fieldset>
       )}
 
+      {/* 金額はドックのテンキーで入力する。inputmode="none"でOSの仮想キーボードを開かず、
+          物理キーボードとスクリーンリーダーからの入力は維持する (TXN-014) */}
       <div className={`${styles["expense-field"]} ${styles["amount-field"]}`}>
         <label htmlFor="amountMinor">金額</label>
         <div className={styles["amount-input-wrap"]}>
@@ -307,7 +366,7 @@ export function ExpenseForm({
             aria-describedby="amountMinor-error"
             autoComplete="off"
             id="amountMinor"
-            inputMode="numeric"
+            inputMode="none"
             max="9007199254740991"
             name="amountMinor"
             onChange={(event) => setAmountMinor(event.target.value)}
@@ -341,57 +400,6 @@ export function ExpenseForm({
             </p>
           )}
         </div>
-
-        <fieldset
-          aria-describedby="categoryId-error"
-          className={styles["category-fieldset"]}
-        >
-          <legend>カテゴリ</legend>
-          {hasNoIncomeCategory ? (
-            <p className={styles["edit-note"]}>
-              アクティブな収入カテゴリがありません。カテゴリ管理で追加してから収入を登録してください。
-            </p>
-          ) : (
-            <div className={styles["category-options"]} key={transactionType}>
-              {categoryChoices.map((category, index) => (
-                <label className={styles["category-option"]} key={category.id}>
-                  <input
-                    defaultChecked={
-                      editTransaction
-                        ? category.id === editTransaction.categoryId
-                        : index === 0
-                    }
-                    name="categoryId"
-                    required
-                    type="radio"
-                    value={category.id}
-                  />
-                  <span className={styles["category-option-content"]}>
-                    <span
-                      aria-hidden="true"
-                      className={styles["category-option-dot"]}
-                      data-category-color={category.color}
-                    />
-                    <span className="category-option-name">
-                      {category.name}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className={styles["category-option-check"]}
-                    >
-                      ✓
-                    </span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          )}
-          {state.fieldErrors?.categoryId?.[0] && (
-            <p className="field-error" id="categoryId-error">
-              {state.fieldErrors.categoryId[0]}
-            </p>
-          )}
-        </fieldset>
 
         {isIncome ? (
           <div className={styles["expense-field"]}>
@@ -616,17 +624,128 @@ export function ExpenseForm({
           {state.message}
         </p>
       )}
-      <div className={styles["expense-submit-bar"]}>
-        <SaveButton
-          disabled={hasNoIncomeCategory}
-          label={
-            editTransaction
-              ? "変更を保存"
-              : isIncome
-                ? "収入を保存"
-                : "支出を保存"
-          }
-        />
+
+      {/* カテゴリ・テンキー・保存を画面下部のドックへ固定し、金額入力中も隠れないようにする */}
+      <div
+        className={styles["input-dock"]}
+        data-category-expanded={categoryExpanded}
+        ref={dockRef}
+      >
+        <fieldset
+          aria-describedby="categoryId-error"
+          className={styles["category-fieldset"]}
+        >
+          <legend>カテゴリ</legend>
+          {hasNoIncomeCategory ? (
+            <p className={styles["edit-note"]}>
+              アクティブな収入カテゴリがありません。カテゴリ管理で追加してから収入を登録してください。
+            </p>
+          ) : (
+            <div className={styles["category-select"]}>
+              <div
+                className={styles["category-options"]}
+                ref={categoryOptionsRef}
+              >
+                {categoryChoices.map((category) => (
+                  <label
+                    className={styles["category-option"]}
+                    key={category.id}
+                  >
+                    <input
+                      checked={category.id === effectiveCategoryId}
+                      name="categoryId"
+                      onChange={() => {
+                        setSelectedCategoryId(category.id);
+                        setCategoryExpanded(false);
+                      }}
+                      required
+                      type="radio"
+                      value={category.id}
+                    />
+                    <span className={styles["category-option-content"]}>
+                      <span
+                        aria-hidden="true"
+                        className={styles["category-option-dot"]}
+                        data-category-color={category.color}
+                      />
+                      <span className="category-option-name">
+                        {category.name}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={styles["category-option-check"]}
+                      >
+                        ✓
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <button
+                aria-expanded={categoryExpanded}
+                className={styles["category-expand-toggle"]}
+                onClick={() => setCategoryExpanded((current) => !current)}
+                type="button"
+              >
+                {categoryExpanded ? "閉じる" : "すべて"}
+              </button>
+            </div>
+          )}
+          {state.fieldErrors?.categoryId?.[0] && (
+            <p className="field-error" id="categoryId-error">
+              {state.fieldErrors.categoryId[0]}
+            </p>
+          )}
+        </fieldset>
+
+        {/* 展開中はテンキーを隠し、カテゴリ一覧へ場所を譲る */}
+        {!categoryExpanded && (
+          <div className={styles.keypad}>
+            <div className={styles["keypad-digits"]}>
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0"].map(
+                (key) => (
+                  <button
+                    className={styles["keypad-key"]}
+                    data-key={key}
+                    key={key}
+                    onClick={() =>
+                      setAmountMinor((current) =>
+                        appendAmountDigit(current, key),
+                      )
+                    }
+                    type="button"
+                  >
+                    {key}
+                  </button>
+                ),
+              )}
+            </div>
+            <div className={styles["keypad-side"]}>
+              <button
+                aria-label="1桁削除"
+                className={styles["keypad-key"]}
+                onClick={() =>
+                  setAmountMinor((current) => current.slice(0, -1))
+                }
+                type="button"
+              >
+                <span aria-hidden="true">⌫</span>
+              </button>
+              <div className={styles["keypad-save"]}>
+                <SaveButton
+                  disabled={hasNoIncomeCategory}
+                  label={
+                    editTransaction
+                      ? "変更を保存"
+                      : isIncome
+                        ? "収入を保存"
+                        : "支出を保存"
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </form>
   );
