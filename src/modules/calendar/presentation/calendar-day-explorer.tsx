@@ -220,7 +220,7 @@ function DayPanel({
         className={`secondary-link ${styles["calendar-day-add"]}`}
         href={`/groups/${encodeURIComponent(data.group.id)}/transactions/new?date=${selectedDay}`}
       >
-        この日付で支出を追加
+        この日付で取引を追加
       </a>
     </aside>
   );
