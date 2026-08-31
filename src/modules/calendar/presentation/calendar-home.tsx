@@ -172,12 +172,17 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
           >
             <p>{selectedTarget}</p>
             <strong>{formatJpy(data.monthlyTotal)}</strong>
-            {data.monthlyPaidTotal !== undefined ? (
-              <span>支払額 {formatJpy(data.monthlyPaidTotal)}</span>
-            ) : null}
-            {data.monthlyIncomeTotal > 0 ? (
-              <span className={styles["calendar-total-income"]}>
-                収入 ＋{formatJpy(data.monthlyIncomeTotal)}
+            {data.monthlyPaidTotal !== undefined ||
+            data.monthlyIncomeTotal > 0 ? (
+              <span className={styles["calendar-total-aside"]}>
+                {data.monthlyPaidTotal !== undefined ? (
+                  <span>支払額 {formatJpy(data.monthlyPaidTotal)}</span>
+                ) : null}
+                {data.monthlyIncomeTotal > 0 ? (
+                  <span className={styles["calendar-total-income"]}>
+                    収入 ＋{formatJpy(data.monthlyIncomeTotal)}
+                  </span>
+                ) : null}
               </span>
             ) : null}
           </section>

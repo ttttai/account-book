@@ -109,7 +109,7 @@ function CalendarCellAmount({
       : styles["calendar-cell-amount"];
   return (
     <span className={className} aria-hidden="true">
-      {variant === "income" ? "＋" : null}
+      {variant === "income" ? "+" : null}
       {amountMinor <= maxUnwrappedAmountMinor
         ? formatCalendarCellJpy(amountMinor)
         : splitJpyDigitGroups(amountMinor).map((digitGroup) => (
