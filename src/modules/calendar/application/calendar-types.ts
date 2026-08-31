@@ -48,7 +48,6 @@ export type CalendarReadyData = Readonly<{
   selectedDay?: string;
   members: readonly CalendarMember[];
   monthlyTotal: number;
-  monthlyPaidTotal?: number;
   monthlyIncomeTotal: number;
   dailyTotals: Readonly<Record<string, number>>;
   incomeDailyTotals: Readonly<Record<string, number>>;

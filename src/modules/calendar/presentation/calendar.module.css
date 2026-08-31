@@ -419,6 +419,17 @@
   font-weight: 700;
 }
 
+/* 収支差額（黒字・赤字は符号でも判別できるため、色は補助として使う） */
+
+.calendar-total .calendar-total-balance {
+  color: white;
+  font-weight: 700;
+}
+
+.calendar-total .calendar-total-balance.is-negative {
+  color: #ffd8cf;
+}
+
 /* 展開された定期取引を単発取引と識別する (REC-009、AC-REC-002-3) */
 .calendar-recurring-badge {
   padding: 0.05rem 0.4rem;

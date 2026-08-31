@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.15
+バージョン: 0.2.19
 
 ## 1. テストレベル
 
@@ -31,6 +31,7 @@
 - 楽観的lock競合
 - 物理削除の原子性と削除再送の冪等性
 - カレンダー対象別の集計
+- 月間の収入合計と収支差額（黒字・赤字・0円、収入0円・支出0円を含む）
 - 月・週開始曜日から42セルを生成する日付計算
 - カレンダーセルの桁区切りされた正確なJPY数字表示とaccessibility text
 - 認可済み月間データから日付別の最小DTOを作り、Client側で金額を再計算しないこと
@@ -72,6 +73,20 @@
 - 375 x 812の通常文字サイズで、ホームのheader、集計、42日カレンダー、下部ナビゲーションが初期viewport内へ収まり、ページ全体の縦スクロールがないこと
 - 320px、375 x 667、390px、430px、1280 x 800で横scroll、重なり、主要情報の欠落がなく、高さ不足時だけ安全に縦scrollへ切り替わること
 
+取引commandについて、DB・RLS統合testに加えてサーバー境界をmockした実行testで次を確認する。
+
+- 検証済みGoogle sessionを取得できない場合はDB関数を呼ばないこと
+- 支出・収入の登録と更新が、操作者user IDやクライアント計算の合計額を追加せず、検証済み入力だけをDB関数の引数へ渡すこと
+- 更新・削除のSQLSTATEを`conflict`、`not_found`、`invalid`、その他の失敗へ分類すること
+- DB失敗時のlogが操作名とcodeだけを含み、金額、memo、token、許可リストを含まないこと
+
+### Code coverage
+
+- `npm run test:coverage`で、未実行ファイルを含む`src/modules`配下の実行可能なTypeScript・TSXを計測する。
+- testファイル、型定義だけのファイル、処理を持たない公開entry pointは母数から除外する。
+- statement・branch・function・lineの全体値を出力し、各40%以上を必須とする。
+- coverageの高低だけで完了判定せず、DB・RLS統合test、OAuth HTTP integration test、主要E2Eと実画面確認を別に維持する。
+
 ### DB・RLSテスト
 
 分離されたユーザーとグループを用意する。
@@ -111,10 +126,10 @@
 3. 2人目を招待・追加する。
 4. 6,000円の均等共有支出を登録する。
 5. グループカレンダーが6,000円になることを確認する。
-6. 自分の利用額が3,000円、支払額が6,000円として別表示されることを確認する。
-7. 別メンバーの利用額が3,000円になり、別グループmembership指定が拒否されることを確認する。
-8. 各メンバーの利用額が3,000円になることを確認する。
-9. 支払者の支払額が6,000円になることを確認する。
+6. 自分の支出が3,000円として表示され、集計領域へ支払額が表示されないことを確認する。
+7. 別メンバーの支出が3,000円になり、別グループmembership指定が拒否されることを確認する。
+8. 各メンバーの支出が3,000円になることを確認する。
+9. 履歴の「自分が支払った」絞り込みで、支払者の取引6,000円が抽出されることを確認する。
 10. 10,000円以上の日別合計が`万`表記にならず、桁区切りした正確な数字で表示されることを確認する。
 11. 同じ月の日付を連続して選択し、カレンダー本体を待機表示へ変えずに日別パネルだけが即時更新され、URLと戻る／進むが同期することを確認する。
 12. 320px・375pxでカテゴリ名称を確認し、選択肢全体をタップして選択できることを確認する。
@@ -145,7 +160,8 @@ CIは作業branchと`main`を含むすべてのbranchへのpush、および手�
 format check
 lint
 typecheck
-architecture・unit test
+architecture test
+unit test・module coverage threshold（coverage付きで1回だけ実行）
 DB・RLS test
 OAuth HTTP integration test
 production build
@@ -153,6 +169,8 @@ production container build
 ```
 
 Node品質jobとDocker Compose統合jobを分離し、どの境界で失敗したかを判別できるようにする。Nodeは`package.json`の対応majorと一致するversionを明示し、`package-lock.json`を使う`npm ci`とlockfile基準のdependency cacheを利用する。
+
+Node品質jobではarchitecture testを独立して実行し、Vitestのunit・component testはcoverage付きで1回だけ実行する。同じVitest suiteをcoverageなし・ありで重複実行しない。
 
 Workflow全体の`GITHUB_TOKEN`権限は`contents: read`だけとし、checkout後のcredentialは保持しない。利用する外部Actionはrelease tagだけでなく完全なcommit SHAへ固定し、更新時は公式releaseとtagの対応を確認する。
 

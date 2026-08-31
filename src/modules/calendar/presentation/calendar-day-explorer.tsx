@@ -23,6 +23,7 @@ type CalendarDayExplorerData = Readonly<
     | "month"
     | "scope"
     | "selectedMemberId"
+    | "selectedMemberLabel"
     | "selectedDay"
     | "dailyTotals"
     | "incomeDailyTotals"
@@ -194,7 +195,10 @@ function DayPanel({
                 )}
               </div>
               {transaction.type === "expense" && data.scope !== "group" ? (
-                <p>利用額 {formatJpy(transaction.targetAmountMinor)}</p>
+                <p>
+                  {data.selectedMemberLabel ?? "対象"}の支出{" "}
+                  {formatJpy(transaction.targetAmountMinor)}
+                </p>
               ) : null}
               <p>
                 {transaction.type === "income" ? "受取者" : "支払者"}{" "}
@@ -235,7 +239,7 @@ function DayPanel({
         className={`secondary-link ${styles["calendar-day-add"]}`}
         href={`/groups/${encodeURIComponent(data.group.id)}/transactions/new?date=${selectedDay}`}
       >
-        この日付で支出を追加
+        この日付で取引を追加
       </a>
     </aside>
   );
