@@ -9,6 +9,7 @@ import {
 
 import type { ExpenseAllocation } from "../domain/expense-allocation";
 import type { CreateExpenseInput } from "../domain/expense-input";
+import { logTransactionCommandFailure } from "./command-error";
 
 // 認証を確認したうえでDB関数により支出取引と負担配分を登録し、作成された取引IDを返す
 export async function createExpense(
@@ -37,6 +38,9 @@ export async function createExpense(
     })),
   });
 
-  if (error) throw new Error("支出を登録できませんでした。");
+  if (error) {
+    logTransactionCommandFailure("createExpense", error.code);
+    throw new Error("支出を登録できませんでした。");
+  }
   return z.uuid().parse(data);
 }
