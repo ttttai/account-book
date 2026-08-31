@@ -32,7 +32,7 @@ export default async function NewExpensePage({
       <header className="app-header expense-header">
         <div>
           <p className="eyebrow">{options.group.name}</p>
-          <h1 className="group-page-title">支出を追加</h1>
+          <h1 className="group-page-title">取引を追加</h1>
         </div>
         <Link className="text-link" href={`/groups/${options.group.id}`}>
           キャンセル

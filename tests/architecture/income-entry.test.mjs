@@ -161,7 +161,7 @@ test("月間の収入・支出・収支差額を集計領域へ表示する (CAL
   assert.match(css, /\.calendar-total-balance/);
 });
 
-test("メンバー選択は選択後に閉じる (R-061)", async () => {
+test("メンバー選択は選択後に閉じる (R-062)", async () => {
   const home = await read(
     "src/modules/calendar/presentation/calendar-home.tsx",
   );

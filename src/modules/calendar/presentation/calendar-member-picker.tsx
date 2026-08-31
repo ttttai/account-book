@@ -18,7 +18,7 @@ type CalendarMemberPickerProps = Readonly<{
   options: readonly CalendarMemberOption[];
 }>;
 
-// 集計対象のメンバーを選ぶdropdown。選択したら閉じる（開いたままだと一覧がカレンダーを覆う）(R-061)
+// 集計対象のメンバーを選ぶdropdown。選択したら閉じる（開いたままだと一覧がカレンダーを覆う）(R-062)
 export function CalendarMemberPicker({
   summaryLabel,
   isActive,
