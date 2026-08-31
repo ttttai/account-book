@@ -125,6 +125,9 @@ jobs:
       - name: Run architecture and unit tests
         run: npm test
 
+      - name: Check module coverage threshold
+        run: npm run test:coverage
+
       - name: Build production application
         run: npm run build
 

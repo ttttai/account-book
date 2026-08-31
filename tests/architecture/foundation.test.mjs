@@ -28,7 +28,14 @@ test("TypeScript strict modeと品質ゲートを設定する", async () => {
   const packageJson = JSON.parse(await read("package.json"));
 
   assert.equal(tsconfig.compilerOptions.strict, true);
-  for (const script of ["format:check", "lint", "typecheck", "test", "build"]) {
+  for (const script of [
+    "format:check",
+    "lint",
+    "typecheck",
+    "test",
+    "test:coverage",
+    "build",
+  ]) {
     assert.equal(
       typeof packageJson.scripts[script],
       "string",
@@ -40,6 +47,36 @@ test("TypeScript strict modeと品質ゲートを設定する", async () => {
     await exists("tests/integration/groups-sharing-local.sql"),
     true,
   );
+});
+
+test("未実行moduleを含むcoverageをCIで40%以上に保つ (NFR-MNT-012)", async () => {
+  const packageJson = JSON.parse(await read("package.json"));
+  const vitestConfig = await read("vitest.config.ts");
+  const workflow = await read(".github/workflows/ci.yml");
+
+  assert.equal(
+    packageJson.scripts["test:coverage"],
+    "vitest run --coverage.enabled",
+  );
+  assert.equal(
+    packageJson.devDependencies["@vitest/coverage-istanbul"],
+    packageJson.devDependencies.vitest,
+  );
+  assert.match(vitestConfig, /provider:\s*"istanbul"/);
+  assert.match(
+    vitestConfig,
+    /include:\s*\["src\/modules\/\*\*\/\*\.\{ts,tsx\}"\]/,
+  );
+  assert.match(vitestConfig, /src\/modules\/\*\*\/\*\.test\.\{ts,tsx\}/);
+  assert.match(vitestConfig, /src\/modules\/\*\*\/\*-types\.ts/);
+  assert.match(
+    vitestConfig,
+    /src\/modules\/\*\/\{index,server,presentation\}\.ts/,
+  );
+  for (const metric of ["statements", "branches", "functions", "lines"]) {
+    assert.match(vitestConfig, new RegExp(`${metric}:\\s*40`));
+  }
+  assert.match(workflow, /npm run test:coverage/);
 });
 
 test("Docker Composeを標準のローカル開発入口にする", async () => {
@@ -165,6 +202,7 @@ test("GitHub Actionsで最小権限の品質・統合CIを実行する", async (
     "npm run lint",
     "npm run typecheck",
     "npm test",
+    "npm run test:coverage",
     "npm run build",
     "docker compose --profile test run --rm integration-tests",
     "docker compose --profile test run --rm web-integration-tests",
