@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.13
+バージョン: 0.2.14
 
 ## 1. テストレベル
 
@@ -43,6 +43,10 @@
 - OAuth認可URLのDocker内部originから公開Supabase originへの安全な変換と、想定外origin・path・認証情報・fragmentの拒否
 - OAuth開始Route Handlerが通常のHTTP redirectでPKCE verifier cookieを設定し、検証済みの戻り先を維持すること。公開サイトと異なるoriginからの開始はcookie発行前にcanonical originへredirectし、その後のcallbackとcookieのhostが一致すること。callbackはcookieがある場合だけcode交換を試み、欠損時はsessionを作らず安全に失敗すること
 - 未認証の保護画面遷移とログアウト後のsession無効化
+- Proxyがframeworkの規約位置（`src`直下）に置かれ、未認証の保護画面要求を戻り先付きでログイン画面へredirectすること
+- 認証済みの`/`とOAuth開始Route到達時に、OAuthを再実行せずホームまたは検証済みの戻り先へredirectすること
+- callbackが既存のsession cookieを参照せず、交換したsession cookieを同じ応答の削除cookieで打ち消さないこと
+- 更新commandがDB失敗時に、利用者向け分類を維持したまま操作名と失敗codeをサーバーlogへ記録し、家計データやtokenを含めないこと
 - OAuth metadata欠損時も制約内のプロフィール表示名を作れること
 - 許可リストの正規化と厳密な検証。重複、空値、不正値を含む場合は、有効な部分だけを採用せずサーバー・DBとも全件を無効にする。重複のない有効な1件以上は件数の上限なく受け付ける
 - Google以外のproviderと許可リスト外アカウントのサーバー拒否
@@ -175,6 +179,7 @@ E2Eテストは主要smoke flowから開始し、縦切り機能ごとに追加�
 - modalを閉じた後にfocusが正しく戻る。
 - loading、空状態、通信失敗相当、再試行が理解できる。
 - ホーム画面へ追加したstandalone表示で、未認証時のログイン画面遷移とGoogle OAuthログイン完了後のホーム表示が通常のブラウザ表示と同じであること（iOS Safari実機または実機相当環境）。
+- standalone表示で、ログイン済みのまま再起動したときにログイン画面を経由せずホームが表示されること。access token期限（既定1時間）を超えた再開でも再ログインを求められないこと。
 
 1280 x 800のPC表示では次を確認する。
 

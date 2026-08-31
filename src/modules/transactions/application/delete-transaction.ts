@@ -7,7 +7,10 @@ import {
   getAllowedGoogleUserId,
 } from "@/modules/auth/server";
 
-import { mapTransactionCommandError } from "./command-error";
+import {
+  logTransactionCommandFailure,
+  mapTransactionCommandError,
+} from "./command-error";
 import type { TransactionCommandResult } from "./edit-types";
 
 const inputSchema = z.object({
@@ -36,6 +39,9 @@ export async function deleteTransaction(
     p_expected_version: parsed.data.expectedVersion,
   });
 
-  if (error) return mapTransactionCommandError(error.code);
+  if (error) {
+    logTransactionCommandFailure("deleteTransaction", error.code);
+    return mapTransactionCommandError(error.code);
+  }
   return { kind: "ok" };
 }

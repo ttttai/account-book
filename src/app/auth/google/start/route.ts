@@ -7,6 +7,7 @@ import {
 } from "@/modules/auth/infrastructure/supabase-environment";
 import {
   createRouteHandlerSupabaseClient,
+  getAllowedGoogleUserId,
   getConfiguredSiteOrigin,
   isGoogleOAuthEnabled,
   resolveSafeNextPath,
@@ -65,6 +66,16 @@ export async function GET(request: NextRequest) {
   const { url } = getSupabaseServerEnvironment();
   const { applyToResponse, supabase } =
     createRouteHandlerSupabaseClient(request);
+
+  // 既にログイン済みならOAuthを再実行せず、検証済みの戻り先へ進める（AC-AUTH-001-11）
+  const { data: claimsData, error: claimsError } =
+    await supabase.auth.getClaims();
+  if (!claimsError && getAllowedGoogleUserId(claimsData?.claims) !== null) {
+    return disableCaching(
+      applyToResponse(NextResponse.redirect(new URL(nextPath, siteOrigin))),
+    );
+  }
+
   const callbackUrl = new URL("/auth/callback", siteOrigin);
   callbackUrl.searchParams.set("next", nextPath);
   const { data, error } = await supabase.auth.signInWithOAuth({
