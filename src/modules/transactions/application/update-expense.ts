@@ -7,7 +7,10 @@ import {
 
 import type { ExpenseAllocation } from "../domain/expense-allocation";
 import type { UpdateExpenseInput } from "../domain/update-expense-input";
-import { mapTransactionCommandError } from "./command-error";
+import {
+  logTransactionCommandFailure,
+  mapTransactionCommandError,
+} from "./command-error";
 import type { TransactionCommandResult } from "./edit-types";
 
 // 認証を確認したうえでDB関数により支出取引を楽観的ロック付きで更新する
@@ -37,6 +40,9 @@ export async function updateExpense(
     })),
   });
 
-  if (error) return mapTransactionCommandError(error.code);
+  if (error) {
+    logTransactionCommandFailure("updateExpense", error.code);
+    return mapTransactionCommandError(error.code);
+  }
   return { kind: "ok" };
 }

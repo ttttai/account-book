@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.8
+バージョン: 0.2.9
 
 ## セキュリティ
 
@@ -16,6 +16,7 @@
 - `NFR-SEC-008` CSVのユーザー入力文字列に対する数式injectを無害化する。
 - `NFR-SEC-009` 一般公開前にGoogle OAuthのrate limit、abuse対策、許可リスト解除条件を再評価する。
 - `NFR-SEC-010` 非公開MVPの許可リスト制限を、Auth登録前フック、callback・DALのサーバー検証、DBのRLS・更新関数で多層防御する。許可リストの入力が重複のない有効なメールアドレス1件以上でない場合は、サーバーとDBの両方で全件を無効としてfail closedにする。
+- `NFR-SEC-011` session更新（refresh tokenのrotate）は、更新結果を同じ応答のcookieへ書き戻せる境界（Proxy、Route Handler、Server Action）だけで行う。cookieへ書き戻せない境界（Server Componentのレンダリング）でrotate結果を破棄したまま認証成功として扱わない。
 
 ## プライバシー
 
@@ -69,7 +70,8 @@
 - `NFR-PWA-002` manifestの名称は「わが家計」、`start_url`は`/`、`display`は`standalone`とし、`theme_color`と`background_color`はデザイントークンの背景色（`--background`）および`viewport.themeColor`と同じ値にする。
 - `NFR-PWA-003` manifestから192 x 192と512 x 512のPNGアイコンを配信し、maskable用途のアイコンは主要図案を中央の安全領域内へ収める。iOSホーム画面用にapple-touch-iconを、ブラウザのタブ・履歴表示用に同じ図案のfaviconを配信する。
 - `NFR-PWA-004` MVPではService Workerを導入せず、オフラインキャッシュとプッシュ通知を実装しない。manifestとアイコンは認証不要の静的配信とし、家計データ・認証情報を含めない。インストール状態を認証・認可判断に使わない。
-- `NFR-PWA-005` standalone表示でも通常のブラウザ表示と同じ認証動作とする。未認証はログイン画面へ遷移し、Google OAuthログインが完了してホームが表示されることをiOS Safari実機または実機相当環境で確認する。
+- `NFR-PWA-005` standalone表示でも通常のブラウザ表示と同じ認証動作とする。未認証はログイン画面へ遷移し、Google OAuthログインが完了してホームが表示されることをiOS Safari実機または実機相当環境で確認する。access tokenの期限が切れても、refresh tokenが有効な間は再ログインを求めない。
+- `NFR-PWA-006` 認証済みで`start_url`（`/`）またはOAuth開始Routeを開いた場合、ログイン導線を経由させず、Google認証を再実行せずにホーム（または検証済みの戻り先）を表示する。
 
 ## 運用・費用
 
@@ -80,6 +82,7 @@
 - `NFR-OPS-005` 本番deploy前にbilling alertを設定する。
 - `NFR-OPS-006` structured logへrequest/correlation IDを含め、機密payloadを含めない。
 - `NFR-OPS-007` ローカルSupabase Postgresは固定した公式imageの既定bootstrap管理者を上書きせず、空の専用volumeからAuth用role、schema、ローカル専用role password、アプリmigrationを初期化して`docker compose up --watch`で全serviceが起動できるようにする。passwordをSQLやGit管理ファイルへ固定値で記載しない。
+- `NFR-OPS-008` 更新commandがDB側の失敗で完了しなかった場合、操作名と失敗codeをサーバーlogへ記録し、原因を切り分けられる状態にする。家計データ、個人情報、token、許可リストの値をlogへ含めない。
 
 ## 保守性
 
@@ -93,6 +96,7 @@
 - `NFR-MNT-008` 作業branchと`main`を含むすべてのbranchへのpushでCIを自動実行し、format、lint、型検査、architecture・単体test、DB・RLS test、HTTP integration test、本番buildの失敗をmerge前に検出する。同一commitに対する`push`と`pull_request`の二重実行は行わず、pushで作成されたcheckをpull requestのhead commitへ紐付ける。
 - `NFR-MNT-009` CIの`GITHUB_TOKEN`権限は読み取り最小限とし、外部Actionは完全なcommit SHAへ固定する。本番秘密情報や実GoogleアカウントをCIへ渡さず、CI専用のローカル資格情報と架空の許可アカウントだけを利用する。
 - `NFR-MNT-010` スタイルは所有権で分離する。`src/app/styles.css`はデザイントークン、reset、基本タイポグラフィ、`src/app`の画面組み立てが使うroute shellと共通プリミティブだけを持ち、単一機能のpresentationだけが使うスタイルは当該機能のpresentationに併置したCSS Modulesで管理する。追加依存（Tailwind、CSS-in-JS）は導入しない。
+- `NFR-MNT-011` frameworkの規約ファイル（Proxyなど）は、使用中のNext.jsが探索する位置（`src/app`構成では`src`直下）へ配置し、実際に読み込まれることをtestと本番build出力で検証する。ファイルの内容だけを検証して読み込みを前提としない。
 
 ## 対応ブラウザ
 

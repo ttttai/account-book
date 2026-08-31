@@ -21,7 +21,12 @@ export async function createServerSupabaseClient() {
             cookieStore.set(name, value, options);
           }
         } catch {
-          // Server Componentはcookieを書き込めない。token更新はProxyが担当する。
+          // Server Componentはcookieを書き込めず、rotate後のtokenがブラウザへ戻らない。
+          // Proxyがtoken更新を担当している限り発生しないため、発生自体をlogへ残す（NFR-SEC-011）。
+          console.warn(
+            "session cookie write skipped outside a writable boundary: cookies=%d",
+            cookiesToSet.length,
+          );
         }
       },
     },
