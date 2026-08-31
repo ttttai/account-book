@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.17
+バージョン: 0.2.18
 
 ## 1. テストレベル
 
@@ -70,6 +70,20 @@
 - 設定ハブが既存管理機能への入口を集約し、各遷移先の認証・認可境界を迂回しないこと
 - 375 x 812の通常文字サイズで、ホームのheader、集計、42日カレンダー、下部ナビゲーションが初期viewport内へ収まり、ページ全体の縦スクロールがないこと
 - 320px、375 x 667、390px、430px、1280 x 800で横scroll、重なり、主要情報の欠落がなく、高さ不足時だけ安全に縦scrollへ切り替わること
+
+取引commandについて、DB・RLS統合testに加えてサーバー境界をmockした実行testで次を確認する。
+
+- 検証済みGoogle sessionを取得できない場合はDB関数を呼ばないこと
+- 支出・収入の登録と更新が、操作者user IDやクライアント計算の合計額を追加せず、検証済み入力だけをDB関数の引数へ渡すこと
+- 更新・削除のSQLSTATEを`conflict`、`not_found`、`invalid`、その他の失敗へ分類すること
+- DB失敗時のlogが操作名とcodeだけを含み、金額、memo、token、許可リストを含まないこと
+
+### Code coverage
+
+- `npm run test:coverage`で、未実行ファイルを含む`src/modules`配下の実行可能なTypeScript・TSXを計測する。
+- testファイル、型定義だけのファイル、処理を持たない公開entry pointは母数から除外する。
+- statement・branch・function・lineの全体値を出力し、各40%以上を必須とする。
+- coverageの高低だけで完了判定せず、DB・RLS統合test、OAuth HTTP integration test、主要E2Eと実画面確認を別に維持する。
 
 ### DB・RLSテスト
 
@@ -144,7 +158,8 @@ CIは作業branchと`main`を含むすべてのbranchへのpush、および手�
 format check
 lint
 typecheck
-architecture・unit test
+architecture test
+unit test・module coverage threshold（coverage付きで1回だけ実行）
 DB・RLS test
 OAuth HTTP integration test
 production build
@@ -152,6 +167,8 @@ production container build
 ```
 
 Node品質jobとDocker Compose統合jobを分離し、どの境界で失敗したかを判別できるようにする。Nodeは`package.json`の対応majorと一致するversionを明示し、`package-lock.json`を使う`npm ci`とlockfile基準のdependency cacheを利用する。
+
+Node品質jobではarchitecture testを独立して実行し、Vitestのunit・component testはcoverage付きで1回だけ実行する。同じVitest suiteをcoverageなし・ありで重複実行しない。
 
 Workflow全体の`GITHUB_TOKEN`権限は`contents: read`だけとし、checkout後のcredentialは保持しない。利用する外部Actionはrelease tagだけでなく完全なcommit SHAへ固定し、更新時は公式releaseとtagの対応を確認する。
 

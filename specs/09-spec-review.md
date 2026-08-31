@@ -2,9 +2,9 @@
 
 状態: 実装開始を承認
 
-レビュー日: 2026-08-31
+レビュー日: 2026-09-01
 
-対象バージョン: 0.2.29
+対象バージョン: 0.2.35
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.34の自動文書検査では、要件ID 114件、明示的な受け入れ条件ID 139件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`を追加した、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.2.35の自動文書検査では、要件ID 115件、明示的な受け入れ条件ID 139件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -750,6 +750,22 @@ MVP範囲確認: メンバー間の貸し借り表示や自動精算は追加し
 MVP範囲確認: 語彙の統一に限定し、集計方法、日付セルの表示内容、履歴・CSVの用語は変更しない。
 
 判定: 変更後の`CAL-004`・`CAL-010`と関連受け入れ条件は互いに整合し、`TXN-005`（負担額合計＝取引金額）を根拠に「メンバーの負担額＝そのメンバーの支出」と説明できる。構造testを更新し、幅375pxで各集計対象のラベルを実画面確認することを条件に修正実装を承認する。
+
+### R-061 Application command実行testとcoverage gate
+
+指摘: 既存の単体testはdomain純粋関数を高密度に検証している一方、取引のApplication commandはDB・RLS統合testとsource構造testが中心で、認証失敗時にRPCを呼ばないこと、RPC引数、SQLSTATE分類をTypeScript境界で直接実行していない。また、Vitest 4の既定coverageはtestから読み込まれたファイルだけを母数にするため、未実行のApplication・presentation・infrastructureを除外した高い数値をアプリ全体の値と誤認できる。
+
+対応: `NFR-MNT-012`と受け入れテスト計画へ、未実行ファイルを0%として含めるmodule coverageを追加する。母数は`src/modules`配下の実行可能なTypeScript・TSXとし、test、型だけのファイル、処理を持たない公開entry pointだけを除外する。初期gateはstatement・branch・function・lineを各40%以上とし、coverageはE2EやDB・RLS testの代替にしない。取引commandには認証失敗、RPC引数、SQLSTATE分類、安全な失敗logを対象とする実行testを追加する。
+
+安全性確認: testではSupabase clientをmodule境界でmockし、実利用者のsession、許可リスト、家計データ、本番DBへ接続しない。失敗logの検証は操作名とcode以外を含めないことを固定し、`NFR-SEC-005`・`NFR-OPS-008`を強化する。coverage対象から認可・DB境界を除外せず、低い値を隠すための個別除外を追加しない。
+
+実装可能性確認: Next.js 16.3.2同梱ガイドは同期componentと通常moduleをVitestでtestできる一方、async Server ComponentはE2Eを推奨している。取引commandは通常のasync関数であり、認証clientをmockしてApplication境界を直接実行できる。Vitest 4は`coverage.include`で未実行ファイルを母数へ追加し、全体thresholdを設定できる。coverage providerはTypeScript・TSXの未実行ファイルを変換できるものを明示的に固定する。
+
+MVP範囲確認: 本対応はtest、test設定、CI gate、仕様記録だけを変更し、利用者向け動作、DB schema、RLS、認証、金額計算、画面表示を変更しない。実Google OAuthを自動操作するE2Eや全画面のブラウザ自動化は別の段階として残す。
+
+判定: `NFR-MNT-012`は`NFR-MNT-007`〜`NFR-MNT-009`、既存のApplication/DAL test計画、`NFR-OPS-008`と整合し、安全かつ実装可能である。取引command実行testを先に追加し、coverageの4指標が各40%以上、既存の全品質gateが成功することを条件に実装開始を承認する。
+
+実装確認: 取引command、カテゴリcommand、グループ・招待command、認証環境境界へ実行test 55件を追加し、未認証時のRPC抑止、検証済みRPC引数、SQLSTATE分類、招待生tokenの非送信、失敗logの最小化を確認した。Istanbul providerで未実行moduleを0%として含めた結果、statement 40.72%、branch 40.98%、function 40.92%、line 41.28%となり、4指標すべての40% gateを通過した。CIではarchitecture testを独立して実行し、component・unit testはcoverage付きで1回だけ実行して重複を避ける。最新`main`との統合後にarchitecture test 104件、component・unit test 375件、format、警告なしlint、型検査、本番buildが成功した。利用者向け動作は本PRで変更していないため、モバイル・PCの実画面再確認は対象外とした。
 
 ## 4. 要件と検証方法の対応
 
