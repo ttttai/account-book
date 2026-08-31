@@ -418,3 +418,14 @@
   color: #2d5da8;
   font-weight: 700;
 }
+
+/* 収支差額（黒字・赤字は符号でも判別できるため、色は補助として使う） */
+
+.calendar-total .calendar-total-balance {
+  color: white;
+  font-weight: 700;
+}
+
+.calendar-total .calendar-total-balance.is-negative {
+  color: #ffd8cf;
+}

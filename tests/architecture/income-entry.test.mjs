@@ -132,3 +132,28 @@ test("カレンダーは収入を支出と区別して表示する (CAL-012)", a
   );
   assert.match(home, /monthlyIncomeTotal/);
 });
+
+test("月間の収入・支出・収支差額を集計領域へ表示する (CAL-013)", async () => {
+  const summary = await read("src/modules/calendar/domain/calendar-summary.ts");
+  assert.match(summary, /export function calculateMonthlyBalance/);
+  assert.match(summary, /export function formatSignedJpy/);
+  // 符号で黒字・赤字・0円を伝える（色だけに依存しない）
+  assert.match(summary, /＋/);
+  assert.match(summary, /−/);
+  assert.match(summary, /±/);
+
+  const home = await read(
+    "src/modules/calendar/presentation/calendar-home.tsx",
+  );
+  assert.match(home, /calculateMonthlyBalance/);
+  assert.match(home, /formatSignedJpy/);
+  assert.match(home, /収支/);
+  // メンバー対象では収入を受取額と呼ぶ (AC-CAL-013-3)
+  assert.match(home, /受取額/);
+  assert.match(home, /支払額/);
+
+  const css = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
+  assert.match(css, /\.calendar-total-balance/);
+});

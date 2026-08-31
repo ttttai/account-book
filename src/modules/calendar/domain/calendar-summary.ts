@@ -113,6 +113,26 @@ export function calculateCalendarIncomeSummary(
   return { monthlyIncomeTotal, incomeDailyTotals };
 }
 
+// 同じ集計対象の収入から支出を引いた収支差額を返す（黒字は正、赤字は負）
+export function calculateMonthlyBalance(
+  expenseTotal: number,
+  incomeTotal: number,
+): number {
+  if (
+    !Number.isSafeInteger(expenseTotal) ||
+    !Number.isSafeInteger(incomeTotal) ||
+    expenseTotal < 0 ||
+    incomeTotal < 0
+  ) {
+    throw new Error("calendar amount overflow");
+  }
+  const balance = incomeTotal - expenseTotal;
+  if (!Number.isSafeInteger(balance)) {
+    throw new Error("calendar amount overflow");
+  }
+  return balance;
+}
+
 // 金額を3桁区切りの数字文字列にする
 // server renderとclient hydrationで同一文字列にするため、locale実装に依存しない
 export function formatCalendarCellJpy(amountMinor: number): string {
@@ -125,4 +145,13 @@ export function formatCalendarCellJpy(amountMinor: number): string {
 // 円記号付きの表示用金額文字列にする
 export function formatJpy(amountMinor: number): string {
   return `￥${formatCalendarCellJpy(amountMinor)}`;
+}
+
+// 収支差額の表示用文字列にする。符号（＋・−・±）で黒字・赤字・0円を色に依存せず伝える
+export function formatSignedJpy(amountMinor: number): string {
+  if (!Number.isSafeInteger(amountMinor)) {
+    throw new Error("invalid JPY amount");
+  }
+  const sign = amountMinor > 0 ? "＋" : amountMinor < 0 ? "−" : "±";
+  return `${sign}${formatJpy(Math.abs(amountMinor))}`;
 }
