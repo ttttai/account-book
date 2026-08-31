@@ -86,3 +86,43 @@ test("日別パネルから検証済み日付を支出登録へ引き継ぐ", as
   assert.match(expensePage, /getExpenseFormOptions\(groupId, search\.date\)/);
   assert.match(expenseOptions, /resolveExpenseInitialDate/);
 });
+
+// 指定selectorの宣言ブロックだけを取り出す
+function readRule(css, selector) {
+  const start = css.indexOf(`${selector} {`);
+  assert.notEqual(start, -1, `${selector}が必要です`);
+  return css.slice(start + selector.length + 2, css.indexOf("}", start));
+}
+
+test("今日の強調は日番号ボックスの寸法を変えず縦位置を揃える", async () => {
+  const css = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
+  const base = readRule(css, ".calendar-day-number");
+  const today = readRule(css, ".calendar-cell.is-today .calendar-day-number");
+
+  assert.match(base, /display: grid/);
+  assert.match(base, /place-items: center/);
+  assert.match(base, /min-width:/);
+  assert.match(base, /min-height:/);
+  assert.match(base, /border-radius: 50%/);
+  assert.match(today, /background:/);
+  assert.match(today, /color:/);
+
+  for (const property of [
+    "display",
+    "min-width",
+    "min-height",
+    "place-items",
+    "padding",
+    "margin",
+    "line-height",
+    "font-size",
+  ]) {
+    assert.doesNotMatch(
+      today,
+      new RegExp(`(^|;|\\n)\\s*${property}\\s*:`),
+      `今日の強調で${property}を変えるとレイアウトがずれます`,
+    );
+  }
+});
