@@ -108,6 +108,21 @@ describe("CalendarDayExplorer", () => {
     );
   });
 
+  it("日別取引sheetの追加導線は支出と収入の両方を指す文言にする", () => {
+    render(<CalendarDayExplorer data={data} />);
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      }),
+    );
+
+    const addLink = screen.getByRole("link", { name: "この日付で取引を追加" });
+
+    expect(addLink.getAttribute("href")).toBe(
+      "/groups/00000000-0000-4000-8000-000000000001/transactions/new?date=2026-08-15",
+    );
+  });
+
   it("閉じる操作でdayを削除し、選択した日付へfocusを戻す", () => {
     render(<CalendarDayExplorer data={data} />);
     const dayLink = screen.getByRole("link", {
