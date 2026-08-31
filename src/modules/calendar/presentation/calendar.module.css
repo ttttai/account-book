@@ -199,17 +199,20 @@
   color: #b1b8b1;
 }
 
+/* 今日の丸を付けても縦位置がずれないよう、全セルで同じ寸法のボックスを確保する */
 .calendar-day-number {
+  display: grid;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 50%;
   font-size: 0.78rem;
   font-weight: 700;
+  line-height: 1;
 }
 
 .calendar-cell.is-today .calendar-day-number {
-  display: grid;
-  min-width: 1.6rem;
-  min-height: 1.6rem;
-  place-items: center;
-  border-radius: 50%;
   color: white;
   background: var(--accent);
 }

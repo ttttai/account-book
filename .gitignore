@@ -40,3 +40,7 @@ override.tf.json
 *_override.tf.json
 !*.tfvars.example
 !*.hcl.example
+
+# agent local settings and worktrees
+/.claude
+/.codex
