@@ -40,7 +40,7 @@ describe("calculateCalendarSummary", () => {
     });
   });
 
-  it("メンバー対象は負担額（利用額）だけを集計し、支払額を返さない (CAL-010)", () => {
+  it("メンバー対象は負担額（支出）だけを集計し、支払額を返さない (CAL-010)", () => {
     expect(
       calculateCalendarSummary(expenses, {
         scope: "member",

@@ -42,7 +42,7 @@ function safeAdd(left: number, right: number): number {
 }
 
 // 対象（グループ全体または特定メンバーの負担額）で月間合計と日別合計を集計する
-// メンバー対象は実際に負担した利用額で統一し、立て替えた支払額は集計しない (CAL-010)
+// メンバー対象は実際に負担した額を支出として集計し、立て替えた支払額は集計しない (CAL-010)
 export function calculateCalendarSummary(
   expenses: readonly CalendarExpense[],
   target: CalendarSummaryTarget,

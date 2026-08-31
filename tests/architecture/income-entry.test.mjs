@@ -149,8 +149,10 @@ test("月間の収入・支出・収支差額を集計領域へ表示する (CAL
   assert.match(home, /formatSignedJpy/);
   assert.match(home, /収支/);
   // メンバー対象では収入を受取額と呼ぶ (AC-CAL-013-3)
-  assert.match(home, /受取額/);
-  // 集計領域は利用額で統一し、支払額を表示しない (CAL-010)
+  // ラベルは「支出」「収入」「収支」で統一し、利用額・受取額・支払額を使わない (R-060)
+  assert.match(home, /の支出/);
+  assert.doesNotMatch(home, /利用額/);
+  assert.doesNotMatch(home, /受取額/);
   assert.doesNotMatch(home, /支払額/);
 
   const css = await read(

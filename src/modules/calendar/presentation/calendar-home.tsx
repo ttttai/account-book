@@ -128,12 +128,11 @@ function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
 export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
   const previousMonth = shiftMonth(data.month, -1);
   const nextMonth = shiftMonth(data.month, 1);
+  // ラベルは集計対象によらず「支出」「収入」「収支」で統一する (AC-CAL-013-3)
   const selectedTarget =
     data.scope === "group"
       ? "グループ支出"
-      : `${data.selectedMemberLabel}の利用額`;
-  // 収入は集計対象に合わせた語で示す（メンバー対象は受取額）(AC-CAL-013-3)
-  const incomeLabel = data.scope === "group" ? "収入" : "受取額";
+      : `${data.selectedMemberLabel}の支出`;
   const monthlyBalance = calculateMonthlyBalance(
     data.monthlyTotal,
     data.monthlyIncomeTotal,
@@ -184,7 +183,7 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
             <strong>{formatJpy(data.monthlyTotal)}</strong>
             <span className={styles["calendar-total-aside"]}>
               <span className={styles["calendar-total-income"]}>
-                {incomeLabel} {data.monthlyIncomeTotal > 0 ? "＋" : ""}
+                収入 {data.monthlyIncomeTotal > 0 ? "＋" : ""}
                 {formatJpy(data.monthlyIncomeTotal)}
               </span>
               <span
