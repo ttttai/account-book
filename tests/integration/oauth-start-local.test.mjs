@@ -113,3 +113,30 @@ test("OAuth callbackの失敗redirectは要求Hostを使わず共有cacheを禁�
   assert.match(response.headers.get("cache-control") ?? "", /no-store/);
   assert.equal(response.headers.get("pragma"), "no-cache");
 });
+
+test("Proxyが未認証の保護画面要求を戻り先付きでログイン画面へ送る (AC-AUTH-004-1)", async () => {
+  const response = await fetchFromCanonicalOrigin("/app");
+  assert.equal(response.status, 307);
+  // pathだけを見るページ側ガードと違い、Proxyは検証済みの戻り先を付ける。
+  assert.equal(
+    response.headers.get("location"),
+    `${canonicalSiteOrigin}/login?next=%2Fapp`,
+  );
+});
+
+test("Proxyは保護画面のquery付き戻り先を保持する (AC-AUTH-004-1)", async () => {
+  const groupId = "11111111-1111-4111-8111-111111111111";
+  const response = await fetchFromCanonicalOrigin(
+    `/groups/${groupId}?month=2026-08`,
+  );
+  assert.equal(response.status, 307);
+  assert.equal(
+    response.headers.get("location"),
+    `${canonicalSiteOrigin}/login?next=%2Fgroups%2F${groupId}%3Fmonth%3D2026-08`,
+  );
+});
+
+test("未認証のstart_urlは紹介画面を表示する (NFR-PWA-006)", async () => {
+  const response = await fetchFromCanonicalOrigin("/");
+  assert.equal(response.status, 200);
+});

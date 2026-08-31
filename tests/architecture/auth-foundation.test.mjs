@@ -198,9 +198,42 @@ test("Composeで必要最小限のローカルSupabase Authを構成する", asy
   );
 });
 
+test("Proxyをframeworkの規約位置へ置き認証遷移を担わせる (NFR-MNT-011, AC-AUTH-001-11)", async () => {
+  // src/app構成では src 直下だけがNext.jsのProxy規約位置であり、
+  // rootへ置いたファイルは読み込まれない。
+  const proxy = await read("src/proxy.ts");
+  assert.match(proxy, /export function proxy\(/);
+  assert.match(proxy, /updateSession/);
+  await assert.rejects(
+    () => stat(new URL("proxy.ts", root)),
+    "root直下のproxy.tsはNextに読み込まれないため残さない",
+  );
+
+  // 認証遷移の判定は純関数へ切り出し、Proxyは適用だけを行う。
+  const routeRedirect = await read(
+    "src/modules/auth/domain/auth-route-redirect.ts",
+  );
+  assert.match(routeRedirect, /export function resolveAuthRouteRedirect/);
+  assert.match(routeRedirect, /resolveSafeNextPath/);
+  const updateSession = await read(
+    "src/modules/auth/infrastructure/update-session.ts",
+  );
+  assert.match(updateSession, /resolveAuthRouteRedirect/);
+
+  // 認証済みでOAuth開始Routeへ到達してもGoogle認証を再実行しない。
+  const oauthStart = await read("src/app/auth/google/start/route.ts");
+  assert.match(oauthStart, /getAllowedGoogleUserId\(claimsData\?\.claims\)/);
+
+  // cookieへ書き戻せない境界でのsession更新を無記録にしない。
+  const serverClient = await read(
+    "src/modules/auth/infrastructure/supabase-server.ts",
+  );
+  assert.match(serverClient, /console\.warn/);
+});
+
 test("ログイン直後の初回表示をserver errorにしない (AC-AUTH-001-9)", async () => {
   // Proxyは/auth配下の認証境界に対してsession refreshを試みない。
-  const proxy = await read("proxy.ts");
+  const proxy = await read("src/proxy.ts");
   assert.match(proxy, /auth\//);
   assert.match(
     proxy,
