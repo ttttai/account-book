@@ -10,8 +10,10 @@ import {
 import { createCalendarGrid, getMonthRange } from "../domain/calendar-grid";
 import { parseCalendarSelection } from "../domain/calendar-input";
 import {
+  calculateCalendarIncomeSummary,
   calculateCalendarSummary,
   type CalendarExpense,
+  type CalendarIncome,
 } from "../domain/calendar-summary";
 import type {
   CalendarDayTransaction,
@@ -58,6 +60,18 @@ const transactionRowSchema = z.object({
     }),
   ),
 });
+const incomeRowSchema = z.object({
+  id: z.uuid(),
+  transaction_date: z.string(),
+  amount_minor: safeAmountSchema,
+  recipient_member_id: z.uuid(),
+  created_at: z.string(),
+  categories: z.object({
+    name: z.string(),
+    color: z.string(),
+    icon: z.string(),
+  }),
+});
 
 // 指定タイムゾーンでの日付をYYYY-MM-DDで得る（Intlのparts分解でDateのローカル依存を避ける）
 function dateInTimeZone(date: Date, timeZone: string): string {
@@ -71,15 +85,16 @@ function dateInTimeZone(date: Date, timeZone: string): string {
   return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
 }
 
-// 日別パネル用に、対象者の負担額が0より大きい取引だけを登録の新しい順で日付別にまとめる
+// 日別パネル用に、対象の支出（負担額が0より大きい）と収入（受取者が対象）を登録の新しい順で日付別にまとめる
 function createDayTransactionsByDate(
   expenses: readonly CalendarExpense[],
+  incomes: readonly CalendarIncome[],
   targetMembershipId: string | undefined,
   displayNameByMembershipId: ReadonlyMap<string, string>,
 ): Readonly<Record<string, readonly CalendarDayTransaction[]>> {
   const transactionsByDate: Record<string, CalendarDayTransaction[]> = {};
 
-  const transactions = [...expenses]
+  const expenseEntries = [...expenses]
     .map((expense) => {
       const targetAmountMinor = targetMembershipId
         ? (expense.allocations.find(
@@ -89,19 +104,18 @@ function createDayTransactionsByDate(
       return { expense, targetAmountMinor };
     })
     .filter(({ targetAmountMinor }) => targetAmountMinor > 0)
-    .sort((left, right) =>
-      right.expense.createdAt.localeCompare(left.expense.createdAt),
-    )
     .map(({ expense, targetAmountMinor }) => ({
       date: expense.date,
+      createdAt: expense.createdAt,
       transaction: {
         id: expense.id,
+        type: "expense",
         amountMinor: expense.amountMinor,
         targetAmountMinor,
         categoryName: expense.category.name,
         categoryColor: expense.category.color,
         categoryIcon: expense.category.icon,
-        payerDisplayName:
+        partyDisplayName:
           displayNameByMembershipId.get(expense.payerMemberId) ?? "メンバー",
         allocations: expense.allocations.map((allocation) => ({
           membershipId: allocation.memberId,
@@ -112,7 +126,34 @@ function createDayTransactionsByDate(
       } satisfies CalendarDayTransaction,
     }));
 
-  for (const { date, transaction } of transactions) {
+  // 収入は対象メンバー指定時、受取者が一致するものだけを表示する (AC-CAL-012-2)
+  const incomeEntries = incomes
+    .filter(
+      (income) =>
+        !targetMembershipId || income.recipientMemberId === targetMembershipId,
+    )
+    .map((income) => ({
+      date: income.date,
+      createdAt: income.createdAt,
+      transaction: {
+        id: income.id,
+        type: "income",
+        amountMinor: income.amountMinor,
+        targetAmountMinor: income.amountMinor,
+        categoryName: income.category.name,
+        categoryColor: income.category.color,
+        categoryIcon: income.category.icon,
+        partyDisplayName:
+          displayNameByMembershipId.get(income.recipientMemberId) ?? "メンバー",
+        allocations: [],
+      } satisfies CalendarDayTransaction,
+    }));
+
+  const entries = [...expenseEntries, ...incomeEntries].sort((left, right) =>
+    right.createdAt.localeCompare(left.createdAt),
+  );
+
+  for (const { date, transaction } of entries) {
     const dayTransactions = transactionsByDate[date] ?? [];
     dayTransactions.push(transaction);
     transactionsByDate[date] = dayTransactions;
@@ -195,7 +236,7 @@ export async function getGroupCalendar(
 
   const memberUserIds = memberships.map((membership) => membership.user_id);
   const { start, endExclusive } = getMonthRange(selection.month);
-  const [profileResult, transactionResult] = await Promise.all([
+  const [profileResult, transactionResult, incomeResult] = await Promise.all([
     supabase
       .from("profiles")
       .select("user_id, display_name")
@@ -211,9 +252,20 @@ export async function getGroupCalendar(
       .gte("transaction_date", start)
       .lt("transaction_date", endExclusive)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("transactions")
+      .select(
+        "id, transaction_date, amount_minor, recipient_member_id, created_at, categories!transactions_category_group_fk(name, color, icon)",
+      )
+      .eq("group_id", group.id)
+      .eq("type", "income")
+      .is("deleted_at", null)
+      .gte("transaction_date", start)
+      .lt("transaction_date", endExclusive)
+      .order("created_at", { ascending: false }),
   ]);
 
-  if (profileResult.error || transactionResult.error) {
+  if (profileResult.error || transactionResult.error || incomeResult.error) {
     throw new Error("カレンダーを取得できませんでした。");
   }
 
@@ -247,13 +299,24 @@ export async function getGroupCalendar(
       })),
     }));
 
+  const incomes: readonly CalendarIncome[] = z
+    .array(incomeRowSchema)
+    .parse(incomeResult.data ?? [])
+    .map((income) => ({
+      id: income.id,
+      date: income.transaction_date,
+      amountMinor: income.amount_minor,
+      recipientMemberId: income.recipient_member_id,
+      createdAt: income.created_at,
+      category: income.categories,
+    }));
+
   const targetMembershipId = targetMembership?.id;
-  const summary = calculateCalendarSummary(
-    expenses,
-    targetMembershipId
-      ? { scope: "member", memberId: targetMembershipId }
-      : { scope: "group" },
-  );
+  const summaryTarget = targetMembershipId
+    ? ({ scope: "member", memberId: targetMembershipId } as const)
+    : ({ scope: "group" } as const);
+  const summary = calculateCalendarSummary(expenses, summaryTarget);
+  const incomeSummary = calculateCalendarIncomeSummary(incomes, summaryTarget);
 
   return {
     kind: "ready",
@@ -277,9 +340,11 @@ export async function getGroupCalendar(
     ...(selection.day ? { selectedDay: selection.day } : {}),
     members,
     ...summary,
+    ...incomeSummary,
     grid: createCalendarGrid(selection.month, group.week_starts_on, today),
     dayTransactionsByDate: createDayTransactionsByDate(
       expenses,
+      incomes,
       targetMembershipId,
       displayNameByMembershipId,
     ),

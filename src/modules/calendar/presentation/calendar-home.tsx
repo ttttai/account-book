@@ -175,13 +175,18 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
             {data.monthlyPaidTotal !== undefined ? (
               <span>支払額 {formatJpy(data.monthlyPaidTotal)}</span>
             ) : null}
+            {data.monthlyIncomeTotal > 0 ? (
+              <span className={styles["calendar-total-income"]}>
+                収入 ＋{formatJpy(data.monthlyIncomeTotal)}
+              </span>
+            ) : null}
           </section>
         </>
       }
       footer={
-        data.monthlyTotal === 0 ? (
+        data.monthlyTotal === 0 && data.monthlyIncomeTotal === 0 ? (
           <p className={styles["calendar-empty-message"]}>
-            この月の支出はまだありません。
+            この月の取引はまだありません。
           </p>
         ) : null
       }

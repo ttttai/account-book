@@ -103,3 +103,32 @@ test("収入の編集導線と編集画面が種別に応じて動作する", as
   assert.match(historyList, /\/edit/);
   assert.doesNotMatch(historyList, /row\.type === "expense"\s*\?\s*`\/groups/);
 });
+
+test("カレンダーは収入を支出と区別して表示する (CAL-012)", async () => {
+  const summary = await read("src/modules/calendar/domain/calendar-summary.ts");
+  assert.match(summary, /export function calculateCalendarIncomeSummary/);
+
+  const query = await read(
+    "src/modules/calendar/application/get-group-calendar.ts",
+  );
+  assert.match(query, /\.eq\("type", "income"\)/);
+  assert.match(query, /calculateCalendarIncomeSummary/);
+
+  const explorer = await read(
+    "src/modules/calendar/presentation/calendar-day-explorer.tsx",
+  );
+  // 収入は「＋」表記と収入用の色classで表示し、色だけに依存しない
+  assert.match(explorer, /calendar-cell-income/);
+  assert.match(explorer, /＋/);
+  assert.match(explorer, /受取者/);
+
+  const css = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
+  assert.match(css, /\.calendar-cell-income/);
+
+  const home = await read(
+    "src/modules/calendar/presentation/calendar-home.tsx",
+  );
+  assert.match(home, /monthlyIncomeTotal/);
+});
