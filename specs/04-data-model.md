@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.9
+バージョン: 0.2.10
 
 ## 1. 設計目標
 
@@ -213,7 +213,7 @@ RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB�
 
 メンバー対象では負担額をjoinし、選択membershipの`transaction_allocations.amount_minor`を合計する。
 
-支払額詳細では、`payer_member_id`ごとに`transactions.amount_minor`を合計する。
+支払者別の集計は履歴の絞り込みとCSVで使い、カレンダーの月間集計へは含めない。
 
 収入の受取額詳細では`recipient_member_id`ごとに収入を合計し、標準の支出カレンダーへ含めない。
 

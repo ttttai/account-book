@@ -196,9 +196,6 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
               >
                 収支 {formatSignedJpy(monthlyBalance)}
               </span>
-              {data.monthlyPaidTotal !== undefined ? (
-                <span>支払額 {formatJpy(data.monthlyPaidTotal)}</span>
-              ) : null}
             </span>
           </section>
         </>

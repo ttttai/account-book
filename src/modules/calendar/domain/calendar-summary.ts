@@ -23,7 +23,6 @@ type CalendarSummaryTarget =
 
 export type CalendarSummary = Readonly<{
   monthlyTotal: number;
-  monthlyPaidTotal?: number;
   dailyTotals: Readonly<Record<string, number>>;
 }>;
 
@@ -43,12 +42,12 @@ function safeAdd(left: number, right: number): number {
 }
 
 // 対象（グループ全体または特定メンバーの負担額）で月間合計と日別合計を集計する
+// メンバー対象は実際に負担した利用額で統一し、立て替えた支払額は集計しない (CAL-010)
 export function calculateCalendarSummary(
   expenses: readonly CalendarExpense[],
   target: CalendarSummaryTarget,
 ): CalendarSummary {
   let monthlyTotal = 0;
-  let monthlyPaidTotal = 0;
   const dailyTotals: Record<string, number> = {};
 
   for (const expense of expenses) {
@@ -66,20 +65,9 @@ export function calculateCalendarSummary(
         targetAmount,
       );
     }
-
-    if (
-      target.scope === "member" &&
-      expense.payerMemberId === target.memberId
-    ) {
-      monthlyPaidTotal = safeAdd(monthlyPaidTotal, expense.amountMinor);
-    }
   }
 
-  return {
-    monthlyTotal,
-    ...(target.scope === "member" ? { monthlyPaidTotal } : {}),
-    dailyTotals,
-  };
+  return { monthlyTotal, dailyTotals };
 }
 
 export type CalendarIncomeSummary = Readonly<{

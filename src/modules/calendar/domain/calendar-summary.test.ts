@@ -40,7 +40,7 @@ describe("calculateCalendarSummary", () => {
     });
   });
 
-  it("メンバー利用額と支払額を分ける", () => {
+  it("メンバー対象は負担額（利用額）だけを集計し、支払額を返さない (CAL-010)", () => {
     expect(
       calculateCalendarSummary(expenses, {
         scope: "member",
@@ -48,7 +48,6 @@ describe("calculateCalendarSummary", () => {
       }),
     ).toEqual({
       monthlyTotal: 3500,
-      monthlyPaidTotal: 6000,
       dailyTotals: { "2026-08-01": 3500 },
     });
   });
@@ -61,7 +60,6 @@ describe("calculateCalendarSummary", () => {
       }),
     ).toEqual({
       monthlyTotal: 0,
-      monthlyPaidTotal: 500,
       dailyTotals: {},
     });
   });

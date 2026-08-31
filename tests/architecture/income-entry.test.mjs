@@ -150,7 +150,8 @@ test("月間の収入・支出・収支差額を集計領域へ表示する (CAL
   assert.match(home, /収支/);
   // メンバー対象では収入を受取額と呼ぶ (AC-CAL-013-3)
   assert.match(home, /受取額/);
-  assert.match(home, /支払額/);
+  // 集計領域は利用額で統一し、支払額を表示しない (CAL-010)
+  assert.doesNotMatch(home, /支払額/);
 
   const css = await read(
     "src/modules/calendar/presentation/calendar.module.css",
