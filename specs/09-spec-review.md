@@ -723,7 +723,7 @@ MVP範囲確認: 本対応はtest、test設定、CI gate、仕様記録だけを
 
 判定: `NFR-MNT-012`は`NFR-MNT-007`〜`NFR-MNT-009`、既存のApplication/DAL test計画、`NFR-OPS-008`と整合し、安全かつ実装可能である。取引command実行testを先に追加し、coverageの4指標が各40%以上、既存の全品質gateが成功することを条件に実装開始を承認する。
 
-実装確認: 取引command、カテゴリcommand、グループ・招待command、認証環境境界へ実行test 55件を追加し、未認証時のRPC抑止、検証済みRPC引数、SQLSTATE分類、招待生tokenの非送信、失敗logの最小化を確認した。Istanbul providerで未実行moduleを0%として含めた結果、statement 40.57%、branch 40.69%、function 40.66%、line 41.13%となり、4指標すべての40% gateを通過した。全体でarchitecture test 103件、component・unit test 368件、format、警告なしlint、型検査、本番buildが成功した。利用者向け動作と画面を変更していないため、モバイル・PCの実画面再確認は対象外とした。
+実装確認: 取引command、カテゴリcommand、グループ・招待command、認証環境境界へ実行test 55件を追加し、未認証時のRPC抑止、検証済みRPC引数、SQLSTATE分類、招待生tokenの非送信、失敗logの最小化を確認した。Istanbul providerで未実行moduleを0%として含めた結果、statement 40.57%、branch 40.69%、function 40.66%、line 41.13%となり、4指標すべての40% gateを通過した。CIではarchitecture testを独立して実行し、component・unit testはcoverage付きで1回だけ実行して重複を避ける。全体でarchitecture test 103件、component・unit test 368件、format、警告なしlint、型検査、本番buildが成功した。利用者向け動作と画面を変更していないため、モバイル・PCの実画面再確認は対象外とした。
 
 ## 4. 要件と検証方法の対応
 

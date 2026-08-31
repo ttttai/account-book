@@ -157,8 +157,8 @@ CIは作業branchと`main`を含むすべてのbranchへのpush、および手�
 format check
 lint
 typecheck
-architecture・unit test
-module coverage threshold
+architecture test
+unit test・module coverage threshold（coverage付きで1回だけ実行）
 DB・RLS test
 OAuth HTTP integration test
 production build
@@ -166,6 +166,8 @@ production container build
 ```
 
 Node品質jobとDocker Compose統合jobを分離し、どの境界で失敗したかを判別できるようにする。Nodeは`package.json`の対応majorと一致するversionを明示し、`package-lock.json`を使う`npm ci`とlockfile基準のdependency cacheを利用する。
+
+Node品質jobではarchitecture testを独立して実行し、Vitestのunit・component testはcoverage付きで1回だけ実行する。同じVitest suiteをcoverageなし・ありで重複実行しない。
 
 Workflow全体の`GITHUB_TOKEN`権限は`contents: read`だけとし、checkout後のcredentialは保持しない。利用する外部Actionはrelease tagだけでなく完全なcommit SHAへ固定し、更新時は公式releaseとtagの対応を確認する。
 

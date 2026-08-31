@@ -122,10 +122,10 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Run architecture and unit tests
-        run: npm test
+      - name: Run architecture tests
+        run: npm run test:architecture
 
-      - name: Check module coverage threshold
+      - name: Run unit tests and check module coverage threshold
         run: npm run test:coverage
 
       - name: Build production application

@@ -33,6 +33,7 @@ test("TypeScript strict modeと品質ゲートを設定する", async () => {
     "lint",
     "typecheck",
     "test",
+    "test:architecture",
     "test:coverage",
     "build",
   ]) {
@@ -77,6 +78,12 @@ test("未実行moduleを含むcoverageをCIで40%以上に保つ (NFR-MNT-012)",
     assert.match(vitestConfig, new RegExp(`${metric}:\\s*40`));
   }
   assert.match(workflow, /npm run test:coverage/);
+  assert.match(workflow, /npm run test:architecture/);
+  assert.doesNotMatch(
+    workflow,
+    /^\s*run:\s*npm test\s*$/m,
+    "CIではcoverageなしのVitestを重複実行しません",
+  );
 });
 
 test("Docker Composeを標準のローカル開発入口にする", async () => {
@@ -201,7 +208,7 @@ test("GitHub Actionsで最小権限の品質・統合CIを実行する", async (
     "npm run format:check",
     "npm run lint",
     "npm run typecheck",
-    "npm test",
+    "npm run test:architecture",
     "npm run test:coverage",
     "npm run build",
     "docker compose --profile test run --rm integration-tests",
