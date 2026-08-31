@@ -140,3 +140,32 @@ test("負担方法は1人を先頭にして初期選択にする (AC-TXN-001-10)
     /defaultAllocation === "equal"\s*\?\s*"equal"\s*:\s*"single"/,
   );
 });
+
+test("固定した保存バーと画面下部ナビの間に隙間を作らない (R-055)", async () => {
+  const styles = await read(
+    "src/modules/transactions/presentation/transactions.module.css",
+  );
+
+  const submitBar = styles.slice(
+    styles.indexOf(".expense-submit-bar {"),
+    styles.indexOf("@media (min-width: 900px)"),
+  );
+
+  // 保存ボタンの固定位置は変えない。
+  assert.match(
+    submitBar,
+    /position:\s*sticky;[\s\S]*bottom:\s*calc\(4\.25rem \+ env\(safe-area-inset-bottom\)\)/,
+  );
+  // バー下端から画面下端までを不透明色で覆い、背後のフォームを見せない。
+  assert.match(submitBar, /\.expense-submit-bar::after\s*\{[\s\S]*top:\s*100%/);
+  assert.match(
+    submitBar,
+    /\.expense-submit-bar::after\s*\{[\s\S]*height:\s*calc\(4\.25rem \+ env\(safe-area-inset-bottom\)\)/,
+  );
+  assert.match(
+    submitBar,
+    /\.expense-submit-bar::after\s*\{[\s\S]*background:\s*var\(--surface\)/,
+  );
+  // 静止時に覆いがカードの外へ出ないよう切り取る（clipはscroll containerを作らずstickyを壊さない）。
+  assert.match(styles, /\.expense-form\s*\{[^}]*overflow:\s*clip/s);
+});

@@ -7,6 +7,9 @@
   border-radius: 1.25rem;
   background: var(--surface);
   box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+  /* 保存バーの覆い（.expense-submit-bar::after）が、固定解除時にカードの外へ
+     はみ出さないよう切り取る。clipはscroll containerを作らないためstickyの基準は画面のまま */
+  overflow: clip;
 }
 
 .expense-field,
@@ -337,6 +340,18 @@
   backdrop-filter: blur(12px);
 }
 
+/* バー下端から画面下端までを塞ぎ、画面下部ナビとの高さの差でできる隙間から
+   背後のフォームが見えないようにする。ナビはz-indexが上のため覆いを隠す */
+.expense-submit-bar::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: calc(4.25rem + env(safe-area-inset-bottom));
+  background: var(--surface);
+}
+
 @media (min-width: 900px) {
   .expense-form {
     grid-template-columns: minmax(0, 1.05fr) minmax(18rem, 0.95fr);
@@ -411,6 +426,10 @@
     border: 0;
     background: transparent;
     backdrop-filter: none;
+  }
+  /* PCでは固定表示しないため、隙間を塞ぐ覆いも不要にする */
+  .expense-submit-bar::after {
+    display: none;
   }
   .expense-save-button {
     width: min(100%, 20rem);
