@@ -8,6 +8,7 @@ import {
 } from "@/modules/auth/server";
 
 import type { CreateIncomeInput } from "../domain/income-input";
+import { logTransactionCommandFailure } from "./command-error";
 
 // 認証を確認したうえでDB関数により収入取引を登録し、作成された取引IDを返す
 export async function createIncome(input: CreateIncomeInput): Promise<string> {
@@ -29,6 +30,9 @@ export async function createIncome(input: CreateIncomeInput): Promise<string> {
     p_client_request_id: input.clientRequestId,
   });
 
-  if (error) throw new Error("収入を登録できませんでした。");
+  if (error) {
+    logTransactionCommandFailure("createIncome", error.code);
+    throw new Error("収入を登録できませんでした。");
+  }
   return z.uuid().parse(data);
 }

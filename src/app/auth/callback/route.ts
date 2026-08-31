@@ -28,8 +28,12 @@ export async function GET(request: NextRequest) {
   const nextPath = resolveSafeNextPath(requestUrl.searchParams.get("next"));
 
   if (code) {
-    const { applyToResponse, supabase } =
-      createRouteHandlerSupabaseClient(request);
+    // 失効した旧sessionのrefreshが、交換直後のsession cookieを削除cookieで
+    // 打ち消さないよう、既存のsession cookieから隔離する（AC-AUTH-001-12）
+    const { applyToResponse, supabase } = createRouteHandlerSupabaseClient(
+      request,
+      { isolateExistingSession: true },
+    );
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       const { data: claimsData, error: claimsError } =

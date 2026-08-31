@@ -207,6 +207,9 @@ Bの利用額: 3,000円
 - `AC-AUTH-001-7` OAuth開始Route Handlerは検証済みの戻り先だけを受け付け、PKCE verifier cookieを応答へ設定した後に公開Supabase認可URLへredirectする。Googleからアプリへ戻ったcallbackは同じcookieを使ってcodeをsessionへ交換でき、cookie欠損時はsessionを作らず安全なOAuth失敗として扱う。
 - `AC-AUTH-001-8` OAuth開始要求のoriginが構成済みの公開サイトoriginと異なる場合、PKCE cookieを発行せず、検証済みの戻り先だけを含む公開サイトorigin上のOAuth開始Routeへredirectする。canonical originへ揃えた後の応答でPKCE cookieを発行し、callbackと同じhostへ保存する。
 - `AC-AUTH-001-9` ブラウザに失効済みまたは無効なAuth cookieが残った状態でOAuthログインを完了した直後でも、保護画面の初回表示をserver errorにしない。Proxyは認証境界（`/auth`配下のRoute Handler）に対してsession refreshを行わず、Server Componentの読み取りqueryは認証起因の失敗（期限切れ・無効JWT）をserver errorとして扱わず、未認証としてログイン誘導へ合流させる。
+- `AC-AUTH-001-10` access tokenの期限が切れた後も、refresh tokenが有効な間は再ログインを求めない。session更新を行った境界は、rotate後のtokenを同じ応答のcookieへ書き戻し、ブラウザが保持するtokenと不一致にしない。
+- `AC-AUTH-001-11` 認証済みで`start_url`（`/`）またはOAuth開始Routeへ到達した場合、ログイン画面とGoogle認証を経由せず、ホームまたは検証済みの戻り先を表示する。
+- `AC-AUTH-001-12` 失効したAuth cookieが残った状態でも、1回のGoogleログインでsessionが成立する。callbackは既存のsession cookieを参照せずPKCEのcode verifierだけでcodeを交換し、交換したsession cookieを同じ応答内の削除cookieで打ち消さない。
 - `AC-AUTH-002-1` ログインユーザーは自分のプロフィールを取得・更新でき、別ユーザーとして更新できない。
 - `AC-AUTH-003-1` ログアウト後は保護画面を閲覧できず、ログイン画面へ遷移する。
 - `AC-AUTH-004-1` 未認証で保護画面へアクセスすると、ログイン後の戻り先を安全な相対pathとして保持してログイン画面へ遷移する。

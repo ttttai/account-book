@@ -1,18 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { resolveSafeNextPath } from "../domain/safe-next-path";
+import { resolveAuthRouteRedirect } from "../domain/auth-route-redirect";
 import { getAllowedGoogleUserId } from "./google-auth-access";
 import { getSupabaseServerEnvironment } from "./supabase-environment";
-
-const PROTECTED_PATHS = ["/app", "/groups", "/account"];
-const SIGNED_OUT_ONLY_PATHS = ["/login"];
-
-function matchesPath(pathname: string, roots: readonly string[]): boolean {
-  return roots.some(
-    (root) => pathname === root || pathname.startsWith(`${root}/`),
-  );
-}
 
 // Proxyで毎リクエスト実行し、Supabaseセッションを更新して認証状態に応じたリダイレクトを行う
 export async function updateSession(request: NextRequest) {
@@ -41,7 +32,6 @@ export async function updateSession(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const isAuthenticated = getAllowedGoogleUserId(data?.claims) !== null;
-  const pathname = request.nextUrl.pathname;
 
   // リダイレクト時も更新済みの認証Cookie・headerを失わないよう引き継ぐ
   function redirectWithAuthState(url: URL) {
@@ -55,20 +45,13 @@ export async function updateSession(request: NextRequest) {
     return redirectResponse;
   }
 
-  // 未認証で保護ページへ来た場合、検証済みのnextパス付きでログインへ誘導する
-  if (!isAuthenticated && matchesPath(pathname, PROTECTED_PATHS)) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.search = "";
-    loginUrl.searchParams.set(
-      "next",
-      resolveSafeNextPath(`${pathname}${request.nextUrl.search}`),
-    );
-    return redirectWithAuthState(loginUrl);
-  }
-
-  if (isAuthenticated && matchesPath(pathname, SIGNED_OUT_ONLY_PATHS)) {
-    return redirectWithAuthState(new URL("/app", request.url));
+  const redirectPath = resolveAuthRouteRedirect({
+    pathname: request.nextUrl.pathname,
+    search: request.nextUrl.search,
+    isAuthenticated,
+  });
+  if (redirectPath) {
+    return redirectWithAuthState(new URL(redirectPath, request.url));
   }
 
   return response;

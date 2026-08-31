@@ -132,3 +132,35 @@ test("編集フォームは楽観的ロックversionを保持し、削除は元�
   assert.match(deleteForm, /元に戻せません/);
   assert.doesNotMatch(deleteForm, /復元/);
 });
+
+test("DB command失敗を操作名とcodeだけでlogへ残す (NFR-OPS-008)", async () => {
+  const logFormat = await read(
+    "src/modules/transactions/domain/command-failure-log.ts",
+  );
+  assert.match(logFormat, /export function formatCommandFailureLog/);
+
+  const commandError = await read(
+    "src/modules/transactions/application/command-error.ts",
+  );
+  assert.match(commandError, /export function logTransactionCommandFailure/);
+  assert.match(commandError, /console\.error\(formatCommandFailureLog/);
+
+  for (const [file, operation] of [
+    ["create-expense.ts", "createExpense"],
+    ["update-expense.ts", "updateExpense"],
+    ["delete-transaction.ts", "deleteTransaction"],
+    ["create-income.ts", "createIncome"],
+    ["update-income.ts", "updateIncome"],
+  ]) {
+    const command = await read(`src/modules/transactions/application/${file}`);
+    assert.match(
+      command,
+      new RegExp(
+        `logTransactionCommandFailure\\("${operation}", error\\.code\\)`,
+      ),
+      `${file}はDB失敗時に操作名とcodeをlogへ残す必要があります`,
+    );
+    // 失敗内容そのもの（message・details）をlogへ渡さない。
+    assert.doesNotMatch(command, /console\.(?:log|error|warn)/);
+  }
+});

@@ -2,9 +2,9 @@
 
 状態: 実装開始を承認
 
-レビュー日: 2026-08-30
+レビュー日: 2026-08-31
 
-対象バージョン: 0.2.26
+対象バージョン: 0.2.27
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.27の自動文書検査では、要件ID 108件、明示的な受け入れ条件ID 126件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.2.28の自動文書検査では、要件ID 112件、明示的な受け入れ条件ID 129件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-054で`AC-TXN-013-5`・`AC-TXN-013-6`の2件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -623,7 +623,35 @@ MVP範囲確認: インストール可能化のみで、オフライン対応、
 
 実装確認: `src/app/manifest.ts`、`public/icon-192.png`・`icon-512.png`・`icon-maskable-512.png`（利用者提供のアイコン画像から生成、maskableは中央約78%へ縮小配置）、`src/app/apple-icon.png`を追加した。manifest宣言・アイコン寸法・Service Worker不在を対象とする構造test 4件を追加し、全体でarchitecture test 84件、component・unit test 279件、format、警告なしlint、型検査、本番buildが成功した。本番buildの標準出力に`/manifest.webmanifest`と`/apple-icon.png`が静的routeとして含まれ、standalone serverからmanifest本文、3つのアイコン、apple-touch-icon、`<link rel="manifest">`が配信されることを確認した。実画面では375 x 812と1280 x 800でログイン画面の表示が変更前と同一で、横scroll・重なりがないことを確認した。iPhone 17・iOS 26.5 SimulatorのSafariでは、共有シートの「ホーム画面に追加」ダイアログにmanifest由来の名称「わが家計」・アイコン・`start_url`（`/`）と「Webアプリとして開く」ONが表示され、追加後のホーム画面に正しいアイコンで登録された。起動するとSafari UIなしのstandalone表示で`start_url`が開き、未認証時はログイン画面が表示され、「Googleでログイン」からaccounts.google.comの認証ページが外部Safariへ分断されずアプリ内表示で開くことを確認した。ブラウザのタブ・履歴表示用に同一図案のfavicon（`src/app/icon.png`、512 x 512）を追加し、`<link rel="icon">`として配信されることを確認した。実際のGoogleアカウントでのログイン完了と本番URLでの再確認だけが、リリース前手動確認として残る。
 
-### R-051 収入の登録・編集（受取者フロー）
+### R-052 Proxy未稼働によるsession失効と起動導線（PWA段階2）
+
+指摘: `proxy.ts`をリポジトリルートへ置いていたため、Next.js 16.3.2がProxyを一度も読み込んでいなかった（`next/dist/build/index.js`の探索基点は`rootDir = path.join(appDir, '..')`、検出条件は`normalizedFileDir === '/' || '/src'`であり、`src/app`構成では`src`直下だけが規約位置である）。その結果、(1) session更新がProxyではなくServer Componentのレンダリング中に発生し、`createServerSupabaseClient`がcookie書き込み失敗を握り潰す設計のためrotate後のrefresh tokenがブラウザへ戻らず、以後の更新が`refresh_token_not_found`で失敗して強制ログアウトになる、(2) `AC-AUTH-004-1`の未認証redirectと`/login`から`/app`への遷移が機能せず、認可がページ側の1層だけになる、(3) `start_url`（`/`）が静的な紹介画面のままでログイン導線しか持たないため、standalone起動のたびにGoogle認証を再実行する、という3つの不具合が同時に発生していた（Issue #57、#58）。R-049で`AC-AUTH-001-9`としてProxyのmatcher除外を定めた対応も、Proxy自体が読み込まれていないため実効していなかった。あわせて、失効した旧sessionのcookieを保持したまま`/auth/callback`がクライアントを生成するため、旧sessionのrefresh失敗が生成する`maxAge: 0`の削除cookieが、交換直後のsession cookieを打ち消す場合がある（Issue #59）。
+
+対応: `NFR-SEC-011`（session更新はcookieへ書き戻せる境界だけで行う）、`NFR-PWA-006`（認証済みの`start_url`・OAuth開始RouteはOAuthを再実行せず遷移する）、`NFR-MNT-011`（frameworkの規約ファイルは探索位置へ置き、読み込みをtestとbuild出力で検証する）を追加し、`NFR-PWA-005`へrefresh tokenが有効な間は再ログインを求めない条件を追記した。`UC-001`の受け入れ条件へ`AC-AUTH-001-10`（session継続とcookieへの書き戻し）、`AC-AUTH-001-11`（認証済みの起動導線）、`AC-AUTH-001-12`（失効cookieが残っていても1回のログインでsession成立）を追加した。画面仕様へ「起動導線」を追加し、API境界へProxyの配置規約、session更新境界、callbackが既存session cookieを参照しないこと、認証済み到達時のredirectを明記した。実装では`proxy.ts`を`src/proxy.ts`へ移設し、Proxyの遷移規則へ「認証済みで`/`はホームへ」を追加し、OAuth開始Route Handlerで認証済み要求をOAuth再実行なしで戻り先へ通し、callback用clientを既存session cookieから隔離する。
+
+安全性確認: Proxyが稼働しても最終認可は各query/commandとRLSで再確認する方針（`AC-AUTH-004-3`）は変更せず、ページ側ガードも残すため認可は二重になる。`/auth`配下をmatcher対象外とする`AC-AUTH-001-9`の判断は維持し、認証境界でのProxy refreshは行わない。callback clientの隔離はsession cookieだけを対象とし、PKCEのcode verifier cookieは従来どおり読み取るため、cookie欠損時に安全に失敗する`AC-AUTH-001-7`の動作は変わらない。認証済み要求をOAuth開始Routeで短絡する判断は検証済みclaimsに基づき、claims検証が失敗した場合は従来どおりOAuthを開始するのでログイン不能にはならない。start_urlの扱いは変わらず、インストール状態を認可判断に使わない（`NFR-PWA-004`）。
+
+実装可能性確認: 移設は規約ファイルの配置変更のみで、Proxyの実装（`src/modules/auth/infrastructure/update-session.ts`）は再利用できる。読み込みの検証は、規約位置にファイルが存在し、ルートへ重複して残っていないことを構造testで固定し、本番build出力の`ƒ Proxy (Middleware)`行を検証項目とする。認証済み起動導線はProxyの既存`SIGNED_OUT_ONLY_PATHS`と同じ仕組みで表現でき、OAuth開始Routeの短絡は既存の`getClaims`と許可リスト判定を再利用する。callback clientの隔離は、`NextRequest`のcookieからsession cookie名（`sb-`接頭辞かつ`-auth-token`で終わるchunk）を除外したcookie取得関数を渡すだけで実現できる。
+
+MVP範囲確認: Service Worker、オフラインキャッシュ、プッシュ通知は延期のまま（`NFR-PWA-004`、D-009）。session寿命そのもの（refresh tokenのTTL、多要素認証、複数端末のsession管理）は変更せず、Supabaseの既定に従う。
+
+判定: 追加した`NFR-SEC-011`、`NFR-PWA-006`、`NFR-MNT-011`、`AC-AUTH-001-10`〜`AC-AUTH-001-12`は、`AUTH-004`、`AC-AUTH-001-7`、`AC-AUTH-001-9`、`AC-AUTH-004-1`〜`AC-AUTH-004-3`、`NFR-PWA-001`〜`NFR-PWA-005`と整合し、安全かつ実装可能である。構造testを先に追加し、本番build出力にProxy行が出ること、375pxと1280pxで起動導線とログイン画面を実画面確認すること、standalone実機で再起動後にログイン画面を経由しないことを条件に、実装開始を承認する。
+
+### R-053 更新command失敗の観測性
+
+指摘: 取引の更新commandはSupabaseの`error`を破棄して汎用メッセージへ変換するため、失敗理由が画面にもサーバーlogにも残らない。実際に本番で編集・削除が全件失敗していた期間（対象DB関数が本番未適用だった）、HTTPは200で、container logにも出力がなく、原因特定に本番schemaの直接調査が必要だった（Issue #60）。
+
+対応: `NFR-OPS-008`を追加し、更新commandがDB側の失敗で完了しなかった場合に操作名と失敗codeをサーバーlogへ記録することを求める。利用者向けメッセージの分類（conflict / not_found / invalid / error）は変更しない。API境界のcommand節へ、分類できない失敗を無記録で握りつぶさない方針を明記した。
+
+安全性確認: logへ出すのは操作名と`error.code`に限り、家計データ、個人情報、token、許可リストの値を含めないため`NFR-SEC-005`・`NFR-SEC-010`・`NFR-OPS-006`と整合する。利用者向けメッセージを変えないため、対象の存在を明かさない`AC-TXN-008-*`・`AC-TXN-009-*`の性質も保たれる。
+
+実装可能性確認: 記録位置は`src/modules/transactions/application/`の各commandに限定でき、Cloud Runの標準出力がそのままstructured logとして収集される。logの内容（codeだけを出し、値を出さない）は単体testで固定できる。
+
+MVP範囲確認: 集中log基盤、alert、request/correlation IDの伝播（`NFR-OPS-006`の既存範囲）は本対応で拡張しない。categories・groupsの同型のcommandは別Issueとして扱う。
+
+判定: `NFR-OPS-008`は既存のlog方針と矛盾せず、安全かつ実装可能である。log内容を検証する単体testを追加する条件で、実装開始を承認する。
+
+### R-054 収入の登録・編集（受取者フロー）
 
 指摘: `TXN-002`・`TXN-013`と`UC-010`は承認済みだが、実装は支出のみで、収入の入力導線（種別切替）、収入編集の規則、DB commandの分割方針が未確定だった。履歴・CSV・カレンダー除外（AC-CAL-001-6）は実装済みで収入行に対応している。
 
