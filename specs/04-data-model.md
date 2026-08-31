@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.8
+バージョン: 0.2.9
 
 ## 1. 設計目標
 
@@ -163,6 +163,50 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 - 支出作成commandは`transactions`と`transaction_allocations`を同一DB transactionで作成し、合計一致を確認してからcommitする。直接table insert権限は付与しない。
 - 同じ`(group_id, client_request_id)`が存在する場合、入力内容にかかわらず既存取引IDを返す。最初の成功結果を正本とし、再送による別内容への更新は行わない。
 
+### recurring_transactions
+
+固定額・月次の定期取引設定。詳細な列と制約は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。
+
+| column                                    | 型               | 説明                       |
+| ----------------------------------------- | ---------------- | -------------------------- |
+| `id`                                      | uuid PK          |                            |
+| `group_id`                                | uuid FK          | 必須のグループ境界         |
+| `type`                                    | text             | `expense`または`income`    |
+| `name`                                    | text             | 1〜40文字                  |
+| `amount_minor`                            | bigint           | 正のJPY整数                |
+| `day_of_month`                            | smallint         | 1〜28                      |
+| `start_month` / `end_month`               | date / nullable  | 月初日で保持。終了月は任意 |
+| `category_id`                             | uuid FK          | 同じグループ・同じ種別     |
+| `payer_member_id` / `recipient_member_id` | uuid nullable FK | 種別に応じて一方だけ必須   |
+| `memo`                                    | text nullable    | 最大500文字                |
+| `version`                                 | integer          | 楽観的ロック               |
+| `created_by` / `updated_by`               | uuid FK          | 認証ユーザー               |
+| `created_at` / `updated_at`               | timestamptz      | UTC                        |
+
+制約:
+
+- `day_of_month between 1 and 28`とし、29〜31日・月末は扱わない。
+- `start_month`・`end_month`は月初日に限り、`end_month is null or end_month >= start_month`。
+- 種別に応じて支払者・受取者のどちらか一方だけを必須にする。
+- カテゴリ、支払者、受取者は`group_id`を含む複合外部キーで同じグループへ固定する。
+- occurrence（月ごとの展開結果）を保存するテーブルは作らない。展開は読み取り時の計算とする。
+
+### recurring_transaction_allocations
+
+| column                     | 型               | 説明               |
+| -------------------------- | ---------------- | ------------------ |
+| `recurring_transaction_id` | uuid PK/FKの一部 |                    |
+| `group_id`                 | uuid FK          | 必須のグループ境界 |
+| `member_id`                | uuid PK/FKの一部 | 所属ID             |
+| `amount_minor`             | bigint           | 正の整数           |
+| `created_at`               | timestamptz      | UTC                |
+
+制約:
+
+- `(recurring_transaction_id, member_id)`をuniqueにする。
+- 支出では負担額合計が定期取引金額と一致する状態だけをcommitできる。収入には作成しない。
+- 更新はowner/admin検証を含む`security definer`関数に限定し、直接のinsert/update/delete権限を付与しない。
+
 ## 4. インデックス
 
 初期必須インデックス:
@@ -178,6 +222,8 @@ transactions(group_id, recipient_member_id, transaction_date DESC) WHERE deleted
 transactions(group_id, category_id, transaction_date DESC) WHERE deleted_at IS NULL
 transactions(group_id, deleted_at) WHERE deleted_at IS NOT NULL
 transaction_allocations(member_id, transaction_id)
+recurring_transactions(group_id, start_month, day_of_month, id)
+recurring_transaction_allocations(member_id, recurring_transaction_id)
 categories(group_id, type, archived_at, sort_order)
 ```
 
@@ -216,6 +262,8 @@ RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB�
 支払額詳細では、`payer_member_id`ごとに`transactions.amount_minor`を合計する。
 
 収入の受取額詳細では`recipient_member_id`ごとに収入を合計し、標準の支出カレンダーへ含めない。
+
+定期取引（`REC-*`）は、選択月へ展開した擬似取引として同じ集計規則へ渡す。展開結果はDBへ保存せず、`transactions`を読まずに設定から作るため、単発取引との二重集計は発生しない。
 
 初期実装は選択月を読み取り時に集計する。測定で必要になるまで`daily_summaries`テーブルを作らない。
 

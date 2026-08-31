@@ -11,6 +11,9 @@ const diagramEntityByTable = {
   "public.group_members": "GROUP_MEMBERS",
   "public.groups": "GROUPS",
   "public.profiles": "PROFILES",
+  "public.recurring_transaction_allocations":
+    "RECURRING_TRANSACTION_ALLOCATIONS",
+  "public.recurring_transactions": "RECURRING_TRANSACTIONS",
   "public.transaction_allocations": "TRANSACTION_ALLOCATIONS",
   "public.transactions": "TRANSACTIONS",
 };
@@ -57,4 +60,10 @@ test("ER図を実装済みmigrationとグループ境界へ同期する", async 
   assert.match(diagram, /複合外部キーで同じグループへ固定/);
   assert.doesNotMatch(diagram, /\n\s{4}DAILY_SUMMARIES\s+\{/);
   assert.match(diagram, /`daily_summaries`テーブルは作成しない/);
+  assert.match(
+    diagram,
+    /RECURRING_TRANSACTIONS \|\|--o\{ RECURRING_TRANSACTION_ALLOCATIONS/,
+  );
+  // 展開結果（occurrence）はテーブル化しない (REC-008)
+  assert.doesNotMatch(diagram, /\n\s{4}RECURRING_OCCURRENCES\s+\{/);
 });

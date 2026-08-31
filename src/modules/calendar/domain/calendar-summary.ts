@@ -6,6 +6,9 @@ export type CalendarExpense = Readonly<{
   createdAt: string;
   category: Readonly<{ name: string; color: string; icon: string }>;
   allocations: readonly Readonly<{ memberId: string; amountMinor: number }>[];
+  /** 定期取引の展開結果のときだけtrue。集計規則は単発取引と同じ (REC-005) */
+  isRecurring?: boolean;
+  recurringName?: string;
 }>;
 
 export type CalendarIncome = Readonly<{
@@ -15,6 +18,9 @@ export type CalendarIncome = Readonly<{
   recipientMemberId: string;
   createdAt: string;
   category: Readonly<{ name: string; color: string; icon: string }>;
+  /** 定期取引の展開結果のときだけtrue */
+  isRecurring?: boolean;
+  recurringName?: string;
 }>;
 
 type CalendarSummaryTarget =

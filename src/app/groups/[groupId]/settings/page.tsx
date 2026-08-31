@@ -83,6 +83,16 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
                 <span aria-hidden="true">›</span>
               </Link>
             ) : null}
+            <Link
+              className="settings-row-link"
+              href={`/groups/${encodedGroupId}/recurring-transactions`}
+            >
+              <span>
+                <strong>定期取引</strong>
+                <small>毎月同じ日・同じ金額の取引を管理します</small>
+              </span>
+              <span aria-hidden="true">›</span>
+            </Link>
             <a
               className="settings-row-link"
               href={`/api/v1/groups/${encodedGroupId}/exports/transactions.csv`}
