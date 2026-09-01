@@ -4,7 +4,7 @@
 
 レビュー日: 2026-09-01
 
-対象バージョン: 0.2.35
+対象バージョン: 0.2.36
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.35の自動文書検査では、要件ID 115件、明示的な受け入れ条件ID 139件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.2.36の自動文書検査では、要件ID 115件、明示的な受け入れ条件ID 139件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -766,6 +766,22 @@ MVP範囲確認: 本対応はtest、test設定、CI gate、仕様記録だけを
 判定: `NFR-MNT-012`は`NFR-MNT-007`〜`NFR-MNT-009`、既存のApplication/DAL test計画、`NFR-OPS-008`と整合し、安全かつ実装可能である。取引command実行testを先に追加し、coverageの4指標が各40%以上、既存の全品質gateが成功することを条件に実装開始を承認する。
 
 実装確認: 取引command、カテゴリcommand、グループ・招待command、認証環境境界へ実行test 55件を追加し、未認証時のRPC抑止、検証済みRPC引数、SQLSTATE分類、招待生tokenの非送信、失敗logの最小化を確認した。Istanbul providerで未実行moduleを0%として含めた結果、statement 40.72%、branch 40.98%、function 40.92%、line 41.28%となり、4指標すべての40% gateを通過した。CIではarchitecture testを独立して実行し、component・unit testはcoverage付きで1回だけ実行して重複を避ける。最新`main`との統合後にarchitecture test 104件、component・unit test 375件、format、警告なしlint、型検査、本番buildが成功した。利用者向け動作は本PRで変更していないため、モバイル・PCの実画面再確認は対象外とした。
+
+### R-062 module coverage gateを50%へ引き上げる
+
+指摘: `NFR-MNT-012`の初期40% gateは未実行moduleを可視化し、既存の主要domainと更新commandを保護できた一方、4指標が40.72%〜41.28%に留まり、Application/DALの主要な読み取り境界に0%のmoduleが残る。新しい実装が少量追加されるだけでgate付近へ戻る余裕の少なさもある。
+
+対応: statement・branch・function・lineの全体thresholdを各50%以上へ引き上げる。数値だけを満たすためのproduction code除外や単純なrender testを追加せず、カレンダー、履歴、取引編集・入力選択肢、CSV出力など、認証・所属・入力・DB失敗の分岐を持つApplication/DAL境界を直接実行するtestを優先する。未実行ファイルを0%として含める母数と既存の除外規則は変更しない。
+
+安全性確認: Supabase clientをmodule境界でmockし、実session、本番DB、実家計データ、秘密情報へ接続しない。認証失敗と所属外をfail closedにする経路、別グループIDをquery条件へ混入させないこと、返却DTOの最小化を検証する。coverage値はDB・RLS統合testやE2Eの代替にしない。
+
+実装可能性確認: 現在0%の主要Application moduleだけで、50%到達に不足するstatement 178件、branch 142件、function 41件、line 152件を上回る計測対象がある。既存の認証client mockとquery chain helperを再利用でき、production codeを変更せずに正常系・空状態・認証失敗・DB失敗を実行できる。test追加後に4指標すべてが50%以上で安定することを確認してからCI thresholdを50へ変更する。
+
+MVP範囲確認: test、coverage設定、仕様記録だけを変更し、利用者向け動作、DB schema、RLS、認証方式、金額計算、画面表示は変更しない。
+
+判定: `NFR-MNT-012`の50%への引き上げは、主要な読み取り境界の回帰防止とCIの余裕を改善し、既存要件と整合する。Application/DAL testを先に追加し、全4指標50%以上、既存の品質gate成功を条件にthreshold変更を承認する。
+
+実装確認: カレンダー取得、取引編集・入力選択肢、カテゴリ管理、グループ一覧・所属取得のApplication/DAL境界へ実行test 76件を追加した。正常系に加えて不正ID、未認証、所属外、空状態、DB失敗、アーカイブ済みカテゴリ、削除済みメンバー、対象別集計を検証した。未実行moduleを0%として含めた結果、statement 53.84%、branch 51.68%、function 51.54%、line 53.70%となり、全4指標が50%を超えたためCI thresholdを各50%へ変更した。architecture test 104件、component・unit test 451件、format、警告なしlint、型検査、本番buildが成功した。production codeと利用者向け動作を変更していないため、DB・RLS testと実画面再確認はCI・手動確認の追加対象外とした。
 
 ## 4. 要件と検証方法の対応
 

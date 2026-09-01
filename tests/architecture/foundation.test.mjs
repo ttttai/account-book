@@ -50,7 +50,7 @@ test("TypeScript strict modeと品質ゲートを設定する", async () => {
   );
 });
 
-test("未実行moduleを含むcoverageをCIで40%以上に保つ (NFR-MNT-012)", async () => {
+test("未実行moduleを含むcoverageをCIで50%以上に保つ (NFR-MNT-012)", async () => {
   const packageJson = JSON.parse(await read("package.json"));
   const vitestConfig = await read("vitest.config.ts");
   const workflow = await read(".github/workflows/ci.yml");
@@ -75,7 +75,7 @@ test("未実行moduleを含むcoverageをCIで40%以上に保つ (NFR-MNT-012)",
     /src\/modules\/\*\/\{index,server,presentation\}\.ts/,
   );
   for (const metric of ["statements", "branches", "functions", "lines"]) {
-    assert.match(vitestConfig, new RegExp(`${metric}:\\s*40`));
+    assert.match(vitestConfig, new RegExp(`${metric}:\\s*50`));
   }
   assert.match(workflow, /npm run test:coverage/);
   assert.match(workflow, /npm run test:architecture/);
