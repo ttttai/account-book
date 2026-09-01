@@ -253,7 +253,12 @@ describe("recurring application commands", () => {
       memo: null,
       payer_member_id: MEMBER_ID,
       recipient_member_id: null,
-      categories: { name: "住居", color: "home", icon: "home" },
+      categories: {
+        id: "30000000-0000-4000-8000-000000000001",
+        name: "住居",
+        color: "home",
+        icon: "home",
+      },
       recurring_transaction_allocations: [
         { member_id: MEMBER_ID, amount_minor: 100000 },
       ],

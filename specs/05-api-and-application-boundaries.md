@@ -92,7 +92,11 @@ listGroupMembers(groupId)
 listCategories(groupId, type)
 listRecurringTransactions(groupId)
 getRecurringTransactionForEdit(groupId, recurringTransactionId)
+getAnalyticsOverview(groupId, searchParams)
+getAnalyticsPeriodSummary({ groupId, startMonth, endMonth, target })
 ```
+
+概要分析（`ANA-*`）は上の2つのqueryだけを公開する。両queryは同じ内部集計処理を共有し、同じグループ・期間・対象に対して同じ金額を返す。詳細分析と定期レポートは`getAnalyticsPeriodSummary`を再利用し、取引行を直接読まず、金額の再計算を別実装で行わない。期間は1〜24か月に制限し、超過・不正な月・開始月が終了月より後の要求は取引を読み込まずに拒否する。分析専用の集計テーブル、Route Handler、内部APIは追加しない。
 
 ### Command
 
@@ -165,7 +169,7 @@ resourceの存在推測を防ぐため、非メンバーがグループ所有res
 
 ## 7. キャッシュ方針
 
-- 個人のグループ家計データは標準でキャッシュしない。
+- 個人のグループ家計データは標準でキャッシュしない。分析の集計結果にも共有cacheを追加しない。
 - グループ単位のkeyと無効化について、自動分離テストができるまで共有component/function cacheを有効にしない。
 - 公開static pageや不変の初期カテゴリ定義はキャッシュ可能とする。
 - 取引更新後、現在のグループ・月に新しい値を即時表示する。

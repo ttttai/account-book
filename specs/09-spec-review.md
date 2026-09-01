@@ -2,9 +2,9 @@
 
 状態: 実装開始を承認
 
-レビュー日: 2026-09-01
+レビュー日: 2026-09-02
 
-対象バージョン: 0.3.4
+対象バージョン: 0.3.5
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.4の自動文書検査では、要件ID 138件、明示的な受け入れ条件ID 164件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`AC-TXN-009-5`の1件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.5の自動文書検査では、要件ID 147件、明示的な受け入れ条件ID 181件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -855,29 +855,44 @@ MVP範囲確認: テンキーの開閉アニメーション、スワイプでの
 
 判定: `TXN-014`（更新）、`TXN-016`、`AC-TXN-014-5`・`AC-TXN-014-6`、`AC-TXN-016-1`・`AC-TXN-016-2`は`TXN-015`、`NFR-UI-*`、`NFR-A11Y-*`と整合し、安全かつ実装可能である。開閉と保存常設のcomponent testを先に更新し、実装後に幅375pxと1280 x 800で開閉・保存位置・ドック高さを実画面確認することを条件に実装開始を承認する。
 
+### R-068 スマホ向け概要分析と共通集計（段階1）
+
+指摘: 当月の家計状態を把握するには、ホームカレンダーの42日グリッドから日別金額を目で足すか、履歴を絞り込んで数えるしかなかった（Issue #53）。一方でカレンダー優先のホームへ指標を詰め込むと`AC-NAV-002-2`（375 x 812で42日分を縦スクロールなしに表示）を壊す。さらにLINE定期レポート案（Draft PR #43）と詳細分析が、それぞれ独自に金額を集計すると、同じ月・同じ対象で画面と通知の金額が食い違う。
+
+対応: `specs/12-analytics-and-reporting.md`を新設し、段階1を概要分析と共通集計に限定した。`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`と`UC-017`（`AC-ANA-001-1`〜`AC-ANA-012-2`）を追加した。詳細分析の`ANA-006`〜`ANA-008`は仕様12の予約IDとし、`01-product-requirements.md`へ宣言せず、着手時に再レビューする。画面は`/groups/{groupId}/analytics`とし、共通ナビゲーションを「ホーム、履歴、入力、分析、設定」の5項目へ拡張する（`NAV-001`、`AC-NAV-001-1`・`AC-NAV-001-3`・`AC-NAV-004-2`を更新）。サーバー境界は`getAnalyticsOverview`と`getAnalyticsPeriodSummary`の2つだけを公開し、同じ内部集計処理を共有させる。画面仕様（`03-screen-specification.md`）、データモデル（`04-data-model.md`）、API境界（`05-api-and-application-boundaries.md`）、テスト計画（`07-acceptance-test-plan.md`）を更新した。
+
+安全性確認: 両queryは呼び出しごとにGoogle検証済みsessionとアクティブ所属を確認し、`groupId`・`month`・`scope`・`member`をschema検証してからだけ取引を読む。`scope=member`は同一グループのアクティブmembershipに限り、不正値は代替値へ暗黙に置換せずfail closedで拒否する。24か月超、不正な月、開始月が終了月より後の期間要求も取引を読まずに拒否する。読み取りはRLS適用のユーザーsession clientで行い、service roleと新しいRoute Handlerを追加しない。Client Componentへは集計済みDTOだけを渡し、取引行・メモ・ユーザーIDを渡さない。共有cacheを追加しないため、グループ間でのcache混在が構造的に発生しない。
+
+実装可能性確認: 支出はグループ対象で取引金額、メンバー対象で負担額という既存の`CAL-010`定義をそのまま用い、収入は受取者一致で数える。集計は純関数であり、上位5件抽出・残り合算・前月差額・比率非表示を単体testで固定できる。定期取引はカレンダーと同じ`expandRecurringForMonth`で選択月へ展開して同じ集計へ渡すため、合計がカレンダーと一致する。カテゴリ別集計をカテゴリIDで行うため、`recurring`モジュールの公開型へカテゴリIDを加算的に追加する（既存の振る舞いは変えない）。DB変更は不要で、既存の`transactions_group_date_idx`・`transactions_group_category_date_idx`で月範囲を絞れる。
+
+MVP範囲確認: 詳細分析の全グラフ・任意期間、LINEの送信・同意・解除・失敗監視、予算値の登録、前年同月比、日・曜日・店舗別分析、グループ横断分析、PDF、永続集計テーブル、共有cacheは追加しない。予算（`BUD-*`）は未実装のため、概要DTOの予算進捗を任意項目として境界だけ用意し、値がない月は領域を表示しない。取引の登録・編集・削除の業務規則、カレンダーの42日表示と日別集計は変更しない。
+
+判定: `ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`と`AC-ANA-001-1`〜`AC-ANA-012-2`は`CAL-009`・`CAL-010`・`CAL-013`、`HIS-001`〜`HIS-005`、`REC-005`、`NFR-SEC-002`・`NFR-SEC-003`、`NFR-A11Y-*`、`NFR-UI-*`と整合し、安全かつ実装可能である。集計の純関数test、認可境界test、グラフなしで値を確認できるcomponent test、別グループ・削除済みmembershipのRLS testを先に追加し、320px・375 x 812・1280 x 800で実画面確認する条件で、実装開始を承認する。
+
 ## 4. 要件と検証方法の対応
 
-| 要件範囲               | 主な検証方法                                                    |
-| ---------------------- | --------------------------------------------------------------- |
-| `AUTH-001`〜`AUTH-005` | 認証integration test、モバイルE2E                               |
-| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                             |
-| `CAT-001`〜`CAT-003`   | category integration、権限test                                  |
-| `TXN-001`〜`TXN-015`   | 金額・負担単体test、取引integration、入力UI component test、E2E |
-| `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E                        |
-| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認                  |
-| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                               |
-| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E                 |
-| `NFR-SEC-*`            | RLS、server境界、production設定review                           |
-| `NFR-PRI-*`            | 認可test、UI文言review                                          |
-| `NFR-PERF-*`           | query plan/index review、代表値測定                             |
-| `NFR-REC-*`            | 論理削除・復元test、migration手順review                         |
-| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認          |
-| `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                               |
-| `NFR-OPS-*`            | Compose health check、deploy smoke test                         |
-| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                           |
-| `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認            |
-| `NFR-E2E-*`            | E2E主要smoke flow、使い捨てstackの分離確認                      |
-| `REC-001`〜`REC-009`   | 展開単体test、RLS test、定期取引E2E・実画面確認                 |
+| 要件範囲               | 主な検証方法                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `AUTH-001`〜`AUTH-005` | 認証integration test、モバイルE2E                                                                            |
+| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                                                                          |
+| `CAT-001`〜`CAT-003`   | category integration、権限test                                                                               |
+| `TXN-001`〜`TXN-015`   | 金額・負担単体test、取引integration、入力UI component test、E2E                                              |
+| `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E                                                                     |
+| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認                                                               |
+| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                                                                            |
+| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E                                                              |
+| `NFR-SEC-*`            | RLS、server境界、production設定review                                                                        |
+| `NFR-PRI-*`            | 認可test、UI文言review                                                                                       |
+| `NFR-PERF-*`           | query plan/index review、代表値測定                                                                          |
+| `NFR-REC-*`            | 論理削除・復元test、migration手順review                                                                      |
+| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認                                                       |
+| `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                                                                            |
+| `NFR-OPS-*`            | Compose health check、deploy smoke test                                                                      |
+| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                                                                        |
+| `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認                                                         |
+| `NFR-E2E-*`            | E2E主要smoke flow、使い捨てstackの分離確認                                                                   |
+| `REC-001`〜`REC-009`   | 展開単体test、RLS test、定期取引E2E・実画面確認                                                              |
+| `ANA-001`〜`ANA-012`   | 集計単体test、認可・共通集計Application test、accessibility component test、RLS test、320/375/1280実画面確認 |
 
 ## 5. 実装を妨げない延期事項
 
@@ -906,7 +921,7 @@ MVP範囲確認: テンキーの開閉アニメーション、スワイプでの
 
 この承認は延期機能および一般公開には適用しない。対象範囲では、仕様に記載された判断と対策を別途完了する必要がある。
 
-### R-068 取引編集の削除操作が固定入力ドックに覆われる不具合の修正
+### R-069 取引編集の削除操作が固定入力ドックに覆われる不具合の修正
 
 指摘: Issue #75。取引編集画面で削除操作「この取引を削除する」が、幅375 x 812で固定入力ドック（カテゴリ・テンキー・保存）に完全に覆われタップできない。固定ドックの高さぶんの余白は`ExpenseForm`のform要素の`padding-bottom`にだけ確保しており、削除セクションはformの後ろに並ぶ兄弟要素として描画されるため、余白の外側＝ドックの重なり領域へ入る。ドック実高を反映する`--input-dock-height`もform要素にしか設定していない。主対象のスマートフォンで仕様化済みの`TXN-009`が実行できず、E2E（`E2E-005`）は要素へ直接clickを送る回避で検証を続けている。
 

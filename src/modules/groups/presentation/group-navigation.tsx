@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 import styles from "./groups.module.css";
 
-type NavigationItemId = "home" | "history" | "input" | "settings";
+type NavigationItemId = "home" | "history" | "input" | "analytics" | "settings";
 
 type NavigationItem = Readonly<{
   id: NavigationItemId;
@@ -33,6 +33,13 @@ function NavigationIcon({ id }: Readonly<{ id: NavigationItemId }>) {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24">
         <path d="M12 5v14M5 12h14" />
+      </svg>
+    );
+  }
+  if (id === "analytics") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M4 20h16M7 20v-7M12 20V6M17 20v-4" />
       </svg>
     );
   }
@@ -75,6 +82,12 @@ export function GroupNavigation({ groupId }: Readonly<{ groupId: string }>) {
       activePaths: [`${groupBase}/transactions`],
     },
     {
+      id: "analytics",
+      label: "分析",
+      href: `${groupBase}/analytics`,
+      activePaths: [`${groupBase}/analytics`],
+    },
+    {
       id: "settings",
       label: "設定",
       href: `${groupBase}/settings`,
@@ -82,6 +95,7 @@ export function GroupNavigation({ groupId }: Readonly<{ groupId: string }>) {
         `${groupBase}/settings`,
         `${groupBase}/members`,
         `${groupBase}/categories`,
+        `${groupBase}/recurring-transactions`,
       ],
     },
   ];
