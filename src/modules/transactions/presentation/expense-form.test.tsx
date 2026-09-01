@@ -323,3 +323,54 @@ describe("ExpenseForm のテンキー開閉時のスクロール (AC-TXN-014-7)"
     await vi.waitFor(() => expect(scrollBy).toHaveBeenCalled());
   });
 });
+
+describe("ExpenseForm の外枠と footer (AC-TXN-009-5)", () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("footer をフォーム直後に描画し、同じ外枠へ含める", () => {
+    render(
+      <ExpenseForm
+        clientRequestId="req-1"
+        footer={<section aria-label="取引の削除">削除操作</section>}
+        options={options}
+      />,
+    );
+
+    const form = amountInput().closest("form");
+    const footer = screen.getByRole("region", { name: "取引の削除" });
+    expect(form?.nextElementSibling).toBe(footer);
+    // 外枠は form と footer の共通の親で、ドック高さぶんの余白を受け持つ
+    expect(form?.parentElement).toBe(footer.parentElement);
+    expect(form?.parentElement?.className).toContain("expense-form-shell");
+  });
+
+  it("入力ドックの実高を外枠へ CSS 変数として反映し、footer も余白の内側へ入れる", () => {
+    let trigger: (() => void) | undefined;
+    class FakeResizeObserver {
+      constructor(callback: () => void) {
+        trigger = callback;
+      }
+      observe() {}
+      disconnect() {}
+    }
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+
+    render(
+      <ExpenseForm
+        clientRequestId="req-1"
+        footer={<section aria-label="取引の削除">削除操作</section>}
+        options={options}
+      />,
+    );
+    trigger?.();
+
+    const shell = amountInput().closest("form")?.parentElement;
+    expect(shell?.style.getPropertyValue("--input-dock-height")).toMatch(/px$/);
+    expect(shell?.style.getPropertyValue("--input-dock-total-height")).toMatch(
+      /px$/,
+    );
+  });
+});
