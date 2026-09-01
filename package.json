@@ -17,7 +17,9 @@
     "test": "npm run test:architecture && vitest run --passWithNoTests",
     "test:architecture": "node --test tests/architecture/*.test.mjs",
     "test:unit": "vitest run --passWithNoTests --exclude tests/integration/**",
-    "test:coverage": "vitest run --coverage.enabled"
+    "test:coverage": "vitest run --coverage.enabled",
+    "test:e2e": "sh scripts/e2e-stack.sh up && sh scripts/e2e-stack.sh seed && playwright test",
+    "test:e2e:down": "sh scripts/e2e-stack.sh down"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.4",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.10",
+    "@playwright/test": "1.62.1",
     "@testing-library/react": "16.3.2",
     "@types/node": "24.3.0",
     "@types/react": "19.1.11",

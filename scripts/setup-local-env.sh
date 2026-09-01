@@ -4,10 +4,23 @@ set -eu
 umask 077
 
 project_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-environment_file="$project_root/.env"
+# LOCAL_ENV_FILEでE2E専用stack（.env.e2e）など別のstack設定も生成できるようにする
+environment_name=${LOCAL_ENV_FILE:-.env}
+environment_file="$project_root/$environment_name"
+web_host_port=${LOCAL_WEB_HOST_PORT:-3000}
+supabase_host_port=${LOCAL_SUPABASE_HOST_PORT:-54321}
+database_host_port=${LOCAL_DATABASE_HOST_PORT:-54322}
+
+case "$environment_name" in
+  .env | .env.*) ;;
+  *)
+    echo "LOCAL_ENV_FILE must be .env or start with .env." >&2
+    exit 1
+    ;;
+esac
 
 if [ -e "$environment_file" ]; then
-  echo ".env already exists. Refusing to overwrite it." >&2
+  echo "$environment_name already exists. Refusing to overwrite it." >&2
   exit 1
 fi
 
@@ -54,8 +67,11 @@ trap 'rm -f "$temporary_file"' EXIT HUP INT TERM
 {
   printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password"
   printf 'SUPABASE_JWT_SECRET=%s\n' "$jwt_secret"
-  printf 'NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000\n'
-  printf 'NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321\n'
+  printf 'WEB_HOST_PORT=%s\n' "$web_host_port"
+  printf 'SUPABASE_HOST_PORT=%s\n' "$supabase_host_port"
+  printf 'DATABASE_HOST_PORT=%s\n' "$database_host_port"
+  printf 'NEXT_PUBLIC_SITE_URL=http://127.0.0.1:%s\n' "$web_host_port"
+  printf 'NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:%s\n' "$supabase_host_port"
   printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$anon_key"
   printf 'NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED=%s\n' "$google_oauth_enabled"
   printf 'GOOGLE_OAUTH_CLIENT_ID=%s\n' "$google_oauth_client_id"
@@ -66,4 +82,4 @@ trap 'rm -f "$temporary_file"' EXIT HUP INT TERM
 mv "$temporary_file" "$environment_file"
 trap - EXIT HUP INT TERM
 
-echo "Created .env with local-only credentials."
+echo "Created $environment_name with local-only credentials."

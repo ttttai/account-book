@@ -4,7 +4,7 @@
 
 レビュー日: 2026-09-01
 
-対象バージョン: 0.3.1
+対象バージョン: 0.3.2
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.1の自動文書検査では、要件ID 126件、明示的な受け入れ条件ID 158件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.1の自動文書検査では、要件ID 137件、明示的な受け入れ条件ID 158件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -825,6 +825,22 @@ MVP範囲確認: test、coverage設定、仕様記録だけを変更し、利用
 
 実装確認: カレンダー取得、取引編集・入力選択肢、カテゴリ管理、グループ一覧・所属取得のApplication/DAL境界へ実行test 79件を追加した。正常系に加えて不正ID、未認証、所属外、空状態、DB失敗、アーカイブ済みカテゴリ、削除済みメンバー、対象別集計を検証した。R-064の定期取引が`getGroupCalendar`へ加わったため、統合時に定期取引の展開、開始月前の非展開、query失敗の一般化も同じ境界で実行するtestを追加した。未実行moduleを0%として含めた結果、statement 57.58%、branch 54.47%、function 56.01%、line 57.49%となり、全4指標が50%を超えたためCI thresholdを各50%へ変更した。architecture test 111件、component・unit test 509件、format、警告なしlint、型検査、本番buildが成功した。production codeと利用者向け動作を変更していないため、DB・RLS testと実画面再確認はCI・手動確認の追加対象外とした。
 
+### R-066 主要smoke flowのE2Eテスト基盤
+
+指摘: `07-acceptance-test-plan.md`はE2Eフロー18項目とCI必須checkを定義しているが、E2Eの実行基盤が存在せず、画面からServer Action・DB関数・RLSまでの配線は手動確認だけに依存している。単体・component testはSupabase clientをmockするため、cookie、Proxyの認可redirect、RLS、Server Actionのredirect先を同時に壊す変更を検出できない。認証がGoogle OAuth専用であるため、どこを差し替えるかを決めないままE2Eを追加すると、production codeへtest専用のbypassが混入する危険がある。
+
+対応: `15-e2e-testing.md`と`NFR-E2E-001`〜`NFR-E2E-005`を新設し、主要smoke flow 8シナリオを自動化する。差し替えるのはGoogleの外部往復だけとし、`auth.users`へ架空のE2Eユーザーを冪等に投入したうえで、stackのJWT secretで署名したaccess tokenと`@supabase/ssr`が組み立てたsession cookieをbrowser contextへ注入する。DB、RLS、GoTrue、Next.jsのserver境界は本番と同じ経路で実行する。
+
+安全性確認: E2Eは専用compose project（`account-book-e2e`）の使い捨てstackだけを対象とし、port・volumeを開発用と分離する。`.env.e2e`は実行ごとに生成したローカル専用password・JWT secretと、`example.test`の架空許可アカウントだけを持つ。base URLとSupabase URLがloopbackでない場合はテストを開始せず中止する。本番・stagingのSupabase資格情報、実Googleアカウント、実家計データ、GitHub Secretsを使用しない。production codeへtest専用の分岐、bypass route、環境変数を追加せず、認可判定は`app_private.is_allowed_google_identity()`とProxyの実装をそのまま通す。artifactへ家計データ、token、許可リストの値を含めない。
+
+実装可能性確認: session seedingが依存するのはJWTクレーム（`sub`、`email`、`app_metadata.provider`）だけであり、GoTrueが要求する`instance_id`・token列・`email_confirmed_at`を満たせば`/auth/v1/user`が成功することをローカルstackで確認した。session cookie名は実行中のアプリが返す`-code-verifier` cookieから検出できるため、`SUPABASE_INTERNAL_URL`の重複定義やcookie形式の再実装が不要である。compose.yamlのhost portとAuthの公開URLを環境変数へ寄せることで、既定値を変えずにE2E専用stackを同時起動できる。
+
+MVP範囲確認: テスト、テスト用stack設定、CI、仕様記録だけを追加し、利用者向け動作、DB schema、RLS、認証方式、金額計算、画面表示を変更しない。権限変更・カテゴリ管理・定期取引・収入登録のE2E、履歴の追加読み込み、WebKit project、視覚回帰、accessibility自動検査、session refreshの経過時間シナリオは初回スコープ外とし、縦切りごとに追加する。
+
+判定: `NFR-E2E-001`〜`NFR-E2E-005`と`E2E-001`〜`E2E-008`は`07-acceptance-test-plan.md`、`NFR-MNT-008`・`NFR-MNT-009`、`NFR-UI-001`・`NFR-UI-002`・`NFR-UI-006`と整合し、安全かつ実装可能である。使い捨てstackへの限定とloopback検証を先に実装する条件で、実装開始を承認する。
+
+実装確認: 8シナリオ16件（mobile 14件・desktop 2件）を実装し、すべて成功した。session seedingはJWTクレームだけで本番と同じ認可経路を通り、cookie名は稼働中のアプリが返すPKCE cookieから検出できることを確認した。E2E専用compose project（`account-book-e2e`）を空volumeから起動してmigration適用・許可リスト同期・seed投入・`down --volumes`まで確認し、開発用volumeが残ることも確認した。architecture test 119件、単体・component test、format、lint、型検査、本番buildが成功した。検証中に、375 x 812で取引編集の削除操作が固定入力ドックに覆われタップできない不具合を発見し、Issue #75として記録した。E2E-005は削除フローの検証を維持するため、当該操作だけ要素へ直接clickを送る暫定対応とした。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                                    |
@@ -846,6 +862,7 @@ MVP範囲確認: test、coverage設定、仕様記録だけを変更し、利用
 | `NFR-OPS-*`            | Compose health check、deploy smoke test                         |
 | `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                           |
 | `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認            |
+| `NFR-E2E-*`            | E2E主要smoke flow、使い捨てstackの分離確認                      |
 | `REC-001`〜`REC-009`   | 展開単体test、RLS test、定期取引E2E・実画面確認                 |
 
 ## 5. 実装を妨げない延期事項
