@@ -5,7 +5,11 @@ import type {
   CalendarReadyData,
 } from "../application/calendar-types";
 import { shiftMonth } from "../domain/calendar-grid";
-import { formatJpy } from "../domain/calendar-summary";
+import {
+  calculateMonthlyBalance,
+  formatJpy,
+  formatSignedJpy,
+} from "../domain/calendar-summary";
 import { CalendarDayExplorer } from "./calendar-day-explorer";
 
 import styles from "./calendar.module.css";
@@ -124,10 +128,15 @@ function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
 export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
   const previousMonth = shiftMonth(data.month, -1);
   const nextMonth = shiftMonth(data.month, 1);
+  // ラベルは集計対象によらず「支出」「収入」「収支」で統一する (AC-CAL-013-3)
   const selectedTarget =
     data.scope === "group"
       ? "グループ支出"
-      : `${data.selectedMemberLabel}の利用額`;
+      : `${data.selectedMemberLabel}の支出`;
+  const monthlyBalance = calculateMonthlyBalance(
+    data.monthlyTotal,
+    data.monthlyIncomeTotal,
+  );
   const sharedSelection = {
     scope: data.scope,
     ...(data.selectedMemberId ? { memberId: data.selectedMemberId } : {}),
@@ -172,19 +181,21 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
           >
             <p>{selectedTarget}</p>
             <strong>{formatJpy(data.monthlyTotal)}</strong>
-            {data.monthlyPaidTotal !== undefined ||
-            data.monthlyIncomeTotal > 0 ? (
-              <span className={styles["calendar-total-aside"]}>
-                {data.monthlyPaidTotal !== undefined ? (
-                  <span>支払額 {formatJpy(data.monthlyPaidTotal)}</span>
-                ) : null}
-                {data.monthlyIncomeTotal > 0 ? (
-                  <span className={styles["calendar-total-income"]}>
-                    収入 ＋{formatJpy(data.monthlyIncomeTotal)}
-                  </span>
-                ) : null}
+            <span className={styles["calendar-total-aside"]}>
+              <span className={styles["calendar-total-income"]}>
+                収入 {data.monthlyIncomeTotal > 0 ? "＋" : ""}
+                {formatJpy(data.monthlyIncomeTotal)}
               </span>
-            ) : null}
+              <span
+                className={
+                  monthlyBalance < 0
+                    ? `${styles["calendar-total-balance"]} ${styles["is-negative"]}`
+                    : styles["calendar-total-balance"]
+                }
+              >
+                収支 {formatSignedJpy(monthlyBalance)}
+              </span>
+            </span>
           </section>
         </>
       }

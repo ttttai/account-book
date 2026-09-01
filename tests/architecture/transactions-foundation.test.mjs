@@ -144,7 +144,7 @@ test("負担方法は1人を先頭にして初期選択にする (AC-TXN-001-10)
   );
 });
 
-test("入力ドックと画面下部ナビの間に隙間を作らない (R-055, R-058)", async () => {
+test("入力ドックと画面下部ナビの間に隙間を作らない (R-055, R-063)", async () => {
   const form = await read(
     "src/modules/transactions/presentation/expense-form.tsx",
   );

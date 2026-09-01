@@ -12,7 +12,7 @@ describe("parseCalendarSelection", () => {
     });
   });
 
-  it("自分の利用額を選べる", () => {
+  it("自分の支出を選べる", () => {
     expect(
       parseCalendarSelection({ month: "2025-12", scope: "self" }, currentMonth),
     ).toEqual({ success: true, value: { month: "2025-12", scope: "self" } });
