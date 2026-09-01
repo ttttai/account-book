@@ -1,10 +1,14 @@
+/* formとfooter（削除操作など）の共通の外枠。固定ドックの余白はここで確保し、footerも覆われないようにする (AC-TXN-009-5) */
+.expense-form-shell {
+  /* 固定した入力ドックの実高（ResizeObserverで反映）ぶんを空け、最後の入力とfooterを隠さない */
+  padding-bottom: calc(var(--input-dock-height, 19rem) + 1rem);
+}
+
 .expense-form {
   display: grid;
   gap: 1rem;
   margin-top: 1.5rem;
   padding: 1rem;
-  /* 固定した入力ドックの実高（ResizeObserverで反映）ぶんを空け、最後の入力を隠さない */
-  padding-bottom: calc(var(--input-dock-height, 19rem) + 1rem);
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   background: var(--surface);
@@ -474,7 +478,8 @@
 
 /* 金額欄をドックの上へ寄せるための余白。ドックが画面へ重なる狭い画面だけに適用する (AC-TXN-014-7) */
 @media (max-width: 899px) {
-  .amount-field {
+  .amount-field,
+  .delete-transaction-confirm {
     scroll-margin-bottom: calc(var(--input-dock-height, 19rem) + 0.75rem);
   }
 }
@@ -493,12 +498,12 @@
     gap: 1.25rem;
     padding: 1.5rem;
   }
-  /* PCでは入力ドックを固定せず、子要素を既存の2カラムへ流し込む */
+  /* PCでは入力ドックを固定せず、子要素を既存の2カラムへ流し込むため余白も不要 */
   .input-dock {
     display: contents;
   }
-  .expense-form {
-    padding-bottom: 1.5rem;
+  .expense-form-shell {
+    padding-bottom: 0;
   }
   /* 自動配置に任せると入力ドックの子要素と行が競合するため、PCでは全ブロックの行を明示する */
   .amount-field {

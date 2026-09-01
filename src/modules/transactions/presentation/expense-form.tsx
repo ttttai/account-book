@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type FocusEvent as ReactFocusEvent,
+  type ReactNode,
 } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -34,6 +35,8 @@ type ExpenseFormProps = Readonly<{
     transaction: TransactionEditTransaction;
     returnTo: string;
   }>;
+  /** フォーム直後へ描画する補助操作（削除など）。固定ドックの余白の内側へ含める (AC-TXN-009-5) */
+  footer?: ReactNode;
 }>;
 
 const yenFormatter = new Intl.NumberFormat("ja-JP");
@@ -133,6 +136,7 @@ export function ExpenseForm({
   options,
   clientRequestId,
   edit,
+  footer,
 }: ExpenseFormProps) {
   const editTransaction = edit?.transaction;
   const expenseEdit =
@@ -207,6 +211,7 @@ export function ExpenseForm({
     editTransaction?.categoryId ?? "",
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const categoryOptionsRef = useRef<HTMLDivElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
@@ -233,18 +238,23 @@ export function ExpenseForm({
     }
   }, [editTransaction, options.group.id, options.members]);
 
-  // 固定した入力ドックの見える高さぶんだけフォーム下端を空け、最後の入力が隠れないようにする。
+  // 固定した入力ドックの見える高さぶんだけ外枠の下端を空け、最後の入力とfooterが隠れないようにする (AC-TXN-009-5)。
   // ドック下端のナビゲーション用paddingは共通layoutが確保済みのため差し引く。
   useEffect(() => {
     const dock = dockRef.current;
-    const form = formRef.current;
-    if (!dock || !form || typeof ResizeObserver === "undefined") return;
+    const shell = shellRef.current;
+    if (!dock || !shell || typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => {
       const navReserve = Number.parseFloat(
         window.getComputedStyle(dock).paddingBottom,
       );
       const visibleHeight = dock.offsetHeight - (navReserve || 0);
-      form.style.setProperty("--input-dock-height", `${visibleHeight}px`);
+      shell.style.setProperty("--input-dock-height", `${visibleHeight}px`);
+      // footer側がドック上端を求めるため、ナビゲーション用paddingを含む全高も渡す
+      shell.style.setProperty(
+        "--input-dock-total-height",
+        `${dock.offsetHeight}px`,
+      );
     });
     observer.observe(dock);
     return () => observer.disconnect();
@@ -358,237 +368,117 @@ export function ExpenseForm({
   }
 
   return (
-    <form
-      action={action}
-      className={styles["expense-form"]}
-      noValidate
-      onFocus={handleFormFocus}
-      ref={formRef}
-    >
-      {editTransaction ? (
-        <input
-          name="expectedVersion"
-          type="hidden"
-          value={editTransaction.version}
-        />
-      ) : (
-        <input name="clientRequestId" type="hidden" value={clientRequestId} />
-      )}
-
-      {!editTransaction && (
-        <fieldset
-          className={`${styles["allocation-fieldset"]} ${styles["type-fieldset"]}`}
-        >
-          <legend>種別</legend>
-          <div className={styles["segmented-control"]}>
-            {(
-              [
-                ["expense", "支出"],
-                ["income", "収入"],
-              ] as const
-            ).map(([value, label]) => (
-              <label key={value}>
-                <input
-                  checked={selectedType === value}
-                  name="transactionType"
-                  onChange={() => setSelectedType(value)}
-                  type="radio"
-                  value={value}
-                />
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      )}
-
-      {/* 金額はドックのテンキーで入力する。inputmode="none"でOSの仮想キーボードを開かず、
-          物理キーボードとスクリーンリーダーからの入力は維持する (TXN-014) */}
-      <div className={`${styles["expense-field"]} ${styles["amount-field"]}`}>
-        <label htmlFor="amountMinor">金額</label>
-        <div className={styles["amount-input-wrap"]}>
-          <span aria-hidden="true">¥</span>
+    <div className={styles["expense-form-shell"]} ref={shellRef}>
+      <form
+        action={action}
+        className={styles["expense-form"]}
+        noValidate
+        onFocus={handleFormFocus}
+        ref={formRef}
+      >
+        {editTransaction ? (
           <input
-            aria-describedby={
-              keypadOpen
-                ? "amountMinor-error"
-                : "amountMinor-error amountMinor-keypad-hint"
-            }
-            autoComplete="off"
-            id="amountMinor"
-            inputMode="none"
-            max="9007199254740991"
-            name="amountMinor"
-            onChange={(event) => setAmountMinor(event.target.value)}
-            onClick={() => setKeypadOpen(true)}
-            pattern="[0-9]*"
-            placeholder="0"
-            ref={amountInputRef}
-            value={amountMinor}
+            name="expectedVersion"
+            type="hidden"
+            value={editTransaction.version}
           />
-        </div>
-        {/* 閉じている間の再開手段を画面上へ示す (AC-TXN-014-6) */}
-        {!keypadOpen && (
-          <p className={styles["keypad-hint"]} id="amountMinor-keypad-hint">
-            金額欄をタップするとテンキーを開きます。
-          </p>
-        )}
-        {state.fieldErrors?.amountMinor?.[0] && (
-          <p className="field-error" id="amountMinor-error">
-            {state.fieldErrors.amountMinor[0]}
-          </p>
-        )}
-      </div>
-
-      <div className={styles["expense-form-grid"]}>
-        <div className={styles["expense-field"]}>
-          <label htmlFor="transactionDate">
-            {isIncome ? "受け取った日" : "使った日"}
-          </label>
-          <input
-            aria-describedby="transactionDate-error"
-            defaultValue={editTransaction?.transactionDate ?? options.today}
-            id="transactionDate"
-            name="transactionDate"
-            type="date"
-          />
-          {state.fieldErrors?.transactionDate?.[0] && (
-            <p className="field-error" id="transactionDate-error">
-              {state.fieldErrors.transactionDate[0]}
-            </p>
-          )}
-        </div>
-
-        {isIncome ? (
-          <div className={styles["expense-field"]}>
-            <label htmlFor="recipientMemberId">受け取った人</label>
-            <select
-              aria-describedby="recipientMemberId-error"
-              id="recipientMemberId"
-              name="recipientMemberId"
-              onChange={(event) => setRecipientMemberId(event.target.value)}
-              value={recipientMemberId}
-            >
-              {options.members.map((member) => (
-                <option key={member.membershipId} value={member.membershipId}>
-                  {member.displayName}
-                  {member.isCurrentUser ? "（自分）" : ""}
-                </option>
-              ))}
-            </select>
-            {incomeEdit && !incomeEdit.recipientIsActive && (
-              <p className={styles["edit-note"]}>
-                これまでの受取者「{incomeEdit.recipientDisplayName}
-                」はグループから外れています。アクティブメンバーへ変更しないと保存できません。
-              </p>
-            )}
-            {state.fieldErrors?.recipientMemberId?.[0] && (
-              <p className="field-error" id="recipientMemberId-error">
-                {state.fieldErrors.recipientMemberId[0]}
-              </p>
-            )}
-          </div>
         ) : (
-          <div className={styles["expense-field"]}>
-            <label htmlFor="payerMemberId">支払った人</label>
-            <select
-              aria-describedby="payerMemberId-error"
-              id="payerMemberId"
-              name="payerMemberId"
-              onChange={(event) => {
-                const memberId = event.target.value;
-                setPayerMemberId(memberId);
-                saveLastPayer(options.group.id, memberId);
-              }}
-              value={payerMemberId}
-            >
-              {options.members.map((member) => (
-                <option key={member.membershipId} value={member.membershipId}>
-                  {member.displayName}
-                  {member.isCurrentUser ? "（自分）" : ""}
-                </option>
-              ))}
-            </select>
-            {expenseEdit && !expenseEdit.payerIsActive && (
-              <p className={styles["edit-note"]}>
-                これまでの支払者「{expenseEdit.payerDisplayName}
-                」はグループから外れています。アクティブメンバーへ変更しないと保存できません。
-              </p>
-            )}
-            {state.fieldErrors?.payerMemberId?.[0] && (
-              <p className="field-error" id="payerMemberId-error">
-                {state.fieldErrors.payerMemberId[0]}
-              </p>
-            )}
-          </div>
+          <input name="clientRequestId" type="hidden" value={clientRequestId} />
         )}
-      </div>
 
-      {!isIncome && (
-        <fieldset className={styles["allocation-fieldset"]}>
-          <legend>負担方法</legend>
-          {hasRemovedAllocationMember && (
-            <p className={styles["edit-note"]}>
-              保存済みの負担にグループから外れたメンバーが含まれています。アクティブメンバーだけで負担を設定し直してください。
-            </p>
-          )}
-          <div className={styles["segmented-control"]}>
-            {(
-              [
-                ["single", "1人"],
-                ["equal", "均等"],
-                ["custom", "カスタム"],
-              ] as const
-            ).map(([value, label]) => (
-              <label key={value}>
-                <input
-                  checked={allocationMethod === value}
-                  name="allocationMethod"
-                  onChange={() => chooseAllocationMethod(value)}
-                  type="radio"
-                  value={value}
-                />
-                <span>{label}</span>
-              </label>
-            ))}
-          </div>
-
-          {allocationMethod === "equal" && (
-            <div className={styles["allocation-members"]}>
-              {options.members.map((member) => (
-                <label
-                  className={styles["check-option"]}
-                  key={member.membershipId}
-                >
+        {!editTransaction && (
+          <fieldset
+            className={`${styles["allocation-fieldset"]} ${styles["type-fieldset"]}`}
+          >
+            <legend>種別</legend>
+            <div className={styles["segmented-control"]}>
+              {(
+                [
+                  ["expense", "支出"],
+                  ["income", "収入"],
+                ] as const
+              ).map(([value, label]) => (
+                <label key={value}>
                   <input
-                    checked={selectedMemberIds.includes(member.membershipId)}
-                    name="selectedMemberIds"
-                    onChange={(event) =>
-                      toggleEqualMember(
-                        member.membershipId,
-                        event.target.checked,
-                      )
-                    }
-                    type="checkbox"
-                    value={member.membershipId}
+                    checked={selectedType === value}
+                    name="transactionType"
+                    onChange={() => setSelectedType(value)}
+                    type="radio"
+                    value={value}
                   />
-                  {member.displayName}
-                  {member.isCurrentUser ? "（自分）" : ""}
+                  <span>{label}</span>
                 </label>
               ))}
             </div>
-          )}
+          </fieldset>
+        )}
 
-          {allocationMethod === "single" && (
-            <div className={`${styles["expense-field"]} allocation-single`}>
-              <label htmlFor="singleMemberId">負担する人</label>
+        {/* 金額はドックのテンキーで入力する。inputmode="none"でOSの仮想キーボードを開かず、
+          物理キーボードとスクリーンリーダーからの入力は維持する (TXN-014) */}
+        <div className={`${styles["expense-field"]} ${styles["amount-field"]}`}>
+          <label htmlFor="amountMinor">金額</label>
+          <div className={styles["amount-input-wrap"]}>
+            <span aria-hidden="true">¥</span>
+            <input
+              aria-describedby={
+                keypadOpen
+                  ? "amountMinor-error"
+                  : "amountMinor-error amountMinor-keypad-hint"
+              }
+              autoComplete="off"
+              id="amountMinor"
+              inputMode="none"
+              max="9007199254740991"
+              name="amountMinor"
+              onChange={(event) => setAmountMinor(event.target.value)}
+              onClick={() => setKeypadOpen(true)}
+              pattern="[0-9]*"
+              placeholder="0"
+              ref={amountInputRef}
+              value={amountMinor}
+            />
+          </div>
+          {/* 閉じている間の再開手段を画面上へ示す (AC-TXN-014-6) */}
+          {!keypadOpen && (
+            <p className={styles["keypad-hint"]} id="amountMinor-keypad-hint">
+              金額欄をタップするとテンキーを開きます。
+            </p>
+          )}
+          {state.fieldErrors?.amountMinor?.[0] && (
+            <p className="field-error" id="amountMinor-error">
+              {state.fieldErrors.amountMinor[0]}
+            </p>
+          )}
+        </div>
+
+        <div className={styles["expense-form-grid"]}>
+          <div className={styles["expense-field"]}>
+            <label htmlFor="transactionDate">
+              {isIncome ? "受け取った日" : "使った日"}
+            </label>
+            <input
+              aria-describedby="transactionDate-error"
+              defaultValue={editTransaction?.transactionDate ?? options.today}
+              id="transactionDate"
+              name="transactionDate"
+              type="date"
+            />
+            {state.fieldErrors?.transactionDate?.[0] && (
+              <p className="field-error" id="transactionDate-error">
+                {state.fieldErrors.transactionDate[0]}
+              </p>
+            )}
+          </div>
+
+          {isIncome ? (
+            <div className={styles["expense-field"]}>
+              <label htmlFor="recipientMemberId">受け取った人</label>
               <select
-                id="singleMemberId"
-                name="selectedMemberIds"
-                onChange={(event) => setSelectedMemberIds([event.target.value])}
-                value={
-                  selectedMemberIds[0] ?? options.group.currentMembershipId
-                }
+                aria-describedby="recipientMemberId-error"
+                id="recipientMemberId"
+                name="recipientMemberId"
+                onChange={(event) => setRecipientMemberId(event.target.value)}
+                value={recipientMemberId}
               >
                 {options.members.map((member) => (
                   <option key={member.membershipId} value={member.membershipId}>
@@ -597,217 +487,346 @@ export function ExpenseForm({
                   </option>
                 ))}
               </select>
+              {incomeEdit && !incomeEdit.recipientIsActive && (
+                <p className={styles["edit-note"]}>
+                  これまでの受取者「{incomeEdit.recipientDisplayName}
+                  」はグループから外れています。アクティブメンバーへ変更しないと保存できません。
+                </p>
+              )}
+              {state.fieldErrors?.recipientMemberId?.[0] && (
+                <p className="field-error" id="recipientMemberId-error">
+                  {state.fieldErrors.recipientMemberId[0]}
+                </p>
+              )}
             </div>
-          )}
-
-          {allocationMethod === "custom" && (
-            <div className={styles["custom-allocation-list"]}>
-              {options.members.map((member) => (
-                <label key={member.membershipId}>
-                  <span>
+          ) : (
+            <div className={styles["expense-field"]}>
+              <label htmlFor="payerMemberId">支払った人</label>
+              <select
+                aria-describedby="payerMemberId-error"
+                id="payerMemberId"
+                name="payerMemberId"
+                onChange={(event) => {
+                  const memberId = event.target.value;
+                  setPayerMemberId(memberId);
+                  saveLastPayer(options.group.id, memberId);
+                }}
+                value={payerMemberId}
+              >
+                {options.members.map((member) => (
+                  <option key={member.membershipId} value={member.membershipId}>
                     {member.displayName}
                     {member.isCurrentUser ? "（自分）" : ""}
-                  </span>
-                  <span className={styles["custom-amount-wrap"]}>
-                    <span aria-hidden="true">¥</span>
-                    <input
-                      inputMode="numeric"
-                      name={`customAmount:${member.membershipId}`}
-                      onChange={(event) =>
-                        setCustomAmounts((current) => ({
-                          ...current,
-                          [member.membershipId]: event.target.value,
-                        }))
-                      }
-                      pattern="[0-9]*"
-                      placeholder="0"
-                      value={customAmounts[member.membershipId] ?? ""}
-                    />
-                  </span>
+                  </option>
+                ))}
+              </select>
+              {expenseEdit && !expenseEdit.payerIsActive && (
+                <p className={styles["edit-note"]}>
+                  これまでの支払者「{expenseEdit.payerDisplayName}
+                  」はグループから外れています。アクティブメンバーへ変更しないと保存できません。
+                </p>
+              )}
+              {state.fieldErrors?.payerMemberId?.[0] && (
+                <p className="field-error" id="payerMemberId-error">
+                  {state.fieldErrors.payerMemberId[0]}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {!isIncome && (
+          <fieldset className={styles["allocation-fieldset"]}>
+            <legend>負担方法</legend>
+            {hasRemovedAllocationMember && (
+              <p className={styles["edit-note"]}>
+                保存済みの負担にグループから外れたメンバーが含まれています。アクティブメンバーだけで負担を設定し直してください。
+              </p>
+            )}
+            <div className={styles["segmented-control"]}>
+              {(
+                [
+                  ["single", "1人"],
+                  ["equal", "均等"],
+                  ["custom", "カスタム"],
+                ] as const
+              ).map(([value, label]) => (
+                <label key={value}>
+                  <input
+                    checked={allocationMethod === value}
+                    name="allocationMethod"
+                    onChange={() => chooseAllocationMethod(value)}
+                    type="radio"
+                    value={value}
+                  />
+                  <span>{label}</span>
                 </label>
               ))}
             </div>
-          )}
 
-          {state.fieldErrors?.allocationMethod?.[0] && (
-            <p className="field-error">
-              {state.fieldErrors.allocationMethod[0]}
-            </p>
-          )}
-        </fieldset>
-      )}
-
-      {!isIncome && (
-        <section className={styles["allocation-preview"]} aria-live="polite">
-          <h2>負担額の確認</h2>
-          {preview ? (
-            <dl>
-              {preview.map((allocation) => {
-                const member = options.members.find(
-                  (candidate) => candidate.membershipId === allocation.memberId,
-                );
-                return (
-                  <div key={allocation.memberId}>
-                    <dt>{member?.displayName ?? "メンバー"}</dt>
-                    <dd>¥{yenFormatter.format(allocation.amountMinor)}</dd>
-                  </div>
-                );
-              })}
-            </dl>
-          ) : (
-            <p>金額と負担方法を入力すると、ここに内訳を表示します。</p>
-          )}
-        </section>
-      )}
-
-      <div className={styles["expense-field"]}>
-        <label htmlFor="memo">メモ（任意）</label>
-        <textarea
-          aria-describedby="memo-error"
-          defaultValue={editTransaction?.memo ?? undefined}
-          id="memo"
-          maxLength={500}
-          name="memo"
-          rows={3}
-        />
-        {state.fieldErrors?.memo?.[0] && (
-          <p className="field-error" id="memo-error">
-            {state.fieldErrors.memo[0]}
-          </p>
-        )}
-      </div>
-
-      {state.message && (
-        <p className="form-message error" role="alert">
-          {state.message}
-        </p>
-      )}
-
-      {/* カテゴリ・テンキー・保存を画面下部のドックへ固定し、金額入力中も隠れないようにする */}
-      <div
-        className={styles["input-dock"]}
-        data-category-expanded={categoryExpanded}
-        data-keypad-open={showKeypad}
-        ref={dockRef}
-      >
-        <fieldset
-          aria-describedby="categoryId-error"
-          className={styles["category-fieldset"]}
-        >
-          <legend>カテゴリ</legend>
-          {hasNoIncomeCategory ? (
-            <p className={styles["edit-note"]}>
-              アクティブな収入カテゴリがありません。カテゴリ管理で追加してから収入を登録してください。
-            </p>
-          ) : (
-            <div className={styles["category-select"]}>
-              <div
-                className={styles["category-options"]}
-                ref={categoryOptionsRef}
-              >
-                {categoryChoices.map((category) => (
+            {allocationMethod === "equal" && (
+              <div className={styles["allocation-members"]}>
+                {options.members.map((member) => (
                   <label
-                    className={styles["category-option"]}
-                    key={category.id}
+                    className={styles["check-option"]}
+                    key={member.membershipId}
                   >
                     <input
-                      checked={category.id === effectiveCategoryId}
-                      name="categoryId"
-                      onChange={() => {
-                        setSelectedCategoryId(category.id);
-                        setCategoryExpanded(false);
-                      }}
-                      required
-                      type="radio"
-                      value={category.id}
+                      checked={selectedMemberIds.includes(member.membershipId)}
+                      name="selectedMemberIds"
+                      onChange={(event) =>
+                        toggleEqualMember(
+                          member.membershipId,
+                          event.target.checked,
+                        )
+                      }
+                      type="checkbox"
+                      value={member.membershipId}
                     />
-                    <span className={styles["category-option-content"]}>
-                      <span
-                        aria-hidden="true"
-                        className={styles["category-option-dot"]}
-                        data-category-color={category.color}
+                    {member.displayName}
+                    {member.isCurrentUser ? "（自分）" : ""}
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {allocationMethod === "single" && (
+              <div className={`${styles["expense-field"]} allocation-single`}>
+                <label htmlFor="singleMemberId">負担する人</label>
+                <select
+                  id="singleMemberId"
+                  name="selectedMemberIds"
+                  onChange={(event) =>
+                    setSelectedMemberIds([event.target.value])
+                  }
+                  value={
+                    selectedMemberIds[0] ?? options.group.currentMembershipId
+                  }
+                >
+                  {options.members.map((member) => (
+                    <option
+                      key={member.membershipId}
+                      value={member.membershipId}
+                    >
+                      {member.displayName}
+                      {member.isCurrentUser ? "（自分）" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {allocationMethod === "custom" && (
+              <div className={styles["custom-allocation-list"]}>
+                {options.members.map((member) => (
+                  <label key={member.membershipId}>
+                    <span>
+                      {member.displayName}
+                      {member.isCurrentUser ? "（自分）" : ""}
+                    </span>
+                    <span className={styles["custom-amount-wrap"]}>
+                      <span aria-hidden="true">¥</span>
+                      <input
+                        inputMode="numeric"
+                        name={`customAmount:${member.membershipId}`}
+                        onChange={(event) =>
+                          setCustomAmounts((current) => ({
+                            ...current,
+                            [member.membershipId]: event.target.value,
+                          }))
+                        }
+                        pattern="[0-9]*"
+                        placeholder="0"
+                        value={customAmounts[member.membershipId] ?? ""}
                       />
-                      <span className="category-option-name">
-                        {category.name}
-                      </span>
-                      <span
-                        aria-hidden="true"
-                        className={styles["category-option-check"]}
-                      >
-                        ✓
-                      </span>
                     </span>
                   </label>
                 ))}
               </div>
-              <button
-                aria-expanded={categoryExpanded}
-                className={styles["category-expand-toggle"]}
-                onClick={() => setCategoryExpanded((current) => !current)}
-                type="button"
-              >
-                {categoryExpanded ? "閉じる" : "すべて"}
-              </button>
-            </div>
-          )}
-          {state.fieldErrors?.categoryId?.[0] && (
-            <p className="field-error" id="categoryId-error">
-              {state.fieldErrors.categoryId[0]}
+            )}
+
+            {state.fieldErrors?.allocationMethod?.[0] && (
+              <p className="field-error">
+                {state.fieldErrors.allocationMethod[0]}
+              </p>
+            )}
+          </fieldset>
+        )}
+
+        {!isIncome && (
+          <section className={styles["allocation-preview"]} aria-live="polite">
+            <h2>負担額の確認</h2>
+            {preview ? (
+              <dl>
+                {preview.map((allocation) => {
+                  const member = options.members.find(
+                    (candidate) =>
+                      candidate.membershipId === allocation.memberId,
+                  );
+                  return (
+                    <div key={allocation.memberId}>
+                      <dt>{member?.displayName ?? "メンバー"}</dt>
+                      <dd>¥{yenFormatter.format(allocation.amountMinor)}</dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            ) : (
+              <p>金額と負担方法を入力すると、ここに内訳を表示します。</p>
+            )}
+          </section>
+        )}
+
+        <div className={styles["expense-field"]}>
+          <label htmlFor="memo">メモ（任意）</label>
+          <textarea
+            aria-describedby="memo-error"
+            defaultValue={editTransaction?.memo ?? undefined}
+            id="memo"
+            maxLength={500}
+            name="memo"
+            rows={3}
+          />
+          {state.fieldErrors?.memo?.[0] && (
+            <p className="field-error" id="memo-error">
+              {state.fieldErrors.memo[0]}
             </p>
           )}
-        </fieldset>
+        </div>
 
-        {/* 保存は常設し、数字キーと1文字削除だけを開閉する (AC-TXN-014-5, AC-TXN-016-1) */}
-        <div className={styles.keypad}>
-          {showKeypad && (
-            <div className={styles["keypad-digits"]}>
-              {["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0"].map(
-                (key) => (
-                  <button
-                    className={styles["keypad-key"]}
-                    data-key={key}
-                    key={key}
-                    onClick={() =>
-                      setAmountMinor((current) =>
-                        appendAmountDigit(current, key),
-                      )
-                    }
-                    type="button"
-                  >
-                    {key}
-                  </button>
-                ),
-              )}
-            </div>
-          )}
-          <div className={styles["keypad-side"]}>
-            {showKeypad && (
-              <button
-                aria-label="1桁削除"
-                className={styles["keypad-key"]}
-                onClick={() =>
-                  setAmountMinor((current) => current.slice(0, -1))
-                }
-                type="button"
-              >
-                <span aria-hidden="true">⌫</span>
-              </button>
+        {state.message && (
+          <p className="form-message error" role="alert">
+            {state.message}
+          </p>
+        )}
+
+        {/* カテゴリ・テンキー・保存を画面下部のドックへ固定し、金額入力中も隠れないようにする */}
+        <div
+          className={styles["input-dock"]}
+          data-category-expanded={categoryExpanded}
+          data-keypad-open={showKeypad}
+          ref={dockRef}
+        >
+          <fieldset
+            aria-describedby="categoryId-error"
+            className={styles["category-fieldset"]}
+          >
+            <legend>カテゴリ</legend>
+            {hasNoIncomeCategory ? (
+              <p className={styles["edit-note"]}>
+                アクティブな収入カテゴリがありません。カテゴリ管理で追加してから収入を登録してください。
+              </p>
+            ) : (
+              <div className={styles["category-select"]}>
+                <div
+                  className={styles["category-options"]}
+                  ref={categoryOptionsRef}
+                >
+                  {categoryChoices.map((category) => (
+                    <label
+                      className={styles["category-option"]}
+                      key={category.id}
+                    >
+                      <input
+                        checked={category.id === effectiveCategoryId}
+                        name="categoryId"
+                        onChange={() => {
+                          setSelectedCategoryId(category.id);
+                          setCategoryExpanded(false);
+                        }}
+                        required
+                        type="radio"
+                        value={category.id}
+                      />
+                      <span className={styles["category-option-content"]}>
+                        <span
+                          aria-hidden="true"
+                          className={styles["category-option-dot"]}
+                          data-category-color={category.color}
+                        />
+                        <span className="category-option-name">
+                          {category.name}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className={styles["category-option-check"]}
+                        >
+                          ✓
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <button
+                  aria-expanded={categoryExpanded}
+                  className={styles["category-expand-toggle"]}
+                  onClick={() => setCategoryExpanded((current) => !current)}
+                  type="button"
+                >
+                  {categoryExpanded ? "閉じる" : "すべて"}
+                </button>
+              </div>
             )}
-            <div className={styles["input-dock-save"]}>
-              <SaveButton
-                disabled={hasNoIncomeCategory}
-                label={
-                  editTransaction
-                    ? "変更を保存"
-                    : isIncome
-                      ? "収入を保存"
-                      : "支出を保存"
-                }
-              />
+            {state.fieldErrors?.categoryId?.[0] && (
+              <p className="field-error" id="categoryId-error">
+                {state.fieldErrors.categoryId[0]}
+              </p>
+            )}
+          </fieldset>
+
+          {/* 保存は常設し、数字キーと1文字削除だけを開閉する (AC-TXN-014-5, AC-TXN-016-1) */}
+          <div className={styles.keypad}>
+            {showKeypad && (
+              <div className={styles["keypad-digits"]}>
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0"].map(
+                  (key) => (
+                    <button
+                      className={styles["keypad-key"]}
+                      data-key={key}
+                      key={key}
+                      onClick={() =>
+                        setAmountMinor((current) =>
+                          appendAmountDigit(current, key),
+                        )
+                      }
+                      type="button"
+                    >
+                      {key}
+                    </button>
+                  ),
+                )}
+              </div>
+            )}
+            <div className={styles["keypad-side"]}>
+              {showKeypad && (
+                <button
+                  aria-label="1桁削除"
+                  className={styles["keypad-key"]}
+                  onClick={() =>
+                    setAmountMinor((current) => current.slice(0, -1))
+                  }
+                  type="button"
+                >
+                  <span aria-hidden="true">⌫</span>
+                </button>
+              )}
+              <div className={styles["input-dock-save"]}>
+                <SaveButton
+                  disabled={hasNoIncomeCategory}
+                  label={
+                    editTransaction
+                      ? "変更を保存"
+                      : isIncome
+                        ? "収入を保存"
+                        : "支出を保存"
+                  }
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </form>
+      </form>
+      {footer}
+    </div>
   );
 }
