@@ -79,6 +79,7 @@ export function CalendarSwipeNavigator({
   }
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: 領域はジェスチャー判定だけを担い、操作対象は内側の日付リンクと前月・翌月ボタン（キーボード到達可）にある
     <div
       className={styles["calendar-swipe-area"]}
       onPointerDown={handlePointerDown}
