@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.11
+バージョン: 0.2.12
 
 ## セキュリティ
 
@@ -98,6 +98,16 @@
 - `NFR-MNT-010` スタイルは所有権で分離する。`src/app/styles.css`はデザイントークン、reset、基本タイポグラフィ、`src/app`の画面組み立てが使うroute shellと共通プリミティブだけを持ち、単一機能のpresentationだけが使うスタイルは当該機能のpresentationに併置したCSS Modulesで管理する。追加依存（Tailwind、CSS-in-JS）は導入しない。
 - `NFR-MNT-011` frameworkの規約ファイル（Proxyなど）は、使用中のNext.jsが探索する位置（`src/app`構成では`src`直下）へ配置し、実際に読み込まれることをtestと本番build出力で検証する。ファイルの内容だけを検証して読み込みを前提としない。
 - `NFR-MNT-012` 自動testのcoverageは、`src/modules`配下の実行可能なTypeScript・TSXを母数とし、未実行ファイルを0%として含める。testファイル、型定義だけのファイル、処理を持たない公開entry pointだけを除外し、statement・branch・function・lineの各coverageが50%未満になった場合はCIを失敗させる。coverage値はE2E、DB・RLS、実画面確認の代替にしない。
+
+## E2Eテスト
+
+- `NFR-E2E-001` 主要smoke flowのE2Eを自動実行し、CIの必須checkへ含める。E2Eの成功を、DB・RLS test、HTTP integration test、coverage、実画面確認の代替にしない。
+- `NFR-E2E-002` E2Eは専用compose projectの使い捨てローカルstackだけを対象とし、本番・stagingのSupabase、実Googleアカウント、実家計データへ接続しない。base URLとSupabase URLがloopbackでない場合は実行を中止する。ローカル資格情報と許可アカウントは実行ごとに生成した架空の値だけを使う。
+- `NFR-E2E-003` 差し替えるのはGoogleへの外部往復だけとし、DB、RLS、GoTrue、Next.jsのserver境界は本番と同じ経路で実行する。session seedingのためにproduction codeへtest専用の分岐、bypass route、環境変数を追加しない。
+- `NFR-E2E-004` E2Eの主要viewportは375 x 812とし、1280 x 800と最小幅320pxの確認も自動化する。
+- `NFR-E2E-005` 失敗時はtrace、screenshot、video、reportを保存し、CIのartifactとして取得できるようにする。家計データ、token、許可リストの値をartifactへ含めない。
+
+詳細は[`15-e2e-testing.md`](15-e2e-testing.md)を正本とする。
 
 ## 対応ブラウザ
 

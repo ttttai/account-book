@@ -17,7 +17,7 @@ services:
       NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED: ${NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED:-false}
       AUTH_ALLOWED_GOOGLE_EMAILS: ${AUTH_ALLOWED_GOOGLE_EMAILS:-}
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${WEB_HOST_PORT:-3000}:3000"
     depends_on:
       gateway:
         condition: service_healthy
@@ -40,7 +40,7 @@ services:
     image: nginx:1.28.0-alpine
     restart: unless-stopped
     ports:
-      - "127.0.0.1:54321:8000"
+      - "127.0.0.1:${SUPABASE_HOST_PORT:-54321}:8000"
     volumes:
       - ./docker/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -63,9 +63,9 @@ services:
     environment:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: 9999
-      API_EXTERNAL_URL: http://127.0.0.1:54321/auth/v1
+      API_EXTERNAL_URL: ${NEXT_PUBLIC_SUPABASE_URL:-http://127.0.0.1:54321}/auth/v1
       GOTRUE_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://127.0.0.1:3000}
-      GOTRUE_URI_ALLOW_LIST: http://127.0.0.1:3000/auth/callback
+      GOTRUE_URI_ALLOW_LIST: ${NEXT_PUBLIC_SITE_URL:-http://127.0.0.1:3000}/auth/callback
       GOTRUE_DISABLE_SIGNUP: "false"
       GOTRUE_DB_DRIVER: postgres
       GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD:?scripts/setup-local-env.shを実行してください}@db:5432/postgres
@@ -75,7 +75,7 @@ services:
       GOTRUE_JWT_AUD: authenticated
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_JWT_EXP: 3600
-      GOTRUE_JWT_ISSUER: http://127.0.0.1:54321/auth/v1
+      GOTRUE_JWT_ISSUER: ${NEXT_PUBLIC_SUPABASE_URL:-http://127.0.0.1:54321}/auth/v1
       GOTRUE_EXTERNAL_EMAIL_ENABLED: "false"
       GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
       GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
@@ -84,7 +84,7 @@ services:
       GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED:-false}
       GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
       GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
-      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: http://127.0.0.1:54321/auth/v1/callback
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${NEXT_PUBLIC_SUPABASE_URL:-http://127.0.0.1:54321}/auth/v1/callback
       GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED: "true"
       GOTRUE_HOOK_BEFORE_USER_CREATED_URI: pg-functions://postgres/app_private/hook_restrict_google_signup
     healthcheck:
@@ -159,6 +159,24 @@ services:
     command: ["--file=/tests/run-local.sql"]
     restart: "no"
 
+  e2e-seed:
+    image: ${DATABASE_IMAGE:-supabase/postgres:17.6.1.136}
+    profiles: ["test"]
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: postgres
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD:?scripts/setup-local-env.shを実行してください}
+    volumes:
+      - ./tests/e2e/seed:/seed:ro
+    entrypoint: ["psql"]
+    command: ["--file=/seed/seed-e2e-users.sql"]
+    restart: "no"
+
   web-integration-tests:
     profiles: ["test"]
     build:
@@ -184,7 +202,7 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?scripts/setup-local-env.shを実行してください}
     ports:
-      - "127.0.0.1:54322:5432"
+      - "127.0.0.1:${DATABASE_HOST_PORT:-54322}:5432"
     volumes:
       - account_book_db:/var/lib/postgresql/data
       - ./docker/database/set-role-passwords.sh:/docker-entrypoint-initdb.d/zz-set-role-passwords.sh:ro
