@@ -12,16 +12,30 @@ test("カレンダーqueryをserver-only認可境界へ隔離する", async () =
   const query = await read(
     "src/modules/calendar/application/get-group-calendar.ts",
   );
+  const context = await read(
+    "src/modules/groups/application/group-read-context.ts",
+  );
+  const loader = await read(
+    "src/modules/transactions/application/list-monthly-transactions.ts",
+  );
 
+  // 認証・所属確認と月次取引の読み取りは共有境界を使い、カレンダー内で再実装しない (05 共有する認可済み読み取り境界)
   assert.match(query, /import "server-only"/);
-  assert.match(query, /auth\.getClaims\(\)/);
-  assert.match(query, /getAllowedGoogleUserId/);
-  assert.match(query, /\.from\("transactions"\)/);
-  assert.match(query, /\.eq\("type", "expense"\)/);
-  assert.match(query, /\.is\("deleted_at", null\)/);
-  assert.match(query, /\.gte\("transaction_date"/);
-  assert.match(query, /\.lt\("transaction_date"/);
-  assert.doesNotMatch(query, /SERVICE_ROLE|unstable_cache|fetch\(/);
+  assert.match(query, /resolveGroupReadContext/);
+  assert.match(query, /listMonthlyTransactions/);
+  assert.doesNotMatch(query, /auth\.getClaims\(\)|\.from\(/);
+  assert.match(context, /import "server-only"/);
+  assert.match(context, /auth\.getClaims\(\)/);
+  assert.match(context, /getAllowedGoogleUserId/);
+  assert.match(loader, /import "server-only"/);
+  assert.match(loader, /\.from\("transactions"\)/);
+  assert.match(loader, /\.eq\("type", "expense"\)/);
+  assert.match(loader, /\.is\("deleted_at", null\)/);
+  assert.match(loader, /\.gte\("transaction_date"/);
+  assert.match(loader, /\.lt\("transaction_date"/);
+  for (const source of [query, context, loader]) {
+    assert.doesNotMatch(source, /SERVICE_ROLE|unstable_cache|fetch\(/);
+  }
 });
 
 test("グループホームはcalendarモジュールの公開境界だけを使う", async () => {

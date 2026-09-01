@@ -106,11 +106,13 @@ const memberships = [
   {
     id: MEMBERSHIP_ID,
     user_id: USER_ID,
+    status: "active",
     joined_at: "2026-01-01T00:00:00Z",
   },
   {
     id: SECOND_MEMBERSHIP_ID,
     user_id: SECOND_USER_ID,
+    status: "active",
     joined_at: "2026-01-02T00:00:00Z",
   },
 ];
@@ -122,7 +124,12 @@ const expenseRows = [
     amount_minor: 6000,
     payer_member_id: MEMBERSHIP_ID,
     created_at: "2026-09-10T02:00:00Z",
-    categories: { name: "食費", color: "food", icon: "utensils" },
+    categories: {
+      id: "30000000-0000-4000-8000-000000000001",
+      name: "食費",
+      color: "food",
+      icon: "utensils",
+    },
     transaction_allocations: [
       { member_id: MEMBERSHIP_ID, amount_minor: 3000 },
       { member_id: SECOND_MEMBERSHIP_ID, amount_minor: 3000 },
@@ -137,7 +144,12 @@ const incomeRows = [
     amount_minor: "10000",
     recipient_member_id: MEMBERSHIP_ID,
     created_at: "2026-09-10T03:00:00Z",
-    categories: { name: "給与", color: "income", icon: "wallet" },
+    categories: {
+      id: "30000000-0000-4000-8000-000000000002",
+      name: "給与",
+      color: "income",
+      icon: "wallet",
+    },
   },
 ];
 
@@ -293,9 +305,13 @@ describe("getGroupCalendar", () => {
     expect(from).toHaveBeenCalledTimes(2);
   });
 
-  it.each(["profile", "expense", "income"] as const)(
-    "%s query失敗を一般化した例外にする",
-    async (failedQuery) => {
+  it.each([
+    ["profile", "メンバー一覧を取得できませんでした。"],
+    ["expense", "取引を取得できませんでした。"],
+    ["income", "取引を取得できませんでした。"],
+  ] as const)(
+    "%s query失敗を共有境界の一般化した例外にする",
+    async (failedQuery, message) => {
       setupReadyQueries(
         failedQuery === "profile"
           ? { data: null, error: { code: "XX000" } }
@@ -310,7 +326,7 @@ describe("getGroupCalendar", () => {
 
       await expect(
         getGroupCalendar(GROUP_ID, { month: "2026-09" }),
-      ).rejects.toThrow("カレンダーを取得できませんでした。");
+      ).rejects.toThrow(message);
     },
   );
 
