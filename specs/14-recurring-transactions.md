@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.0
+バージョン: 0.1.1
 
 ## 1. 目的と範囲
 
@@ -152,6 +152,7 @@ Command: createRecurringTransaction(groupId, input)
 - Server Componentはサーバー専用queryを直接呼び、Client Componentへは最小DTOだけを渡す。
 - commandはServer Actionから呼び、`security definer`のDB関数1回で原子的に保存する。
 - 展開は純関数として実装し、queryとカレンダー集計の両方から同じ関数を使う。
+- 月次の表示・集計への合流は`transactions`モジュールの`listMonthlyTransactions`（`05-api-and-application-boundaries.md`の共有読み取り境界）で1箇所だけ行い、カレンダーと分析はこの共有読み取りを使って展開を個別に呼ばない。
 
 ## 9. 受け入れ条件
 

@@ -2,7 +2,7 @@
 
 状態: 概要分析（第1段階）承認済み
 
-バージョン: 0.1.0
+バージョン: 0.1.1
 
 対象リリース: MVP後・分析フェーズ
 
@@ -37,7 +37,7 @@
 
 概要分析の集計対象は、ホームカレンダーと同じ`group`・`self`・`member`とし、同じ月・同じ対象ではカレンダーの月間合計と一致させる。メンバー対象の支出は負担額であり、立て替えた支払額を支出として数えない（`CAL-010`と同じ定義）。
 
-定期取引（`REC-*`）は、カレンダーと同じ規則で選択月へ展開した擬似取引として集計へ含める。展開結果はDBへ保存せず、単発取引とは別経路で作るため二重集計は発生しない。
+定期取引（`REC-*`）は、カレンダーと同じ規則で選択月へ展開した擬似取引として集計へ含める。展開結果はDBへ保存せず、単発取引とは別経路で作るため二重集計は発生しない。取引の読み取りと展開は`transactions`モジュールの`listMonthlyTransactions`（`05-api-and-application-boundaries.md`の共有読み取り境界）を経由し、カレンダーと同じ入力から集計する。
 
 ## 4. 機能要件
 
@@ -105,7 +105,7 @@
 | `getAnalyticsOverview(groupId, searchParams)` | 概要分析画面。選択月と前月比較のDTOを返す      | 2か月     |
 | `getAnalyticsPeriodSummary(request)`          | 詳細分析・LINEレポートが再利用する期間サマリー | 1〜24か月 |
 
-両関数は同じ内部集計処理を共有し、同じ入力に対して同じ金額を返す（`ANA-012`）。呼び出しごとに認証済みGoogle sessionとアクティブ所属を確認し、`route params`・`search params`をschema検証する。`scope=member`は同一グループのアクティブmembershipだけを許可する。24か月を超える範囲、不正な月、開始月が終了月より後の要求はfail closedで拒否し、取引を読み込まない。
+両関数は同じ内部集計処理を共有し、同じ入力に対して同じ金額を返す（`ANA-012`）。認証・所属確認は`groups`モジュールの`resolveGroupReadContext`、取引の読み取りと定期取引の展開は`transactions`モジュールの`listMonthlyTransactions`を使い、分析module内では集計純関数だけを持つ。呼び出しごとに認証済みGoogle sessionとアクティブ所属を確認し、`route params`・`search params`をschema検証する。`scope=member`は同一グループのアクティブmembershipだけを許可する。24か月を超える範囲、不正な月、開始月が終了月より後の要求はfail closedで拒否し、取引を読み込まない。
 
 共有cacheは使用しない。性能測定で必要性が確認された場合だけ、グループ・期間・対象を含むkey、取引・予算更新時の無効化、グループ分離テストを先に仕様化する。
 

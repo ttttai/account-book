@@ -4,7 +4,7 @@
 
 レビュー日: 2026-09-02
 
-対象バージョン: 0.3.4
+対象バージョン: 0.3.5
 
 ## 1. レビュー目的
 
@@ -868,6 +868,20 @@ MVP範囲確認: テンキーの開閉アニメーション、スワイプでの
 MVP範囲確認: 詳細分析の全グラフ・任意期間、LINEの送信・同意・解除・失敗監視、予算値の登録、前年同月比、日・曜日・店舗別分析、グループ横断分析、PDF、永続集計テーブル、共有cacheは追加しない。予算（`BUD-*`）は未実装のため、概要DTOの予算進捗を任意項目として境界だけ用意し、値がない月は領域を表示しない。取引の登録・編集・削除の業務規則、カレンダーの42日表示と日別集計は変更しない。
 
 判定: `ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`と`AC-ANA-001-1`〜`AC-ANA-012-2`は`CAL-009`・`CAL-010`・`CAL-013`、`HIS-001`〜`HIS-005`、`REC-005`、`NFR-SEC-002`・`NFR-SEC-003`、`NFR-A11Y-*`、`NFR-UI-*`と整合し、安全かつ実装可能である。集計の純関数test、認可境界test、グラフなしで値を確認できるcomponent test、別グループ・削除済みmembershipのRLS testを先に追加し、320px・375 x 812・1280 x 800で実画面確認する条件で、実装開始を承認する。
+
+### R-069 月次取引読み取りと認可contextの共有境界（refactor）
+
+指摘: カレンダー（`getGroupCalendar`）、履歴（`getGroupHistory`）、分析（`loadAnalyticsMonths`・`analytics-context`）が、`groupId`検証、Google検証済みsession、アクティブ所属、プロフィール表示名の取得を各moduleで再実装していた。さらにカレンダーと分析は、未削除の支出・収入取引の月範囲query、行schema、定期取引の展開と合流を別々に実装していた。予算（Issue #54）と詳細分析（Issue #56）は月次の支出・収入実績の4番目・5番目の利用者になるため、このまま進めると同型の実装が増え、同じ月・同じ対象で画面ごとに金額が食い違う不具合の温床になる。
+
+対応: 利用者向け動作を変えないrefactorとして、`groups`モジュールへ`resolveGroupReadContext`と`loadGroupMembers`を、`transactions`モジュールへ`listMonthlyTransactions`を追加し、`05-api-and-application-boundaries.md`へ共有する認可済み読み取り境界として記載した。カレンダーと分析は`listMonthlyTransactions`の結果へ既存の集計純関数（`calculateCalendarSummary`・`aggregateAnalyticsMonth`）を適用し、履歴は絞り込み・cursor pagination用の取引queryを固有に保ちつつ、認可contextと表示名解決を共有境界へ置き換える。`12-analytics-and-reporting.md`と`14-recurring-transactions.md`の展開の記述を共有境界経由へ更新し、`07-acceptance-test-plan.md`へ共有境界のApplication testを追加した。要件ID・受け入れ条件IDは追加しない。
+
+安全性確認: 共有境界は呼び出しごとに`groupId`をschema検証し、Google検証済みsessionとアクティブ所属を確認し、不正ID・未認証・非メンバーは存在を明かさず`null`を返す。削除済みmembershipは履歴が過去参照のために明示した場合だけ含め、操作者自身は常にアクティブ所属を要求する。取引はRLS適用のユーザーsession clientで`group_id`・`type`・`deleted_at is null`・取引日の半開区間の条件を付けて読み、service role、cache、Route Handlerを追加しない。返却物は既存DTOと同じ最小項目とし、Client Componentへ渡す内容は変わらない。取得失敗はカレンダー・履歴・分析のいずれでも例外としてerror boundaryへ渡す。履歴がプロフィール取得失敗を「表示不可（`null`）」として扱っていた挙動は、他画面と同じ例外へ揃える（error boundaryの表示は変えない）。
+
+実装可能性確認: 3 moduleのquery条件は`group_id`・`type`・`deleted_at`・`transaction_date`の半開区間で一致しており、選択列はカレンダーの列集合が分析の列集合を包含する。共有queryはカレンダーと同じ列（`id`・`created_at`・支払者または受取者・カテゴリの`id`/`name`/`color`/`icon`・負担行）を返し、分析は必要な項目だけを集計入力へ写す。定期取引の展開は既存の`expandRecurringForMonth`を月ごとに呼ぶ処理を共有境界へ移すだけで、展開規則を変えない。既存のApplication test（カレンダー、分析）はSupabase clientをmodule境界でmockしており、query順序を維持すれば同じ検証を継続できる。
+
+MVP範囲確認: 画面、URL、DTO、DB schema、RLS、金額計算規則、定期取引の展開規則、履歴の絞り込みとpaginationは変更しない。取引編集・入力選択肢のqueryが持つ同型の認可処理と、Server Action間のFormData helperの共通化は本refactorに含めず、必要になった作業で個別に扱う。
+
+判定: 本refactorは`NFR-MNT-002`・`NFR-MNT-006`（機能単位の整理と依存ルール）、`ANA-012`・`AC-ANA-012-1`（同じ認可済み集計の共有）、`REC-005`・`AC-REC-002-2`（展開の一貫性）、`CAL-010`・`AC-ANA-002-1`（カレンダーと分析の一致）と整合し、安全かつ実装可能である。共有境界のApplication testを先に追加し、既存のカレンダー・分析・履歴のtest、architecture test、lint、型検査、本番buildが通り、幅375pxと1280pxでホーム・履歴・分析の表示が変わらないことを確認する条件で、実装開始を承認する。
 
 ## 4. 要件と検証方法の対応
 
