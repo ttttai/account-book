@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.10
+バージョン: 0.2.11
 
 ## セキュリティ
 
@@ -97,7 +97,7 @@
 - `NFR-MNT-009` CIの`GITHUB_TOKEN`権限は読み取り最小限とし、外部Actionは完全なcommit SHAへ固定する。本番秘密情報や実GoogleアカウントをCIへ渡さず、CI専用のローカル資格情報と架空の許可アカウントだけを利用する。
 - `NFR-MNT-010` スタイルは所有権で分離する。`src/app/styles.css`はデザイントークン、reset、基本タイポグラフィ、`src/app`の画面組み立てが使うroute shellと共通プリミティブだけを持ち、単一機能のpresentationだけが使うスタイルは当該機能のpresentationに併置したCSS Modulesで管理する。追加依存（Tailwind、CSS-in-JS）は導入しない。
 - `NFR-MNT-011` frameworkの規約ファイル（Proxyなど）は、使用中のNext.jsが探索する位置（`src/app`構成では`src`直下）へ配置し、実際に読み込まれることをtestと本番build出力で検証する。ファイルの内容だけを検証して読み込みを前提としない。
-- `NFR-MNT-012` 自動testのcoverageは、`src/modules`配下の実行可能なTypeScript・TSXを母数とし、未実行ファイルを0%として含める。testファイル、型定義だけのファイル、処理を持たない公開entry pointだけを除外し、statement・branch・function・lineの各coverageが40%未満になった場合はCIを失敗させる。coverage値はE2E、DB・RLS、実画面確認の代替にしない。
+- `NFR-MNT-012` 自動testのcoverageは、`src/modules`配下の実行可能なTypeScript・TSXを母数とし、未実行ファイルを0%として含める。testファイル、型定義だけのファイル、処理を持たない公開entry pointだけを除外し、statement・branch・function・lineの各coverageが50%未満になった場合はCIを失敗させる。coverage値はE2E、DB・RLS、実画面確認の代替にしない。
 
 ## 対応ブラウザ
 

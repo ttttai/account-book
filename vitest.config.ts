@@ -23,10 +23,10 @@ export default defineConfig({
       ],
       reporter: ["text", "html", "json-summary"],
       thresholds: {
-        statements: 40,
-        branches: 40,
-        functions: 40,
-        lines: 40,
+        statements: 50,
+        branches: 50,
+        functions: 50,
+        lines: 50,
       },
     },
     // CSS Modulesのクラス名を変換せず、テストから元のクラス名で参照できるようにする
