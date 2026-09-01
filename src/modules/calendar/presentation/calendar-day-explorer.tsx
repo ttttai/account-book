@@ -11,7 +11,9 @@ import {
 } from "react";
 
 import type { CalendarReadyData } from "../application/calendar-types";
+import { shiftMonth } from "../domain/calendar-grid";
 import { formatCalendarCellJpy, formatJpy } from "../domain/calendar-summary";
+import { CalendarSwipeNavigator } from "./calendar-swipe-navigator";
 
 import styles from "./calendar.module.css";
 
@@ -47,13 +49,14 @@ function formatDay(date: string): string {
   return `${year}年${month}月${day}日`;
 }
 
-// 現在の表示条件を保ったまま、日付選択を反映したカレンダーURLを組み立てる
-function createCalendarDayUrl(
+// scope・memberを保ったまま、指定した月と任意の日付選択を反映したカレンダーURLを組み立てる
+function createCalendarUrl(
   data: CalendarDayExplorerData,
+  month: string,
   day?: string,
 ): string {
   const search = new URLSearchParams({
-    month: data.month,
+    month,
     scope: data.scope,
   });
   if (data.scope === "member" && data.selectedMemberId) {
@@ -61,6 +64,14 @@ function createCalendarDayUrl(
   }
   if (day) search.set("day", day);
   return `/groups/${encodeURIComponent(data.group.id)}?${search.toString()}`;
+}
+
+// 現在の表示条件を保ったまま、日付選択を反映したカレンダーURLを組み立てる
+function createCalendarDayUrl(
+  data: CalendarDayExplorerData,
+  day?: string,
+): string {
+  return createCalendarUrl(data, data.month, day);
 }
 
 // 修飾キーなしの左クリックだけをアプリ内遷移に置き換える（新規タブ等はブラウザに任せる）
@@ -315,94 +326,105 @@ export function CalendarDayExplorer({
     >
       <section className="calendar-card" aria-labelledby="calendar-title">
         {header}
-        <table
-          className={styles["calendar-grid"]}
-          aria-label={`${formatMonth(data.month)}の取引`}
+        {/* 横スワイプで前月・翌月へ移動する判定領域。ボタンによる月移動は常に残す (AC-CAL-015-4) */}
+        <CalendarSwipeNavigator
+          previousMonthHref={createCalendarUrl(
+            data,
+            shiftMonth(data.month, -1),
+          )}
+          nextMonthHref={createCalendarUrl(data, shiftMonth(data.month, 1))}
         >
-          <thead>
-            <tr>
-              {weekdays.map((weekday) => (
-                <th
-                  key={weekday}
-                  className={styles["calendar-weekday"]}
-                  scope="col"
-                >
-                  {weekday}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: 6 }, (_, weekIndex) =>
-              data.grid.slice(weekIndex * 7, weekIndex * 7 + 7),
-            ).map((week) => (
-              <tr key={week[0]?.date}>
-                {week.map((cell) => {
-                  const amount = cell.isCurrentMonth
-                    ? data.dailyTotals[cell.date]
-                    : undefined;
-                  const incomeAmount = cell.isCurrentMonth
-                    ? data.incomeDailyTotals[cell.date]
-                    : undefined;
-                  const isSelected = cell.date === selectedDay;
-                  const className = [
-                    styles["calendar-cell"],
-                    cell.isCurrentMonth
-                      ? styles["is-current-month"]
-                      : styles["is-other-month"],
-                    cell.isToday ? styles["is-today"] : "",
-                    isSelected ? styles["is-selected"] : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ");
-                  const expenseLabel = amount
-                    ? `支出${formatJpy(amount)}`
-                    : "支出なし";
-                  const exactLabel = incomeAmount
-                    ? `${formatDay(cell.date)}、${expenseLabel}、収入${formatJpy(incomeAmount)}`
-                    : `${formatDay(cell.date)}、${expenseLabel}`;
-
-                  return (
-                    <td key={cell.date} className={className}>
-                      {cell.isCurrentMonth ? (
-                        <a
-                          ref={(link) => {
-                            if (link) dayLinks.current.set(cell.date, link);
-                            else dayLinks.current.delete(cell.date);
-                          }}
-                          className={styles["calendar-cell-link"]}
-                          href={createCalendarDayUrl(data, cell.date)}
-                          aria-label={exactLabel}
-                          aria-current={cell.isToday ? "date" : undefined}
-                          onClick={(event) => handleDayClick(event, cell.date)}
-                        >
-                          <span className={styles["calendar-day-number"]}>
-                            {cell.day}
-                          </span>
-                          {amount ? (
-                            <CalendarCellAmount amountMinor={amount} />
-                          ) : null}
-                          {incomeAmount ? (
-                            <CalendarCellAmount
-                              amountMinor={incomeAmount}
-                              variant="income"
-                            />
-                          ) : null}
-                        </a>
-                      ) : (
-                        <span className={styles["calendar-cell-link"]}>
-                          <span className={styles["calendar-day-number"]}>
-                            {cell.day}
-                          </span>
-                        </span>
-                      )}
-                    </td>
-                  );
-                })}
+          <table
+            className={styles["calendar-grid"]}
+            aria-label={`${formatMonth(data.month)}の取引`}
+          >
+            <thead>
+              <tr>
+                {weekdays.map((weekday) => (
+                  <th
+                    key={weekday}
+                    className={styles["calendar-weekday"]}
+                    scope="col"
+                  >
+                    {weekday}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {Array.from({ length: 6 }, (_, weekIndex) =>
+                data.grid.slice(weekIndex * 7, weekIndex * 7 + 7),
+              ).map((week) => (
+                <tr key={week[0]?.date}>
+                  {week.map((cell) => {
+                    const amount = cell.isCurrentMonth
+                      ? data.dailyTotals[cell.date]
+                      : undefined;
+                    const incomeAmount = cell.isCurrentMonth
+                      ? data.incomeDailyTotals[cell.date]
+                      : undefined;
+                    const isSelected = cell.date === selectedDay;
+                    const className = [
+                      styles["calendar-cell"],
+                      cell.isCurrentMonth
+                        ? styles["is-current-month"]
+                        : styles["is-other-month"],
+                      cell.isToday ? styles["is-today"] : "",
+                      isSelected ? styles["is-selected"] : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+                    const expenseLabel = amount
+                      ? `支出${formatJpy(amount)}`
+                      : "支出なし";
+                    const exactLabel = incomeAmount
+                      ? `${formatDay(cell.date)}、${expenseLabel}、収入${formatJpy(incomeAmount)}`
+                      : `${formatDay(cell.date)}、${expenseLabel}`;
+
+                    return (
+                      <td key={cell.date} className={className}>
+                        {cell.isCurrentMonth ? (
+                          <a
+                            ref={(link) => {
+                              if (link) dayLinks.current.set(cell.date, link);
+                              else dayLinks.current.delete(cell.date);
+                            }}
+                            className={styles["calendar-cell-link"]}
+                            href={createCalendarDayUrl(data, cell.date)}
+                            aria-label={exactLabel}
+                            aria-current={cell.isToday ? "date" : undefined}
+                            onClick={(event) =>
+                              handleDayClick(event, cell.date)
+                            }
+                          >
+                            <span className={styles["calendar-day-number"]}>
+                              {cell.day}
+                            </span>
+                            {amount ? (
+                              <CalendarCellAmount amountMinor={amount} />
+                            ) : null}
+                            {incomeAmount ? (
+                              <CalendarCellAmount
+                                amountMinor={incomeAmount}
+                                variant="income"
+                              />
+                            ) : null}
+                          </a>
+                        ) : (
+                          <span className={styles["calendar-cell-link"]}>
+                            <span className={styles["calendar-day-number"]}>
+                              {cell.day}
+                            </span>
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </CalendarSwipeNavigator>
         {footer}
       </section>
       {selectedDay ? (

@@ -1,8 +1,14 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CalendarReadyData } from "../application/calendar-types";
 import { CalendarDayExplorer } from "./calendar-day-explorer";
+
+const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: routerPush }),
+}));
 
 const data: CalendarReadyData = {
   kind: "ready",
@@ -183,5 +189,180 @@ describe("CalendarDayExplorer", () => {
     );
     fireEvent(window, new PopStateEvent("popstate"));
     expect(screen.queryByRole("heading", { name: /2026年/ })).toBeNull();
+  });
+});
+
+describe("CalendarDayExplorer スワイプ月移動", () => {
+  const calendarWidth = 343;
+
+  // jsdomはレイアウトを持たないため、カレンダー幅を375px端末相当へ固定する
+  beforeEach(() => {
+    routerPush.mockReset();
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      width: calendarWidth,
+      height: 300,
+      top: 0,
+      left: 0,
+      right: calendarWidth,
+      bottom: 300,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  function swipeArea(): HTMLElement {
+    const area = screen.getByRole("table", {
+      name: "2026年8月の取引",
+    }).parentElement;
+    if (!area) throw new Error("swipe area not found");
+    return area;
+  }
+
+  function swipe(
+    area: HTMLElement,
+    start: Readonly<{ x: number; y: number }>,
+    end: Readonly<{ x: number; y: number }>,
+  ) {
+    fireEvent.pointerDown(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: start.x,
+      clientY: start.y,
+      isPrimary: true,
+    });
+    fireEvent.pointerUp(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: end.x,
+      clientY: end.y,
+      isPrimary: true,
+    });
+  }
+
+  it("左スワイプで翌月へ、scopeを維持しdayを外したURLへ遷移する (AC-CAL-015-1)", () => {
+    render(
+      <CalendarDayExplorer data={{ ...data, selectedDay: "2026-08-15" }} />,
+    );
+
+    swipe(swipeArea(), { x: 300, y: 200 }, { x: 160, y: 205 });
+
+    expect(routerPush).toHaveBeenCalledTimes(1);
+    expect(routerPush).toHaveBeenCalledWith(
+      "/groups/00000000-0000-4000-8000-000000000001?month=2026-09&scope=group",
+    );
+  });
+
+  it("右スワイプで前月へ、memberを維持して遷移する (AC-CAL-015-1)", () => {
+    render(
+      <CalendarDayExplorer
+        data={{
+          ...data,
+          scope: "member",
+          selectedMemberId: "00000000-0000-4000-8000-000000000002",
+          selectedMemberLabel: "B",
+        }}
+      />,
+    );
+
+    swipe(swipeArea(), { x: 40, y: 200 }, { x: 200, y: 190 });
+
+    expect(routerPush).toHaveBeenCalledWith(
+      "/groups/00000000-0000-4000-8000-000000000001?month=2026-07&scope=member&member=00000000-0000-4000-8000-000000000002",
+    );
+  });
+
+  it("閾値未満の移動では月移動せず、日付タップは従来どおり即時に反映する (AC-CAL-015-2, AC-CAL-015-3)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const area = swipeArea();
+
+    // 343 * 0.2 = 68.6px 未満
+    swipe(area, { x: 200, y: 200 }, { x: 150, y: 202 });
+    expect(routerPush).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      screen.getByRole("link", { name: "2026年8月16日、支出￥2,000" }),
+    );
+    expect(screen.getByRole("heading", { name: "2026年8月16日" })).toBeTruthy();
+    expect(new URLSearchParams(window.location.search).get("day")).toBe(
+      "2026-08-16",
+    );
+  });
+
+  it("縦方向が主の移動は縦スクロールとして扱い月移動しない (AC-CAL-015-2)", () => {
+    render(<CalendarDayExplorer data={data} />);
+
+    swipe(swipeArea(), { x: 200, y: 100 }, { x: 80, y: 220 });
+
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  it("pointer cancel（ブラウザがスクロールを引き取った場合）では月移動しない (AC-CAL-015-2)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const area = swipeArea();
+
+    fireEvent.pointerDown(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 300,
+      clientY: 200,
+      isPrimary: true,
+    });
+    fireEvent.pointerCancel(area, { pointerId: 1, pointerType: "touch" });
+    fireEvent.pointerUp(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 100,
+      clientY: 200,
+      isPrimary: true,
+    });
+
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
+  it("日付リンク上からのマウスドラッグをネイティブdragへ奪われないようdragstartを抑止する (AC-CAL-015-4)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月16日、支出￥2,000",
+    });
+
+    const dragStart = new Event("dragstart", {
+      bubbles: true,
+      cancelable: true,
+    });
+    dayLink.dispatchEvent(dragStart);
+
+    expect(dragStart.defaultPrevented).toBe(true);
+  });
+
+  it("月移動が成立した直後のclickは日付選択として扱わない (AC-CAL-015-3)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月16日、支出￥2,000",
+    });
+
+    fireEvent.pointerDown(dayLink, {
+      pointerId: 2,
+      pointerType: "mouse",
+      button: 0,
+      clientX: 300,
+      clientY: 200,
+      isPrimary: true,
+    });
+    fireEvent.pointerUp(dayLink, {
+      pointerId: 2,
+      pointerType: "mouse",
+      button: 0,
+      clientX: 150,
+      clientY: 200,
+      isPrimary: true,
+    });
+    fireEvent.click(dayLink);
+
+    expect(routerPush).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("heading", { name: "2026年8月16日" })).toBeNull();
+    expect(new URLSearchParams(window.location.search).has("day")).toBe(false);
   });
 });
