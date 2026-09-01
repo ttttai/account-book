@@ -98,7 +98,12 @@ const recurringRows = [
     memo: null,
     payer_member_id: null,
     recipient_member_id: MEMBER_MEMBERSHIP_ID,
-    categories: { name: "給与", color: "salary", icon: "salary" },
+    categories: {
+      id: "30000000-0000-4000-8000-000000000002",
+      name: "給与",
+      color: "salary",
+      icon: "salary",
+    },
     recurring_transaction_allocations: [],
   },
   {
@@ -113,7 +118,12 @@ const recurringRows = [
     memo: "毎月の家賃",
     payer_member_id: OWNER_MEMBERSHIP_ID,
     recipient_member_id: null,
-    categories: { name: "住居", color: "home", icon: "home" },
+    categories: {
+      id: "30000000-0000-4000-8000-000000000001",
+      name: "住居",
+      color: "home",
+      icon: "home",
+    },
     recurring_transaction_allocations: [
       { member_id: OWNER_MEMBERSHIP_ID, amount_minor: 60000 },
       { member_id: MEMBER_MEMBERSHIP_ID, amount_minor: 40000 },

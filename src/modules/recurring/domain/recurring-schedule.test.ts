@@ -19,7 +19,12 @@ function schedule(
     dayOfMonth: 27,
     startMonth: "2026-08",
     endMonth: null,
-    category: { name: "住居", color: "home", icon: "home" },
+    category: {
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "住居",
+      color: "home",
+      icon: "home",
+    },
     payerMemberId: "22222222-2222-4222-8222-222222222222",
     recipientMemberId: null,
     allocations: [

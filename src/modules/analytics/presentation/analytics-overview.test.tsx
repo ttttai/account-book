@@ -2,7 +2,10 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { AnalyticsOverviewReady } from "../application/analytics-types";
-import { AnalyticsOverview, AnalyticsValidationError } from "./analytics-overview";
+import {
+  AnalyticsOverview,
+  AnalyticsValidationError,
+} from "./analytics-overview";
 
 const GROUP_ID = "10000000-0000-4000-8000-000000000001";
 const MEMBER_B = "40000000-0000-4000-8000-00000000000b";
@@ -144,7 +147,9 @@ describe("AnalyticsOverview", () => {
     expect(
       within(screen.getByRole("group", { name: "支出" })).getByText("￥0"),
     ).toBeTruthy();
-    expect(screen.queryByRole("list", { name: "支出カテゴリの内訳" })).toBeNull();
+    expect(
+      screen.queryByRole("list", { name: "支出カテゴリの内訳" }),
+    ).toBeNull();
   });
 
   it("予算値がない月は予算進捗を表示せず、ある月だけ表示する (AC-ANA-011-1)", () => {
@@ -176,14 +181,18 @@ describe("AnalyticsOverview", () => {
 
     const base = `/groups/${GROUP_ID}/analytics`;
     expect(
-      screen.getByRole("link", { name: "2026年8月を表示" }).getAttribute("href"),
+      screen
+        .getByRole("link", { name: "2026年8月を表示" })
+        .getAttribute("href"),
     ).toBe(`${base}?month=2026-08&scope=self`);
     expect(
-      screen.getByRole("link", { name: "2026年10月を表示" }).getAttribute("href"),
+      screen
+        .getByRole("link", { name: "2026年10月を表示" })
+        .getAttribute("href"),
     ).toBe(`${base}?month=2026-10&scope=self`);
-    expect(screen.getByRole("link", { name: "グループ" }).getAttribute("href")).toBe(
-      `${base}?month=2026-09&scope=group`,
-    );
+    expect(
+      screen.getByRole("link", { name: "グループ" }).getAttribute("href"),
+    ).toBe(`${base}?month=2026-09&scope=group`);
     expect(
       screen.getByRole("link", { name: "利用者B" }).getAttribute("href"),
     ).toBe(`${base}?month=2026-09&scope=member&member=${MEMBER_B}`);

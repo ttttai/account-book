@@ -208,7 +208,7 @@ select pg_temp.assert_true(
 
 reset role;
 update public.group_members
-set status = 'removed'
+set status = 'removed', removed_at = timezone('utc', now())
 where id = :'analytics_second_member_id';
 
 set local role authenticated;

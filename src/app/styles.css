@@ -812,6 +812,56 @@ a:focus-visible {
   border: 1px solid var(--border);
 }
 
+/* ===== analytics route shell ===== */
+
+.analytics-page {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 60rem;
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.analytics-page-header {
+  display: flex;
+  min-height: 2rem;
+  align-items: baseline;
+  gap: 0.55rem;
+}
+
+.analytics-page-header .group-page-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.analytics-skeleton-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.analytics-skeleton {
+  height: 4.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: linear-gradient(90deg, #e7ebe5, #f4f5f1, #e7ebe5);
+  background-size: 200% 100%;
+  animation: expense-loading 1.4s ease-in-out infinite;
+}
+
+.analytics-skeleton-header {
+  height: 2.5rem;
+  grid-column: 1 / -1;
+}
+
+.analytics-skeleton-body > .analytics-skeleton:first-child {
+  grid-column: 1 / -1;
+}
+
 /* ===== history route shell ===== */
 
 .history-validation-error {

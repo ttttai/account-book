@@ -131,9 +131,11 @@ describe("aggregateAnalyticsMonth", () => {
   });
 
   it("取引が無い月は0円の集計を返し、例外にしない", () => {
-    expect(aggregateAnalyticsMonth("2026-07", expenses, incomes, {
-      scope: "group",
-    })).toEqual({
+    expect(
+      aggregateAnalyticsMonth("2026-07", expenses, incomes, {
+        scope: "group",
+      }),
+    ).toEqual({
       month: "2026-07",
       expenseTotal: 0,
       incomeTotal: 0,
@@ -205,8 +207,10 @@ describe("summarizeCategoryBreakdown", () => {
       sharePercent: 6,
     });
     const shown =
-      breakdown.top.reduce((total, category) => total + category.amountMinor, 0) +
-      (breakdown.others?.amountMinor ?? 0);
+      breakdown.top.reduce(
+        (total, category) => total + category.amountMinor,
+        0,
+      ) + (breakdown.others?.amountMinor ?? 0);
     expect(shown).toBe(16000);
   });
 

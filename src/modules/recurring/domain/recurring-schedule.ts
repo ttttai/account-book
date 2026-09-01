@@ -16,7 +16,7 @@ export type RecurringSchedule = Readonly<{
   startMonth: string;
   /** `YYYY-MM`。nullは無期限 */
   endMonth: string | null;
-  category: Readonly<{ name: string; color: string; icon: string }>;
+  category: Readonly<{ id: string; name: string; color: string; icon: string }>;
   payerMemberId: string | null;
   recipientMemberId: string | null;
   allocations: readonly RecurringAllocation[];
@@ -31,7 +31,7 @@ export type RecurringOccurrence = Readonly<{
   /** `YYYY-MM-DD` */
   date: string;
   amountMinor: number;
-  category: Readonly<{ name: string; color: string; icon: string }>;
+  category: Readonly<{ id: string; name: string; color: string; icon: string }>;
   payerMemberId: string | null;
   recipientMemberId: string | null;
   allocations: readonly RecurringAllocation[];

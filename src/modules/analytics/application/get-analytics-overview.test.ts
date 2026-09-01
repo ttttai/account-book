@@ -158,8 +158,7 @@ function setupSupabase({
   const resolve: Resolver = (table, filters) => {
     if (overrides[table]) return overrides[table] as QueryResult;
     if (table === "groups") return { data: groupRow, error: null };
-    if (table === "group_members")
-      return { data: membershipRows, error: null };
+    if (table === "group_members") return { data: membershipRows, error: null };
     if (table === "profiles") return { data: profileRows, error: null };
     if (table === "transactions") {
       return {
@@ -373,9 +372,9 @@ describe("getAnalyticsOverview", () => {
       overrides: { transactions: { data: null, error: { code: "PGRST301" } } },
     });
 
-    await expect(getAnalyticsOverview(GROUP_ID, { month: "2026-09" })).rejects.toThrow(
-      "分析データを取得できませんでした。",
-    );
+    await expect(
+      getAnalyticsOverview(GROUP_ID, { month: "2026-09" }),
+    ).rejects.toThrow("分析データを取得できませんでした。");
   });
 });
 

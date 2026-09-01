@@ -15,7 +15,10 @@ describe("parseAnalyticsSelection", () => {
 
   it("月と集計対象を検証して保持する (AC-ANA-005-1)", () => {
     expect(
-      parseAnalyticsSelection({ month: "2026-01", scope: "self" }, CURRENT_MONTH),
+      parseAnalyticsSelection(
+        { month: "2026-01", scope: "self" },
+        CURRENT_MONTH,
+      ),
     ).toEqual({
       success: true,
       value: { month: "2026-01", scope: "self" },
@@ -48,10 +51,12 @@ describe("parseAnalyticsSelection", () => {
   });
 
   it("memberの指定不足・UUID以外・不要なmember指定を拒否する (AC-ANA-001-2)", () => {
-    expect(parseAnalyticsSelection({ scope: "member" }, CURRENT_MONTH)).toEqual({
-      success: false,
-      reason: "invalid_member",
-    });
+    expect(parseAnalyticsSelection({ scope: "member" }, CURRENT_MONTH)).toEqual(
+      {
+        success: false,
+        reason: "invalid_member",
+      },
+    );
     expect(
       parseAnalyticsSelection(
         { scope: "member", member: "not-a-uuid" },

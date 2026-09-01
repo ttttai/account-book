@@ -136,5 +136,8 @@ test("分析は集計テーブルとRoute Handlerを追加しない", async () =
     migrations.some((file) => /analytic/i.test(file)),
     false,
   );
-  assert.equal(await exists("src/app/api/v1/groups/[groupId]/analytics"), false);
+  assert.equal(
+    await exists("src/app/api/v1/groups/[groupId]/analytics"),
+    false,
+  );
 });
