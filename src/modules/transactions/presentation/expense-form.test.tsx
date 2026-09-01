@@ -208,3 +208,118 @@ describe("ExpenseForm のカテゴリ展開 (TXN-015)", () => {
     expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
   });
 });
+
+describe("ExpenseForm のテンキー開閉と保存の常設 (TXN-014, TXN-016)", () => {
+  it("既定はテンキーを開き、すぐに金額を入力できる", () => {
+    renderForm();
+
+    expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
+  });
+
+  it("金額欄以外の入力欄へfocusするとテンキーを閉じる (AC-TXN-014-5)", () => {
+    renderForm();
+
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+
+    expect(screen.queryByRole("button", { name: "1" })).toBeNull();
+  });
+
+  it("閉じたあと金額欄へfocusするとテンキーを開く (AC-TXN-014-5)", () => {
+    renderForm();
+
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+    expect(screen.queryByRole("button", { name: "1" })).toBeNull();
+
+    fireEvent.focus(amountInput());
+
+    expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
+  });
+
+  it("入力ドック内（カテゴリ・キー・保存）の操作では開閉状態を変えない (AC-TXN-014-5)", () => {
+    renderForm();
+
+    fireEvent.focus(screen.getByRole("radio", { name: "日用品" }));
+    expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
+
+    fireEvent.focus(screen.getByRole("button", { name: "支出を保存" }));
+    expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
+  });
+
+  it("テンキーの開閉で金額を失わない (AC-TXN-014-5)", () => {
+    renderForm();
+
+    pressKey("2");
+    pressKey("5");
+    pressKey("00");
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+    fireEvent.focus(amountInput());
+
+    expect(amountInput().value).toBe("2500");
+  });
+
+  it("閉じている間も金額欄から再び開けることを画面上で示す (AC-TXN-014-6)", () => {
+    renderForm();
+
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+
+    const hint = screen.getByText(/金額欄をタップ/);
+    expect(hint).toBeTruthy();
+    // 案内は金額欄と関連付け、スクリーンリーダーからも辿れる
+    expect(amountInput().getAttribute("aria-describedby")).toContain(hint.id);
+  });
+
+  it("閉じている間も物理キーボードから金額を入力できる (AC-TXN-014-6)", () => {
+    renderForm();
+
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+    fireEvent.change(amountInput(), { target: { value: "3400" } });
+
+    expect(amountInput().value).toBe("3400");
+  });
+
+  it("テンキーの開閉とカテゴリ展開のどの状態でも保存操作が消えない (AC-TXN-016-1)", () => {
+    renderForm();
+
+    const saveName = "支出を保存";
+    expect(screen.getByRole("button", { name: saveName })).toBeTruthy();
+
+    // テンキーを閉じた状態
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+    expect(screen.queryByRole("button", { name: "1" })).toBeNull();
+    expect(screen.getByRole("button", { name: saveName })).toBeTruthy();
+
+    // カテゴリを展開した状態
+    fireEvent.click(screen.getByRole("button", { name: "すべて" }));
+    expect(screen.getByRole("button", { name: saveName })).toBeTruthy();
+  });
+
+  it("保存はテンキーを閉じても入力ドック内に残り、数字キーだけが消える (AC-TXN-016-1)", () => {
+    renderForm();
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+
+    expect(screen.queryByRole("button", { name: "1" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "1桁削除" })).toBeNull();
+    const save = screen.getByRole("button", { name: "支出を保存" });
+    expect(save.closest("[class*='input-dock']")).toBeTruthy();
+  });
+});
+
+describe("ExpenseForm のテンキー開閉時のスクロール (AC-TXN-014-7)", () => {
+  it("テンキーを開いたとき、金額欄をドックへ隠れない位置へ移動する", async () => {
+    const scrollBy = vi.fn();
+    // jsdomはscrollByを実装しないため、呼び出しの有無だけを検証する
+    window.scrollBy = scrollBy;
+
+    renderForm();
+
+    // 既定でテンキーが開いているため、初回描画でも金額欄を見える位置へ移動する
+    await vi.waitFor(() => expect(scrollBy).toHaveBeenCalled());
+
+    scrollBy.mockClear();
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+    fireEvent.focus(amountInput());
+
+    // 閉じてから開き直したときも移動する
+    await vi.waitFor(() => expect(scrollBy).toHaveBeenCalled());
+  });
+});

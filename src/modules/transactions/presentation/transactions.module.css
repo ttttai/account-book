@@ -418,6 +418,15 @@
   gap: 0.4rem;
 }
 
+/* テンキーを閉じているときは保存だけを全幅で表示する (AC-TXN-016-1) */
+[data-keypad-open="false"] .keypad {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-keypad-open="false"] .keypad-side {
+  grid-template-rows: auto;
+}
+
 .keypad-key {
   display: grid;
   min-height: 48px;
@@ -445,16 +454,37 @@
   font-size: 1.1rem;
 }
 
-.keypad-save {
+/* 保存はテンキーの開閉・カテゴリ展開に関係なく常設する (AC-TXN-016-1) */
+.input-dock-save {
   display: grid;
 }
 
-.keypad-save > button {
+.input-dock-save > button {
   width: 100%;
   height: 100%;
+  min-height: 48px;
   padding: 0.4rem;
   font-size: 0.85rem;
   line-height: 1.2;
+}
+
+[data-keypad-open="false"] .input-dock-save > button {
+  font-size: 1rem;
+}
+
+/* 金額欄をドックの上へ寄せるための余白。ドックが画面へ重なる狭い画面だけに適用する (AC-TXN-014-7) */
+@media (max-width: 899px) {
+  .amount-field {
+    scroll-margin-bottom: calc(var(--input-dock-height, 19rem) + 0.75rem);
+  }
+}
+
+/* テンキーを閉じている間の再開手段の案内 (AC-TXN-014-6) */
+.keypad-hint {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 @media (min-width: 900px) {
@@ -550,7 +580,7 @@
   .keypad {
     grid-row: 5;
     grid-column: 1;
-    max-width: 22rem;
+    max-width: 24rem;
   }
   .keypad-key {
     min-height: 44px;
@@ -577,7 +607,12 @@
     grid-column: 2;
     align-self: start;
   }
-  .keypad-save > button {
+  /* 右列の幅でも「支出を保存」が1行に収まる大きさにし、閉じている間だけ通常サイズへ戻す */
+  .input-dock-save > button {
+    font-size: 0.85rem;
+    padding: 0.25rem;
+  }
+  [data-keypad-open="false"] .input-dock-save > button {
     font-size: 0.95rem;
   }
   .expense-save-button {
