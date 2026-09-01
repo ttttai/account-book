@@ -17,7 +17,7 @@ async function exists(path) {
   }
 }
 
-test("グループ配下を共通layoutと4項目ナビゲーションで包む", async () => {
+test("グループ配下を共通layoutと5項目ナビゲーションで包む", async () => {
   assert.equal(await exists("src/app/groups/[groupId]/layout.tsx"), true);
 
   const layout = await read("src/app/groups/[groupId]/layout.tsx");
@@ -34,7 +34,7 @@ test("グループ配下を共通layoutと4項目ナビゲーションで包む"
   assert.match(navigation, /usePathname\(\)/);
   assert.match(navigation, /aria-label="グループ内ナビゲーション"/);
   assert.match(navigation, /aria-current=\{isActive \? "page"/);
-  for (const label of ["ホーム", "履歴", "入力", "設定"]) {
+  for (const label of ["ホーム", "履歴", "入力", "分析", "設定"]) {
     assert.match(navigation, new RegExp(`label: "${label}"`));
   }
   assert.doesNotMatch(navigation, /label: "メンバー"/);
@@ -48,6 +48,16 @@ test("設定配下の画面を設定項目の現在地として扱う", async ()
   assert.match(navigation, /\/settings/);
   assert.match(navigation, /\/members/);
   assert.match(navigation, /\/categories/);
+  assert.match(navigation, /\/recurring-transactions/);
+});
+
+test("分析項目から概要分析へ1タップで移動する (NAV-001)", async () => {
+  const navigation = await read(
+    "src/modules/groups/presentation/group-navigation.tsx",
+  );
+
+  assert.match(navigation, /label: "分析"/);
+  assert.match(navigation, /\$\{groupBase\}\/analytics/);
 });
 
 test("設定ハブへ管理機能の入口を集約する", async () => {
