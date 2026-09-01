@@ -4,7 +4,7 @@
 
 レビュー日: 2026-09-01
 
-対象バージョン: 0.2.36
+対象バージョン: 0.3.0
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.2.36の自動文書検査では、要件ID 117件、明示的な受け入れ条件ID 147件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.0の自動文書検査では、要件ID 126件、明示的な受け入れ条件ID 158件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -795,6 +795,20 @@ MVP範囲確認: 四則演算つき電卓、金額の桁区切り表示、日付
 
 判定: `TXN-014`・`TXN-015`と追加した受け入れ条件は`TXN-001`〜`TXN-013`、`AC-TXN-001-9`、`NFR-UI-001`・`NFR-UI-002`・`NFR-UI-007`、`NFR-A11Y-002`・`NFR-A11Y-003`と整合し、安全かつ実装可能である。テンキーの入力規則とカテゴリ展開のcomponent testおよび構造testを先に作成し、実装後に幅375px・320px・1280pxで、金額入力中にカテゴリと保存が隠れないこと、ドックと下部ナビゲーションの間に隙間ができないことを実画面確認する条件で、実装開始を承認する。
 
+### R-064 固定額の月次定期取引（段階1）
+
+指摘: 家賃、給与、定額サービスのように毎月同じ日・同じ金額で発生する取引を、毎月手入力する必要があった（Issue #55）。一方でjob、scheduler、queue、retry、occurrence保存を伴う自動登録は、実行履歴・再試行・冪等性・監視を新たに必要とし、非公開MVP直後の運用負荷とMVP範囲（`01-product-requirements.md`のMVP対象外「定期取引のjobによる自動登録」）に見合わない。
+
+対応: `specs/14-recurring-transactions.md`を新設し、初回スコープを固定額・月次・毎月1〜28日に限定する。`REC-001`〜`REC-009`と`UC-016`（`AC-REC-001-1`〜`AC-REC-003-2`）を追加した。定期取引は設定として`recurring_transactions`・`recurring_transaction_allocations`へ保存し、月ごとの通常取引を生成せず、読み取り時に対象月の同じ日付へ純関数で展開してホームカレンダーの月間集計・日別表示へ含める。更新はowner/adminだけとし、閲覧はアクティブメンバー全員へ許可する。画面は`/groups/{groupId}/recurring-transactions`とし、設定ハブから遷移する（`AC-NAV-004-1`・`AC-NAV-004-2`を更新）。データモデル（`04-data-model.md`）、ER図（`10-er-diagram.md`）、API境界（`05-api-and-application-boundaries.md`）、画面仕様（`03-screen-specification.md`）、テスト計画（`07-acceptance-test-plan.md`）を更新した。
+
+安全性確認: 新テーブルは`group_id`必須、RLSのenable/forceとアクティブメンバーのselect policyを持ち、更新は`security definer`関数（`set search_path = ''`）でowner/adminとアクティブ所属、Google許可リストを再確認する。テーブルへの直接更新権限は付与しない。カテゴリ・支払者・受取者・負担者は`group_id`を含む複合外部キーで同じグループへ固定し、別グループの値を混入できない。金額はJPY整数で保持し、支出は負担額合計と金額の一致をDB関数内で検証する。展開はDBへ書き込まず既存の単発取引を変更しないため、`REC-007`が構造的に守られる。展開取引と単発取引は別経路で作るため二重集計が発生しない。Client ComponentへはDTOだけを渡す。
+
+実装可能性確認: 展開は「対象月が開始月以降かつ終了月以内なら、その月の`day_of_month`日へ1件」という純関数であり単体testで固定できる。カレンダー集計はすでに純関数`calculateCalendarSummary`へ集約されているため、展開結果を同じ入力形式で渡すだけで月間合計・日付セル・日別sheetへ反映できる。入力検証はzod、負担計算は既存の`calculateExpenseAllocations`を再利用する。DB関数は収入・支出commandと同じ多層防御パターンに従う。RLS分離は`tests/integration/`のSQL testで証明できる。
+
+MVP範囲確認: 履歴一覧とCSV出力への展開は初回スコープ外とし、`14-recurring-transactions.md`の「初回スコープ外」へ明記して後続段階へ回す（履歴はcursor paginationを`(transaction_date, id)`で行うため、実在しない展開行の混在は別途設計が必要）。job、scheduler、queue、retry、backfill、occurrence保存、週次・隔週・年次、29〜31日・月末調整、変動金額、過去月の確定値保持、承認フロー、通知、一括importは追加しない。
+
+判定: `REC-001`〜`REC-009`、`AC-REC-001-1`〜`AC-REC-003-2`は`TXN-001`〜`TXN-013`、`CAL-001`〜`CAL-012`、`AC-NAV-004-*`、`NFR-SEC-002`・`NFR-SEC-003`、`NFR-UI-*`と整合し、安全かつ実装可能である。展開の純関数testとRLS分離testを先に追加し、375 x 812と1280 x 800で定期取引画面と展開後のホームカレンダーを実画面確認する条件で、実装開始を承認する。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                                    |
@@ -816,6 +830,7 @@ MVP範囲確認: 四則演算つき電卓、金額の桁区切り表示、日付
 | `NFR-OPS-*`            | Compose health check、deploy smoke test                         |
 | `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                           |
 | `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認            |
+| `REC-001`〜`REC-009`   | 展開単体test、RLS test、定期取引E2E・実画面確認                 |
 
 ## 5. 実装を妨げない延期事項
 

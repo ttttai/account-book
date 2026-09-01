@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.18
+バージョン: 0.2.19
 
 ## 1. テストレベル
 
@@ -44,6 +44,8 @@
 - OAuth認可URLのDocker内部originから公開Supabase originへの安全な変換と、想定外origin・path・認証情報・fragmentの拒否
 - OAuth開始Route Handlerが通常のHTTP redirectでPKCE verifier cookieを設定し、検証済みの戻り先を維持すること。公開サイトと異なるoriginからの開始はcookie発行前にcanonical originへredirectし、その後のcallbackとcookieのhostが一致すること。callbackはcookieがある場合だけcode交換を試み、欠損時はsessionを作らず安全に失敗すること
 - 未認証の保護画面遷移とログアウト後のsession無効化
+- 定期取引の月次展開（開始月・終了月の境界、毎月1〜28日、対象期間外を含めないこと）と、展開取引をカレンダー集計へ二重計上しないこと
+- 定期取引のowner/admin限定更新、member閲覧、別グループ拒否、支出の負担額合計一致
 - Proxyがframeworkの規約位置（`src`直下）に置かれ、未認証の保護画面要求を戻り先付きでログイン画面へredirectすること
 - 認証済みの`/`とOAuth開始Route到達時に、OAuthを再実行せずホームまたは検証済みの戻り先へredirectすること
 - callbackが既存のsession cookieを参照せず、交換したsession cookieを同じ応答の削除cookieで打ち消さないこと

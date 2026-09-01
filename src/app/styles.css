@@ -323,6 +323,17 @@ a:focus-visible {
   max-width: 54rem;
 }
 
+.recurring-page {
+  max-width: 60rem;
+}
+
+.recurring-page-description {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
 .expense-loading-bar,
 .expense-loading-card {
   border-radius: 1rem;

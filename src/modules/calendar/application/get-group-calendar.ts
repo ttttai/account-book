@@ -7,6 +7,11 @@ import {
   getAllowedGoogleUserId,
 } from "@/modules/auth/server";
 
+import {
+  expandRecurringForMonth,
+  listRecurringSchedules,
+} from "@/modules/recurring/server";
+
 import { createCalendarGrid, getMonthRange } from "../domain/calendar-grid";
 import { parseCalendarSelection } from "../domain/calendar-input";
 import {
@@ -123,6 +128,10 @@ function createDayTransactionsByDate(
             displayNameByMembershipId.get(allocation.memberId) ?? "メンバー",
           amountMinor: allocation.amountMinor,
         })),
+        isRecurring: expense.isRecurring === true,
+        ...(expense.recurringName
+          ? { recurringName: expense.recurringName }
+          : {}),
       } satisfies CalendarDayTransaction,
     }));
 
@@ -146,6 +155,10 @@ function createDayTransactionsByDate(
         partyDisplayName:
           displayNameByMembershipId.get(income.recipientMemberId) ?? "メンバー",
         allocations: [],
+        isRecurring: income.isRecurring === true,
+        ...(income.recurringName
+          ? { recurringName: income.recurringName }
+          : {}),
       } satisfies CalendarDayTransaction,
     }));
 
@@ -311,12 +324,57 @@ export async function getGroupCalendar(
       category: income.categories,
     }));
 
+  // 定期取引は設定から選択月へ展開し、単発取引と同じ集計規則へ渡す (REC-005、AC-REC-002-2)
+  // transactionsを読まずに作るため、単発取引との二重集計は構造的に発生しない
+  const occurrences = expandRecurringForMonth(
+    await listRecurringSchedules(supabase, group.id),
+    selection.month,
+  );
+  // 展開結果は登録日時を持たないため、日別sheetでは単発取引より後ろへ並べる
+  const RECURRING_SORT_KEY = "0000-01-01T00:00:00.000Z";
+  const recurringExpenses: readonly CalendarExpense[] = occurrences
+    .filter((occurrence) => occurrence.type === "expense")
+    .map((occurrence) => ({
+      id: occurrence.occurrenceId,
+      date: occurrence.date,
+      amountMinor: occurrence.amountMinor,
+      payerMemberId: occurrence.payerMemberId ?? "",
+      createdAt: RECURRING_SORT_KEY,
+      category: occurrence.category,
+      allocations: occurrence.allocations,
+      isRecurring: true,
+      recurringName: occurrence.name,
+    }));
+  const recurringIncomes: readonly CalendarIncome[] = occurrences
+    .filter((occurrence) => occurrence.type === "income")
+    .map((occurrence) => ({
+      id: occurrence.occurrenceId,
+      date: occurrence.date,
+      amountMinor: occurrence.amountMinor,
+      recipientMemberId: occurrence.recipientMemberId ?? "",
+      createdAt: RECURRING_SORT_KEY,
+      category: occurrence.category,
+      isRecurring: true,
+      recurringName: occurrence.name,
+    }));
+  const allExpenses: readonly CalendarExpense[] = [
+    ...expenses,
+    ...recurringExpenses,
+  ];
+  const allIncomes: readonly CalendarIncome[] = [
+    ...incomes,
+    ...recurringIncomes,
+  ];
+
   const targetMembershipId = targetMembership?.id;
   const summaryTarget = targetMembershipId
     ? ({ scope: "member", memberId: targetMembershipId } as const)
     : ({ scope: "group" } as const);
-  const summary = calculateCalendarSummary(expenses, summaryTarget);
-  const incomeSummary = calculateCalendarIncomeSummary(incomes, summaryTarget);
+  const summary = calculateCalendarSummary(allExpenses, summaryTarget);
+  const incomeSummary = calculateCalendarIncomeSummary(
+    allIncomes,
+    summaryTarget,
+  );
 
   return {
     kind: "ready",
@@ -343,8 +401,8 @@ export async function getGroupCalendar(
     ...incomeSummary,
     grid: createCalendarGrid(selection.month, group.week_starts_on, today),
     dayTransactionsByDate: createDayTransactionsByDate(
-      expenses,
-      incomes,
+      allExpenses,
+      allIncomes,
       targetMembershipId,
       displayNameByMembershipId,
     ),
