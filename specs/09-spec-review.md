@@ -2,9 +2,9 @@
 
 状態: 実装開始を承認
 
-レビュー日: 2026-09-01
+レビュー日: 2026-09-02
 
-対象バージョン: 0.3.3
+対象バージョン: 0.3.4
 
 ## 1. レビュー目的
 
@@ -855,29 +855,43 @@ MVP範囲確認: テンキーの開閉アニメーション、スワイプでの
 
 判定: `TXN-014`（更新）、`TXN-016`、`AC-TXN-014-5`・`AC-TXN-014-6`、`AC-TXN-016-1`・`AC-TXN-016-2`は`TXN-015`、`NFR-UI-*`、`NFR-A11Y-*`と整合し、安全かつ実装可能である。開閉と保存常設のcomponent testを先に更新し、実装後に幅375pxと1280 x 800で開閉・保存位置・ドック高さを実画面確認することを条件に実装開始を承認する。
 
+### R-068 ホームの「今日へ戻る」とスワイプ月移動
+
+指摘: ホームは毎日開く画面だが、月移動の手段は上部の前月・翌月ボタンだけで、過去月を見た後に当月へ戻るには複数回タップするか下部ナビの「ホーム」を押し直す必要がある。「ホーム」は`scope=group`へ戻すため、自分やメンバー別の表示を維持したまま当月へ戻れない。また片手操作ではカレンダーの上にあるボタンへ親指が届きにくい（Issue #78）。
+
+対応: `CAL-014`（今日へ戻る）と`CAL-015`（スワイプ月移動）、`AC-CAL-014-1`〜`AC-CAL-014-4`、`AC-CAL-015-1`〜`AC-CAL-015-5`を追加した。Issueで保留していた点は次のとおり確定した。(1) 「今日」の配置は月移動行の翌月ボタンの左とし、当月表示中は同じ寸法の不可視領域を確保して行の高さと題名位置を変えない。(2) 「今日」は月だけを移動し、`day`は付けない（今日のセルは既存の強調で判別でき、bottom sheetを自動で開くとカレンダーを覆うため）。(3) スワイプの閾値はカレンダー幅の20%以上かつ48px以上、垂直移動量の1.5倍以上とし、日別sheetが開いている間も受け付ける。(4) PC表示でもpointer eventsによりマウスのドラッグで動作するが、ボタン操作を主とし追従アニメーションは付けない。
+
+安全性確認: 追加するのはClient側の遷移判定と表示だけで、月間query、認可、集計、DTOは変更しない。「今日」の移動先はサーバーがグループのタイムゾーンで決めた`currentMonth`を使い、端末時刻を信用しない。スワイプの遷移先URLは既存の前月・翌月リンクと同じ組み立て関数で生成し、外部入力を含まない。`touch-action: pan-y`により縦スクロールはブラウザへ委ね、pointer cancelで判定を破棄するため、スクロール操作を月移動へ誤変換しない。
+
+実装可能性確認: スワイプの判定は移動量・幅から方向を返す純関数として`domain`へ置き、単体testで閾値の境界を固定できる。Client Componentはpointerdown/up/cancelで開始位置と結果を扱い、判定が成立した場合だけ`useRouter().push`で既存URLへ遷移する。移動直後のclickはrefで1回だけ抑止し、日付選択の`AC-CAL-001-17`を維持する。前月・翌月のLinkが同じURLをprefetchしているため、スワイプ遷移は追加のprefetchなしに即時に始まる。「今日」はServer Componentの条件描画で済む。
+
+MVP範囲確認: ドラッグ中の追従アニメーション、週表示、キーボードショートカット、月のスワイプ以外のジェスチャーは追加しない。下部ナビ「ホーム」の挙動、日付セルの表示、月間集計の意味は変更しない。
+
+判定: `CAL-014`・`CAL-015`と対応する受け入れ条件は`CAL-006`・`CAL-007`・`CAL-011`、`NAV-002`、`NFR-UI-008`、`NFR-A11Y-*`と整合し、安全かつ実装可能である。判定の単体testとcomponent testを先に追加し、実装後に320px、375 x 812、1280 x 800で「今日」の有無による高さ不変とスワイプの動作を実画面確認することを条件に実装開始を承認する。
+
 ## 4. 要件と検証方法の対応
 
-| 要件範囲               | 主な検証方法                                                    |
-| ---------------------- | --------------------------------------------------------------- |
-| `AUTH-001`〜`AUTH-005` | 認証integration test、モバイルE2E                               |
-| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                             |
-| `CAT-001`〜`CAT-003`   | category integration、権限test                                  |
-| `TXN-001`〜`TXN-015`   | 金額・負担単体test、取引integration、入力UI component test、E2E |
-| `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E                        |
-| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認                  |
-| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                               |
-| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E                 |
-| `NFR-SEC-*`            | RLS、server境界、production設定review                           |
-| `NFR-PRI-*`            | 認可test、UI文言review                                          |
-| `NFR-PERF-*`           | query plan/index review、代表値測定                             |
-| `NFR-REC-*`            | 論理削除・復元test、migration手順review                         |
-| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認          |
-| `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                               |
-| `NFR-OPS-*`            | Compose health check、deploy smoke test                         |
-| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                           |
-| `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認            |
-| `NFR-E2E-*`            | E2E主要smoke flow、使い捨てstackの分離確認                      |
-| `REC-001`〜`REC-009`   | 展開単体test、RLS test、定期取引E2E・実画面確認                 |
+| 要件範囲               | 主な検証方法                                                       |
+| ---------------------- | ------------------------------------------------------------------ |
+| `AUTH-001`〜`AUTH-005` | 認証integration test、モバイルE2E                                  |
+| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                                |
+| `CAT-001`〜`CAT-003`   | category integration、権限test                                     |
+| `TXN-001`〜`TXN-015`   | 金額・負担単体test、取引integration、入力UI component test、E2E    |
+| `CAL-001`〜`CAL-015`   | calendar query integration、月移動・スワイプ判定test、viewport E2E |
+| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認                     |
+| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                                  |
+| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E                    |
+| `NFR-SEC-*`            | RLS、server境界、production設定review                              |
+| `NFR-PRI-*`            | 認可test、UI文言review                                             |
+| `NFR-PERF-*`           | query plan/index review、代表値測定                                |
+| `NFR-REC-*`            | 論理削除・復元test、migration手順review                            |
+| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認             |
+| `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                                  |
+| `NFR-OPS-*`            | Compose health check、deploy smoke test                            |
+| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                              |
+| `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認               |
+| `NFR-E2E-*`            | E2E主要smoke flow、使い捨てstackの分離確認                         |
+| `REC-001`〜`REC-009`   | 展開単体test、RLS test、定期取引E2E・実画面確認                    |
 
 ## 5. 実装を妨げない延期事項
 
