@@ -154,7 +154,12 @@ const recurringRows = [
     memo: null,
     payer_member_id: MEMBERSHIP_ID,
     recipient_member_id: null,
-    categories: { name: "住居", color: "housing", icon: "home" },
+    categories: {
+      id: "30000000-0000-4000-8000-000000000003",
+      name: "住居",
+      color: "housing",
+      icon: "home",
+    },
     recurring_transaction_allocations: [
       { member_id: MEMBERSHIP_ID, amount_minor: 40000 },
       { member_id: SECOND_MEMBERSHIP_ID, amount_minor: 40000 },
