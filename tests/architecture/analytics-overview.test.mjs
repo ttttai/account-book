@@ -31,7 +31,7 @@ test("概要分析仕様を正本として承認記録に紐付ける (ANA-001�
   assert.doesNotMatch(requirements, /^- `ANA-006`/m);
   assert.match(useCases, /^- `AC-ANA-001-1`/m);
   assert.match(useCases, /^- `AC-ANA-012-2`/m);
-  assert.match(review, /### R-066/);
+  assert.match(review, /### R-068/);
 });
 
 test("分析queryをserver-only認可境界へ隔離する", async () => {

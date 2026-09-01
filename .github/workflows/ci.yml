@@ -131,6 +131,55 @@ jobs:
       - name: Build production application
         run: npm run build
 
+  e2e:
+    name: E2E
+    needs: changes
+    # ドキュメントのみの変更ではskipする
+    if: needs.changes.outputs.docs_only != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install the Chromium browser for Playwright
+        run: npx playwright install --with-deps chromium
+
+      # stackの資格情報と許可アカウントはE2E専用の架空値をCI実行ごとに生成する
+      - name: Run E2E tests on the disposable local stack
+        run: npm run test:e2e
+
+      - name: Upload the E2E report on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Show E2E stack logs on failure
+        if: failure()
+        run: docker compose --env-file .env.e2e --project-name account-book-e2e logs --no-color --tail 200
+
+      - name: Remove the E2E stack and volumes
+        if: always()
+        run: npm run test:e2e:down
+
   integration:
     name: Docker integration
     needs: changes

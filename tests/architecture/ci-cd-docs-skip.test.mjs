@@ -39,11 +39,11 @@ test("CIはdocsのみのpushで重い検証ジョブだけをskipする", async 
   assert.match(workflow, /merge-base origin\/main/);
   assert.match(workflow, /github\.event\.before/);
 
-  // 重い検証(QualityとDocker integration)の2つだけがdocsのみでskipされる
+  // 重い検証(Quality、E2E、Docker integration)の3つだけがdocsのみでskipされる
   const skipConditions = workflow.match(
     /needs\.changes\.outputs\.docs_only != 'true'/g,
   );
-  assert.equal(skipConditions?.length, 2);
+  assert.equal(skipConditions?.length, 3);
 
   // format checkはmarkdown自体の検証のため、条件なしの独立jobとして常に実行する
   const formatChecks = workflow.match(/npm run format:check/g);

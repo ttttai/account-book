@@ -93,7 +93,7 @@ test("Docker Composeを標準のローカル開発入口にする", async () => 
   assert.match(compose, /action:\s*sync/);
   assert.match(compose, /action:\s*rebuild/);
   assert.match(compose, /healthcheck:/);
-  assert.match(compose, /127\.0\.0\.1:3000:3000/);
+  assert.match(compose, /127\.0\.0\.1:\$\{WEB_HOST_PORT:-3000\}:3000/);
 });
 
 test("開発・本番コンテナは非rootユーザーで実行する", async () => {
@@ -136,7 +136,9 @@ test("仕様レビューの要件件数と宣言を一致させる", async () =>
   const useCases = await read("specs/02-use-cases.md");
   const review = await read("specs/09-spec-review.md");
   const requirementIds = [
-    ...requirements.matchAll(/^- `([A-Z]+(?:-[A-Z]+)?-[0-9]{3})`/gm),
+    ...requirements.matchAll(
+      /^- `([A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)?-[0-9]{3})`/gm,
+    ),
   ].map((match) => match[1]);
   const acceptanceConditionIds = [
     ...useCases.matchAll(/^- `(AC-[A-Z]+-[0-9]{3}-[0-9]+)`/gm),
