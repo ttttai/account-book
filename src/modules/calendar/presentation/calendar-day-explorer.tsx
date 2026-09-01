@@ -181,6 +181,11 @@ function DayPanel({
                   className={`${styles["category-dot"]} category-${transaction.categoryColor}`}
                 />
                 <strong>{transaction.categoryName}</strong>
+                {transaction.isRecurring ? (
+                  <span className={styles["calendar-recurring-badge"]}>
+                    定期
+                  </span>
+                ) : null}
                 {transaction.type === "income" ? (
                   <span className={styles["calendar-income-amount"]}>
                     ＋{formatJpy(transaction.amountMinor)}
@@ -210,12 +215,22 @@ function DayPanel({
                     .join(" / ")}
                 </p>
               ) : null}
-              <a
-                className={`secondary-link ${styles["calendar-transaction-edit"]}`}
-                href={`/groups/${encodeURIComponent(data.group.id)}/transactions/${transaction.id}/edit?from=${encodeURIComponent(createCalendarDayUrl(data, selectedDay))}`}
-              >
-                編集
-              </a>
+              {transaction.isRecurring ? (
+                /* 展開取引は実在の取引ではないため編集導線を出さない (AC-REC-002-3) */
+                <a
+                  className={`secondary-link ${styles["calendar-transaction-edit"]}`}
+                  href={`/groups/${encodeURIComponent(data.group.id)}/recurring-transactions`}
+                >
+                  定期取引の設定
+                </a>
+              ) : (
+                <a
+                  className={`secondary-link ${styles["calendar-transaction-edit"]}`}
+                  href={`/groups/${encodeURIComponent(data.group.id)}/transactions/${transaction.id}/edit?from=${encodeURIComponent(createCalendarDayUrl(data, selectedDay))}`}
+                >
+                  編集
+                </a>
+              )}
             </li>
           ))}
         </ul>

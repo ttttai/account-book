@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.0
+バージョン: 0.2.0
 
 最終更新日: 2026-08-28
 
@@ -111,6 +111,34 @@ erDiagram
         timestamptz created_at
     }
 
+    RECURRING_TRANSACTIONS {
+        uuid id PK
+        uuid group_id FK
+        text type
+        text name
+        bigint amount_minor
+        smallint day_of_month
+        date start_month
+        date end_month
+        uuid category_id FK
+        uuid payer_member_id FK
+        uuid recipient_member_id FK
+        text memo
+        integer version
+        uuid created_by FK
+        uuid updated_by FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    RECURRING_TRANSACTION_ALLOCATIONS {
+        uuid recurring_transaction_id PK,FK
+        uuid member_id PK,FK
+        uuid group_id FK
+        bigint amount_minor
+        timestamptz created_at
+    }
+
     AUTH_USERS ||--|| PROFILES : "プロフィールを持つ"
     AUTH_USERS ||--o{ GROUPS : "作成する"
     AUTH_USERS ||--o{ GROUP_MEMBERS : "所属する"
@@ -127,6 +155,14 @@ erDiagram
     GROUP_MEMBERS o|--o{ TRANSACTIONS : "支払者・受取者になる"
     TRANSACTIONS ||--o{ TRANSACTION_ALLOCATIONS : "負担額を持つ"
     GROUP_MEMBERS ||--o{ TRANSACTION_ALLOCATIONS : "負担する"
+
+    AUTH_USERS ||--o{ RECURRING_TRANSACTIONS : "作成・更新する"
+    GROUPS ||--o{ RECURRING_TRANSACTIONS : "定期取引を持つ"
+    GROUPS ||--o{ RECURRING_TRANSACTION_ALLOCATIONS : "負担額を分離する"
+    CATEGORIES ||--o{ RECURRING_TRANSACTIONS : "分類する"
+    GROUP_MEMBERS o|--o{ RECURRING_TRANSACTIONS : "支払者・受取者になる"
+    RECURRING_TRANSACTIONS ||--o{ RECURRING_TRANSACTION_ALLOCATIONS : "負担額を持つ"
+    GROUP_MEMBERS ||--o{ RECURRING_TRANSACTION_ALLOCATIONS : "負担する"
 ```
 
 ## 3. 重要な関係と制約
@@ -139,6 +175,7 @@ erDiagram
 - `group_members`は削除せず`status`を変更し、過去取引との参照を維持する。取引も`deleted_at`による論理削除とする。
 - `group_invitations.token_hash`にはhashだけを保存し、生の招待tokenは保存しない。
 - カレンダー集計は`transactions`と`transaction_allocations`から読み取り時に計算し、現時点で`daily_summaries`テーブルは作成しない。
+- `recurring_transactions`は定期取引の設定だけを保持し、月ごとの展開結果（occurrence）は保存しない。カレンダー集計は選択月へ展開した擬似取引を読み取り時に加える。
 
 ## 4. 更新ルール
 

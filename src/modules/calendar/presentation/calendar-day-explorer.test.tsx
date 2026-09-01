@@ -50,6 +50,7 @@ const data: CalendarReadyData = {
         categoryIcon: "food",
         partyDisplayName: "A",
         allocations: [],
+        isRecurring: false,
       },
       {
         id: "00000000-0000-4000-8000-000000000102",
@@ -61,6 +62,7 @@ const data: CalendarReadyData = {
         categoryIcon: "salary",
         partyDisplayName: "B",
         allocations: [],
+        isRecurring: false,
       },
     ],
     "2026-08-16": [],

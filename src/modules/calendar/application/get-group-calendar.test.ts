@@ -16,6 +16,7 @@ const USER_ID = "30000000-0000-4000-8000-000000000001";
 const SECOND_USER_ID = "30000000-0000-4000-8000-000000000002";
 const EXPENSE_ID = "40000000-0000-4000-8000-000000000001";
 const INCOME_ID = "40000000-0000-4000-8000-000000000002";
+const RECURRING_ID = "40000000-0000-4000-8000-000000000003";
 
 type QueryResult = Readonly<{ data: unknown; error: unknown }>;
 
@@ -64,6 +65,19 @@ function transactionQuery(result: QueryResult) {
   query.is.mockReturnValue(query);
   query.gte.mockReturnValue(query);
   query.lt.mockReturnValue(query);
+  return query;
+}
+
+// `recurring_transactions`は`.order()`を2回つないでから解決するため、chainを1段挟む
+function recurringQuery(result: QueryResult) {
+  const query = {
+    select: vi.fn(),
+    eq: vi.fn(),
+    order: vi.fn(),
+  };
+  query.select.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.order.mockReturnValueOnce(query).mockResolvedValue(result);
   return query;
 }
 
@@ -127,6 +141,27 @@ const incomeRows = [
   },
 ];
 
+const recurringRows = [
+  {
+    id: RECURRING_ID,
+    type: "expense",
+    name: "家賃",
+    amount_minor: 80000,
+    day_of_month: 5,
+    start_month: "2026-01-01",
+    end_month: null,
+    version: 1,
+    memo: null,
+    payer_member_id: MEMBERSHIP_ID,
+    recipient_member_id: null,
+    categories: { name: "住居", color: "housing", icon: "home" },
+    recurring_transaction_allocations: [
+      { member_id: MEMBERSHIP_ID, amount_minor: 40000 },
+      { member_id: SECOND_MEMBERSHIP_ID, amount_minor: 40000 },
+    ],
+  },
+];
+
 function setupInitialQueries(
   groupResult: QueryResult = { data: groupRow, error: null },
   membershipResult: QueryResult = { data: memberships, error: null },
@@ -148,12 +183,14 @@ function setupReadyQueries(
   },
   expenseResult: QueryResult = { data: expenseRows, error: null },
   incomeResult: QueryResult = { data: incomeRows, error: null },
+  recurringResult: QueryResult = { data: [], error: null },
 ) {
   const client = setupInitialQueries();
   client.from
     .mockReturnValueOnce(profileQuery(profileResult))
     .mockReturnValueOnce(transactionQuery(expenseResult))
-    .mockReturnValueOnce(transactionQuery(incomeResult));
+    .mockReturnValueOnce(transactionQuery(incomeResult))
+    .mockReturnValueOnce(recurringQuery(recurringResult));
   return client;
 }
 
@@ -343,6 +380,60 @@ describe("getGroupCalendar", () => {
       }
     },
   );
+
+  it("定期取引を対象月へ展開して月間合計と日別取引へ含める", async () => {
+    setupReadyQueries(undefined, undefined, undefined, {
+      data: recurringRows,
+      error: null,
+    });
+
+    const result = await getGroupCalendar(GROUP_ID, {
+      month: "2026-09",
+      day: "2026-09-05",
+    });
+
+    expect(result).toMatchObject({
+      kind: "ready",
+      monthlyTotal: 86000,
+      dailyTotals: { "2026-09-05": 80000, "2026-09-10": 6000 },
+    });
+    expect(
+      result?.kind === "ready" && result.dayTransactionsByDate["2026-09-05"],
+    ).toEqual([
+      expect.objectContaining({
+        id: `recurring:${RECURRING_ID}:2026-09`,
+        type: "expense",
+        amountMinor: 80000,
+        isRecurring: true,
+        recurringName: "家賃",
+      }),
+    ]);
+  });
+
+  it("対象月が開始月より前なら定期取引を展開しない", async () => {
+    setupReadyQueries(undefined, undefined, undefined, {
+      data: [{ ...recurringRows[0], start_month: "2026-10-01" }],
+      error: null,
+    });
+
+    const result = await getGroupCalendar(GROUP_ID, { month: "2026-09" });
+
+    expect(result).toMatchObject({ kind: "ready", monthlyTotal: 6000 });
+    expect(
+      result?.kind === "ready" && result.dailyTotals["2026-09-05"],
+    ).toBeUndefined();
+  });
+
+  it("定期取引のquery失敗を一般化した例外にする", async () => {
+    setupReadyQueries(undefined, undefined, undefined, {
+      data: null,
+      error: { code: "XX000" },
+    });
+
+    await expect(
+      getGroupCalendar(GROUP_ID, { month: "2026-09" }),
+    ).rejects.toThrow("定期取引を取得できませんでした。");
+  });
 
   it("プロフィール欠損時は表示名をメンバーで補う", async () => {
     setupReadyQueries({ data: [], error: null });

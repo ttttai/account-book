@@ -1,0 +1,272 @@
+.recurring-layout {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.recurring-list-panel,
+.recurring-form-panel {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 1.25rem;
+  background: var(--surface);
+  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+}
+
+.recurring-list-panel h2,
+.recurring-form-panel h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.recurring-empty,
+.recurring-readonly {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.recurring-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recurring-card {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: white;
+}
+
+/* 終了済みは継続中と視覚的に区別する（色だけに依存せずbadgeも表示する） */
+.recurring-card.is-ended {
+  background: #f3f4f1;
+}
+
+.recurring-card-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.recurring-type {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  color: white;
+  background: #758178;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.recurring-type.is-income {
+  background: var(--accent);
+}
+
+.recurring-ended-badge {
+  padding: 0.1rem 0.5rem;
+  border: 1px solid #b9c2b9;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.recurring-summary {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 750;
+}
+
+.recurring-meta {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.recurring-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.recurring-meta dt {
+  color: var(--muted);
+}
+
+.recurring-meta dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.recurring-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.recurring-card-actions :global(.secondary-button) {
+  min-height: 44px;
+}
+
+.recurring-end-form {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.recurring-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.recurring-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.recurring-field,
+.recurring-field-row {
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+}
+
+.recurring-field-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.recurring-field > label {
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.recurring-field input,
+.recurring-field select,
+.recurring-field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #bdc7bd;
+  border-radius: 0.7rem;
+  color: var(--text);
+  background: white;
+  font: inherit;
+}
+
+/* iOS SafariはUAスタイルの内在幅でmonth inputをはみ出させるため、appearanceを無効化する */
+.recurring-field input[type="month"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.recurring-field textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.recurring-fieldset {
+  display: grid;
+  min-width: 0;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+}
+
+.recurring-fieldset > legend {
+  padding-inline: 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.recurring-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 0.8rem;
+  background: #eef1ed;
+}
+
+.recurring-segmented label {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.recurring-segmented input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.recurring-segmented span {
+  display: grid;
+  min-height: 44px;
+  border-radius: 0.65rem;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 750;
+}
+
+.recurring-segmented input:checked + span {
+  color: var(--accent);
+  background: white;
+  box-shadow: 0 2px 8px rgb(36 49 38 / 10%);
+}
+
+.recurring-segmented input:focus-visible + span {
+  outline: 3px solid rgb(47 111 85 / 28%);
+  outline-offset: 2px;
+}
+
+.recurring-members {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.recurring-check {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.65rem;
+  padding-inline: 0.25rem;
+}
+
+.recurring-check input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+}
+
+@media (min-width: 900px) {
+  .recurring-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.9fr);
+    align-items: start;
+    gap: 1.25rem;
+  }
+  .recurring-field input,
+  .recurring-field select,
+  .recurring-field textarea {
+    min-height: 40px;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.95rem;
+  }
+  .recurring-segmented span {
+    min-height: 38px;
+  }
+}

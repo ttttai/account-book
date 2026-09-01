@@ -429,3 +429,13 @@
 .calendar-total .calendar-total-balance.is-negative {
   color: #ffd8cf;
 }
+
+/* 展開された定期取引を単発取引と識別する (REC-009、AC-REC-002-3) */
+.calendar-recurring-badge {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
