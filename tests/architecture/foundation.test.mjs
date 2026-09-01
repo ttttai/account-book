@@ -50,7 +50,7 @@ test("TypeScript strict modeと品質ゲートを設定する", async () => {
   );
 });
 
-test("未実行moduleを含むcoverageをCIで40%以上に保つ (NFR-MNT-012)", async () => {
+test("未実行moduleを含むcoverageをCIで50%以上に保つ (NFR-MNT-012)", async () => {
   const packageJson = JSON.parse(await read("package.json"));
   const vitestConfig = await read("vitest.config.ts");
   const workflow = await read(".github/workflows/ci.yml");
@@ -75,7 +75,7 @@ test("未実行moduleを含むcoverageをCIで40%以上に保つ (NFR-MNT-012)",
     /src\/modules\/\*\/\{index,server,presentation\}\.ts/,
   );
   for (const metric of ["statements", "branches", "functions", "lines"]) {
-    assert.match(vitestConfig, new RegExp(`${metric}:\\s*40`));
+    assert.match(vitestConfig, new RegExp(`${metric}:\\s*50`));
   }
   assert.match(workflow, /npm run test:coverage/);
   assert.match(workflow, /npm run test:architecture/);
@@ -93,7 +93,7 @@ test("Docker Composeを標準のローカル開発入口にする", async () => 
   assert.match(compose, /action:\s*sync/);
   assert.match(compose, /action:\s*rebuild/);
   assert.match(compose, /healthcheck:/);
-  assert.match(compose, /127\.0\.0\.1:3000:3000/);
+  assert.match(compose, /127\.0\.0\.1:\$\{WEB_HOST_PORT:-3000\}:3000/);
 });
 
 test("開発・本番コンテナは非rootユーザーで実行する", async () => {
@@ -136,7 +136,9 @@ test("仕様レビューの要件件数と宣言を一致させる", async () =>
   const useCases = await read("specs/02-use-cases.md");
   const review = await read("specs/09-spec-review.md");
   const requirementIds = [
-    ...requirements.matchAll(/^- `([A-Z]+(?:-[A-Z]+)?-[0-9]{3})`/gm),
+    ...requirements.matchAll(
+      /^- `([A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)?-[0-9]{3})`/gm,
+    ),
   ].map((match) => match[1]);
   const acceptanceConditionIds = [
     ...useCases.matchAll(/^- `(AC-[A-Z]+-[0-9]{3}-[0-9]+)`/gm),

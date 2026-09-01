@@ -87,7 +87,7 @@
 
 - `npm run test:coverage`で、未実行ファイルを含む`src/modules`配下の実行可能なTypeScript・TSXを計測する。
 - testファイル、型定義だけのファイル、処理を持たない公開entry pointは母数から除外する。
-- statement・branch・function・lineの全体値を出力し、各40%以上を必須とする。
+- statement・branch・function・lineの全体値を出力し、各50%以上を必須とする。
 - coverageの高低だけで完了判定せず、DB・RLS統合test、OAuth HTTP integration test、主要E2Eと実画面確認を別に維持する。
 
 ### DB・RLSテスト

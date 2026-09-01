@@ -68,6 +68,15 @@ docker compose run --rm web npm run build
 
 `integration-tests`はtransaction内のローカル専用ユーザーで、登録前フック、プロフィール自動作成、2アカウント制限、ユーザー・グループ間RLS分離を確認し、最後にrollbackする。クラウド環境には接続しない。
 
+主要フローのE2Eは、開発用stackとは別のcompose projectで起動する使い捨てstackに対して実行する。開発用stackを止める必要はない。
+
+```bash
+npm run test:e2e
+npm run test:e2e:down
+```
+
+運用の詳細は[`docs/operations/e2e-tests.md`](docs/operations/e2e-tests.md)を参照する。
+
 ローカルDB volumeは通常操作で削除しない。破棄が必要な場合は対象と影響を確認してから明示的に行う。
 
 ## CI
@@ -76,5 +85,6 @@ GitHub Actionsはpull request、`main`へのpush、手動実行で起動する�
 
 - `Quality`: Node.js 24で依存関係をlockfileどおりに導入し、format、lint、型検査、architecture・単体test、本番buildを実行する。
 - `Docker integration`: CI専用のローカル資格情報でDocker Composeを起動し、DB・RLS test、OAuth HTTP integration test、本番container buildを実行する。
+- `E2E`: E2E専用の架空許可アカウントとランダムなローカル資格情報で使い捨てstackを起動し、主要smoke flowをChromiumで実行する。成否にかかわらずstackとvolumeを破棄する。
 
-CIは実Googleアカウント、本番Supabase、本番秘密情報へ接続しない。外部Actionは完全なcommit SHAへ固定し、`GITHUB_TOKEN`はrepository内容の読み取りだけに制限する。branch protectionで`Quality`と`Docker integration`をrequired checkにする操作は、workflowを`main`へmergeした後にGitHub側で設定する。
+CIは実Googleアカウント、本番Supabase、本番秘密情報へ接続しない。外部Actionは完全なcommit SHAへ固定し、`GITHUB_TOKEN`はrepository内容の読み取りだけに制限する。branch protectionで`Quality`、`Docker integration`、`E2E`をrequired checkにする操作は、workflowを`main`へmergeした後にGitHub側で設定する。
