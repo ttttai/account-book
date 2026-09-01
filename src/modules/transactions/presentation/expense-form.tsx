@@ -1,6 +1,13 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FocusEvent as ReactFocusEvent,
+} from "react";
 import { useFormStatus } from "react-dom";
 
 import type { TransactionEditTransaction } from "../application/edit-types";
@@ -194,12 +201,15 @@ export function ExpenseForm({
 
   // カテゴリ一覧の展開状態。既定は1行表示 (TXN-015)
   const [categoryExpanded, setCategoryExpanded] = useState(false);
+  // 金額欄を選ぶと開き、他の入力欄を選ぶと閉じる（OSの仮想キーボードに近い挙動）(AC-TXN-014-5)
+  const [keypadOpen, setKeypadOpen] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     editTransaction?.categoryId ?? "",
   );
   const formRef = useRef<HTMLFormElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const categoryOptionsRef = useRef<HTMLDivElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
 
   // 削除済みメンバーが負担へ含まれる場合、そのままでは保存できないことを説明する
   const hasRemovedAllocationMember = Boolean(
@@ -252,6 +262,9 @@ export function ExpenseForm({
       selected.offsetLeft - (container.clientWidth - selected.clientWidth) / 2;
   }, [categoryExpanded]);
 
+  // カテゴリ展開中はカテゴリ一覧へ場所を譲り、折りたたみ中も数字キーを隠す (AC-TXN-014-5)
+  const showKeypad = !categoryExpanded && keypadOpen;
+
   const categoryChoices = isIncome
     ? categoryChoicesFor(options.incomeCategories, incomeEdit)
     : categoryChoicesFor(options.categories, expenseEdit);
@@ -290,6 +303,38 @@ export function ExpenseForm({
     selectedMemberIds,
   ]);
 
+  // テンキーを開くとドックが高くなるため、金額欄がドックへ隠れない位置まで移動する (AC-TXN-014-7)
+  // ドックが画面下端へ重なるのは狭い画面だけなので、PC幅では移動しない
+  useEffect(() => {
+    if (!showKeypad) return;
+    if (window.matchMedia?.("(min-width: 900px)").matches) return;
+    // ドックの高さが確定してから、金額欄とドックの重なりぶんだけ動かす
+    const frame = requestAnimationFrame(() => {
+      const amount = amountInputRef.current;
+      const dock = dockRef.current;
+      if (!amount || !dock) return;
+      const overlap =
+        amount.getBoundingClientRect().bottom -
+        dock.getBoundingClientRect().top +
+        8;
+      if (overlap > 0) window.scrollBy({ top: overlap });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [showKeypad]);
+
+  // 金額欄へfocusしたら開き、金額欄以外の入力欄へfocusしたら閉じる。
+  // 入力ドック内（カテゴリ・キー・保存）の操作では開閉状態を変えない (AC-TXN-014-5)
+  function handleFormFocus(event: ReactFocusEvent<HTMLFormElement>) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (target === amountInputRef.current) {
+      setKeypadOpen(true);
+      return;
+    }
+    if (dockRef.current?.contains(target)) return;
+    setKeypadOpen(false);
+  }
+
   // 負担方法の切り替え時に、選択メンバーを方法ごとの妥当な初期値へ整える
   function chooseAllocationMethod(method: "equal" | "single" | "custom") {
     setAllocationMethod(method);
@@ -317,6 +362,7 @@ export function ExpenseForm({
       action={action}
       className={styles["expense-form"]}
       noValidate
+      onFocus={handleFormFocus}
       ref={formRef}
     >
       {editTransaction ? (
@@ -363,18 +409,30 @@ export function ExpenseForm({
         <div className={styles["amount-input-wrap"]}>
           <span aria-hidden="true">¥</span>
           <input
-            aria-describedby="amountMinor-error"
+            aria-describedby={
+              keypadOpen
+                ? "amountMinor-error"
+                : "amountMinor-error amountMinor-keypad-hint"
+            }
             autoComplete="off"
             id="amountMinor"
             inputMode="none"
             max="9007199254740991"
             name="amountMinor"
             onChange={(event) => setAmountMinor(event.target.value)}
+            onClick={() => setKeypadOpen(true)}
             pattern="[0-9]*"
             placeholder="0"
+            ref={amountInputRef}
             value={amountMinor}
           />
         </div>
+        {/* 閉じている間の再開手段を画面上へ示す (AC-TXN-014-6) */}
+        {!keypadOpen && (
+          <p className={styles["keypad-hint"]} id="amountMinor-keypad-hint">
+            金額欄をタップするとテンキーを開きます。
+          </p>
+        )}
         {state.fieldErrors?.amountMinor?.[0] && (
           <p className="field-error" id="amountMinor-error">
             {state.fieldErrors.amountMinor[0]}
@@ -629,6 +687,7 @@ export function ExpenseForm({
       <div
         className={styles["input-dock"]}
         data-category-expanded={categoryExpanded}
+        data-keypad-open={showKeypad}
         ref={dockRef}
       >
         <fieldset
@@ -698,9 +757,9 @@ export function ExpenseForm({
           )}
         </fieldset>
 
-        {/* 展開中はテンキーを隠し、カテゴリ一覧へ場所を譲る */}
-        {!categoryExpanded && (
-          <div className={styles.keypad}>
+        {/* 保存は常設し、数字キーと1文字削除だけを開閉する (AC-TXN-014-5, AC-TXN-016-1) */}
+        <div className={styles.keypad}>
+          {showKeypad && (
             <div className={styles["keypad-digits"]}>
               {["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0"].map(
                 (key) => (
@@ -720,7 +779,9 @@ export function ExpenseForm({
                 ),
               )}
             </div>
-            <div className={styles["keypad-side"]}>
+          )}
+          <div className={styles["keypad-side"]}>
+            {showKeypad && (
               <button
                 aria-label="1桁削除"
                 className={styles["keypad-key"]}
@@ -731,21 +792,21 @@ export function ExpenseForm({
               >
                 <span aria-hidden="true">⌫</span>
               </button>
-              <div className={styles["keypad-save"]}>
-                <SaveButton
-                  disabled={hasNoIncomeCategory}
-                  label={
-                    editTransaction
-                      ? "変更を保存"
-                      : isIncome
-                        ? "収入を保存"
-                        : "支出を保存"
-                  }
-                />
-              </div>
+            )}
+            <div className={styles["input-dock-save"]}>
+              <SaveButton
+                disabled={hasNoIncomeCategory}
+                label={
+                  editTransaction
+                    ? "変更を保存"
+                    : isIncome
+                      ? "収入を保存"
+                      : "支出を保存"
+                }
+              />
             </div>
           </div>
-        )}
+        </div>
       </div>
     </form>
   );
