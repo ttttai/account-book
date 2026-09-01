@@ -160,3 +160,21 @@ test("月間の収入・支出・収支差額を集計領域へ表示する (CAL
   );
   assert.match(css, /\.calendar-total-balance/);
 });
+
+test("メンバー選択は選択後に閉じる (R-062)", async () => {
+  const home = await read(
+    "src/modules/calendar/presentation/calendar-home.tsx",
+  );
+  // 集計対象でdetailsのopenを固定すると、選択後もメンバー一覧がカレンダーを覆う
+  assert.doesNotMatch(home, /open=\{data\.scope === "member"\}/);
+
+  const picker = await read(
+    "src/modules/calendar/presentation/calendar-member-picker.tsx",
+  );
+  // ソフト遷移では同じdetailsが残るため、選択時に明示的に閉じる
+  assert.match(picker, /"use client"/);
+  assert.match(picker, /<details/);
+  assert.doesNotMatch(picker, /<details[^>]*\sopen=/);
+  assert.match(picker, /onClick=\{closePicker\}/);
+  assert.match(picker, /picker\.open = false/);
+});
