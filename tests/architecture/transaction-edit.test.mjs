@@ -164,3 +164,25 @@ test("DB command失敗を操作名とcodeだけでlogへ残す (NFR-OPS-008)", a
     assert.doesNotMatch(command, /console\.(?:log|error|warn)/);
   }
 });
+
+test("編集ページは削除フォームをExpenseFormのfooterとして渡し、固定ドックに覆われない (AC-TXN-009-5)", async () => {
+  const page = await read(
+    "src/app/groups/[groupId]/transactions/[transactionId]/edit/page.tsx",
+  );
+  // 削除フォームをformの兄弟要素として並べると、ドック高さぶんの余白の外へ出て覆われる (Issue #75)
+  assert.match(page, /footer=\{\s*<DeleteTransactionForm/);
+  assert.doesNotMatch(page, /\/>\s*<DeleteTransactionForm/);
+
+  const css = await read(
+    "src/modules/transactions/presentation/transactions.module.css",
+  );
+  // ドック高さぶんの余白はformではなく、footerを含む外枠へ確保する
+  assert.match(
+    css,
+    /\.expense-form-shell\s*\{[^}]*padding-bottom:\s*calc\(var\(--input-dock-height/,
+  );
+
+  // E2E-005は回避策（直接click送出）ではなく通常のclickで削除フローを検証する
+  const e2e = await read("tests/e2e/expense-sharing.spec.ts");
+  assert.doesNotMatch(e2e, /dispatchEvent\("click"\)/);
+});

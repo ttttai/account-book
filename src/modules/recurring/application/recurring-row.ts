@@ -24,6 +24,7 @@ export const recurringRowSchema = z.object({
   payer_member_id: z.uuid().nullable(),
   recipient_member_id: z.uuid().nullable(),
   categories: z.object({
+    id: z.uuid(),
     name: z.string(),
     color: z.string(),
     icon: z.string(),
@@ -46,6 +47,7 @@ export function toRecurringSchedule(row: RecurringRow): RecurringSchedule {
     startMonth: firstDayToMonth(row.start_month),
     endMonth: row.end_month === null ? null : firstDayToMonth(row.end_month),
     category: {
+      id: row.categories.id,
       name: row.categories.name,
       color: row.categories.color,
       icon: row.categories.icon,
@@ -60,4 +62,4 @@ export function toRecurringSchedule(row: RecurringRow): RecurringSchedule {
 }
 
 export const RECURRING_SELECT_COLUMNS =
-  "id, type, name, amount_minor, day_of_month, start_month, end_month, version, memo, payer_member_id, recipient_member_id, categories!recurring_transactions_category_group_fk(name, color, icon), recurring_transaction_allocations!recurring_transaction_allocations_recurring_group_fk(member_id, amount_minor)";
+  "id, type, name, amount_minor, day_of_month, start_month, end_month, version, memo, payer_member_id, recipient_member_id, categories!recurring_transactions_category_group_fk(id, name, color, icon), recurring_transaction_allocations!recurring_transaction_allocations_recurring_group_fk(member_id, amount_minor)";

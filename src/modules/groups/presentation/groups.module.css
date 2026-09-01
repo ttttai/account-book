@@ -5,11 +5,11 @@
   bottom: 0;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.2rem;
-  padding: 0.35rem max(0.5rem, env(safe-area-inset-right))
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.15rem;
+  padding: 0.35rem max(0.4rem, env(safe-area-inset-right))
     max(0.35rem, env(safe-area-inset-bottom))
-    max(0.5rem, env(safe-area-inset-left));
+    max(0.4rem, env(safe-area-inset-left));
   border-top: 1px solid rgb(220 225 218 / 90%);
   background: rgb(255 253 248 / 94%);
   box-shadow: 0 -10px 30px rgb(36 49 38 / 9%);
@@ -308,7 +308,7 @@
     grid-column: 1;
     grid-row: 1;
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(4, min-content);
+    grid-template-rows: repeat(5, min-content);
     align-content: center;
     gap: 0.55rem;
     padding: max(1rem, env(safe-area-inset-top)) 0.7rem
