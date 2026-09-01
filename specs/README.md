@@ -23,6 +23,7 @@
 | `09-spec-review.md`                    | 仕様レビュー結果と承認状態                       |
 | `10-er-diagram.md`                     | 実装済みDB構造のER図と関係・更新ルール           |
 | `11-production-infrastructure.md`      | Cloud Run本番基盤のIaC・運用・費用管理仕様       |
+| `12-analytics-and-reporting.md`        | 概要分析・詳細分析・レポート共通集計の仕様       |
 | `14-recurring-transactions.md`         | 固定額・月次の定期取引仕様（MVP後）              |
 
 ## 変更・実装フロー
@@ -59,6 +60,8 @@ MVP仕様が`09-spec-review.md`で承認されるまで、本実装を開始し�
 | `SEC`  | セキュリティ・プライバシー |
 | `NFR`  | 非機能要件                 |
 | `INF`  | 本番インフラ・IaC          |
+| `REC`  | 定期取引                   |
+| `ANA`  | 統計・分析・レポート       |
 
 ## 変更ルール
 

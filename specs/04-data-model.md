@@ -267,6 +267,8 @@ RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB�
 
 定期取引（`REC-*`）は、選択月へ展開した擬似取引として同じ集計規則へ渡す。展開結果はDBへ保存せず、`transactions`を読まずに設定から作るため、単発取引との二重集計は発生しない。
 
+分析（`ANA-*`）は集計用のテーブル、materialized view、集計列を追加しない。月範囲とカテゴリ別の集計は`transactions_group_date_idx`・`transactions_group_category_date_idx`と`transaction_allocations`の主keyを使い、サーバー上の純関数で合計する。
+
 初期実装は選択月を読み取り時に集計する。測定で必要になるまで`daily_summaries`テーブルを作らない。
 
 ## 7. 削除・保持
