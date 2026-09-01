@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.0の自動文書検査では、要件ID 124件、明示的な受け入れ条件ID 150件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-062で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.0の自動文書検査では、要件ID 126件、明示的な受け入れ条件ID 158件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件を追加した）。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -767,7 +767,35 @@ MVP範囲確認: 本対応はtest、test設定、CI gate、仕様記録だけを
 
 実装確認: 取引command、カテゴリcommand、グループ・招待command、認証環境境界へ実行test 55件を追加し、未認証時のRPC抑止、検証済みRPC引数、SQLSTATE分類、招待生tokenの非送信、失敗logの最小化を確認した。Istanbul providerで未実行moduleを0%として含めた結果、statement 40.72%、branch 40.98%、function 40.92%、line 41.28%となり、4指標すべての40% gateを通過した。CIではarchitecture testを独立して実行し、component・unit testはcoverage付きで1回だけ実行して重複を避ける。最新`main`との統合後にarchitecture test 104件、component・unit test 375件、format、警告なしlint、型検査、本番buildが成功した。利用者向け動作は本PRで変更していないため、モバイル・PCの実画面再確認は対象外とした。
 
-### R-062 固定額の月次定期取引（段階1）
+### R-062 メンバー選択が開いたままカレンダーを覆う不具合
+
+指摘: ホームの集計対象切替にあるメンバー選択（`details`要素）へ`open={data.scope === "member"}`を渡していたため、メンバーを選んだ後の再描画でも常に開いた状態になり、絶対配置のメンバー一覧が月間合計とカレンダー上部を覆っていた。選択のたびに手動で閉じる必要があり、実質的にカレンダーが読めない状態になる。
+
+対応: 画面仕様へ「メンバー選択は利用者が開いたときだけ展開し、選んだ後は閉じた状態で再表示してカレンダーを覆わない」を追記した。実装では`open`属性の固定を外し、選択中はメンバー名を選択欄へ表示するだけとする。再度開けば別のメンバーへ切り替えられる導線は維持する。
+
+安全性確認: 表示の開閉状態だけの変更で、集計対象の選択そのもの（URLの`scope`・`member`とサーバー側の検証）に影響しない。メンバー一覧の内容と認可はそのままである。
+
+実装可能性確認: `calendar-home.tsx`の`details`から`open`を外す1箇所の変更で解決する。`open`を固定していないことを構造testで固定し、回帰を防げる。
+
+MVP範囲確認: メンバー選択のUIをdropdown以外へ置き換えることはしない。開閉のアニメーションやfocus制御の追加も行わない。
+
+判定: 追記した画面仕様は`CAL-004`と`NFR-UI-*`に整合し、安全かつ実装可能である。構造testを先に追加し、幅375pxでメンバー選択後にカレンダーが覆われないことを実画面確認する条件で修正実装を承認する。
+
+### R-063 取引入力の金額テンキーとカテゴリドック
+
+指摘: 実機の支出入力で、金額欄をタップするとOSの仮想キーボードが画面下半分を覆い、カテゴリ選択と保存操作が隠れる。利用者は金額を確定してキーボードを閉じ、さらにscrollしてからカテゴリを選ぶ必要があり、最も反復する操作に毎回余分な手数が加わっていた。キーボードの高さと表示タイミングはOSが決めるため、レイアウト調整だけでは解消できない。ビューポート挙動を制御する`interactive-widget`はChromium・Firefoxのみ、`VirtualKeyboard` APIはChromiumのみの対応で、主対象であるiOS Safariではどちらも使えない。
+
+対応: `TXN-014`・`TXN-015`と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`を追加した。画面仕様の取引入力へ、画面構成（種別・金額・詳細を上から並べ、カテゴリ・テンキー・保存を画面下部の入力ドックへ固定する）と、テンキーの構成、金額の入力規則、カテゴリの1行表示と「すべて」での2列展開、900px以上での固定解除を定義した。金額欄は`inputmode="none"`としてOSの仮想キーボードを開かず、物理キーボードとスクリーンリーダーからの入力は維持する。展開はスワイプだけの操作にせず、常時見えるボタンで行う。
+
+安全性確認: 表示と入力手段だけの変更であり、route、認可、Server Action、DB command、`client_request_id`の冪等性へ影響しない。金額は従来どおり文字列としてFormDataへ送り、`1`から安全な整数上限までの10進整数だけを許可するサーバー検証を変更しない。画面側の桁数・先頭0の抑止は入力補助であり、サーバー検証を置き換えない。カテゴリはradio semanticsと`name="categoryId"`を維持し、展開・折りたたみで選択値を書き換えない。
+
+実装可能性確認: 変更は`expense-form.tsx`と`transactions.module.css`に閉じ、DTO・Server Action・DB関数は変更しない。テンキーは既存の金額stateを更新するだけで、送信されるFormDataの形は変わらない。カテゴリの1行表示と2列展開は同一のradio群へ表示切替を適用し、DOMを二重化しない。入力ドックは`position: fixed`で下端を画面下端に合わせ、下部ナビゲーションの高さぶんのpaddingを自身の不透明な背景で塗ることで、R-055で解消した隙間と透けを、ナビゲーションの実高に依存しない方法で維持する。ドックの実高はResizeObserverでフォームのpadding-bottomへ反映し、文字サイズを大きくしても最下部の入力が隠れないようにする。900px以上ではドックを`display: contents`へ切り替え、既存の2カラム配置を維持する。
+
+MVP範囲確認: 四則演算つき電卓、金額の桁区切り表示、日付・支払者・負担方法のbottom sheet化、カテゴリの利用頻度順並び替え、スワイプによる展開は追加しない。入力項目、負担額の計算規則、保存後の遷移、収入時の挙動は変更しない。
+
+判定: `TXN-014`・`TXN-015`と追加した受け入れ条件は`TXN-001`〜`TXN-013`、`AC-TXN-001-9`、`NFR-UI-001`・`NFR-UI-002`・`NFR-UI-007`、`NFR-A11Y-002`・`NFR-A11Y-003`と整合し、安全かつ実装可能である。テンキーの入力規則とカテゴリ展開のcomponent testおよび構造testを先に作成し、実装後に幅375px・320px・1280pxで、金額入力中にカテゴリと保存が隠れないこと、ドックと下部ナビゲーションの間に隙間ができないことを実画面確認する条件で、実装開始を承認する。
+
+### R-064 固定額の月次定期取引（段階1）
 
 指摘: 家賃、給与、定額サービスのように毎月同じ日・同じ金額で発生する取引を、毎月手入力する必要があった（Issue #55）。一方でjob、scheduler、queue、retry、occurrence保存を伴う自動登録は、実行履歴・再試行・冪等性・監視を新たに必要とし、非公開MVP直後の運用負荷とMVP範囲（`01-product-requirements.md`のMVP対象外「定期取引のjobによる自動登録」）に見合わない。
 
@@ -783,26 +811,26 @@ MVP範囲確認: 履歴一覧とCSV出力への展開は初回スコープ外と
 
 ## 4. 要件と検証方法の対応
 
-| 要件範囲               | 主な検証方法                                           |
-| ---------------------- | ------------------------------------------------------ |
-| `AUTH-001`〜`AUTH-005` | 認証integration test、モバイルE2E                      |
-| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                    |
-| `CAT-001`〜`CAT-003`   | category integration、権限test                         |
-| `TXN-001`〜`TXN-013`   | 金額・負担単体test、取引integration、E2E               |
-| `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E               |
-| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認         |
-| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                      |
-| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E        |
-| `NFR-SEC-*`            | RLS、server境界、production設定review                  |
-| `NFR-PRI-*`            | 認可test、UI文言review                                 |
-| `NFR-PERF-*`           | query plan/index review、代表値測定                    |
-| `NFR-REC-*`            | 論理削除・復元test、migration手順review                |
-| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認 |
-| `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                      |
-| `NFR-OPS-*`            | Compose health check、deploy smoke test                |
-| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                  |
-| `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認   |
-| `REC-001`〜`REC-009`   | 展開単体test、RLS test、定期取引E2E・実画面確認        |
+| 要件範囲               | 主な検証方法                                                    |
+| ---------------------- | --------------------------------------------------------------- |
+| `AUTH-001`〜`AUTH-005` | 認証integration test、モバイルE2E                               |
+| `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                             |
+| `CAT-001`〜`CAT-003`   | category integration、権限test                                  |
+| `TXN-001`〜`TXN-015`   | 金額・負担単体test、取引integration、入力UI component test、E2E |
+| `CAL-001`〜`CAL-010`   | calendar query integration、viewport E2E                        |
+| `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認                  |
+| `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                               |
+| `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E                 |
+| `NFR-SEC-*`            | RLS、server境界、production設定review                           |
+| `NFR-PRI-*`            | 認可test、UI文言review                                          |
+| `NFR-PERF-*`           | query plan/index review、代表値測定                             |
+| `NFR-REC-*`            | 論理削除・復元test、migration手順review                         |
+| `NFR-A11Y-*`           | 自動accessibility test、手動keyboard/screen reader確認          |
+| `NFR-UI-*`             | 320px・375px・1280px E2E/手動確認                               |
+| `NFR-OPS-*`            | Compose health check、deploy smoke test                         |
+| `NFR-MNT-*`            | lint、typecheck、依存rule、文書review                           |
+| `NFR-PWA-*`            | manifest・アイコン構造test、standalone OAuth実機確認            |
+| `REC-001`〜`REC-009`   | 展開単体test、RLS test、定期取引E2E・実画面確認                 |
 
 ## 5. 実装を妨げない延期事項
 

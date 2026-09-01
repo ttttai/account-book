@@ -11,6 +11,7 @@ import {
   formatSignedJpy,
 } from "../domain/calendar-summary";
 import { CalendarDayExplorer } from "./calendar-day-explorer";
+import { CalendarMemberPicker } from "./calendar-member-picker";
 
 import styles from "./calendar.module.css";
 
@@ -87,39 +88,24 @@ function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
       >
         自分
       </Link>
-      <details
-        className={styles["calendar-member-picker"]}
-        open={data.scope === "member"}
-      >
-        <summary className={data.scope === "member" ? "is-active" : undefined}>
-          {data.scope === "member" ? data.selectedMemberLabel : "メンバー"}
-        </summary>
-        <div className={styles["calendar-member-options"]}>
-          {data.members.map((member) => (
-            <Link
-              key={member.membershipId}
-              className={
-                data.selectedMemberId === member.membershipId
-                  ? styles["is-selected"]
-                  : undefined
-              }
-              href={createCalendarUrl(data.group.id, {
-                month: data.month,
-                scope: "member",
-                memberId: member.membershipId,
-              })}
-              aria-current={
-                data.selectedMemberId === member.membershipId
-                  ? "page"
-                  : undefined
-              }
-            >
-              {member.displayName}
-              {member.isCurrentUser ? "（自分）" : ""}
-            </Link>
-          ))}
-        </div>
-      </details>
+      <CalendarMemberPicker
+        isActive={data.scope === "member"}
+        summaryLabel={
+          data.scope === "member"
+            ? (data.selectedMemberLabel ?? "メンバー")
+            : "メンバー"
+        }
+        options={data.members.map((member) => ({
+          membershipId: member.membershipId,
+          label: `${member.displayName}${member.isCurrentUser ? "（自分）" : ""}`,
+          href: createCalendarUrl(data.group.id, {
+            month: data.month,
+            scope: "member",
+            memberId: member.membershipId,
+          }),
+          isSelected: data.selectedMemberId === member.membershipId,
+        }))}
+      />
     </nav>
   );
 }
