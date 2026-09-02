@@ -17,6 +17,7 @@ import type {
   AnalyticsCategoryShare,
   AnalyticsComparison,
 } from "../domain/analytics-summary";
+import { AnalyticsMemberPicker } from "./analytics-member-picker";
 
 import styles from "./analytics.module.css";
 
@@ -137,6 +138,85 @@ function AnalyticsBreakdownRow({
   );
 }
 
+type ScopeNavigationProps = Readonly<{
+  data: AnalyticsOverviewReady;
+  isSelfActive: boolean;
+}>;
+
+// 自分以外のアクティブメンバー数で3枠目を切り替える集計対象ナビゲーション (AC-ANA-005-3)
+// 0人は2枠、1人はメンバー名の直接リンク、2人以上はホームカレンダーと同じ選択欄にして枠を折り返さない
+function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
+  const others = data.members.filter((member) => !member.isCurrentUser);
+  const memberHref = (membershipId: string) =>
+    createAnalyticsUrl(data.group.id, {
+      month: data.month,
+      scope: "member",
+      memberId: membershipId,
+    });
+  // 「自分」枠が選択状態のときは、選択欄側を選択扱いにしない
+  const isOtherSelected =
+    data.scope === "member" && !isSelfActive && !!data.selectedMemberId;
+  const onlyOther = others.length === 1 ? others[0] : undefined;
+
+  return (
+    <nav aria-label="分析の集計対象" className={styles["analytics-scope-nav"]}>
+      <Link
+        aria-current={data.scope === "group" ? "page" : undefined}
+        className={data.scope === "group" ? "is-active" : undefined}
+        href={createAnalyticsUrl(data.group.id, {
+          month: data.month,
+          scope: "group",
+        })}
+      >
+        グループ
+      </Link>
+      <Link
+        aria-current={isSelfActive ? "page" : undefined}
+        className={isSelfActive ? "is-active" : undefined}
+        href={createAnalyticsUrl(data.group.id, {
+          month: data.month,
+          scope: "self",
+        })}
+      >
+        自分
+      </Link>
+      {onlyOther ? (
+        <Link
+          aria-current={
+            data.selectedMemberId === onlyOther.membershipId
+              ? "page"
+              : undefined
+          }
+          className={
+            data.selectedMemberId === onlyOther.membershipId
+              ? "is-active"
+              : undefined
+          }
+          href={memberHref(onlyOther.membershipId)}
+        >
+          {onlyOther.displayName}
+        </Link>
+      ) : null}
+      {others.length >= 2 ? (
+        <AnalyticsMemberPicker
+          isActive={isOtherSelected}
+          options={others.map((member) => ({
+            membershipId: member.membershipId,
+            label: member.displayName,
+            href: memberHref(member.membershipId),
+            isSelected: data.selectedMemberId === member.membershipId,
+          }))}
+          summaryLabel={
+            isOtherSelected
+              ? (data.selectedMemberLabel ?? "メンバー")
+              : "メンバー"
+          }
+        />
+      ) : null}
+    </nav>
+  );
+}
+
 // 月移動・集計対象・指標・カテゴリ内訳を縦に並べた概要分析画面
 export function AnalyticsOverview({
   data,
@@ -184,50 +264,7 @@ export function AnalyticsOverview({
         </Link>
       </header>
 
-      <nav
-        aria-label="分析の集計対象"
-        className={styles["analytics-scope-nav"]}
-      >
-        <Link
-          aria-current={data.scope === "group" ? "page" : undefined}
-          className={data.scope === "group" ? "is-active" : undefined}
-          href={createAnalyticsUrl(data.group.id, {
-            month: data.month,
-            scope: "group",
-          })}
-        >
-          グループ
-        </Link>
-        <Link
-          aria-current={isSelfActive ? "page" : undefined}
-          className={isSelfActive ? "is-active" : undefined}
-          href={createAnalyticsUrl(data.group.id, {
-            month: data.month,
-            scope: "self",
-          })}
-        >
-          自分
-        </Link>
-        {data.members
-          .filter((member) => !member.isCurrentUser)
-          .map((member) => {
-            const isActive = data.selectedMemberId === member.membershipId;
-            return (
-              <Link
-                aria-current={isActive ? "page" : undefined}
-                className={isActive ? "is-active" : undefined}
-                href={createAnalyticsUrl(data.group.id, {
-                  month: data.month,
-                  scope: "member",
-                  memberId: member.membershipId,
-                })}
-                key={member.membershipId}
-              >
-                {member.displayName}
-              </Link>
-            );
-          })}
-      </nav>
+      <ScopeNavigation data={data} isSelfActive={isSelfActive} />
 
       <section
         aria-label={`${targetLabel}の月間指標`}

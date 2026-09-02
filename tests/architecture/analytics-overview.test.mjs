@@ -176,6 +176,38 @@ test("分析スタイルを機能のCSS Modulesへ置く (NFR-MNT-010)", async (
   assert.match(moduleCss, /@media \(min-width: 900px\)/);
 });
 
+test("分析の集計対象枠は折り返さず、選択欄は選択後に閉じる (AC-ANA-005-3, AC-ANA-005-4)", async () => {
+  const moduleCss = await read(
+    "src/modules/analytics/presentation/analytics.module.css",
+  );
+  const overview = await read(
+    "src/modules/analytics/presentation/analytics-overview.tsx",
+  );
+  const picker = await read(
+    "src/modules/analytics/presentation/analytics-member-picker.tsx",
+  );
+
+  // 枠を複数行へ折り返さず、等幅gridで2枠・3枠を並べる
+  const scopeNav = moduleCss.match(/\.analytics-scope-nav \{[^}]*\}/)?.[0];
+  assert.ok(scopeNav);
+  assert.doesNotMatch(scopeNav, /flex-wrap/);
+  assert.match(scopeNav, /display:\s*grid;/);
+  // 選択欄はカレンダーと同じdetails/summaryで、moduleを越えてcalendarのpresentationをimportしない
+  assert.match(overview, /AnalyticsMemberPicker/);
+  assert.doesNotMatch(overview, /modules\/calendar/);
+  assert.doesNotMatch(picker, /modules\/calendar/);
+  assert.match(picker, /^"use client";/m);
+  assert.match(picker, /<details/);
+  assert.doesNotMatch(picker, /<details[^>]*\sopen=/);
+  assert.match(picker, /onClick=\{closePicker\}/);
+  assert.match(picker, /picker\.open = false/);
+  // 候補一覧は選択欄の中だけを縦scrollさせ、pageを横scrollさせない
+  assert.match(
+    moduleCss,
+    /\.analytics-member-options \{[^}]*overflow-y:\s*auto;/,
+  );
+});
+
 test("分析は集計テーブルとRoute Handlerを追加しない", async () => {
   const migrations = await readdir(new URL("supabase/migrations/", root));
 
