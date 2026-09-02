@@ -133,8 +133,8 @@ test("E2Eシナリオが仕様のIDと対応している", async () => {
   const joined = contents.join("\n");
 
   assert.ok(specFiles.length >= 5, "E2E specファイルが不足しています");
-  for (let index = 1; index <= 8; index += 1) {
-    const scenarioId = `E2E-00${index}`;
+  for (let index = 1; index <= 10; index += 1) {
+    const scenarioId = `E2E-${String(index).padStart(3, "0")}`;
     assert.match(specification, new RegExp(scenarioId));
     assert.match(
       joined,

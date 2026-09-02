@@ -65,6 +65,7 @@ const analyticsExpenses: readonly AnalyticsExpenseInput[] = [
   {
     date: "2026-09-03",
     amountMinor: 6000,
+    payerMemberId: MEMBER_A,
     categoryId: FOOD,
     categoryName: "食費",
     categoryColor: "food",
@@ -76,6 +77,7 @@ const analyticsExpenses: readonly AnalyticsExpenseInput[] = [
   {
     date: "2026-09-27",
     amountMinor: 4000,
+    payerMemberId: MEMBER_B,
     categoryId: HOME,
     categoryName: "住居",
     categoryColor: "home",

@@ -12,6 +12,7 @@ import {
   formatAnalyticsSignedJpy,
 } from "../domain/analytics-jpy";
 import { formatAnalyticsMonth } from "../domain/analytics-month";
+import { analyticsPresetStart } from "../domain/analytics-details-input";
 import type {
   AnalyticsCategoryShare,
   AnalyticsComparison,
@@ -325,6 +326,11 @@ export function AnalyticsOverview({
       )}
 
       <nav aria-label="関連する画面" className={styles["analytics-links"]}>
+        <Link
+          href={`${groupBase}/analytics/details?start=${analyticsPresetStart(data.month, 6)}&end=${data.month}&scope=${data.scope}${data.scope === "member" && data.selectedMemberId ? `&member=${data.selectedMemberId}` : ""}`}
+        >
+          詳細な統計を見る
+        </Link>
         <Link href={calendarUrl}>この月のカレンダーを見る</Link>
         <Link href={`${groupBase}/history?month=${data.month}`}>
           この月の履歴を見る

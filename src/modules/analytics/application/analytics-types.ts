@@ -4,9 +4,20 @@ import type {
   AnalyticsComparison,
   AnalyticsMonthTotals,
 } from "../domain/analytics-summary";
+import type {
+  AnalyticsMemberTotal,
+  AnalyticsPeriodTotals,
+} from "../domain/analytics-details";
 
 export type AnalyticsSearchInput = Readonly<{
   month?: string | string[];
+  scope?: string | string[];
+  member?: string | string[];
+}>;
+
+export type AnalyticsDetailsSearchInput = Readonly<{
+  start?: string | string[];
+  end?: string | string[];
   scope?: string | string[];
   member?: string | string[];
 }>;
@@ -85,3 +96,29 @@ export type AnalyticsPeriodSummary = Readonly<{
   selectedMemberId?: string;
   months: readonly AnalyticsMonthTotals[];
 }>;
+
+export type AnalyticsDetailsReady = Readonly<{
+  kind: "ready";
+  group: Readonly<{ id: string; name: string }>;
+  currentMonth: string;
+  startMonth: string;
+  endMonth: string;
+  scope: AnalyticsScope;
+  selectedMemberId?: string;
+  selectedMemberLabel?: string;
+  members: readonly AnalyticsMember[];
+  months: readonly AnalyticsMonthTotals[];
+  period: AnalyticsPeriodTotals;
+  memberBreakdown: readonly AnalyticsMemberTotal[];
+  hasTransactions: boolean;
+}>;
+
+export type AnalyticsDetailsInvalid = Readonly<{
+  kind: "invalid";
+  groupId: string;
+  currentMonth: string;
+  reason: "invalid_period" | "invalid_scope" | "invalid_member";
+}>;
+
+export type AnalyticsDetailsData =
+  AnalyticsDetailsReady | AnalyticsDetailsInvalid;

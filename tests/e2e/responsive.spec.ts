@@ -31,6 +31,8 @@ test("E2E-008 幅320pxで主要画面が横スクロールを発生させない"
     `/groups/${groupId}/settings`,
     `/groups/${groupId}/members`,
     `/groups/${groupId}/categories`,
+    `/groups/${groupId}/analytics`,
+    `/groups/${groupId}/analytics/details`,
   ]) {
     await memberPage.goto(path);
     await expect(settledMain(memberPage)).toBeVisible();
@@ -52,6 +54,8 @@ test("主要画面が1280pxでも横スクロールを発生させない @deskto
     `/groups/${groupId}/history`,
     `/groups/${groupId}/transactions/new`,
     `/groups/${groupId}/settings`,
+    `/groups/${groupId}/analytics`,
+    `/groups/${groupId}/analytics/details`,
   ]) {
     await memberPage.goto(path);
     await expect(settledMain(memberPage)).toBeVisible();

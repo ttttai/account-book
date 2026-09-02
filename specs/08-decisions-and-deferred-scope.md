@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.2
+バージョン: 0.2.3
 
 ## 確定事項
 
@@ -84,6 +84,6 @@ MVPの認証はGoogle OAuthのみとし、アプリでパスワードや認証�
 - グループ削除
 - Service Workerによるオフラインキャッシュ・プッシュ通知（ホーム画面インストール可能化は`NFR-PWA-*`としてMVPに含む）
 
-MVP後の追加機能は、それぞれ独立した仕様と承認を経て実装する。概要分析と共通集計（`ANA-*`段階1）は[`12-analytics-and-reporting.md`](12-analytics-and-reporting.md)、固定額・月次の定期取引（`REC-*`）は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。詳細分析（`ANA-006`〜`ANA-008`）、予算（`BUD-*`）、LINE定期レポートの送信処理は、共通集計境界`getAnalyticsPeriodSummary`を再利用する前提で後続段階として仕様化する。
+MVP後の追加機能は、それぞれ独立した仕様と承認を経て実装する。概要分析・詳細分析と共通集計（`ANA-*`段階1・2）は[`12-analytics-and-reporting.md`](12-analytics-and-reporting.md)、固定額・月次の定期取引（`REC-*`）は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。予算（`BUD-*`）とLINE定期レポートの送信処理は、共通集計境界`getAnalyticsPeriodSummary`を再利用する前提で後続段階として仕様化する。
 
 延期機能は、初期コード内の未使用flagとして入れず、新しい仕様・レビューを作成してから追加する。
