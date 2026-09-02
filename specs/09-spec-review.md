@@ -2,9 +2,11 @@
 
 状態: 実装開始を承認
 
-レビュー日: 2026-09-03
+レビュー日: 2026-09-02
 
-対象バージョン: 0.3.14
+対象バージョン: 0.3.13
+
+> 本ファイルは`R-001`〜`R-077`の記録として凍結する。以降の仕様レビューは`specs/reviews/`へ1レビュー1ファイル（`YYYY-MM-DD-<slug>.md`）で記録し、連番は採番しない。運用ルールは`specs/reviews/README.md`を参照する（review: 2026-09-03-split-spec-review）。
 
 ## 1. レビュー目的
 
@@ -25,7 +27,9 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.14の自動文書検査では、要件ID 151件、明示的な受け入れ条件ID 201件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-075で`CAL-016`の1件と`AC-CAL-016-1`〜`AC-CAL-016-3`の3件、R-076で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加した。R-074は要件ID・受け入れ条件IDを追加しない、R-077で`AC-AUTH-001-13`の1件、R-078で`REC-010`の1件と`AC-REC-005-1`〜`AC-REC-005-4`の4件を追加し、R-079で`CAL-015`と`AC-CAL-015-1`〜`AC-CAL-015-6`を廃止して`AC-CAL-001-19`の1件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.14の自動文書検査では、要件ID 152件、明示的な受け入れ条件ID 208件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-075で`CAL-016`の1件と`AC-CAL-016-1`〜`AC-CAL-016-3`の3件、R-076で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加した。R-074は要件ID・受け入れ条件IDを追加しない、R-077で`AC-AUTH-001-13`の1件、R-078で`REC-010`の1件と`AC-REC-005-1`〜`AC-REC-005-4`の4件、R-079で`AC-ANA-005-3`・`AC-ANA-005-4`の2件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+
+上記のID件数は0.3.12時点で凍結し、以降は本段落へ追記しない。要件ID・受け入れ条件IDの一意性は`tests/architecture/foundation.test.mjs`が仕様ファイルから直接検証し、新規IDは各レビューファイル（`specs/reviews/`）の`関連ID`へ記録する。
 
 ## 3. 指摘・対応
 
@@ -1069,18 +1073,18 @@ MVP範囲確認: 名称・メモなど文字入力欄は引き続きOSのキー�
 
 判定: `REC-010`と`AC-REC-005-*`は`TXN-014`・`AC-TXN-014-*`、`NFR-UI-001`・`NFR-UI-002`・`NFR-UI-004`・`NFR-UI-007`、`NFR-A11Y-*`と整合し、安全かつ実装可能である。桁追加の単体test、定期取引のcomponent test、モジュール境界のarchitecture testを先に追加し、375 x 812・320px・1280 x 800で金額入力中に下部ナビゲーションがフォームを覆わないことを実画面確認する条件で実装開始を承認する。
 
-### R-079 ホームカレンダーの月移動をボタン操作へ限定する（Issue #90）
+### R-079 分析の集計対象枠をメンバー数で切り替える（Issue #91）
 
-指摘: R-070・R-073で追加したカレンダー本体の横スワイプおよびマウスドラッグによる月移動（`CAL-015`）は、日付セル上の縦スクロール・タップ・iOS Safariの戻る／進むジェスチャーと同じ領域でpointerを判定するため、閾値・pointer capture・click抑止・追従表示・方向インジケーターといった付随処理が増え、日付タップの即時反映（`AC-CAL-001-17`）を守るための例外が積み重なっていた。月移動は既存の前月・翌月ボタンと「今日」で十分に到達でき、スワイプは補助手段（`AC-CAL-015-4`）にとどまるため、機能を残す価値より誤操作と保守負担のほうが大きい（Issue #90）。
+指摘: 概要分析の集計対象は「グループ」「自分」に続けて自分以外のアクティブメンバー全員を個別リンクとして列挙し、`flex-wrap`で折り返していた（Issue #91）。メンバーが増えるほど枠が複数行へ伸び、375 x 812では支出・収入・収支の位置が下がる。同じ`scope=group|self|member`を扱うホームカレンダーは「グループ」「自分」「メンバー」の3枠と選択欄で操作するため、同じ集計対象に対して画面ごとに異なる操作を覚える必要があった。
 
-対応: `CAL-015`と`AC-CAL-015-1`〜`AC-CAL-015-6`を廃止し、`AC-CAL-001-19`を追加して「月移動は前月・翌月ボタンと『今日』操作だけで行い、カレンダー本体上の横方向のpointer操作では月を移動しない。横方向のpointer操作は日付タップ・縦スクロール・即時反映を妨げない」ことを条件化した。画面仕様の「月移動と今日へ戻る」からスワイプの発火条件・追従表示・インジケーターの記述を削除し、ボタン限定の規則へ置き換えた。テスト計画の単体・component項目、E2Eシナリオ22、375pxの実画面確認項目をボタン限定へ更新した。実装は`calendar-swipe-navigator.tsx`、判定純関数`calendar-swipe.ts`、専用CSS（判定領域・追従transform・インジケーター・`prefers-reduced-motion`ブロック）、関連するcomponent test・単体test・CSS構造testを削除し、カレンダー本体を`table`だけの構成へ戻す。
+対応: `AC-ANA-005-3`・`AC-ANA-005-4`を追加し、自分以外のアクティブメンバー数で集計対象の枠を切り替える。0人は「グループ」「自分」の2枠、1人は3枠目をそのメンバー名の直接リンク、2人以上は3枠目をホームカレンダーと同じメンバー選択欄とし、枠は折り返さない。選択欄の候補は自分以外のアクティブメンバーだけとし、利用者が開いたときだけ展開して選択後は閉じ、選択中の表示名を枠へ示す。`12-analytics-and-reporting.md` 5.1と`03-screen-specification.md` 11へ枠の切り替え規則、候補の範囲、`aria-current`とURL保持、候補一覧の縦scrollを追記し、`07-acceptance-test-plan.md`へcomponent testとモバイル手動確認の項目を追加した。要件IDは追加しない。
 
-安全性確認: 変更はClient Componentの入力処理とCSSの削除に限られ、月間query、認可、集計、金額計算、URL規約、`day`同期、前月・翌月・「今日」のリンク先は変更しない。`touch-action`と`user-select`の上書きを取り除くため、カレンダー上のブラウザ既定の縦スクロール・ピンチ・テキスト選択が復元される。`router.push`を呼ぶClient側の遷移経路がなくなり、月移動はServer Componentが生成した`<a href>`だけになる。
+安全性確認: 変更は集計対象ナビゲーションの表示と枠数に限られ、`parseAnalyticsSelection`のURL検証、`resolveAnalyticsTarget`の所属確認、`resolveGroupReadContext`の認可、RLS、金額計算には触れない。メンバー数の判定と候補は、サーバーqueryが返す認可済みDTO（`AnalyticsOverviewReady.members`。`resolveGroupReadContext`の既定でアクティブ所属だけを含む）の`isCurrentUser`だけで行い、クライアントから渡された件数やmembership IDを信用しない。不正・別グループのmembership IDは従来どおり`invalid_member`としてfail closedで拒否され、選択欄の追加で新たな読み取り経路や更新経路は生じない。選択欄はURLを組み立てる`Link`だけを持ち、Server ActionもRoute Handlerも追加しない。
 
-実装可能性確認: `CalendarSwipeNavigator`は`CalendarDayExplorer`からのみ利用され、外側の`<div>`と2つのインジケーター`<span>`を取り除いても`table`の構造・class・aria属性は変わらない。`calendar-day-explorer.tsx`側の`shiftMonth`のimportはスワイプ用URLにしか使っていないため削除できる。CSS構造testは年月中央揃え（5列grid・中央列）の検証を残し、スワイプfeedbackの検証だけを外す。component testは、横方向のpointerDown→pointerMove→pointerUpの後にURLの`month`が変わらず`router.push`が呼ばれないこと、直後の日付タップが即時反映されること、スワイプ判定領域の`data-*`属性がDOMに存在しないことを検証できる。
+実装可能性確認: 変更は`analytics-overview.tsx`と`analytics.module.css`、および分析module内へ併置する`analytics-member-picker.tsx`（`details`/`summary`と`Link`だけのClient Component）に閉じる。ホームカレンダーの`CalendarMemberPicker`は`calendar.module.css`のclassを参照しており、機能単位のCSS所有権（`NFR-MNT-010`）を崩さずに他機能から再利用できないため、分析側は同じ操作規則を分析module内で実装し、moduleを越えたpresentation importを作らない。R-062で確定した「`open`を固定せず、選択後は明示的に閉じる」規則も同じ形で満たす。枠の折り返しは`flex-wrap`を等幅の`grid`へ置き換えて構造的に解消し、`min-height: 44px`を維持する。component testはmembers配列の件数を変えるだけで0人・1人・2人以上を検証でき、候補の`href`と`aria-current`、`open`非固定も同じtestで固定できる。DB変更とマイグレーションは不要である。
 
-MVP範囲確認: 前月・翌月ボタン、「今日へ戻る」（`CAL-014`）、月移動中のskeleton、日付タップと日別sheet、縦スクロール、分析画面の月移動は変更しない。他画面へのジェスチャー操作の追加、月移動ボタンの配置変更は行わない。
+MVP範囲確認: 複数メンバーの同時選択、候補の並び替えや検索、削除済みメンバーの選択、ホームカレンダー側の選択欄（自分を含む候補）の変更、分析の集計規則・カテゴリ内訳・URL schemaの変更は行わない。分析とカレンダーで選択欄componentを共有する抽象化も、CSS所有権の整理が別に必要になるため本対応では作らない。
 
-判定: `AC-CAL-001-19`と画面仕様の更新は`CAL-006`・`CAL-007`・`CAL-011`・`CAL-014`、`AC-CAL-001-17`、`NAV-002`、`NFR-UI-008`、`NFR-MNT-010`と整合し、サーバー境界を変更せず安全に実装できる。component testとCSS構造testを先に更新し、削除後に幅375 x 812で縦スクロール・日付タップ・前月・翌月・「今日」を、1280 x 800でマウスドラッグにより月が移動しないことを実画面確認する条件で実装開始を承認する。
+判定: `AC-ANA-005-3`・`AC-ANA-005-4`は`ANA-005`・`ANA-009`、`AC-ANA-005-1`・`AC-ANA-005-2`、`AC-ANA-009-2`・`AC-ANA-009-3`、`NFR-UI-001`・`NFR-UI-002`、`NFR-A11Y-002`・`NFR-A11Y-003`、`NFR-MNT-006`・`NFR-MNT-010`と整合し、サーバー境界を変更せず安全に実装できる。0人・1人・2人以上の表示、選択欄のURL保持と`aria-current`、`open`非固定のcomponent testとCSS構造testを先に追加し、320px・375 x 812・1280 x 800で枠の折り返しと横scrollが無いことを実画面確認する条件で、実装開始を承認する。
 
-実装確認: `calendar-swipe-navigator.tsx`、`calendar-swipe.ts`とその単体test、スワイプ専用CSS（判定領域・追従transform・方向インジケーター・`prefers-reduced-motion`ブロック、74行）を削除し、`CalendarDayExplorer`はカレンダー本体の`table`を`section`直下へ戻した。`calendar`モジュールからClient側の`useRouter`による遷移経路が消え、月移動はServer Componentが生成した前月・翌月・「今日」の`<a href>`だけになった。component testは横方向のタッチスワイプ・マウスドラッグ後にURLの`month`が変わらず`router.push`が呼ばれないこと、直後の日付タップの即時反映、スワイプ判定領域とインジケーターの不在を検証する4件へ置き換え、CSS構造testは年月中央揃えの検証を残してスワイプfeedbackの検証を外し、スワイプ実装が復活しないことを検証するtestを追加した。architecture test 132件、単体・component test 626件、format、lint、型検査、本番buildが成功した。fixtureを描画する一時previewをheadless Chromiumで確認し、375 x 812（タッチ）では左右スワイプ後もURLと表示月が変わらず、DOMにスワイプ判定領域・インジケーターが無く、`touch-action`の上書きが解除され、日付タップで日別sheetが開いて`day`がURLへ同期し、前月・翌月・「今日」のリンク先が従来どおり（`scope`維持・`day`解除）で「今日」は44 x 44pxを維持した。1280 x 800（マウス）ではカレンダー幅いっぱいの左右ドラッグ後もURLと表示月が変わらず、日付クリックで日別panelが開いた。両幅で横scrollは0pxだった。
+実装確認: `analytics-overview.tsx`の集計対象ナビゲーションを`ScopeNavigation`へ分離し、自分以外のアクティブメンバー数で2枠・直接リンク・選択欄を切り替えた。選択欄は分析module内の`AnalyticsMemberPicker`（`details`/`summary`と`Link`だけのClient Component、`open`非固定、選択時に明示的に閉じる）とし、`analytics.module.css`の`flex-wrap`を等幅gridへ置き換えて折り返しを構造的に解消した。component test 6件（0人・1人・2人以上の枠、候補の`href`と`aria-current`、自分を`scope=member`で指定した場合の「自分」枠、月移動のmember保持）とarchitecture test 1件（grid・`flex-wrap`非使用・calendar moduleの非import・`open`非固定・候補一覧の縦scroll）を追加し、architecture test 132件、component・unit test 643件、format、警告なしlint、型検査、本番buildが成功した。fixtureによる一時previewで320px・375 x 812・1280 x 800を確認し、自分以外0人・1人・3人・5人（長い表示名を選択中）のいずれも枠は1行・高さ44pxで横scroll幅は0px、選択欄を開くと5人全員へ到達でき、候補一覧は選択欄の幅（256px）内で縦scrollし、page幅を広げなかった。ホームカレンダーの選択欄、集計規則、URL検証は変更していない。
