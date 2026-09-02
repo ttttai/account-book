@@ -343,12 +343,49 @@
   margin-right: auto;
 }
 
+/* カテゴリ色は許可済みtokenの属性selectorだけで塗る。未知のtokenは既定色に留まる (AC-CAL-001-18) */
 .category-dot {
   width: 0.7rem;
   height: 0.7rem;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--accent);
+  background: #758178;
+}
+
+.category-dot[data-category-color="food"] {
+  background: #d8664f;
+}
+
+.category-dot[data-category-color="daily"] {
+  background: #6582c4;
+}
+
+.category-dot[data-category-color="home"] {
+  background: #a06a45;
+}
+
+.category-dot[data-category-color="utilities"] {
+  background: #d29a35;
+}
+
+.category-dot[data-category-color="transport"] {
+  background: #397f8f;
+}
+
+.category-dot[data-category-color="leisure"] {
+  background: #8a67ae;
+}
+
+.category-dot[data-category-color="other"] {
+  background: #758178;
+}
+
+.category-dot[data-category-color="salary"] {
+  background: #3d8a5f;
+}
+
+.category-dot[data-category-color="extra"] {
+  background: #b0589a;
 }
 
 .calendar-transaction-edit {

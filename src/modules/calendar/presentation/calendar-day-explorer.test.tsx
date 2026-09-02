@@ -52,7 +52,7 @@ const data: CalendarReadyData = {
         amountMinor: 1000,
         targetAmountMinor: 1000,
         categoryName: "食費",
-        categoryColor: "green",
+        categoryColor: "food",
         categoryIcon: "food",
         partyDisplayName: "A",
         allocations: [],
@@ -64,14 +64,34 @@ const data: CalendarReadyData = {
         amountMinor: 300000,
         targetAmountMinor: 300000,
         categoryName: "給与",
-        categoryColor: "gray",
+        categoryColor: "salary",
         categoryIcon: "salary",
         partyDisplayName: "B",
         allocations: [],
         isRecurring: false,
       },
     ],
-    "2026-08-16": [],
+    "2026-08-16": [
+      {
+        id: "recurring:00000000-0000-4000-8000-000000000201:2026-08",
+        type: "expense",
+        amountMinor: 2000,
+        targetAmountMinor: 2000,
+        categoryName: "家賃",
+        categoryColor: "home",
+        categoryIcon: "home",
+        partyDisplayName: "A",
+        allocations: [
+          {
+            membershipId: "00000000-0000-4000-8000-000000000301",
+            displayName: "A",
+            amountMinor: 2000,
+          },
+        ],
+        isRecurring: true,
+        recurringName: "家賃",
+      },
+    ],
   },
 };
 
@@ -129,6 +149,43 @@ describe("CalendarDayExplorer", () => {
     expect(addLink.getAttribute("href")).toBe(
       "/groups/00000000-0000-4000-8000-000000000001/transactions/new?date=2026-08-15",
     );
+  });
+
+  it("日別取引sheetの各行にカテゴリ名と許可済み色tokenをdata属性で表示する", () => {
+    render(<CalendarDayExplorer data={data} />);
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      }),
+    );
+
+    const dots = Array.from(document.querySelectorAll("[data-category-color]"));
+
+    expect(dots.map((dot) => dot.getAttribute("data-category-color"))).toEqual([
+      "food",
+      "salary",
+    ]);
+    for (const dot of dots) {
+      expect(dot.classList.contains("category-dot")).toBe(true);
+      expect(dot.hasAttribute("style")).toBe(false);
+      expect(dot.className).not.toMatch(/category-(food|salary)/);
+      expect(dot.getAttribute("aria-hidden")).toBe("true");
+    }
+    expect(screen.getByText("食費")).toBeTruthy();
+    expect(screen.getByText("給与")).toBeTruthy();
+  });
+
+  it("定期取引の展開行にもカテゴリ名と色tokenを表示する", () => {
+    render(<CalendarDayExplorer data={data} />);
+    fireEvent.click(
+      screen.getByRole("link", { name: "2026年8月16日、支出￥2,000" }),
+    );
+
+    const dot = document.querySelector("[data-category-color]");
+
+    expect(dot?.getAttribute("data-category-color")).toBe("home");
+    expect(screen.getByText("家賃")).toBeTruthy();
+    expect(screen.getByText("定期")).toBeTruthy();
   });
 
   it("閉じる操作でdayを削除し、選択した日付へfocusを戻す", () => {
