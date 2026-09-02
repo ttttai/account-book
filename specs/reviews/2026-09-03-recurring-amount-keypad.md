@@ -3,10 +3,10 @@
 状態: 承認済み
 レビュー日: 2026-09-03
 ブランチ: fix/recurring-amount-keypad
-対象仕様: `specs/14-recurring-transactions.md`、`specs/01-product-requirements.md`、`specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/06-non-functional-requirements.md`
-関連ID: 追加: REC-010、AC-REC-005-1〜4
+対象仕様: `specs/01-product-requirements.md`、`specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/06-non-functional-requirements.md`、`specs/07-acceptance-test-plan.md`、`specs/14-recurring-transactions.md`
+関連ID: `REC-010`と`AC-REC-005-1`〜`AC-REC-005-4`を追加
 
-PR #94でmainへ入ったR-078を、review: 2026-09-03-split-spec-reviewの凍結規則（旧記録はR-077まで）へ合わせて移管した。承認内容・実装は変更せず、過去のR-078への参照は本ファイルを指す。
+> `specs/09-spec-review.md`の凍結（R-077まで）後に同ファイルへ追記されていた記録を、内容を変えずに移設した（元の番号: R-078）。
 
 ## 指摘
 
@@ -33,5 +33,3 @@ PR #94でmainへ入ったR-078を、review: 2026-09-03-split-spec-reviewの凍�
 `REC-010`と`AC-REC-005-*`は`TXN-014`・`AC-TXN-014-*`、`NFR-UI-001`・`NFR-UI-002`・`NFR-UI-004`・`NFR-UI-007`、`NFR-A11Y-*`と整合し、安全かつ実装可能である。桁追加の単体test、定期取引のcomponent test、モジュール境界のarchitecture testを先に追加し、375 x 812・320px・1280 x 800で金額入力中に下部ナビゲーションがフォームを覆わないことを実画面確認する条件で実装開始を承認する。
 
 ## 実装確認
-
-元の承認記録には実装確認欄がなかったため、本移管では過去の検証結果を追加しない。

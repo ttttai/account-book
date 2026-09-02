@@ -3,10 +3,10 @@
 状態: 実装確認済み
 レビュー日: 2026-09-03
 ブランチ: fix/analytics-member-tabs
-対象仕様: `specs/12-analytics-and-reporting.md`、`specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/07-acceptance-test-plan.md`
-関連ID: 追加: AC-ANA-005-3、AC-ANA-005-4。要件IDの追加なし
+対象仕様: `specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/07-acceptance-test-plan.md`、`specs/12-analytics-and-reporting.md`
+関連ID: `AC-ANA-005-3`・`AC-ANA-005-4`を追加
 
-PR #95でmainへ入ったR-079を、review: 2026-09-03-split-spec-reviewの凍結規則（旧記録はR-077まで）へ合わせて移管した。承認内容・実装・検証記録は変更せず、過去のR-079への参照は本ファイルを指す。
+> `specs/09-spec-review.md`の凍結（R-077まで）後に同ファイルへ追記されていた記録を、内容を変えずに移設した（元の番号: R-079）。
 
 ## 指摘
 

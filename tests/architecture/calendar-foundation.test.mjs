@@ -1,11 +1,20 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("../../", import.meta.url);
 
 async function read(path) {
   return readFile(new URL(path, root), "utf8");
+}
+
+async function exists(path) {
+  try {
+    await stat(new URL(path, root));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 test("カレンダーqueryをserver-only認可境界へ隔離する", async () => {
@@ -141,7 +150,7 @@ test("今日の強調は日番号ボックスの寸法を変えず縦位置を�
   }
 });
 
-test("年月を左右対称の中央列へ固定し、スワイプfeedbackの動きを抑制できる", async () => {
+test("年月を左右対称の中央列へ固定する", async () => {
   const css = await read(
     "src/modules/calendar/presentation/calendar.module.css",
   );
@@ -153,8 +162,31 @@ test("年月を左右対称の中央列へ固定し、スワイプfeedbackの動
     /grid-template-columns:\s*44px 44px minmax\(0, 1fr\) 44px 44px/,
   );
   assert.match(title, /grid-column:\s*3/);
-  assert.match(css, /\.calendar-swipe-content\s*\{[^}]*transform:/s);
-  assert.match(css, /\[data-swipe-direction="next"\]/);
-  assert.match(css, /\[data-swipe-direction="previous"\]/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+test("カレンダー本体の横スワイプ・ドラッグによる月移動を実装しない (AC-CAL-001-19)", async () => {
+  // 月移動はServer Componentが生成した前月・翌月・「今日」のリンクだけで行う
+  assert.equal(
+    await exists(
+      "src/modules/calendar/presentation/calendar-swipe-navigator.tsx",
+    ),
+    false,
+  );
+  assert.equal(
+    await exists("src/modules/calendar/domain/calendar-swipe.ts"),
+    false,
+  );
+
+  const explorer = await read(
+    "src/modules/calendar/presentation/calendar-day-explorer.tsx",
+  );
+  assert.doesNotMatch(explorer, /onPointerDown|onPointerMove|onPointerUp/);
+  assert.doesNotMatch(explorer, /useRouter|next\/navigation/);
+  assert.doesNotMatch(explorer, /swipe/i);
+
+  const css = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
+  assert.doesNotMatch(css, /swipe/i);
+  assert.doesNotMatch(css, /touch-action/);
 });
