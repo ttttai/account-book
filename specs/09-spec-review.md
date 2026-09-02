@@ -1008,3 +1008,5 @@ MVP範囲確認: 前月・翌月の内容をdrag中に同時描画するカル�
 MVP範囲確認: Service Worker、オフラインキャッシュ、プッシュ通知（`NFR-PWA-004`）、Cloud Runのscaling設定（`NFR-PERF-005`）、manifest（`NFR-PWA-002`）、Proxyのredirect回数は変更しない。ログイン画面（`/login`）は静的で即時描画されるためloadingを追加しない。
 
 判定: `AC-AUTH-001-13`は`AC-AUTH-001-11`（認証済みの起動導線）、`NFR-UI-001`・`NFR-UI-005`・`NFR-UI-006`、`NFR-PWA-005`・`NFR-PWA-006`と整合し、認可・データ境界を変更せず安全に実装できる。architecture testとcomponent testを先に追加し、375pxと1280pxでskeletonと確定後の画面の配置が一致することを実画面確認する条件で、実装開始を承認する。
+
+実装確認: `src/app/app/loading.tsx`を追加し、確定後の画面と同じshell（`protected-shell groups-overview`）でheader・プロフィール欄・グループカード形状のskeletonを`aria-busy`付きで描画した。skeleton styleは`src/app/styles.css`へ`.groups-skeleton*`として追加し、1280pxの2カラム配置は既存の`.groups-overview` ruleを共有した（当初追加したグループ一覧の列指定は確定後の配置と食い違ったため削除した）。architecture testで境界の存在、shellの一致、操作要素・家計データ・認証情報の不在を固定し、component testで`aria-busy`と操作要素の不在を確認した。architecture test 132件、component・unit test 609件、format、警告なしlint、型検査、本番buildが成功し、使い捨てE2E stackを本branchのimageで再構築してE2E 18件（375 x 812と1280 x 800）が成功した。E2E stackでPostgRESTを一時停止して`/app`のデータ取得を止め、375pxと1280pxでskeletonが即時表示され、再開後に確定画面へ置き換わることを実画面確認した。cold start中のサーバー無応答とiOS standaloneのsplash未描画は本件の範囲外として据え置いた。
