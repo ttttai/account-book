@@ -10,6 +10,7 @@ import {
 import { isEndedAsOfMonth } from "../domain/recurring-schedule";
 import { firstDayToMonth } from "../domain/recurring-input";
 import {
+  RECURRING_SELECT_COLUMNS,
   recurringRowSchema,
   toRecurringSchedule,
   type RecurringRow,
@@ -108,11 +109,10 @@ export async function getRecurringManagement(
       .is("archived_at", null)
       .order("type", { ascending: true })
       .order("sort_order", { ascending: true }),
+    // 取得列は行検証schemaと対になる共通定義を使う（画面ごとの書き分けで列が欠けるのを防ぐ）
     supabase
       .from("recurring_transactions")
-      .select(
-        "id, type, name, amount_minor, day_of_month, start_month, end_month, version, memo, payer_member_id, recipient_member_id, categories!recurring_transactions_category_group_fk(name, color, icon), recurring_transaction_allocations!recurring_transaction_allocations_recurring_group_fk(member_id, amount_minor)",
-      )
+      .select(RECURRING_SELECT_COLUMNS)
       .eq("group_id", groupId)
       .order("start_month", { ascending: true })
       .order("day_of_month", { ascending: true }),
