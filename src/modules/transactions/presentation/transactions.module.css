@@ -581,8 +581,8 @@
   .category-expand-toggle {
     display: none;
   }
-  /* テンキーは左列の下へ静的に置き、幅を広げすぎない */
-  .keypad {
+  /* テンキーは左列の下へ静的に置き、幅を広げすぎない。共有部品のため取引入力のフォーム内だけに限定する (REC-010) */
+  .expense-form .keypad {
     grid-row: 5;
     grid-column: 1;
     max-width: 24rem;

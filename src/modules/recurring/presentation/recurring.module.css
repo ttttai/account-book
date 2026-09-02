@@ -253,7 +253,69 @@
   margin: 0;
 }
 
+/* 作成・編集の入力欄群（枠なしのfieldset）。focusの伝播でテンキーの開閉を判定する境界 (AC-REC-005-2) */
+.recurring-fields {
+  display: grid;
+  min-width: 0;
+  min-inline-size: 0;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* 金額欄は取引入力と同じ¥表記とし、OSの仮想キーボードではなく直下のテンキーで入力する (REC-010) */
+.recurring-amount-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+  padding-inline: 0.75rem;
+  border: 1px solid #bdc7bd;
+  border-radius: 0.7rem;
+  background: white;
+}
+
+.recurring-amount-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(47 111 85 / 18%);
+}
+
+.recurring-amount-wrap > span {
+  color: var(--muted);
+  font-size: 1.1rem;
+  font-weight: 750;
+}
+
+.recurring-field .recurring-amount-wrap input {
+  min-height: 3.25rem;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.recurring-keypad-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* テンキーはフォーム内へ静的に置く。開いたときのscrollIntoViewで下部ナビゲーションぶんの余白を確保し、
+   キーがナビに隠れないようにする (AC-REC-005-4) */
+.recurring-keypad {
+  margin-top: 0.25rem;
+  scroll-margin-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+}
+
 @media (min-width: 900px) {
+  .recurring-field .recurring-amount-wrap input {
+    min-height: 2.75rem;
+    font-size: 1.4rem;
+  }
   .recurring-layout {
     grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.9fr);
     align-items: start;

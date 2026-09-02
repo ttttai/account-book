@@ -186,3 +186,49 @@ test("定期取引画面と設定ハブ導線を用意し、展開取引を識�
   // memberには設定操作を出さない
   assert.match(management, /view\.canManage \?/);
 });
+
+test("定期取引の金額欄は取引入力と共有する画面内テンキーで入力する (REC-010, AC-REC-005-1, AC-REC-005-4)", async () => {
+  const management = await read(
+    "src/modules/recurring/presentation/recurring-management.tsx",
+  );
+  const transactionsPresentation = await read(
+    "src/modules/transactions/presentation.ts",
+  );
+  const transactionsIndex = await read("src/modules/transactions/index.ts");
+  const expenseForm = await read(
+    "src/modules/transactions/presentation/expense-form.tsx",
+  );
+  const transactionsCss = await read(
+    "src/modules/transactions/presentation/transactions.module.css",
+  );
+  const recurringCss = await read(
+    "src/modules/recurring/presentation/recurring.module.css",
+  );
+
+  // 金額欄はOSの仮想キーボードを開かない
+  assert.match(management, /inputMode="none"/);
+  assert.doesNotMatch(management, /inputMode="numeric"/);
+
+  // テンキー部品と桁追加の規則はtransactionsの公開エントリーポイント経由で共有し、内部ファイルを直接importしない
+  assert.match(transactionsPresentation, /export \{ AmountKeypad \}/);
+  assert.match(transactionsIndex, /appendAmountDigit/);
+  assert.match(management, /from "@\/modules\/transactions\/presentation"/);
+  assert.match(management, /from "@\/modules\/transactions"/);
+  assert.doesNotMatch(
+    management,
+    /@\/modules\/transactions\/(?:presentation|domain)\//,
+  );
+  assert.match(expenseForm, /AmountKeypad/);
+  assert.doesNotMatch(expenseForm, /function appendAmountDigit/);
+
+  // PC幅の.keypadのgrid配置は取引入力のフォームだけに限定し、定期取引側へ影響させない
+  assert.doesNotMatch(transactionsCss, /^\s{2}\.keypad \{/m);
+  assert.match(transactionsCss, /\.expense-form \.keypad \{/);
+
+  // テンキーは固定ドックへ入れず、下部ナビゲーションぶんのscroll余白でキーを隠さない
+  assert.doesNotMatch(management, /input-dock/);
+  assert.match(
+    recurringCss,
+    /\.recurring-keypad \{[\s\S]*?scroll-margin-bottom/,
+  );
+});
