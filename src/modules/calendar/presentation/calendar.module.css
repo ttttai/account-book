@@ -216,7 +216,8 @@
   justify-items: center;
   gap: 0.1rem;
   padding: 0.2rem 0;
-  color: var(--text);
+  /* 選択月外の弱い表示（td側のcolor）を日番号へ届かせるため、リンク自身で色を固定しない */
+  color: inherit;
   text-decoration: none;
 }
 
@@ -229,6 +230,37 @@
   color: #b1b8b1;
 }
 
+/* 土曜は薄い青、日曜は薄い赤で区別する。曜日見出しの文字で判別できるため色は補助 (CAL-016) */
+.calendar-weekday.is-saturday {
+  color: #3d6fbf;
+}
+
+.calendar-weekday.is-sunday {
+  color: #c9524c;
+}
+
+/* 日番号の色はcustom propertyで受け渡し、選択日・hover・今日の規則が後続で優先する (AC-CAL-016-2) */
+.calendar-cell.is-saturday {
+  --weekend-color: #3d6fbf;
+  background: rgb(61 111 191 / 9%);
+}
+
+.calendar-cell.is-sunday {
+  --weekend-color: #c9524c;
+  background: rgb(201 82 76 / 9%);
+}
+
+/* 選択月外の土日は弱い表示のまま色相だけ区別し、背景は敷かない */
+.calendar-cell.is-other-month.is-saturday {
+  --weekend-color: #a9bfe0;
+  background: transparent;
+}
+
+.calendar-cell.is-other-month.is-sunday {
+  --weekend-color: #e3b0ad;
+  background: transparent;
+}
+
 /* 今日の丸を付けても縦位置がずれないよう、全セルで同じ寸法のボックスを確保する */
 .calendar-day-number {
   display: grid;
@@ -237,6 +269,7 @@
   place-items: center;
   aspect-ratio: 1;
   border-radius: 50%;
+  color: var(--weekend-color, inherit);
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1;

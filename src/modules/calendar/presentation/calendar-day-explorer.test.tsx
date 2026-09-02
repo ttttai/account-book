@@ -42,6 +42,8 @@ const data: CalendarReadyData = {
       day,
       isCurrentMonth: day <= 31,
       isToday: day === 15,
+      // 2026-08-01は土曜（6）
+      weekday: ((6 + index) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6,
     };
   }),
   dayTransactionsByDate: {
@@ -226,6 +228,69 @@ describe("CalendarDayExplorer", () => {
 
     expect(largeAmount?.textContent).toBe("1,234,567");
     expect(largeAmount?.innerHTML).toBe("1,<wbr>234,<wbr>567");
+  });
+
+  it("曜日見出しと日番号は土曜を青、日曜を赤のclassで区別し、平日には付けない (AC-CAL-016-1, AC-CAL-016-2)", () => {
+    render(<CalendarDayExplorer data={data} />);
+
+    const saturdayHeader = screen.getByRole("columnheader", { name: "土" });
+    const sundayHeader = screen.getByRole("columnheader", { name: "日" });
+    const mondayHeader = screen.getByRole("columnheader", { name: "月" });
+    expect(saturdayHeader.classList.contains("is-saturday")).toBe(true);
+    expect(sundayHeader.classList.contains("is-sunday")).toBe(true);
+    expect(mondayHeader.classList.contains("is-saturday")).toBe(false);
+    expect(mondayHeader.classList.contains("is-sunday")).toBe(false);
+
+    const saturdayCell = screen
+      .getByRole("link", { name: "2026年8月1日、支出なし" })
+      .closest("td");
+    const sundayCell = screen
+      .getByRole("link", { name: "2026年8月2日、支出なし" })
+      .closest("td");
+    const mondayCell = screen
+      .getByRole("link", { name: "2026年8月3日、支出なし" })
+      .closest("td");
+    expect(saturdayCell?.classList.contains("is-saturday")).toBe(true);
+    expect(sundayCell?.classList.contains("is-sunday")).toBe(true);
+    expect(mondayCell?.classList.contains("is-saturday")).toBe(false);
+    expect(mondayCell?.classList.contains("is-sunday")).toBe(false);
+
+    // 今日（土曜の8/15）でも今日の表示classを維持する
+    const todayCell = screen
+      .getByRole("link", { name: "2026年8月15日、支出￥1,000、収入￥300,000" })
+      .closest("td");
+    expect(todayCell?.classList.contains("is-today")).toBe(true);
+    expect(todayCell?.classList.contains("is-saturday")).toBe(true);
+
+    // 選択月外の土日にも曜日classを付け、弱い表示classと併存させる
+    expect(
+      document.querySelectorAll("td.is-other-month.is-saturday").length,
+    ).toBeGreaterThan(0);
+    expect(
+      document.querySelectorAll("td.is-other-month.is-sunday").length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("月曜始まりでも曜日見出しの色は実際の曜日に従う (AC-CAL-016-1)", () => {
+    render(
+      <CalendarDayExplorer
+        data={{ ...data, group: { ...data.group, weekStartsOn: 1 } }}
+      />,
+    );
+
+    const headers = screen.getAllByRole("columnheader");
+    expect(headers.map((header) => header.textContent)).toEqual([
+      "月",
+      "火",
+      "水",
+      "木",
+      "金",
+      "土",
+      "日",
+    ]);
+    expect(headers[5]?.classList.contains("is-saturday")).toBe(true);
+    expect(headers[6]?.classList.contains("is-sunday")).toBe(true);
+    expect(headers[0]?.classList.contains("is-sunday")).toBe(false);
   });
 
   it("popstateで有効な日付を復元し、月外日付を表示しない", () => {

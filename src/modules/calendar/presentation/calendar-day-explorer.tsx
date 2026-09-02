@@ -11,13 +11,20 @@ import {
 } from "react";
 
 import type { CalendarReadyData } from "../application/calendar-types";
-import { shiftMonth } from "../domain/calendar-grid";
+import { shiftMonth, type Weekday } from "../domain/calendar-grid";
 import { formatCalendarCellJpy, formatJpy } from "../domain/calendar-summary";
 import { CalendarSwipeNavigator } from "./calendar-swipe-navigator";
 
 import styles from "./calendar.module.css";
 
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"] as const;
+
+// 土曜・日曜だけに色分け用classを返す。曜日見出しの文字で判別できるため色は補助 (CAL-016)
+function weekendClassName(weekday: Weekday): string {
+  if (weekday === 6) return styles["is-saturday"] ?? "";
+  if (weekday === 0) return styles["is-sunday"] ?? "";
+  return "";
+}
 
 type CalendarDayExplorerData = Readonly<
   Pick<
@@ -279,10 +286,11 @@ export function CalendarDayExplorer({
   );
   const [selectedDay, setSelectedDay] = useState(data.selectedDay);
   const dayLinks = useRef(new Map<string, HTMLAnchorElement>());
-  const weekdays =
-    data.group.weekStartsOn === 0
-      ? weekdayLabels
-      : [...weekdayLabels.slice(1), weekdayLabels[0]];
+  // 曜日見出しは週開始曜日からの並び順で実際の曜日を決める
+  const weekdays = Array.from({ length: 7 }, (_, index) => {
+    const weekday = ((data.group.weekStartsOn + index) % 7) as Weekday;
+    return { weekday, label: weekdayLabels[weekday] };
+  });
 
   useEffect(() => {
     function handlePopState() {
@@ -342,13 +350,18 @@ export function CalendarDayExplorer({
           >
             <thead>
               <tr>
-                {weekdays.map((weekday) => (
+                {weekdays.map(({ weekday, label }) => (
                   <th
                     key={weekday}
-                    className={styles["calendar-weekday"]}
+                    className={[
+                      styles["calendar-weekday"],
+                      weekendClassName(weekday),
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                     scope="col"
                   >
-                    {weekday}
+                    {label}
                   </th>
                 ))}
               </tr>
@@ -371,6 +384,7 @@ export function CalendarDayExplorer({
                       cell.isCurrentMonth
                         ? styles["is-current-month"]
                         : styles["is-other-month"],
+                      weekendClassName(cell.weekday),
                       cell.isToday ? styles["is-today"] : "",
                       isSelected ? styles["is-selected"] : "",
                     ]
