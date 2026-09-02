@@ -4,7 +4,9 @@
 
 レビュー日: 2026-09-02
 
-対象バージョン: 0.3.12
+対象バージョン: 0.3.13
+
+> 本ファイルは`R-001`〜`R-077`の記録として凍結する。以降の仕様レビューは`specs/reviews/`へ1レビュー1ファイル（`YYYY-MM-DD-<slug>.md`）で記録し、連番は採番しない。運用ルールは`specs/reviews/README.md`を参照する（review: 2026-09-03-split-spec-review）。
 
 ## 1. レビュー目的
 
@@ -25,11 +27,9 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.12の自動文書検査では、要件ID 154件、明示的な受け入れ条件ID 213件が一意であり、重複宣言はなかった（R-077で`ANA-006`〜`ANA-008`の3件と詳細分析の受け入れ条件12件を正式要件として追加した）。
+バージョン0.3.13の自動文書検査では、要件ID 152件、明示的な受け入れ条件ID 206件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-075で`CAL-016`の1件と`AC-CAL-016-1`〜`AC-CAL-016-3`の3件、R-076で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加した。R-074は要件ID・受け入れ条件IDを追加しない、R-077で`AC-AUTH-001-13`の1件、R-078で`REC-010`の1件と`AC-REC-005-1`〜`AC-REC-005-4`の4件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
-バージョン0.3.11の自動文書検査では、要件ID 151件、明示的な受け入れ条件ID 201件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-075で`CAL-016`の1件と`AC-CAL-016-1`〜`AC-CAL-016-3`の3件、R-076で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加した。R-074は要件ID・受け入れ条件IDを追加しない）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
-
-バージョン0.3.10の自動文書検査では、要件ID 149件、明示的な受け入れ条件ID 193件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件を追加した。R-074は要件ID・受け入れ条件IDを追加しない）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+上記のID件数は0.3.12時点で凍結し、以降は本段落へ追記しない。要件ID・受け入れ条件IDの一意性は`tests/architecture/foundation.test.mjs`が仕様ファイルから直接検証し、新規IDは各レビューファイル（`specs/reviews/`）の`関連ID`へ記録する。
 
 ## 3. 指摘・対応
 
@@ -1043,18 +1043,20 @@ MVP範囲確認: 「最後に開いたグループを記憶して直行する」
 
 判定: `GRP-011`は`GRP-002`・`GRP-003`（複数所属・切替は一覧から引き続き可能）、`AC-AUTH-001-11`・`AC-AUTH-004-1`（Proxyのホーム転送先は`/app`のまま）、`NAV-004`（設定ハブに一覧・作成の入口を集約）、`NFR-UI-*`と整合し、認可境界を変更せず安全に実装できる。純関数の単体テスト、architecture test、E2E補助関数の更新を先に行い、所属1件のアカウントで375pxの実画面（ログイン後の直行と設定からの一覧復帰）を確認する条件で実装開始を承認する。
 
-### R-077 詳細分析（Issue #56、段階2）
+### R-077 起動直後のホーム表示が白いままになる（PWA standalone）
 
-指摘: 概要分析は当月の状態を素早く確認できるが、複数月の変化、期間全体のカテゴリ構成、メンバーごとの負担・支払・受取の違いを確認できない。利用者が原因を深掘りするには月を1つずつ切り替える必要があり、支払額と負担額を手計算すると意味を混同しやすい。一方、詳細画面が取引を独自に読むと、R-074で統合したカレンダー・概要・履歴との集計定義が再び分岐する。
+指摘: ホーム画面インストール版（standalone）でアプリを開くと、最初の数秒が全面白のまま経過する。起動経路は`start_url`（`/`）→ Proxyのsession確認 → `/app`へredirect → `/app`のServer Componentで`getCurrentProfile`と`listMyGroups`を`await`、であり、`/app`にはroute-level `loading.tsx`が無いため、データ取得が完了するまでHTMLを1バイトも返さない。`groups/[groupId]`配下の7画面にはskeletonがあるが、起動直後に必ず通る`/app`だけが全面白になる。Cloud Runの`min instances 0`によるcold start（`NFR-PERF-005`）と、iOS standaloneが`background_color`のsplashを描かないことが体感時間を延ばしている。
 
-対応: `ANA-006`〜`ANA-008`を正式要件へ昇格し、`UC-019`と12件の受け入れ条件を追加した。標準URLは`/groups/{groupId}/analytics/details`とし、当月までの直近6か月を既定値、3・6・12か月presetと最大24か月の任意範囲、グループ・自分・指定メンバーを提供する。Issue記載の月別推移、カテゴリ構成、メンバー比較、数値表に加え、期間の支出・収入・収支合計、0円月を含む月平均支出、同額時は新しい月を採る最大支出月を追加した。これらは外部データや推測を使わず、既存月次集計から導ける判断材料である。
+対応: `UC-012`へ`AC-AUTH-001-13`を追加し、認証済みでホーム（`/app`）を開く要求ではデータ取得完了を待たずにroute shellとskeletonを先に返すことを条件化した。画面仕様の起動導線とグループ選択（`03-screen-specification.md`）へloadingの記述を追加し、テスト計画（`07-acceptance-test-plan.md`）へstandalone再起動直後の確認項目を追加した。実装は`src/app/app/loading.tsx`と`src/app/styles.css`のskeleton styleの追加だけとする。Cloud Runの`min instances`変更（費用が発生する）、`start_url`の`/app`化（`NFR-PWA-002`の変更）、iOS向け`apple-touch-startup-image`は効果・費用を検討したうえで本件の範囲外とし、必要になった時点で個別にレビューする。
 
-安全性確認: `groupId`・`start`・`end`・`scope`・`member`をサーバーで検証し、不正期間、24か月超、逆順、別グループ・削除済みmembership、scopeと一致しないmember指定は取引読み取り前にfail closedで拒否する。認証・所属は`resolveGroupReadContext`、月次取引と定期取引展開は`listMonthlyTransactions`を使い、RLS適用のユーザーsession clientだけで読む。1要求で月次取引を1回だけ取得し、Clientへは集計済みDTOだけを渡す。service role、Route Handler、永続集計、共有cache、クライアント側の金額再計算を追加しない。
+安全性確認: `loading.tsx`は静的なskeletonだけを描画し、家計データ、ユーザーID、認証情報を含まない。Proxyのsession確認、`/app`の認可（`getCurrentProfile`が`null`なら`/login`へredirect）、Server Componentの読み取り経路は変更しない。skeletonへ操作可能な要素を置かないため、確定前の誤操作は発生しない。
 
-実装可能性確認: 既存の`aggregateAnalyticsMonth`を選択対象へ適用し、期間指標とカテゴリ構成は月次DTOを安全な整数で合算できる。メンバー比較の負担額はallocations、支払額はpayer membership、受取額はrecipient membershipから同じ認可済み取引集合を1巡して集計できる。期間parse、合計・平均・最大月、カテゴリ・メンバー集計を純関数testで固定し、Application testで不正入力時に取引queryが呼ばれないことと正常時1回だけであることを証明できる。表示はServer ComponentとGET formを中心にし、グラフは装飾、正確な数値表を主情報とする。
+実装可能性確認: Next.js App Routerの`loading.tsx`はSuspense境界としてlayout shellとskeletonを即時ストリーミングし、page本体のPromise解決後に置き換える。既存のカレンダー・履歴skeletonと同じ手法（`aria-busy="true"`、global stylesのskeleton class）で実装でき、`protected-shell groups-overview`を共有するため375pxの縦配置と1280pxの2カラム配置はCSSを追加せずに一致する。skeletonの存在・`aria-busy`・shell classはarchitecture testで固定でき、component testで描画内容に操作要素がないことを確認できる。
 
-MVP範囲確認: AI推定、将来予測、前年同月比較、日・曜日・店舗・タグ別分析、グループ横断、保存済みレポート、CSV・画像・PDF出力、予算、LINE送信、永続集計、共有cacheは追加しない。新しい依存package、DB schema、migrationも追加しない。
+MVP範囲確認: Service Worker、オフラインキャッシュ、プッシュ通知（`NFR-PWA-004`）、Cloud Runのscaling設定（`NFR-PERF-005`）、manifest（`NFR-PWA-002`）、Proxyのredirect回数は変更しない。ログイン画面（`/login`）は静的で即時描画されるためloadingを追加しない。
 
-判定: `ANA-006`〜`ANA-008`と`AC-ANA-006-1`〜`AC-ANA-012-3`は`ANA-001`〜`ANA-012`、`CAL-010`、`REC-005`、`NFR-SEC-*`、`NFR-A11Y-*`、`NFR-UI-*`、R-074の共有境界と整合し、安全かつ実装可能である。純関数・Application・component・architecture testを先に追加し、format、lint、型検査、本番build、DB/RLS・E2Eを通し、320px・375 x 812・1280 x 800で実画面確認する条件で実装開始を承認する。
+判定: `AC-AUTH-001-13`は`AC-AUTH-001-11`（認証済みの起動導線）、`NFR-UI-001`・`NFR-UI-005`・`NFR-UI-006`、`NFR-PWA-005`・`NFR-PWA-006`と整合し、認可・データ境界を変更せず安全に実装できる。architecture testとcomponent testを先に追加し、375pxと1280pxでskeletonと確定後の画面の配置が一致することを実画面確認する条件で、実装開始を承認する。
 
-実装確認: `/groups/{groupId}/analytics/details`へ、直近6か月の既定表示、3・6・12か月preset、最大24か月の任意範囲、グループ・自分・指定メンバーの対象切替を実装した。期間合計・月平均支出・最大支出月、月別推移、期間カテゴリ構成、グループ対象時のメンバー別負担額・支払額・受取額、月別の正確な数値表を表示し、概要分析との往復で期間・対象をURLへ保持する。詳細分析固有のloading・error・空状態・不正条件状態を追加した。取引はR-074の共有境界から1要求につき1回だけ読み、既存月次集計と新しい期間・メンバー集計の純関数へ渡しており、DB schema・migration・依存packageは変更していない。format、警告なしlint、型検査、本番build、architecture test 132件、単体・component test 642件、全DB/RLS統合testが成功した。E2E 20件はすべて成功した（全体実行で開発サーバーのfilesystem cache圧縮中に既存2件がnavigation timeoutとなったため、ログで機能errorがないことを確認し、対象2件を個別再実行して成功）。320px・375 x 812・1280 x 800の実ブラウザで詳細分析を確認し、横scrollなし、主要操作・期間指標・数値表の表示を確認した。
+実装確認: `src/app/app/loading.tsx`を追加し、確定後の画面と同じshell（`protected-shell groups-overview`）でheader・プロフィール欄・グループカード形状のskeletonを`aria-busy`付きで描画した。skeleton styleは`src/app/styles.css`へ`.groups-skeleton*`として追加し、1280pxの2カラム配置は既存の`.groups-overview` ruleを共有した（当初追加したグループ一覧の列指定は確定後の配置と食い違ったため削除した）。architecture testで境界の存在、shellの一致、操作要素・家計データ・認証情報の不在を固定し、component testで`aria-busy`と操作要素の不在を確認した。architecture test 132件、component・unit test 609件、format、警告なしlint、型検査、本番buildが成功し、使い捨てE2E stackを本branchのimageで再構築してE2E 18件（375 x 812と1280 x 800）が成功した。E2E stackでPostgRESTを一時停止して`/app`のデータ取得を止め、375pxと1280pxでskeletonが即時表示され、再開後に確定画面へ置き換わることを実画面確認した。cold start中のサーバー無応答とiOS standaloneのsplash未描画は本件の範囲外として据え置いた。R-076（GRP-011）の取り込みにより所属が1件の利用者は`/app`のskeletonの直後にカレンダーへredirectされ、カレンダーのskeletonへ続くが、全面白の代替として許容し、skeletonは特定画面を想起させない汎用の配置のままとする。
+
+定期取引の金額入力の承認記録（旧R-078）は[review: 2026-09-03-recurring-amount-keypad](reviews/2026-09-03-recurring-amount-keypad.md)へ移管した。

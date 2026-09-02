@@ -24,6 +24,9 @@ test("概要・詳細分析仕様を正本として承認記録に紐付ける (
   const requirements = await read("specs/01-product-requirements.md");
   const useCases = await read("specs/02-use-cases.md");
   const review = await read("specs/09-spec-review.md");
+  const detailsReview = await read(
+    "specs/reviews/2026-09-03-analytics-details.md",
+  );
 
   assert.match(specification, /getAnalyticsPeriodSummary/);
   assert.match(requirements, /^- `ANA-001`/m);
@@ -33,7 +36,9 @@ test("概要・詳細分析仕様を正本として承認記録に紐付ける (
   assert.match(useCases, /^- `AC-ANA-001-1`/m);
   assert.match(useCases, /^- `AC-ANA-012-2`/m);
   assert.match(review, /### R-068/);
-  assert.match(review, /### R-077/);
+  assert.match(detailsReview, /状態: 実装確認済み/);
+  assert.match(detailsReview, /関連ID: 追加: ANA-006〜ANA-008/);
+  assert.match(detailsReview, /AC-ANA-012-3/);
 });
 
 test("分析queryをserver-only認可境界へ隔離する", async () => {

@@ -8,7 +8,7 @@
 
 1. `specs/`に仕様を作成または更新する
 2. 仕様の整合性、安全性、実装可能性、MVP範囲をレビューする
-3. レビュー結果を`specs/09-spec-review.md`へ記録し、対象仕様を承認状態にする
+3. レビュー結果を`specs/reviews/YYYY-MM-DD-<slug>.md`へ1レビュー1ファイルで記録し、対象仕様を承認状態にする（連番IDは採番しない。書き方は`specs/reviews/README.md`）
 4. 受け入れ条件に対応するテストを作成または更新する
 5. 承認済み仕様に従って実装する
 6. テスト、lint、型検査、本番ビルド、モバイル表示を検証する
@@ -24,7 +24,7 @@
 2. `specs/01-product-requirements.md`
 3. 対象機能の仕様と受け入れ条件
 4. `specs/06-non-functional-requirements.md`
-5. `specs/09-spec-review.md`
+5. `specs/reviews/README.md`と対象機能に関わるレビューファイル（過去分は`specs/09-spec-review.md`）
 
 ## プロダクト・アーキテクチャ
 
