@@ -21,6 +21,8 @@ type SwipeStart = Readonly<{
 }>;
 
 const SWIPE_FEEDBACK_LIMIT_RATIO = 0.35;
+// タップの微小なぶれではpointerを捕捉せず、明確な水平移動だけを捕捉対象にする
+const SWIPE_CAPTURE_THRESHOLD_PX = 8;
 
 // カレンダー本体の横スワイプで前月・翌月へ遷移する判定領域。日付選択の局所更新には関与しない (CAL-015)
 export function CalendarSwipeNavigator({
@@ -66,8 +68,14 @@ export function CalendarSwipeNavigator({
       y: event.clientY,
       width: event.currentTarget.getBoundingClientRect().width,
     };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
     event.currentTarget.dataset.swipeState = "dragging";
+  }
+
+  // 水平dragが始まった後だけpointerを捕捉し、領域外で放してもfeedbackを戻せるようにする。
+  // pointerdown時点で捕捉するとclickの発火先がこの領域へ変わり、日付リンクのタップが選択にならない (AC-CAL-015-3)
+  function capturePointer(area: HTMLDivElement, pointerId: number) {
+    if (area.hasPointerCapture?.(pointerId)) return;
+    area.setPointerCapture?.(pointerId);
   }
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
@@ -81,6 +89,9 @@ export function CalendarSwipeNavigator({
       return;
     }
 
+    if (Math.abs(deltaX) >= SWIPE_CAPTURE_THRESHOLD_PX) {
+      capturePointer(event.currentTarget, event.pointerId);
+    }
     updateSwipeFeedback(event.currentTarget, deltaX, start.width);
   }
 

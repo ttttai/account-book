@@ -354,6 +354,66 @@ describe("CalendarDayExplorer スワイプ月移動", () => {
     );
   });
 
+  it("pointerdownではpointerを捕捉せず、水平dragが始まってから捕捉する (AC-CAL-015-3, AC-CAL-015-6)", () => {
+    // pointerdown時点で捕捉するとclickの発火先が判定領域へ変わり、日付リンクのタップが選択にならない
+    const setPointerCapture = vi.fn();
+    const hasPointerCapture = vi.fn(() => false);
+    Object.assign(HTMLElement.prototype, {
+      setPointerCapture,
+      hasPointerCapture,
+    });
+    render(<CalendarDayExplorer data={data} />);
+    const area = swipeArea();
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月16日、支出￥2,000",
+    });
+
+    fireEvent.pointerDown(dayLink, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 200,
+      clientY: 200,
+      isPrimary: true,
+    });
+    // タップの微小なぶれでも捕捉しない
+    fireEvent.pointerMove(dayLink, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 204,
+      clientY: 201,
+      isPrimary: true,
+    });
+    fireEvent.pointerUp(dayLink, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 204,
+      clientY: 201,
+      isPrimary: true,
+    });
+    expect(setPointerCapture).not.toHaveBeenCalled();
+
+    fireEvent.click(dayLink);
+    expect(screen.getByRole("heading", { name: "2026年8月16日" })).toBeTruthy();
+    expect(routerPush).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(area, {
+      pointerId: 2,
+      pointerType: "touch",
+      clientX: 300,
+      clientY: 200,
+      isPrimary: true,
+    });
+    fireEvent.pointerMove(area, {
+      pointerId: 2,
+      pointerType: "touch",
+      clientX: 280,
+      clientY: 202,
+      isPrimary: true,
+    });
+    expect(setPointerCapture).toHaveBeenCalledTimes(1);
+    expect(setPointerCapture).toHaveBeenCalledWith(2);
+  });
+
   it("縦方向が主の移動は縦スクロールとして扱い月移動しない (AC-CAL-015-2)", () => {
     render(<CalendarDayExplorer data={data} />);
 
