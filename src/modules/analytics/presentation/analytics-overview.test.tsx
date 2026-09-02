@@ -9,6 +9,22 @@ import {
 
 const GROUP_ID = "10000000-0000-4000-8000-000000000001";
 const MEMBER_B = "40000000-0000-4000-8000-00000000000b";
+const MEMBER_C = "40000000-0000-4000-8000-00000000000c";
+const MEMBER_D = "40000000-0000-4000-8000-00000000000d";
+const SELF = {
+  membershipId: "40000000-0000-4000-8000-00000000000a",
+  displayName: "利用者A",
+  isCurrentUser: true,
+} as const;
+const OTHERS = [
+  { membershipId: MEMBER_B, displayName: "利用者B", isCurrentUser: false },
+  { membershipId: MEMBER_C, displayName: "利用者C", isCurrentUser: false },
+  {
+    membershipId: MEMBER_D,
+    displayName: "とても長い表示名を持つ利用者D",
+    isCurrentUser: false,
+  },
+] as const;
 
 function createData(
   overrides: Partial<AnalyticsOverviewReady> = {},
@@ -21,18 +37,7 @@ function createData(
     nextMonth: "2026-10",
     currentMonth: "2026-09",
     scope: "group",
-    members: [
-      {
-        membershipId: "40000000-0000-4000-8000-00000000000a",
-        displayName: "利用者A",
-        isCurrentUser: true,
-      },
-      {
-        membershipId: MEMBER_B,
-        displayName: "利用者B",
-        isCurrentUser: false,
-      },
-    ],
+    members: [SELF, OTHERS[0]],
     totals: { expenseTotal: 11000, incomeTotal: 300000, balance: 289000 },
     previousTotals: {
       expenseTotal: 10000,
@@ -199,6 +204,148 @@ describe("AnalyticsOverview", () => {
     expect(
       screen.getByRole("link", { name: "自分" }).getAttribute("aria-current"),
     ).toBe("page");
+  });
+
+  it("自分以外のアクティブメンバーが0人なら「グループ」「自分」の2枠だけを表示する (AC-ANA-005-3)", () => {
+    const { container } = render(
+      <AnalyticsOverview data={createData({ members: [SELF] })} />,
+    );
+
+    const nav = screen.getByRole("navigation", { name: "分析の集計対象" });
+    expect(
+      within(nav)
+        .getAllByRole("link")
+        .map((l) => l.textContent),
+    ).toEqual(["グループ", "自分"]);
+    expect(within(nav).queryByText("メンバー")).toBeNull();
+    expect(container.querySelector("details")).toBeNull();
+  });
+
+  it("自分以外が1人ならそのメンバー名を3枠目の直接リンクにし、選択欄を出さない (AC-ANA-005-3)", () => {
+    const { container } = render(<AnalyticsOverview data={createData()} />);
+
+    const nav = screen.getByRole("navigation", { name: "分析の集計対象" });
+    expect(
+      within(nav)
+        .getAllByRole("link")
+        .map((l) => l.textContent),
+    ).toEqual(["グループ", "自分", "利用者B"]);
+    expect(container.querySelector("details")).toBeNull();
+  });
+
+  it("自分以外が2人以上なら「メンバー」選択欄に自分以外の候補だけを並べる (AC-ANA-005-3, AC-ANA-005-4)", () => {
+    const { container } = render(
+      <AnalyticsOverview data={createData({ members: [SELF, ...OTHERS] })} />,
+    );
+
+    const nav = screen.getByRole("navigation", { name: "分析の集計対象" });
+    // 枠は「グループ」「自分」「メンバー」の3つで、メンバー名を直接リンクとして並べない
+    const picker = container.querySelector("details");
+    expect(picker).not.toBeNull();
+    expect(picker?.querySelector("summary")?.textContent).toBe("メンバー");
+    expect(picker?.hasAttribute("open")).toBe(false);
+    const topLevelLinks = Array.from(nav.children).filter(
+      (child) => child.tagName === "A",
+    );
+    expect(topLevelLinks.map((l) => l.textContent)).toEqual([
+      "グループ",
+      "自分",
+    ]);
+
+    const base = `/groups/${GROUP_ID}/analytics`;
+    const options = within(picker as HTMLElement).getAllByRole("link");
+    expect(options.map((l) => l.textContent)).toEqual([
+      "利用者B",
+      "利用者C",
+      "とても長い表示名を持つ利用者D",
+    ]);
+    expect(options[0]?.getAttribute("href")).toBe(
+      `${base}?month=2026-09&scope=member&member=${MEMBER_B}`,
+    );
+    expect(options[2]?.getAttribute("href")).toBe(
+      `${base}?month=2026-09&scope=member&member=${MEMBER_D}`,
+    );
+    for (const option of options) {
+      expect(option.getAttribute("aria-current")).toBeNull();
+    }
+  });
+
+  it("選択中のメンバーを枠へ表示し、候補と枠をaria-currentで示す (AC-ANA-005-4)", () => {
+    const { container } = render(
+      <AnalyticsOverview
+        data={createData({
+          members: [SELF, ...OTHERS],
+          scope: "member",
+          selectedMemberId: MEMBER_C,
+          selectedMemberLabel: "利用者C",
+        })}
+      />,
+    );
+
+    const picker = container.querySelector("details");
+    const summary = picker?.querySelector("summary");
+    expect(summary?.textContent).toBe("利用者C");
+    expect(summary?.classList.contains("is-active")).toBe(true);
+    // 選択後も開いたままにせず、候補一覧が指標を覆わない (R-062と同じ規則)
+    expect(picker?.hasAttribute("open")).toBe(false);
+
+    const selected = within(picker as HTMLElement).getByRole("link", {
+      name: "利用者C",
+    });
+    expect(selected.getAttribute("aria-current")).toBe("page");
+    expect(
+      within(picker as HTMLElement)
+        .getByRole("link", { name: "利用者B" })
+        .getAttribute("aria-current"),
+    ).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "自分" }).getAttribute("aria-current"),
+    ).toBeNull();
+    expect(
+      screen
+        .getByRole("link", { name: "グループ" })
+        .getAttribute("aria-current"),
+    ).toBeNull();
+  });
+
+  it("2人以上でscope=memberに自分を指定した場合は「自分」枠を選択状態にし、選択欄は既定表示に戻す (AC-ANA-005-4)", () => {
+    const { container } = render(
+      <AnalyticsOverview
+        data={createData({
+          members: [SELF, ...OTHERS],
+          scope: "member",
+          selectedMemberId: SELF.membershipId,
+          selectedMemberLabel: "利用者A",
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("link", { name: "自分" }).getAttribute("aria-current"),
+    ).toBe("page");
+    const summary = container.querySelector("details > summary");
+    expect(summary?.textContent).toBe("メンバー");
+    expect(summary?.classList.contains("is-active")).toBe(false);
+  });
+
+  it("月移動は選択欄で選んだメンバーをURLへ保持する (AC-ANA-005-1)", () => {
+    render(
+      <AnalyticsOverview
+        data={createData({
+          members: [SELF, ...OTHERS],
+          scope: "member",
+          selectedMemberId: MEMBER_D,
+          selectedMemberLabel: "とても長い表示名を持つ利用者D",
+        })}
+      />,
+    );
+
+    const base = `/groups/${GROUP_ID}/analytics`;
+    expect(
+      screen
+        .getByRole("link", { name: "2026年8月を表示" })
+        .getAttribute("href"),
+    ).toBe(`${base}?month=2026-08&scope=member&member=${MEMBER_D}`);
   });
 
   it("ホームカレンダーと履歴へ同じ月で移動できる", () => {
