@@ -4,6 +4,7 @@ import {
   addCategorySchema,
   archiveCategorySchema,
   normalizeCategoryName,
+  toCategoryColor,
   updateCategorySchema,
 } from "./category-input";
 
@@ -13,6 +14,21 @@ const categoryId = "22222222-2222-4222-8222-222222222222";
 describe("normalizeCategoryName", () => {
   it("前後の空白を除去する", () => {
     expect(normalizeCategoryName("  サブスク  ")).toBe("サブスク");
+  });
+});
+
+describe("toCategoryColor", () => {
+  it("許可済みの色tokenはそのまま返す", () => {
+    expect(toCategoryColor("food")).toBe("food");
+    expect(toCategoryColor("extra")).toBe("extra");
+  });
+
+  it("未定義・許可外の色は既定色otherへ寄せる", () => {
+    expect(toCategoryColor("green")).toBe("other");
+    expect(toCategoryColor("red; background: url(x)")).toBe("other");
+    expect(toCategoryColor("")).toBe("other");
+    expect(toCategoryColor(null)).toBe("other");
+    expect(toCategoryColor(undefined)).toBe("other");
   });
 });
 

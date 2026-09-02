@@ -36,6 +36,12 @@ export const CATEGORY_COLORS = [
 
 export const categoryColorSchema = z.enum(CATEGORY_COLORS);
 
+// 保存済みの色文字列を許可済みtokenへ正規化する。未定義・許可外は既定色otherへ寄せ、任意文字列を表示層へ渡さない
+export function toCategoryColor(value: unknown): CategoryColor {
+  const result = categoryColorSchema.safeParse(value);
+  return result.success ? result.data : "other";
+}
+
 export const updateCategorySchema = z.object({
   groupId: z.uuid(),
   categoryId: z.uuid(),

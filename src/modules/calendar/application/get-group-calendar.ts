@@ -6,7 +6,7 @@ import {
   createServerSupabaseClient,
   getAllowedGoogleUserId,
 } from "@/modules/auth/server";
-
+import { toCategoryColor } from "@/modules/categories";
 import {
   expandRecurringForMonth,
   listRecurringSchedules,
@@ -118,7 +118,7 @@ function createDayTransactionsByDate(
         amountMinor: expense.amountMinor,
         targetAmountMinor,
         categoryName: expense.category.name,
-        categoryColor: expense.category.color,
+        categoryColor: toCategoryColor(expense.category.color),
         categoryIcon: expense.category.icon,
         partyDisplayName:
           displayNameByMembershipId.get(expense.payerMemberId) ?? "メンバー",
@@ -150,7 +150,7 @@ function createDayTransactionsByDate(
         amountMinor: income.amountMinor,
         targetAmountMinor: income.amountMinor,
         categoryName: income.category.name,
-        categoryColor: income.category.color,
+        categoryColor: toCategoryColor(income.category.color),
         categoryIcon: income.category.icon,
         partyDisplayName:
           displayNameByMembershipId.get(income.recipientMemberId) ?? "メンバー",
