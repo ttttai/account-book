@@ -248,6 +248,7 @@ Bの支出: 3,000円
 - `AC-AUTH-001-10` access tokenの期限が切れた後も、refresh tokenが有効な間は再ログインを求めない。session更新を行った境界は、rotate後のtokenを同じ応答のcookieへ書き戻し、ブラウザが保持するtokenと不一致にしない。
 - `AC-AUTH-001-11` 認証済みで`start_url`（`/`）またはOAuth開始Routeへ到達した場合、ログイン画面とGoogle認証を経由せず、ホームまたは検証済みの戻り先を表示する。
 - `AC-AUTH-001-12` 失効したAuth cookieが残った状態でも、1回のGoogleログインでsessionが成立する。callbackは既存のsession cookieを参照せずPKCEのcode verifierだけでcodeを交換し、交換したsession cookieを同じ応答内の削除cookieで打ち消さない。
+- `AC-AUTH-001-13` 認証済みでホーム（`/app`）を開く要求では、プロフィールとグループ一覧の取得完了を待たずにroute shellとskeletonを先に返し、ホーム画面インストール版の起動直後を含めて全面が白いままの状態を作らない。skeletonは`aria-busy`で読み込み中を伝え、確定後の画面と同じ配置（header、プロフィール、グループ一覧）と375px・1280pxのカラム構成を保つ。
 - `AC-AUTH-002-1` ログインユーザーは自分のプロフィールを取得・更新でき、別ユーザーとして更新できない。
 - `AC-AUTH-003-1` ログアウト後は保護画面を閲覧できず、ログイン画面へ遷移する。
 - `AC-AUTH-004-1` 未認証で保護画面へアクセスすると、ログイン後の戻り先を安全な相対pathとして保持してログイン画面へ遷移する。
