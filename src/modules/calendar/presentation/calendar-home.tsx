@@ -144,7 +144,7 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
             >
               ‹
             </Link>
-            <div>
+            <div className={styles["calendar-month-title"]}>
               <p className="eyebrow">月間カレンダー</p>
               <h2 id="calendar-title">{formatMonth(data.month)}</h2>
             </div>

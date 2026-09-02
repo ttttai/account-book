@@ -8,19 +8,33 @@
 
 .calendar-month-navigation {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto 44px;
+  grid-template-columns: 44px 44px minmax(0, 1fr) 44px 44px;
   align-items: center;
-  gap: 0.5rem;
+  gap: clamp(0.2rem, 1vw, 0.5rem);
   text-align: center;
+}
+
+.calendar-month-title {
+  grid-column: 3;
+  min-width: 0;
+}
+
+.calendar-month-navigation > a:first-child {
+  grid-column: 1;
+}
+
+.calendar-month-navigation > a:last-child {
+  grid-column: 5;
 }
 
 /* 「今日」は当月以外でだけ見せるが、当月表示でも同じ寸法の不可視領域を残して行の高さと題名位置を揃える (AC-CAL-014-2) */
 .calendar-today-link,
 .calendar-today-placeholder {
+  grid-column: 4;
   display: grid;
-  min-width: 44px;
+  width: 44px;
   min-height: 44px;
-  padding: 0 0.7rem;
+  padding: 0;
   place-items: center;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -38,10 +52,76 @@
 
 /* 横スワイプの判定領域。縦スクロールとピンチはブラウザに委ねる (AC-CAL-015-2) */
 .calendar-swipe-area {
+  position: relative;
+  overflow: hidden;
   touch-action: pan-y pinch-zoom;
   /* マウスのドラッグで日付の文字列を選択状態にしない */
   user-select: none;
   -webkit-user-select: none;
+}
+
+.calendar-swipe-content {
+  position: relative;
+  z-index: 1;
+  background: white;
+  transform: translate3d(var(--calendar-swipe-x, 0), 0, 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.calendar-swipe-area[data-swipe-state="dragging"] .calendar-swipe-content {
+  transition: none;
+}
+
+.calendar-swipe-indicator {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  display: grid;
+  min-height: 36px;
+  padding: 0.35rem 0.55rem;
+  place-items: center;
+  border-radius: 999px;
+  color: white;
+  background: rgb(48 92 62 / 90%);
+  box-shadow: 0 6px 18px rgb(36 49 38 / 20%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 120ms ease,
+    transform 160ms ease;
+}
+
+.calendar-swipe-indicator.is-previous {
+  left: 0.35rem;
+  transform: translate3d(-0.75rem, -50%, 0);
+}
+
+.calendar-swipe-indicator.is-next {
+  right: 0.35rem;
+  transform: translate3d(0.75rem, -50%, 0);
+}
+
+.calendar-swipe-area[data-swipe-direction="previous"]
+  .calendar-swipe-indicator.is-previous,
+.calendar-swipe-area[data-swipe-direction="next"]
+  .calendar-swipe-indicator.is-next {
+  opacity: 1;
+  transform: translate3d(0, -50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-swipe-content {
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
+
+  .calendar-swipe-indicator {
+    transition: none;
+  }
 }
 
 .calendar-month-navigation > a:not(.calendar-today-link) {
@@ -71,6 +151,18 @@
 
 .calendar-month-navigation :global(.eyebrow) {
   display: none;
+}
+
+@media (max-width: 340px) {
+  .calendar-month-navigation {
+    gap: 0;
+  }
+
+  .calendar-month-navigation h2 {
+    font-size: 0.84rem;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
 }
 
 .calendar-scope-nav {
