@@ -883,6 +883,8 @@ MVP範囲確認: 画面、URL、DTO、DB schema、RLS、金額計算規則、定
 
 判定: 本refactorは`NFR-MNT-002`・`NFR-MNT-006`（機能単位の整理と依存ルール）、`ANA-012`・`AC-ANA-012-1`（同じ認可済み集計の共有）、`REC-005`・`AC-REC-002-2`（展開の一貫性）、`CAL-010`・`AC-ANA-002-1`（カレンダーと分析の一致）と整合し、安全かつ実装可能である。共有境界のApplication testを先に追加し、既存のカレンダー・分析・履歴のtest、architecture test、lint、型検査、本番buildが通り、幅375pxと1280pxでホーム・履歴・分析の表示が変わらないことを確認する条件で、実装開始を承認する。
 
+実装確認: `groups`へ`resolveGroupReadContext`・`loadGroupMembers`（Application test 11件）、`transactions`へ`listMonthlyTransactions`と月範囲の純関数`monthlyDateRange`（Application test 8件、単体test 5件）を追加し、カレンダー・履歴・分析を共有境界経由へ置き換えた。重複していた行schema、月範囲helper（`getMonthRange`・`analyticsMonthRange`）、Intl日付変換を削除し、production codeは544行追加・609行削除（正味65行減）、testは約600行増となった。architecture test 128件、component・unit test 601件、format、警告なしlint、型検査、本番buildが成功し、coverageはstatement 61.95%、branch 59.15%、function 60.06%、line 61.86%を維持した。使い捨てE2E stackを本branchのimageで再構築し、E2E 16件（375 x 812と1280 x 800）が成功した。あわせて支出1件を登録したグループのホーム・履歴・分析を375pxと1280pxで実画面確認し、3画面が同じ¥6,000を表示することを確認した。取得失敗時の例外文言は共有境界のもの（「取引を取得できませんでした。」「メンバー一覧を取得できませんでした。」）へ変わるが、error boundaryは文言を表示しないため利用者向け表示は変わらない。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                                                                                 |
