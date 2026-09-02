@@ -3,15 +3,29 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/modules/auth/server";
 import { LogoutForm, ProfileForm } from "@/modules/auth/presentation";
 import { CreateGroupForm, GroupList } from "@/modules/groups/presentation";
-import { listMyGroups } from "@/modules/groups/server";
+import { listMyGroups, resolveHomeDestination } from "@/modules/groups/server";
 
-// ログイン後のホーム画面（プロフィール編集と所属グループの一覧・作成）
-export default async function ProtectedAppPage() {
-  const [profile, groups] = await Promise.all([
+type ProtectedAppPageProps = Readonly<{
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}>;
+
+// ログイン後のホーム画面（プロフィール編集と所属グループの一覧・作成）。所属が1件だけならカレンダーへ直行する (GRP-011)
+export default async function ProtectedAppPage({
+  searchParams,
+}: ProtectedAppPageProps) {
+  const [profile, groups, search] = await Promise.all([
     getCurrentProfile(),
     listMyGroups(),
+    searchParams,
   ]);
   if (!profile) redirect("/login");
+
+  // 遷移先はサーバーが取得した所属だけから決め、view=groupsのときだけ一覧を表示する (AC-GRP-011-1, AC-GRP-011-3, AC-GRP-011-4)
+  const destination = resolveHomeDestination({
+    groupIds: groups.map((group) => group.id),
+    view: search.view,
+  });
+  if (destination.kind === "group") redirect(destination.href);
 
   return (
     <main className="protected-shell groups-overview">

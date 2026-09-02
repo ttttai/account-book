@@ -75,7 +75,8 @@ test("設定ハブへ管理機能の入口を集約する", async () => {
   assert.match(settings, /\/members/);
   assert.match(settings, /\/categories/);
   assert.match(settings, /\/exports\/transactions\.csv/);
-  assert.match(settings, /href="\/app"/);
+  // 所属1件でも一覧・作成へ到達できるよう、明示的な導線は一覧表示を指定する (AC-GRP-011-3)
+  assert.match(settings, /href="\/app\?view=groups"/);
   assert.doesNotMatch(
     settings,
     /SERVICE_ROLE|@\/modules\/.+\/(?:application|infrastructure)\//,
