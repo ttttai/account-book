@@ -1038,3 +1038,17 @@ MVP範囲確認: 画面、URL、DTO、DB schema、RLS、金額計算規則、定
 MVP範囲確認: 「最後に開いたグループを記憶して直行する」「既定グループの設定」「一覧の並び替え」は追加しない。所属が2件以上の場合の挙動、グループ作成直後の遷移（`AC-GRP-001-4`）、下部ナビゲーションの「ホーム」（選択中グループの当月カレンダー）は変更しない。
 
 判定: `GRP-011`は`GRP-002`・`GRP-003`（複数所属・切替は一覧から引き続き可能）、`AC-AUTH-001-11`・`AC-AUTH-004-1`（Proxyのホーム転送先は`/app`のまま）、`NAV-004`（設定ハブに一覧・作成の入口を集約）、`NFR-UI-*`と整合し、認可境界を変更せず安全に実装できる。純関数の単体テスト、architecture test、E2E補助関数の更新を先に行い、所属1件のアカウントで375pxの実画面（ログイン後の直行と設定からの一覧復帰）を確認する条件で実装開始を承認する。
+
+### R-077 分析の集計対象枠をメンバー数で切り替える（Issue #91）
+
+指摘: 概要分析の集計対象は「グループ」「自分」に続けて自分以外のアクティブメンバー全員を個別リンクとして列挙し、`flex-wrap`で折り返していた（Issue #91）。メンバーが増えるほど枠が複数行へ伸び、375 x 812では支出・収入・収支の位置が下がる。同じ`scope=group|self|member`を扱うホームカレンダーは「グループ」「自分」「メンバー」の3枠と選択欄で操作するため、同じ集計対象に対して画面ごとに異なる操作を覚える必要があった。
+
+対応: `AC-ANA-005-3`・`AC-ANA-005-4`を追加し、自分以外のアクティブメンバー数で集計対象の枠を切り替える。0人は「グループ」「自分」の2枠、1人は3枠目をそのメンバー名の直接リンク、2人以上は3枠目をホームカレンダーと同じメンバー選択欄とし、枠は折り返さない。選択欄の候補は自分以外のアクティブメンバーだけとし、利用者が開いたときだけ展開して選択後は閉じ、選択中の表示名を枠へ示す。`12-analytics-and-reporting.md` 5.1と`03-screen-specification.md` 11へ枠の切り替え規則、候補の範囲、`aria-current`とURL保持、候補一覧の縦scrollを追記し、`07-acceptance-test-plan.md`へcomponent testとモバイル手動確認の項目を追加した。要件IDは追加しない。
+
+安全性確認: 変更は集計対象ナビゲーションの表示と枠数に限られ、`parseAnalyticsSelection`のURL検証、`resolveAnalyticsTarget`の所属確認、`resolveGroupReadContext`の認可、RLS、金額計算には触れない。メンバー数の判定と候補は、サーバーqueryが返す認可済みDTO（`AnalyticsOverviewReady.members`。`resolveGroupReadContext`の既定でアクティブ所属だけを含む）の`isCurrentUser`だけで行い、クライアントから渡された件数やmembership IDを信用しない。不正・別グループのmembership IDは従来どおり`invalid_member`としてfail closedで拒否され、選択欄の追加で新たな読み取り経路や更新経路は生じない。選択欄はURLを組み立てる`Link`だけを持ち、Server ActionもRoute Handlerも追加しない。
+
+実装可能性確認: 変更は`analytics-overview.tsx`と`analytics.module.css`、および分析module内へ併置する`analytics-member-picker.tsx`（`details`/`summary`と`Link`だけのClient Component）に閉じる。ホームカレンダーの`CalendarMemberPicker`は`calendar.module.css`のclassを参照しており、機能単位のCSS所有権（`NFR-MNT-010`）を崩さずに他機能から再利用できないため、分析側は同じ操作規則を分析module内で実装し、moduleを越えたpresentation importを作らない。R-062で確定した「`open`を固定せず、選択後は明示的に閉じる」規則も同じ形で満たす。枠の折り返しは`flex-wrap`を等幅の`grid`へ置き換えて構造的に解消し、`min-height: 44px`を維持する。component testはmembers配列の件数を変えるだけで0人・1人・2人以上を検証でき、候補の`href`と`aria-current`、`open`非固定も同じtestで固定できる。DB変更とマイグレーションは不要である。
+
+MVP範囲確認: 複数メンバーの同時選択、候補の並び替えや検索、削除済みメンバーの選択、ホームカレンダー側の選択欄（自分を含む候補）の変更、分析の集計規則・カテゴリ内訳・URL schemaの変更は行わない。分析とカレンダーで選択欄componentを共有する抽象化も、CSS所有権の整理が別に必要になるため本対応では作らない。
+
+判定: `AC-ANA-005-3`・`AC-ANA-005-4`は`ANA-005`・`ANA-009`、`AC-ANA-005-1`・`AC-ANA-005-2`、`AC-ANA-009-2`・`AC-ANA-009-3`、`NFR-UI-001`・`NFR-UI-002`、`NFR-A11Y-002`・`NFR-A11Y-003`、`NFR-MNT-006`・`NFR-MNT-010`と整合し、サーバー境界を変更せず安全に実装できる。0人・1人・2人以上の表示、選択欄のURL保持と`aria-current`、`open`非固定のcomponent testとCSS構造testを先に追加し、320px・375 x 812・1280 x 800で枠の折り返しと横scrollが無いことを実画面確認する条件で、実装開始を承認する。
