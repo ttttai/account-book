@@ -181,6 +181,12 @@ test("金額はOSの仮想キーボードを開かず画面内テンキーで入
   const form = await read(
     "src/modules/transactions/presentation/expense-form.tsx",
   );
+  const keypad = await read(
+    "src/modules/transactions/presentation/amount-keypad.tsx",
+  );
+  const keypadRules = await read(
+    "src/modules/transactions/domain/amount-keypad.ts",
+  );
   const styles = await read(
     "src/modules/transactions/presentation/transactions.module.css",
   );
@@ -188,13 +194,14 @@ test("金額はOSの仮想キーボードを開かず画面内テンキーで入
   // OSの仮想キーボードを抑止しつつ、物理キーボードからの入力は維持する。
   assert.match(form, /inputMode="none"/);
   assert.doesNotMatch(form, /id="amountMinor"[\s\S]{0,400}readOnly/);
-  // テンキーのキーは送信ボタンにしない。
+  // テンキーは共有部品を使い、キーは送信ボタンにしない (REC-010で定期取引と共有)。
+  assert.match(form, /<AmountKeypad/);
   assert.match(
-    form,
+    keypad,
     /className=\{styles\["keypad-key"\]\}\s*\n?\s*[\s\S]{0,200}type="button"/,
   );
   // 桁あふれを安全な整数で判定する。
-  assert.match(form, /Number\.isSafeInteger/);
+  assert.match(keypadRules, /Number\.isSafeInteger/);
   // キーは44 x 44 CSS pixel以上のタップ領域を持つ。
   assert.match(
     styles,
