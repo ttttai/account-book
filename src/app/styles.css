@@ -259,6 +259,50 @@ a:focus-visible {
   background: transparent;
 }
 
+/* ホーム（/app）のroute-level skeleton。確定後の画面と同じshellで配置だけを先に描く (AC-AUTH-001-13) */
+.groups-skeleton {
+  overflow: hidden;
+  border-radius: 1rem;
+  background: linear-gradient(100deg, #f1f3f1 20%, #fafbfa 40%, #f1f3f1 60%);
+  background-size: 220% 100%;
+  animation: history-shimmer 1.4s infinite linear;
+}
+
+.groups-skeleton-header {
+  min-height: 44px;
+}
+
+.groups-skeleton-title {
+  width: min(60%, 220px);
+  height: 44px;
+}
+
+.groups-skeleton-action {
+  width: 96px;
+  height: 40px;
+  border-radius: 999px;
+}
+
+.groups-skeleton-heading {
+  width: min(50%, 180px);
+  height: 28px;
+}
+
+.groups-skeleton-field {
+  height: 52px;
+  margin-top: 0.9rem;
+}
+
+.groups-skeleton-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.groups-skeleton-card {
+  height: 88px;
+}
+
 .empty-panel {
   display: grid;
   margin-top: 48px;

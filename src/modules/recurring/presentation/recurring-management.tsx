@@ -1,7 +1,20 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FocusEvent as ReactFocusEvent,
+} from "react";
 import { useFormStatus } from "react-dom";
+
+import {
+  appendAmountDigit,
+  removeLastAmountDigit,
+} from "@/modules/transactions";
+import { AmountKeypad } from "@/modules/transactions/presentation";
 
 import type {
   RecurringManagementView,
@@ -93,8 +106,43 @@ function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
   );
   const fieldErrors = state.fieldErrors ?? {};
 
+  // 金額は取引入力と同じ画面内テンキーで入力する。OSの仮想キーボードを開かず、下部ナビゲーションを押し上げない (REC-010)
+  const [amountMinor, setAmountMinor] = useState(
+    recurring ? String(recurring.amountMinor) : "",
+  );
+  const [keypadOpen, setKeypadOpen] = useState(false);
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const keypadRef = useRef<HTMLDivElement>(null);
+
+  // 金額欄へfocusしたら開き、金額欄以外の入力欄へfocusしたら閉じる。テンキー内の操作では開閉しない (AC-REC-005-2)
+  function handleFieldsFocus(event: ReactFocusEvent<HTMLFieldSetElement>) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (target === amountInputRef.current) {
+      setKeypadOpen(true);
+      return;
+    }
+    if (keypadRef.current?.contains(target)) return;
+    setKeypadOpen(false);
+  }
+
+  // 開いたテンキーが下部ナビゲーションへ隠れないよう、scroll-margin込みで見える位置まで移動する (AC-REC-005-4)
+  useEffect(() => {
+    if (!keypadOpen) return;
+    const frame = requestAnimationFrame(() => {
+      const keypad = keypadRef.current;
+      if (keypad && typeof keypad.scrollIntoView === "function") {
+        keypad.scrollIntoView({ block: "nearest" });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [keypadOpen]);
+
   return (
-    <>
+    <fieldset
+      className={styles["recurring-fields"]}
+      onFocus={handleFieldsFocus}
+    >
       <fieldset className={styles["recurring-fieldset"]}>
         <legend>種別</legend>
         <div className={styles["recurring-segmented"]}>
@@ -134,38 +182,68 @@ function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
         ) : null}
       </div>
 
-      <div className={styles["recurring-field-row"]}>
-        <div className={styles["recurring-field"]}>
-          <label htmlFor={`${fieldId}-amount`}>金額</label>
+      {/* inputmode="none"でOSの仮想キーボードを開かず、物理キーボードとスクリーンリーダーからの入力は維持する (AC-REC-005-1, AC-REC-005-3) */}
+      <div className={styles["recurring-field"]}>
+        <label htmlFor={`${fieldId}-amount`}>金額</label>
+        <div className={styles["recurring-amount-wrap"]}>
+          <span aria-hidden="true">¥</span>
           <input
-            defaultValue={recurring ? String(recurring.amountMinor) : ""}
+            aria-describedby={
+              keypadOpen ? undefined : `${fieldId}-amount-keypad-hint`
+            }
+            autoComplete="off"
             id={`${fieldId}-amount`}
-            inputMode="numeric"
+            inputMode="none"
             name="amountMinor"
+            onChange={(event) => setAmountMinor(event.target.value)}
+            onClick={() => setKeypadOpen(true)}
+            pattern="[0-9]*"
+            placeholder="0"
+            ref={amountInputRef}
             required
             type="text"
+            value={amountMinor}
           />
-          {fieldErrors.amountMinor ? (
-            <p className="field-error">{fieldErrors.amountMinor.join(" ")}</p>
-          ) : null}
         </div>
-        <div className={styles["recurring-field"]}>
-          <label htmlFor={`${fieldId}-day`}>毎月の日付</label>
-          <select
-            defaultValue={String(recurring?.dayOfMonth ?? 1)}
-            id={`${fieldId}-day`}
-            name="dayOfMonth"
+        {keypadOpen ? (
+          <AmountKeypad
+            className={styles["recurring-keypad"]}
+            onDelete={() => setAmountMinor(removeLastAmountDigit)}
+            onKey={(key) =>
+              setAmountMinor((current) => appendAmountDigit(current, key))
+            }
+            open
+            ref={keypadRef}
+          />
+        ) : (
+          <p
+            className={styles["recurring-keypad-hint"]}
+            id={`${fieldId}-amount-keypad-hint`}
           >
-            {DAY_OPTIONS.map((day) => (
-              <option key={day} value={day}>
-                {day}日
-              </option>
-            ))}
-          </select>
-          {fieldErrors.dayOfMonth ? (
-            <p className="field-error">{fieldErrors.dayOfMonth.join(" ")}</p>
-          ) : null}
-        </div>
+            金額欄をタップするとテンキーを開きます。
+          </p>
+        )}
+        {fieldErrors.amountMinor ? (
+          <p className="field-error">{fieldErrors.amountMinor.join(" ")}</p>
+        ) : null}
+      </div>
+
+      <div className={styles["recurring-field"]}>
+        <label htmlFor={`${fieldId}-day`}>毎月の日付</label>
+        <select
+          defaultValue={String(recurring?.dayOfMonth ?? 1)}
+          id={`${fieldId}-day`}
+          name="dayOfMonth"
+        >
+          {DAY_OPTIONS.map((day) => (
+            <option key={day} value={day}>
+              {day}日
+            </option>
+          ))}
+        </select>
+        {fieldErrors.dayOfMonth ? (
+          <p className="field-error">{fieldErrors.dayOfMonth.join(" ")}</p>
+        ) : null}
       </div>
 
       <div className={styles["recurring-field-row"]}>
@@ -316,7 +394,7 @@ function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
           <p className="field-error">{fieldErrors.memo.join(" ")}</p>
         ) : null}
       </div>
-    </>
+    </fieldset>
   );
 }
 

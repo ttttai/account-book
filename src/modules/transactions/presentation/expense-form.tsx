@@ -16,6 +16,10 @@ import type {
   ExpenseFormCategory,
   ExpenseFormOptions,
 } from "../application/expense-types";
+import {
+  appendAmountDigit,
+  removeLastAmountDigit,
+} from "../domain/amount-keypad";
 import { calculateExpenseAllocations } from "../domain/expense-allocation";
 import { INITIAL_EXPENSE_ACTION_STATE } from "./action-state";
 import {
@@ -23,6 +27,7 @@ import {
   updateExpenseAction,
   updateIncomeAction,
 } from "./actions";
+import { AmountKeypad } from "./amount-keypad";
 
 import styles from "./transactions.module.css";
 
@@ -63,14 +68,6 @@ function safeAmount(value: string): number | null {
   if (!/^[1-9]\d*$/.test(value)) return null;
   const amount = Number(value);
   return Number.isSafeInteger(amount) ? amount : null;
-}
-
-// テンキーで1桁追加した結果を返す。先頭0と安全な整数を超える桁は追加しない (AC-TXN-014-4)
-function appendAmountDigit(current: string, digit: string): string {
-  if (current === "" && /^0+$/.test(digit)) return current;
-  const next = `${current}${digit}`;
-  if (!/^\d+$/.test(next)) return current;
-  return Number.isSafeInteger(Number(next)) ? next : current;
 }
 
 // 前回選択した支払者をlocalStorageから読み出す
@@ -775,41 +772,13 @@ export function ExpenseForm({
           </fieldset>
 
           {/* 保存は常設し、数字キーと1文字削除だけを開閉する (AC-TXN-014-5, AC-TXN-016-1) */}
-          <div className={styles.keypad}>
-            {showKeypad && (
-              <div className={styles["keypad-digits"]}>
-                {["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0"].map(
-                  (key) => (
-                    <button
-                      className={styles["keypad-key"]}
-                      data-key={key}
-                      key={key}
-                      onClick={() =>
-                        setAmountMinor((current) =>
-                          appendAmountDigit(current, key),
-                        )
-                      }
-                      type="button"
-                    >
-                      {key}
-                    </button>
-                  ),
-                )}
-              </div>
-            )}
-            <div className={styles["keypad-side"]}>
-              {showKeypad && (
-                <button
-                  aria-label="1桁削除"
-                  className={styles["keypad-key"]}
-                  onClick={() =>
-                    setAmountMinor((current) => current.slice(0, -1))
-                  }
-                  type="button"
-                >
-                  <span aria-hidden="true">⌫</span>
-                </button>
-              )}
+          <AmountKeypad
+            onDelete={() => setAmountMinor(removeLastAmountDigit)}
+            onKey={(key) =>
+              setAmountMinor((current) => appendAmountDigit(current, key))
+            }
+            open={showKeypad}
+            side={
               <div className={styles["input-dock-save"]}>
                 <SaveButton
                   disabled={hasNoIncomeCategory}
@@ -822,8 +791,8 @@ export function ExpenseForm({
                   }
                 />
               </div>
-            </div>
-          </div>
+            }
+          />
         </div>
       </form>
       {footer}
