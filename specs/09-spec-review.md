@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.10の自動文書検査では、要件ID 150件、明示的な受け入れ条件ID 198件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-074で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.10の自動文書検査では、要件ID 150件、明示的な受け入れ条件ID 198件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-075で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加した。R-074は要件ID・受け入れ条件IDを追加しない）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -995,7 +995,23 @@ MVP範囲確認: 前月・翌月の内容をdrag中に同時描画するカル�
 
 実装確認: `CalendarSwipeNavigator`へ`pointermove`の追従表示、前月・翌月の方向インジケーター、未成立・cancel時の原点復帰、成立時の送り出しを追加した。`prefers-reduced-motion`ではtransformとtransitionを抑制した。月移動行は5列gridとし、年月を中央列、「今日」と翌月を右側の44px列へ配置した。architecture test 130件、単体・component test 601件、format、lint、型検査、本番buildが成功した。使い捨てE2E環境の実ブラウザで左スワイプの翌月遷移を確認し、320px・375 x 812・1280 x 800の年月中心のずれは0px、横scrollは0pxだった。375pxの過去月表示で「今日」は44 x 44pxを維持した。
 
-### R-074 所属グループが1件のときのホーム直行（GRP-011）
+### R-074 月次取引読み取りと認可contextの共有境界（refactor）
+
+指摘: カレンダー（`getGroupCalendar`）、履歴（`getGroupHistory`）、分析（`loadAnalyticsMonths`・`analytics-context`）が、`groupId`検証、Google検証済みsession、アクティブ所属、プロフィール表示名の取得を各moduleで再実装していた。さらにカレンダーと分析は、未削除の支出・収入取引の月範囲query、行schema、定期取引の展開と合流を別々に実装していた。予算（Issue #54）と詳細分析（Issue #56）は月次の支出・収入実績の4番目・5番目の利用者になるため、このまま進めると同型の実装が増え、同じ月・同じ対象で画面ごとに金額が食い違う不具合の温床になる。
+
+対応: 利用者向け動作を変えないrefactorとして、`groups`モジュールへ`resolveGroupReadContext`と`loadGroupMembers`を、`transactions`モジュールへ`listMonthlyTransactions`を追加し、`05-api-and-application-boundaries.md`へ共有する認可済み読み取り境界として記載した。カレンダーと分析は`listMonthlyTransactions`の結果へ既存の集計純関数（`calculateCalendarSummary`・`aggregateAnalyticsMonth`）を適用し、履歴は絞り込み・cursor pagination用の取引queryを固有に保ちつつ、認可contextと表示名解決を共有境界へ置き換える。`12-analytics-and-reporting.md`と`14-recurring-transactions.md`の展開の記述を共有境界経由へ更新し、`07-acceptance-test-plan.md`へ共有境界のApplication testを追加した。要件ID・受け入れ条件IDは追加しない。
+
+安全性確認: 共有境界は呼び出しごとに`groupId`をschema検証し、Google検証済みsessionとアクティブ所属を確認し、不正ID・未認証・非メンバーは存在を明かさず`null`を返す。削除済みmembershipは履歴が過去参照のために明示した場合だけ含め、操作者自身は常にアクティブ所属を要求する。取引はRLS適用のユーザーsession clientで`group_id`・`type`・`deleted_at is null`・取引日の半開区間の条件を付けて読み、service role、cache、Route Handlerを追加しない。返却物は既存DTOと同じ最小項目とし、Client Componentへ渡す内容は変わらない。取得失敗はカレンダー・履歴・分析のいずれでも例外としてerror boundaryへ渡す。履歴がプロフィール取得失敗を「表示不可（`null`）」として扱っていた挙動は、他画面と同じ例外へ揃える（error boundaryの表示は変えない）。
+
+実装可能性確認: 3 moduleのquery条件は`group_id`・`type`・`deleted_at`・`transaction_date`の半開区間で一致しており、選択列はカレンダーの列集合が分析の列集合を包含する。共有queryはカレンダーと同じ列（`id`・`created_at`・支払者または受取者・カテゴリの`id`/`name`/`color`/`icon`・負担行）を返し、分析は必要な項目だけを集計入力へ写す。定期取引の展開は既存の`expandRecurringForMonth`を月ごとに呼ぶ処理を共有境界へ移すだけで、展開規則を変えない。既存のApplication test（カレンダー、分析）はSupabase clientをmodule境界でmockしており、query順序を維持すれば同じ検証を継続できる。
+
+MVP範囲確認: 画面、URL、DTO、DB schema、RLS、金額計算規則、定期取引の展開規則、履歴の絞り込みとpaginationは変更しない。取引編集・入力選択肢のqueryが持つ同型の認可処理と、Server Action間のFormData helperの共通化は本refactorに含めず、必要になった作業で個別に扱う。
+
+判定: 本refactorは`NFR-MNT-002`・`NFR-MNT-006`（機能単位の整理と依存ルール）、`ANA-012`・`AC-ANA-012-1`（同じ認可済み集計の共有）、`REC-005`・`AC-REC-002-2`（展開の一貫性）、`CAL-010`・`AC-ANA-002-1`（カレンダーと分析の一致）と整合し、安全かつ実装可能である。共有境界のApplication testを先に追加し、既存のカレンダー・分析・履歴のtest、architecture test、lint、型検査、本番buildが通り、幅375pxと1280pxでホーム・履歴・分析の表示が変わらないことを確認する条件で、実装開始を承認する。
+
+実装確認: `groups`へ`resolveGroupReadContext`・`loadGroupMembers`（Application test 11件）、`transactions`へ`listMonthlyTransactions`と月範囲の純関数`monthlyDateRange`（Application test 8件、単体test 5件）を追加し、カレンダー・履歴・分析を共有境界経由へ置き換えた。重複していた行schema、月範囲helper（`getMonthRange`・`analyticsMonthRange`）、Intl日付変換を削除し、production codeは544行追加・609行削除（正味65行減）、testは約600行増となった。architecture test 128件、component・unit test 601件、format、警告なしlint、型検査、本番buildが成功し、coverageはstatement 61.95%、branch 59.15%、function 60.06%、line 61.86%を維持した。使い捨てE2E stackを本branchのimageで再構築し、E2E 16件（375 x 812と1280 x 800）が成功した。あわせて支出1件を登録したグループのホーム・履歴・分析を375pxと1280pxで実画面確認し、3画面が同じ¥6,000を表示することを確認した。取得失敗時の例外文言は共有境界のもの（「取引を取得できませんでした。」「メンバー一覧を取得できませんでした。」）へ変わるが、error boundaryは文言を表示しないため利用者向け表示は変わらない。
+
+### R-075 所属グループが1件のときのホーム直行（GRP-011）
 
 指摘: 家計簿を1つのグループだけで使う利用者が大半だが、ログイン後・`start_url`・ホーム（`/app`）の到達時に毎回グループ一覧が表示され、1件しかないグループを選ぶ操作が必要になる。主対象のスマートフォンでは記録までのタップ数と表示の連続性を損なう。
 

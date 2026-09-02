@@ -78,19 +78,6 @@ function dayOfWeek(year: number, month: number, day: number): number {
   );
 }
 
-// 月初日と翌月初日（排他的終端）をYYYY-MM-DDで返す
-export function getMonthRange(monthValue: string): Readonly<{
-  start: string;
-  endExclusive: string;
-}> {
-  const { year, month } = parseMonth(monthValue);
-  const next = normalizeDate(year, month + 1, 1);
-  return {
-    start: formatDate(year, month, 1),
-    endExclusive: formatDate(next.year, next.month, next.day),
-  };
-}
-
 // 前月または翌月のYYYY-MM文字列を返す
 export function shiftMonth(monthValue: string, offset: -1 | 1): string {
   const { year, month } = parseMonth(monthValue);

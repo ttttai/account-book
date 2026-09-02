@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  analyticsMonthRange,
   formatAnalyticsMonth,
   isAnalyticsMonth,
   listAnalyticsMonths,
@@ -28,26 +27,6 @@ describe("shiftAnalyticsMonth", () => {
 
   it("不正な月を例外にする", () => {
     expect(() => shiftAnalyticsMonth("2026-13", 1)).toThrow();
-  });
-});
-
-describe("analyticsMonthRange", () => {
-  it("開始月初日と翌月初日（排他的終端）を返す", () => {
-    expect(analyticsMonthRange("2026-08", "2026-09")).toEqual({
-      start: "2026-08-01",
-      endExclusive: "2026-10-01",
-    });
-    expect(analyticsMonthRange("2026-12", "2026-12")).toEqual({
-      start: "2026-12-01",
-      endExclusive: "2027-01-01",
-    });
-  });
-
-  it("うるう年の2月も月末までを範囲へ含める", () => {
-    expect(analyticsMonthRange("2028-02", "2028-02")).toEqual({
-      start: "2028-02-01",
-      endExclusive: "2028-03-01",
-    });
   });
 });
 

@@ -26,19 +26,6 @@ export function shiftAnalyticsMonth(month: string, offset: -1 | 1): string {
   return formatMonth(value.year, shifted);
 }
 
-// 開始月の初日と、終了月の翌月初日（排他的終端）を`YYYY-MM-DD`で返す
-export function analyticsMonthRange(
-  startMonth: string,
-  endMonth: string,
-): Readonly<{ start: string; endExclusive: string }> {
-  const start = parseMonth(startMonth);
-  const end = parseMonth(shiftAnalyticsMonth(endMonth, 1));
-  return {
-    start: `${formatMonth(start.year, start.month)}-01`,
-    endExclusive: `${formatMonth(end.year, end.month)}-01`,
-  };
-}
-
 // 期間内の月を昇順で列挙する。不正な月・逆順・上限超過はnullを返してfail closedにする
 export function listAnalyticsMonths(
   startMonth: string,
