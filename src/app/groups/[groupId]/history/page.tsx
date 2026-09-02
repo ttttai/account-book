@@ -49,7 +49,7 @@ export default async function GroupHistoryPage({
           >
             ホーム
           </Link>
-          <Link className="text-link" href="/app">
+          <Link className="text-link" href="/app?view=groups">
             グループ一覧
           </Link>
         </nav>

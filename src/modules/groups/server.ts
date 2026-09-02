@@ -13,6 +13,10 @@ export type {
   GroupReadMember,
   GroupReadMembership,
 } from "./application/group-read-context";
+export {
+  type HomeDestination,
+  resolveHomeDestination,
+} from "./domain/home-destination";
 export type { GroupSummary } from "./application/group-types";
 export { listMyGroups } from "./application/list-my-groups";
 export type {

@@ -67,6 +67,30 @@ test("グループqueryとcommandをserver-only境界へ隔離する", async () 
   }
 });
 
+test("所属が1件のホームは純関数の判定でカレンダーへ直行し、明示的な一覧導線を残す (GRP-011)", async () => {
+  const appPage = await read("src/app/app/page.tsx");
+  const destination = await read(
+    "src/modules/groups/domain/home-destination.ts",
+  );
+  const server = await read("src/modules/groups/server.ts");
+  const settings = await read("src/app/groups/[groupId]/settings/page.tsx");
+  const history = await read("src/app/groups/[groupId]/history/page.tsx");
+
+  // 遷移先はサーバーが所属queryの結果から決め、searchParamsのviewだけを表示切替に使う (AC-GRP-011-4)
+  assert.match(appPage, /resolveHomeDestination\(/);
+  assert.match(appPage, /listMyGroups\(\)/);
+  assert.match(appPage, /searchParams/);
+  assert.match(appPage, /redirect\(destination\.href\)/);
+  assert.match(server, /resolveHomeDestination/);
+  assert.match(destination, /view === "groups"/);
+  assert.match(destination, /groupIds\.length === 1/);
+  assert.match(destination, /encodeURIComponent/);
+  assert.doesNotMatch(destination, /import "server-only"/);
+  // 一覧を明示的に開く導線はview=groupsを指定する (AC-GRP-011-3)
+  assert.match(settings, /href="\/app\?view=groups"/);
+  assert.match(history, /href="\/app\?view=groups"/);
+});
+
 test("App Routerはgroupsモジュールの公開境界だけを使う", async () => {
   const appPage = await read("src/app/app/page.tsx");
   const groupPage = await read("src/app/groups/[groupId]/page.tsx");

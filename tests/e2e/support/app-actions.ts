@@ -40,7 +40,8 @@ async function enterAmountWithKeypad(
 
 // グループを作成し、作成されたグループIDを返す
 export async function createGroup(page: Page, name: string): Promise<string> {
-  await page.goto("/app");
+  // 所属が1件だけの間は/appがカレンダーへ直行するため、一覧表示を明示して作成フォームを開く (AC-GRP-011-3)
+  await page.goto("/app?view=groups");
   await page.getByLabel("グループ名").fill(name);
   await page.getByRole("button", { name: "グループを作成" }).click();
   await page.waitForURL(/\/groups\/[0-9a-f-]{36}(\?|$)/);
