@@ -39,4 +39,4 @@
 
 ## 実装確認
 
-`specs/reviews/README.md`と本ファイルを追加し、`09-spec-review.md`の冒頭と第2節へ凍結の案内を追記した。`AGENTS.md`・`specs/README.md`・`docs/operations/e2e-tests.md`・`specs/11`・`specs/12`の参照先を`specs/reviews/`へ更新した。`tests/architecture/spec-reviews.test.mjs`（3件）を追加し、`foundation.test.mjs`のID件数一致確認を一意性確認だけに変更した。architecture test 139件（うち新規3件）、vitest 639件、biome lintが成功した。`tsc --noEmit`は`@playwright/test`未インストールの環境要因による`tests/e2e/support/`の既存3件のみで、本変更に起因するエラーはない。UI変更がないため実画面確認は行っていない。
+`specs/reviews/README.md`と本ファイルを追加し、`09-spec-review.md`の冒頭と第2節へ凍結の案内を追記した。`AGENTS.md`・`specs/README.md`・`docs/operations/e2e-tests.md`・`specs/11`・`specs/12`の参照先を`specs/reviews/`へ更新した。`tests/architecture/spec-reviews.test.mjs`（3件）を追加し、`foundation.test.mjs`のID件数一致確認を一意性確認だけに変更した。architecture test 136件（うち新規3件）、vitest 639件、biome lint、prettierのformat checkが成功した。`tsc --noEmit`は`@playwright/test`未インストールの環境要因による`tests/e2e/support/`の既存3件のみで、本変更に起因するエラーはない。UI変更がないため実画面確認は行っていない。
