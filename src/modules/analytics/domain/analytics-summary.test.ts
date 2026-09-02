@@ -18,6 +18,7 @@ const expenses: readonly AnalyticsExpenseInput[] = [
   {
     date: "2026-09-03",
     amountMinor: 6000,
+    payerMemberId: MEMBER_A,
     categoryId: FOOD,
     categoryName: "食費",
     categoryColor: "food",
@@ -29,6 +30,7 @@ const expenses: readonly AnalyticsExpenseInput[] = [
   {
     date: "2026-09-27",
     amountMinor: 4000,
+    payerMemberId: MEMBER_B,
     categoryId: HOME,
     categoryName: "住居",
     categoryColor: "home",
@@ -37,6 +39,7 @@ const expenses: readonly AnalyticsExpenseInput[] = [
   {
     date: "2026-09-28",
     amountMinor: 1000,
+    payerMemberId: MEMBER_B,
     categoryId: FOOD,
     categoryName: "食費",
     categoryColor: "food",
@@ -46,6 +49,7 @@ const expenses: readonly AnalyticsExpenseInput[] = [
   {
     date: "2026-08-31",
     amountMinor: 9999,
+    payerMemberId: MEMBER_A,
     categoryId: FOOD,
     categoryName: "食費",
     categoryColor: "food",
@@ -149,6 +153,7 @@ describe("aggregateAnalyticsMonth", () => {
       {
         date: "2026-09-01",
         amountMinor: Number.MAX_SAFE_INTEGER,
+        payerMemberId: MEMBER_A,
         categoryId: FOOD,
         categoryName: "食費",
         categoryColor: "food",
@@ -159,6 +164,7 @@ describe("aggregateAnalyticsMonth", () => {
       {
         date: "2026-09-02",
         amountMinor: 1,
+        payerMemberId: MEMBER_A,
         categoryId: FOOD,
         categoryName: "食費",
         categoryColor: "food",

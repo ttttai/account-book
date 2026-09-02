@@ -18,6 +18,7 @@ vi.mock("@/modules/recurring/server", async (importOriginal) => ({
 }));
 
 import { getAnalyticsOverview } from "./get-analytics-overview";
+import { getAnalyticsDetails } from "./get-analytics-details";
 import { getAnalyticsPeriodSummary } from "./get-analytics-period-summary";
 
 const GROUP_ID = "10000000-0000-4000-8000-000000000001";
@@ -489,5 +490,75 @@ describe("getAnalyticsPeriodSummary", () => {
         target: { scope: "group" },
       }),
     ).toBeNull();
+  });
+});
+
+describe("getAnalyticsDetails", () => {
+  it("期間指標・カテゴリ・メンバー3系列を共通月次読み取り1回で返す (AC-ANA-008-1〜4、AC-ANA-012-3)", async () => {
+    const { from } = setupSupabase();
+
+    const details = await getAnalyticsDetails(GROUP_ID, {
+      start: "2026-08",
+      end: "2026-09",
+      scope: "group",
+    });
+
+    expect(details?.kind).toBe("ready");
+    if (details?.kind !== "ready") return;
+    expect(details.period).toMatchObject({
+      expenseTotal: 21000,
+      incomeTotal: 500000,
+      balance: 479000,
+      averageExpense: 10500,
+      highestExpenseMonth: "2026-09",
+    });
+    expect(details.months).toHaveLength(2);
+    expect(
+      details.period.expenseByCategory.reduce(
+        (total, item) => total + item.amountMinor,
+        0,
+      ),
+    ).toBe(21000);
+    expect(details.memberBreakdown).toEqual([
+      expect.objectContaining({
+        membershipId: MEMBER_A,
+        usageTotal: 12000,
+        paidTotal: 16000,
+        receivedTotal: 500000,
+      }),
+      expect.objectContaining({
+        membershipId: MEMBER_B,
+        usageTotal: 9000,
+        paidTotal: 5000,
+        receivedTotal: 0,
+      }),
+    ]);
+    expect(
+      from.mock.calls.filter(([table]) => table === "transactions"),
+    ).toHaveLength(2);
+    expect(recurringMocks.listRecurringSchedules).toHaveBeenCalledTimes(1);
+  });
+
+  it("不正期間と別グループmembershipを取引読み取り前に拒否する (AC-ANA-006-3、AC-ANA-007-2)", async () => {
+    const invalid = setupSupabase();
+    expect(
+      await getAnalyticsDetails(GROUP_ID, { start: "2026-10", end: "2026-09" }),
+    ).toMatchObject({ kind: "invalid" });
+    expect(
+      invalid.from.mock.calls.filter(([table]) => table === "transactions"),
+    ).toHaveLength(0);
+
+    const other = setupSupabase();
+    expect(
+      await getAnalyticsDetails(GROUP_ID, {
+        start: "2026-08",
+        end: "2026-09",
+        scope: "member",
+        member: OTHER_GROUP_MEMBER,
+      }),
+    ).toMatchObject({ kind: "invalid", reason: "invalid_member" });
+    expect(
+      other.from.mock.calls.filter(([table]) => table === "transactions"),
+    ).toHaveLength(0);
   });
 });

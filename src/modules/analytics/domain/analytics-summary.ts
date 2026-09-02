@@ -12,6 +12,7 @@ export type AnalyticsExpenseInput = Readonly<{
   /** `YYYY-MM-DD` */
   date: string;
   amountMinor: number;
+  payerMemberId: string;
   categoryId: string;
   categoryName: string;
   categoryColor: string;
@@ -61,7 +62,7 @@ export type AnalyticsComparison = Readonly<{
 export const ANALYTICS_CATEGORY_LIMIT = 5;
 
 // 加算のたびに安全な整数範囲を検証し、金額の桁あふれを例外にする
-function safeAdd(left: number, right: number): number {
+export function safeAdd(left: number, right: number): number {
   if (
     !Number.isSafeInteger(left) ||
     !Number.isSafeInteger(right) ||
@@ -134,7 +135,10 @@ export function aggregateAnalyticsMonth(
 }
 
 // 構成比を整数パーセントへ四捨五入する。期間支出0円では0%とし、無限大へ発散させない
-function sharePercentOf(amountMinor: number, expenseTotal: number): number {
+export function sharePercentOf(
+  amountMinor: number,
+  expenseTotal: number,
+): number {
   if (expenseTotal <= 0) return 0;
   return Math.round((amountMinor / expenseTotal) * 100);
 }

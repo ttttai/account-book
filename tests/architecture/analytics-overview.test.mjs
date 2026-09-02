@@ -17,7 +17,7 @@ async function exists(path) {
   }
 }
 
-test("概要分析仕様を正本として承認記録に紐付ける (ANA-001〜ANA-012)", async () => {
+test("概要・詳細分析仕様を正本として承認記録に紐付ける (ANA-001〜ANA-012)", async () => {
   assert.equal(await exists("specs/12-analytics-and-reporting.md"), true);
 
   const specification = await read("specs/12-analytics-and-reporting.md");
@@ -28,10 +28,12 @@ test("概要分析仕様を正本として承認記録に紐付ける (ANA-001�
   assert.match(specification, /getAnalyticsPeriodSummary/);
   assert.match(requirements, /^- `ANA-001`/m);
   assert.match(requirements, /^- `ANA-012`/m);
-  assert.doesNotMatch(requirements, /^- `ANA-006`/m);
+  assert.match(requirements, /^- `ANA-006`/m);
+  assert.match(requirements, /^- `ANA-008`/m);
   assert.match(useCases, /^- `AC-ANA-001-1`/m);
   assert.match(useCases, /^- `AC-ANA-012-2`/m);
   assert.match(review, /### R-068/);
+  assert.match(review, /### R-077/);
 });
 
 test("分析queryをserver-only認可境界へ隔離する", async () => {
@@ -119,6 +121,34 @@ test("分析routeにloadingとerror境界を置く", async () => {
   assert.match(loading, /aria-busy="true"/);
   assert.match(error, /^"use client";/m);
   assert.match(error, /reset\(\)/);
+});
+
+test("詳細分析routeは公開境界、Promise searchParams、固有loadingを使う", async () => {
+  const pagePath = "src/app/groups/[groupId]/analytics/details/page.tsx";
+  const loadingPath = "src/app/groups/[groupId]/analytics/details/loading.tsx";
+  assert.equal(await exists(pagePath), true);
+  assert.equal(await exists(loadingPath), true);
+
+  const page = await read(pagePath);
+  const loading = await read(loadingPath);
+  const server = await read("src/modules/analytics/server.ts");
+
+  assert.match(page, /searchParams: Promise/);
+  assert.match(page, /getAnalyticsDetails/);
+  assert.match(page, /@\/modules\/analytics\/server/);
+  assert.match(page, /@\/modules\/analytics\/presentation/);
+  assert.doesNotMatch(page, /fetch\([^)]+\/api\//);
+  assert.match(loading, /aria-busy="true"/);
+  assert.match(server, /getAnalyticsDetails/);
+});
+
+test("詳細分析は共有月次読み取りを1回だけ使い、独自DB queryを持たない", async () => {
+  const details = await read(
+    "src/modules/analytics/application/get-analytics-details.ts",
+  );
+  assert.match(details, /loadAnalyticsTransactionInputs/);
+  assert.match(details, /aggregateAnalyticsMonths/);
+  assert.doesNotMatch(details, /\.from\("transactions"\)|fetch\(/);
 });
 
 test("分析スタイルを機能のCSS Modulesへ置く (NFR-MNT-010)", async () => {

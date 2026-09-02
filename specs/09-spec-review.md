@@ -1056,3 +1056,5 @@ MVP範囲確認: 「最後に開いたグループを記憶して直行する」
 MVP範囲確認: AI推定、将来予測、前年同月比較、日・曜日・店舗・タグ別分析、グループ横断、保存済みレポート、CSV・画像・PDF出力、予算、LINE送信、永続集計、共有cacheは追加しない。新しい依存package、DB schema、migrationも追加しない。
 
 判定: `ANA-006`〜`ANA-008`と`AC-ANA-006-1`〜`AC-ANA-012-3`は`ANA-001`〜`ANA-012`、`CAL-010`、`REC-005`、`NFR-SEC-*`、`NFR-A11Y-*`、`NFR-UI-*`、R-074の共有境界と整合し、安全かつ実装可能である。純関数・Application・component・architecture testを先に追加し、format、lint、型検査、本番build、DB/RLS・E2Eを通し、320px・375 x 812・1280 x 800で実画面確認する条件で実装開始を承認する。
+
+実装確認: `/groups/{groupId}/analytics/details`へ、直近6か月の既定表示、3・6・12か月preset、最大24か月の任意範囲、グループ・自分・指定メンバーの対象切替を実装した。期間合計・月平均支出・最大支出月、月別推移、期間カテゴリ構成、グループ対象時のメンバー別負担額・支払額・受取額、月別の正確な数値表を表示し、概要分析との往復で期間・対象をURLへ保持する。詳細分析固有のloading・error・空状態・不正条件状態を追加した。取引はR-074の共有境界から1要求につき1回だけ読み、既存月次集計と新しい期間・メンバー集計の純関数へ渡しており、DB schema・migration・依存packageは変更していない。format、警告なしlint、型検査、本番build、architecture test 132件、単体・component test 642件、全DB/RLS統合testが成功した。E2E 20件はすべて成功した（全体実行で開発サーバーのfilesystem cache圧縮中に既存2件がnavigation timeoutとなったため、ログで機能errorがないことを確認し、対象2件を個別再実行して成功）。320px・375 x 812・1280 x 800の実ブラウザで詳細分析を確認し、横scrollなし、主要操作・期間指標・数値表の表示を確認した。
