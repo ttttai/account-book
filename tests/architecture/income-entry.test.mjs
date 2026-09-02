@@ -111,7 +111,11 @@ test("カレンダーは収入を支出と区別して表示する (CAL-012)", a
   const query = await read(
     "src/modules/calendar/application/get-group-calendar.ts",
   );
-  assert.match(query, /\.eq\("type", "income"\)/);
+  const loader = await read(
+    "src/modules/transactions/application/list-monthly-transactions.ts",
+  );
+  // 収入は共有の月次読み取りで支出と別に読み、カレンダーは収入専用の集計関数へ渡す
+  assert.match(loader, /\.eq\("type", "income"\)/);
   assert.match(query, /calculateCalendarIncomeSummary/);
 
   const explorer = await read(

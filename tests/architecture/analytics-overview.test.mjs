@@ -41,20 +41,32 @@ test("分析queryをserver-only認可境界へ隔離する", async () => {
   const loader = await read(
     "src/modules/analytics/application/load-analytics-months.ts",
   );
+  const readContext = await read(
+    "src/modules/groups/application/group-read-context.ts",
+  );
+  const transactions = await read(
+    "src/modules/transactions/application/list-monthly-transactions.ts",
+  );
 
-  for (const source of [context, loader]) {
+  for (const source of [context, loader, readContext, transactions]) {
     assert.match(source, /import "server-only"/);
     assert.doesNotMatch(source, /SERVICE_ROLE|unstable_cache|fetch\(/);
   }
-  assert.match(context, /auth\.getClaims\(\)/);
-  assert.match(context, /getAllowedGoogleUserId/);
-  assert.match(context, /\.eq\("status", "active"\)/);
-  assert.match(loader, /\.from\("transactions"\)/);
-  assert.match(loader, /\.eq\("type", "expense"\)/);
-  assert.match(loader, /\.eq\("type", "income"\)/);
-  assert.match(loader, /\.is\("deleted_at", null\)/);
-  assert.match(loader, /\.gte\("transaction_date"/);
-  assert.match(loader, /\.lt\("transaction_date"/);
+  // 認証・所属確認と取引の読み取りは共有境界に任せ、分析module内では対象判定と集計だけを持つ
+  assert.match(context, /resolveAnalyticsTarget/);
+  assert.match(context, /status === "active"/);
+  assert.doesNotMatch(context, /auth\.getClaims\(\)|\.from\(/);
+  assert.match(loader, /listMonthlyTransactions/);
+  assert.doesNotMatch(loader, /\.from\("transactions"\)/);
+  assert.match(readContext, /auth\.getClaims\(\)/);
+  assert.match(readContext, /getAllowedGoogleUserId/);
+  assert.match(readContext, /\.eq\("status", "active"\)/);
+  assert.match(transactions, /\.from\("transactions"\)/);
+  assert.match(transactions, /\.eq\("type", "expense"\)/);
+  assert.match(transactions, /\.eq\("type", "income"\)/);
+  assert.match(transactions, /\.is\("deleted_at", null\)/);
+  assert.match(transactions, /\.gte\("transaction_date"/);
+  assert.match(transactions, /\.lt\("transaction_date"/);
 });
 
 test("画面とレポートが同じ認可済み集計を共有する (ANA-012)", async () => {
@@ -67,7 +79,7 @@ test("画面とレポートが同じ認可済み集計を共有する (ANA-012)"
   const server = await read("src/modules/analytics/server.ts");
 
   for (const source of [overview, periodSummary]) {
-    assert.match(source, /resolveAnalyticsContext/);
+    assert.match(source, /resolveGroupReadContext/);
     assert.match(source, /loadAnalyticsMonths/);
     // 集計の再実装を各queryへ書かない
     assert.doesNotMatch(source, /\.from\("transactions"\)/);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createCalendarGrid, getMonthRange, shiftMonth } from "./calendar-grid";
+import { createCalendarGrid, shiftMonth } from "./calendar-grid";
 
 describe("createCalendarGrid", () => {
   it("日曜始まりの月を42セルで生成する", () => {
@@ -48,13 +48,6 @@ describe("createCalendarGrid", () => {
           cell.weekday <= 6,
       ),
     ).toBe(true);
-  });
-
-  it("月query用の半開区間を返す", () => {
-    expect(getMonthRange("2026-12")).toEqual({
-      start: "2026-12-01",
-      endExclusive: "2027-01-01",
-    });
   });
 
   it("前月・翌月を年境界で計算する", () => {
