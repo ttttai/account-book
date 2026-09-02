@@ -9,6 +9,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/modules/auth/server", () => authMocks);
 
 import { getRecurringManagement } from "./get-recurring-management";
+import { RECURRING_SELECT_COLUMNS } from "./recurring-row";
 
 const GROUP_ID = "10000000-0000-4000-8000-000000000001";
 const OWNER_USER_ID = "60000000-0000-4000-8000-000000000001";
@@ -21,7 +22,7 @@ const SALARY_ID = "20000000-0000-4000-8000-000000000002";
 type QueryResult = Readonly<{ data: unknown; error: unknown }>;
 
 type Chain = Readonly<{
-  select: () => Chain;
+  select: (columns: string) => Chain;
   eq: () => Chain;
   is: () => Chain;
   in: () => Chain;
@@ -30,10 +31,16 @@ type Chain = Readonly<{
   then: <T>(onfulfilled: (value: QueryResult) => T) => Promise<T>;
 }>;
 
-// selectの連鎖を模したthenableを返す。テーブル名ごとに結果を差し替える
-function chain(result: QueryResult): Chain {
+// selectの連鎖を模したthenableを返す。テーブル名ごとに結果を差し替え、取得列を記録する
+function chain(
+  result: QueryResult,
+  onSelect: (columns: string) => void = () => {},
+): Chain {
   const self: Chain = {
-    select: () => self,
+    select: (columns) => {
+      onSelect(columns);
+      return self;
+    },
     eq: () => self,
     is: () => self,
     in: () => self,
@@ -139,8 +146,11 @@ function setupSupabase(userId: string | null = OWNER_USER_ID) {
     categories: { data: categoryRows, error: null },
     recurring_transactions: { data: recurringRows, error: null },
   };
+  const selects: Record<string, string[]> = {};
   const from = vi.fn((table: string) =>
-    chain(results[table] ?? { data: [], error: null }),
+    chain(results[table] ?? { data: [], error: null }, (columns) => {
+      selects[table] = [...(selects[table] ?? []), columns];
+    }),
   );
   authMocks.createServerSupabaseClient.mockResolvedValue({
     auth: {
@@ -151,7 +161,7 @@ function setupSupabase(userId: string | null = OWNER_USER_ID) {
     from,
   });
   authMocks.getAllowedGoogleUserId.mockReturnValue(userId);
-  return { from, results };
+  return { from, results, selects };
 }
 
 describe("getRecurringManagement", () => {
@@ -237,6 +247,18 @@ describe("getRecurringManagement", () => {
     // 認証済みだがこのグループのアクティブメンバーではない
     setupSupabase("60000000-0000-4000-8000-000000000009");
     expect(await getRecurringManagement(GROUP_ID)).toBeNull();
+  });
+
+  it("一覧queryは共通の取得列定義を使い、行検証schemaが要求するカテゴリidを含む (AC-REC-004-1)", async () => {
+    const { selects } = setupSupabase(OWNER_USER_ID);
+
+    await getRecurringManagement(GROUP_ID);
+
+    // 画面ごとに取得列を書き分けると、1件以上ある本番で検証例外になる回帰を防ぐ
+    expect(selects.recurring_transactions).toEqual([RECURRING_SELECT_COLUMNS]);
+    expect(RECURRING_SELECT_COLUMNS).toContain(
+      "categories!recurring_transactions_category_group_fk(id, name, color, icon)",
+    );
   });
 
   it("取得に失敗したら例外にする", async () => {
