@@ -132,17 +132,12 @@ test("E2E-005 支出を編集・削除するとカレンダー合計が追随す
     .getByRole("complementary")
     .getByRole("link", { name: "編集" })
     .click();
-  // 削除操作と確認ボタンは375pxで固定入力ドックに覆われタップできない（Issue #75）。
-  // レイアウト修正までは要素へ直接clickを送り、削除フロー自体の検証を続ける。
-  await memberPage
-    .getByRole("button", { name: "この取引を削除する" })
-    .dispatchEvent("click");
+  // 削除操作と確認ボタンは固定入力ドックに覆われず、通常のclickで到達できる (AC-TXN-009-5)
+  await memberPage.getByRole("button", { name: "この取引を削除する" }).click();
   await expect(memberPage.getByRole("alertdialog")).toContainText(
     "削除した取引は元に戻せません",
   );
-  await memberPage
-    .getByRole("button", { name: "削除を確定する" })
-    .dispatchEvent("click");
+  await memberPage.getByRole("button", { name: "削除を確定する" }).click();
 
   await expect(memberPage).toHaveURL(new RegExp(`/groups/${groupId}\\?`));
   await expect(monthlyTotal(memberPage)).toContainText("￥0");

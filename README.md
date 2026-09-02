@@ -6,6 +6,8 @@
 
 デプロイとDB変更の運用手順は[`docs/operations/`](docs/operations)（[デプロイ運用](docs/operations/deployment.md) / [DB変更の運用](docs/operations/database-changes.md)）にまとめています。
 
+初めて利用する人向けの手順は[はじめてのログインガイド](docs/guides/first-login.md)（招待リンクの受け取りからログイン・グループ参加まで）にまとめています。
+
 ## 必要な環境
 
 - Docker DesktopまたはDocker Engine

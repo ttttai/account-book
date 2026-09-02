@@ -62,14 +62,16 @@ export default async function EditExpensePage({
       </header>
       <ExpenseForm
         edit={{ transaction: data.transaction, returnTo }}
+        footer={
+          <DeleteTransactionForm
+            expectedVersion={data.transaction.version}
+            groupId={data.options.group.id}
+            returnTo={returnTo}
+            summary={summary}
+            transactionId={data.transaction.id}
+          />
+        }
         options={data.options}
-      />
-      <DeleteTransactionForm
-        expectedVersion={data.transaction.version}
-        groupId={data.options.group.id}
-        returnTo={returnTo}
-        summary={summary}
-        transactionId={data.transaction.id}
       />
     </main>
   );

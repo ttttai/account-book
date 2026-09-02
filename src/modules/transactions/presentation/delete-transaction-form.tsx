@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 
 import { INITIAL_EXPENSE_ACTION_STATE } from "./action-state";
@@ -50,6 +50,25 @@ export function DeleteTransactionForm({
     INITIAL_EXPENSE_ACTION_STATE,
   );
   const [isConfirming, setIsConfirming] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
+
+  // 確認dialogは開いた場所で縦に伸びるため、固定ドックへ隠れないよう重なりぶんだけ移動する (AC-TXN-009-5)
+  // ドックが画面下端へ重なるのは狭い画面だけなので、PC幅では動かさない
+  useEffect(() => {
+    if (!isConfirming) return;
+    if (window.matchMedia?.("(min-width: 900px)").matches) return;
+    const dialog = confirmRef.current;
+    if (!dialog) return;
+    // 外枠が反映したドックの全高（CSS変数）から、ドック上端＝隠れない下端を求める
+    const dockHeight = Number.parseFloat(
+      window
+        .getComputedStyle(dialog)
+        .getPropertyValue("--input-dock-total-height"),
+    );
+    const visibleBottom = window.innerHeight - (dockHeight || 0);
+    const overlap = dialog.getBoundingClientRect().bottom - visibleBottom + 8;
+    if (overlap > 0) window.scrollBy({ top: overlap });
+  }, [isConfirming]);
 
   return (
     <section
@@ -59,6 +78,7 @@ export function DeleteTransactionForm({
       {isConfirming ? (
         <div
           className={styles["delete-transaction-confirm"]}
+          ref={confirmRef}
           role="alertdialog"
           aria-labelledby="delete-transaction-confirm-title"
         >

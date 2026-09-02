@@ -148,6 +148,26 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
               <p className="eyebrow">月間カレンダー</p>
               <h2 id="calendar-title">{formatMonth(data.month)}</h2>
             </div>
+            {/* 当月以外でだけ「今日」を出し、scope・memberは維持してdayは付けない (AC-CAL-014-1) */}
+            {data.month !== data.currentMonth ? (
+              <Link
+                className={styles["calendar-today-link"]}
+                href={createCalendarUrl(data.group.id, {
+                  month: data.currentMonth,
+                  ...sharedSelection,
+                })}
+                aria-label={`今日の月（${formatMonth(data.currentMonth)}）へ戻る`}
+              >
+                今日
+              </Link>
+            ) : (
+              <span
+                className={styles["calendar-today-placeholder"]}
+                aria-hidden="true"
+              >
+                今日
+              </span>
+            )}
             <Link
               href={createCalendarUrl(data.group.id, {
                 month: nextMonth,
