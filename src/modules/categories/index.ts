@@ -5,6 +5,7 @@ export {
   categoryTypeSchema,
   normalizeCategoryName,
   repositionCategorySchema,
+  toCategoryColor,
   updateCategorySchema,
   CATEGORY_COLORS,
   CATEGORY_NAME_MAX_LENGTH,

@@ -169,7 +169,7 @@ const recurringRows = [
     categories: {
       id: "30000000-0000-4000-8000-000000000003",
       name: "住居",
-      color: "housing",
+      color: "home",
       icon: "home",
     },
     recurring_transaction_allocations: [
@@ -358,11 +358,16 @@ describe("getGroupCalendar", () => {
         id: INCOME_ID,
         type: "income",
         partyDisplayName: "自分",
+        categoryName: "給与",
+        // 許可外の色文字列は既定tokenへ正規化し、任意文字列をClientへ渡さない (AC-CAL-001-18)
+        categoryColor: "other",
       }),
       expect.objectContaining({
         id: EXPENSE_ID,
         type: "expense",
         partyDisplayName: "自分",
+        categoryName: "食費",
+        categoryColor: "food",
       }),
     ]);
   });
@@ -427,6 +432,7 @@ describe("getGroupCalendar", () => {
         amountMinor: 80000,
         isRecurring: true,
         recurringName: "家賃",
+        categoryColor: "home",
       }),
     ]);
   });
