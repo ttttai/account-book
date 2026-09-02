@@ -61,7 +61,7 @@ npx playwright show-report
 
 ## 追加時の約束
 
-- シナリオを追加・変更する場合は、先に[`specs/15-e2e-testing.md`](../../specs/15-e2e-testing.md)へシナリオIDと対象要件を追記し、`specs/09-spec-review.md`へレビュー結果を残す。
+- シナリオを追加・変更する場合は、先に[`specs/15-e2e-testing.md`](../../specs/15-e2e-testing.md)へシナリオIDと対象要件を追記し、`specs/reviews/`へレビュー結果を残す。
 - 画面のselectorは`data-testid`ではなくrole・labelを優先し、CSS Modulesのハッシュ化クラス名に依存させない。
 - E2Eユーザーの値を変える場合は、[`tests/e2e/support/e2e-users.ts`](../../tests/e2e/support/e2e-users.ts)、[`tests/e2e/seed/seed-e2e-users.sql`](../../tests/e2e/seed/seed-e2e-users.sql)、[`scripts/e2e-stack.sh`](../../scripts/e2e-stack.sh)の3か所をそろえる（architecture testが一致を検証する）。
 - グループ越境の認可証明は`tests/integration/*.sql`、OAuth開始Routeの検証は`tests/integration/oauth-start-local.test.mjs`が正本である。E2Eへ移さない。

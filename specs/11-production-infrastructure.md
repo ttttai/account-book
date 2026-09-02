@@ -259,7 +259,7 @@ apply後は次をsmoke testする。
 
 - `infra/terraform/**`
 - `specs/README.md`
-- `specs/09-spec-review.md`
+- `specs/reviews/`（本仕様のレビューファイル）
 - `specs/11-production-infrastructure.md`
 - `tests/architecture/terraform-foundation.test.mjs`
 - `.github/workflows/deploy-production.yml`
