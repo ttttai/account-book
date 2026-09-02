@@ -4,7 +4,7 @@
 
 レビュー日: 2026-09-02
 
-対象バージョン: 0.3.9
+対象バージョン: 0.3.10
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.9の自動文書検査では、要件ID 149件、明示的な受け入れ条件ID 193件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.9の自動文書検査では、要件ID 149件、明示的な受け入れ条件ID 194件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-074で`AC-AUTH-001-13`の1件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -994,3 +994,17 @@ MVP範囲確認: 前月・翌月の内容をdrag中に同時描画するカル�
 判定: `AC-CAL-015-6`と年月中央揃えの画面仕様は`CAL-006`・`CAL-007`・`CAL-015`、`AC-CAL-014-2`、`NFR-UI-001`・`NFR-UI-008`、`NFR-A11Y-006`と整合し、サーバー境界を変更せず安全に実装できる。component testとCSS構造testを先に更新し、320px・375 x 812・1280 x 800で実画面を確認する条件で実装開始を承認する。
 
 実装確認: `CalendarSwipeNavigator`へ`pointermove`の追従表示、前月・翌月の方向インジケーター、未成立・cancel時の原点復帰、成立時の送り出しを追加した。`prefers-reduced-motion`ではtransformとtransitionを抑制した。月移動行は5列gridとし、年月を中央列、「今日」と翌月を右側の44px列へ配置した。architecture test 130件、単体・component test 601件、format、lint、型検査、本番buildが成功した。使い捨てE2E環境の実ブラウザで左スワイプの翌月遷移を確認し、320px・375 x 812・1280 x 800の年月中心のずれは0px、横scrollは0pxだった。375pxの過去月表示で「今日」は44 x 44pxを維持した。
+
+### R-074 起動直後のホーム表示が白いままになる（PWA standalone）
+
+指摘: ホーム画面インストール版（standalone）でアプリを開くと、最初の数秒が全面白のまま経過する。起動経路は`start_url`（`/`）→ Proxyのsession確認 → `/app`へredirect → `/app`のServer Componentで`getCurrentProfile`と`listMyGroups`を`await`、であり、`/app`にはroute-level `loading.tsx`が無いため、データ取得が完了するまでHTMLを1バイトも返さない。`groups/[groupId]`配下の7画面にはskeletonがあるが、起動直後に必ず通る`/app`だけが全面白になる。Cloud Runの`min instances 0`によるcold start（`NFR-PERF-005`）と、iOS standaloneが`background_color`のsplashを描かないことが体感時間を延ばしている。
+
+対応: `UC-012`へ`AC-AUTH-001-13`を追加し、認証済みでホーム（`/app`）を開く要求ではデータ取得完了を待たずにroute shellとskeletonを先に返すことを条件化した。画面仕様の起動導線とグループ選択（`03-screen-specification.md`）へloadingの記述を追加し、テスト計画（`07-acceptance-test-plan.md`）へstandalone再起動直後の確認項目を追加した。実装は`src/app/app/loading.tsx`と`src/app/styles.css`のskeleton styleの追加だけとする。Cloud Runの`min instances`変更（費用が発生する）、`start_url`の`/app`化（`NFR-PWA-002`の変更）、iOS向け`apple-touch-startup-image`は効果・費用を検討したうえで本件の範囲外とし、必要になった時点で個別にレビューする。
+
+安全性確認: `loading.tsx`は静的なskeletonだけを描画し、家計データ、ユーザーID、認証情報を含まない。Proxyのsession確認、`/app`の認可（`getCurrentProfile`が`null`なら`/login`へredirect）、Server Componentの読み取り経路は変更しない。skeletonへ操作可能な要素を置かないため、確定前の誤操作は発生しない。
+
+実装可能性確認: Next.js App Routerの`loading.tsx`はSuspense境界としてlayout shellとskeletonを即時ストリーミングし、page本体のPromise解決後に置き換える。既存のカレンダー・履歴skeletonと同じ手法（`aria-busy="true"`、global stylesのskeleton class）で実装でき、`protected-shell groups-overview`を共有するため375pxの縦配置と1280pxの2カラム配置はCSSを追加せずに一致する。skeletonの存在・`aria-busy`・shell classはarchitecture testで固定でき、component testで描画内容に操作要素がないことを確認できる。
+
+MVP範囲確認: Service Worker、オフラインキャッシュ、プッシュ通知（`NFR-PWA-004`）、Cloud Runのscaling設定（`NFR-PERF-005`）、manifest（`NFR-PWA-002`）、Proxyのredirect回数は変更しない。ログイン画面（`/login`）は静的で即時描画されるためloadingを追加しない。
+
+判定: `AC-AUTH-001-13`は`AC-AUTH-001-11`（認証済みの起動導線）、`NFR-UI-001`・`NFR-UI-005`・`NFR-UI-006`、`NFR-PWA-005`・`NFR-PWA-006`と整合し、認可・データ境界を変更せず安全に実装できる。architecture testとcomponent testを先に追加し、375pxと1280pxでskeletonと確定後の画面の配置が一致することを実画面確認する条件で、実装開始を承認する。
