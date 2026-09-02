@@ -43,6 +43,21 @@ function PeriodMetric({
   );
 }
 
+// モバイルでは項目名を併記し、読み上げは表の列見出しへ統一する。
+function DetailsAmountCell({
+  label,
+  value,
+}: Readonly<{ label: string; value: string }>) {
+  return (
+    <td>
+      <span aria-hidden="true" className={styles["details-cell-label"]}>
+        {label}
+      </span>
+      <span>{value}</span>
+    </td>
+  );
+}
+
 // 期間・対象filterと、推移・カテゴリ・メンバー別統計を数値中心で表示する
 export function AnalyticsDetails({
   data,
@@ -226,19 +241,28 @@ export function AnalyticsDetails({
           >
             <thead>
               <tr>
-                <th>メンバー</th>
-                <th>負担額</th>
-                <th>支払額</th>
-                <th>受取額</th>
+                <th scope="col">メンバー</th>
+                <th scope="col">負担額</th>
+                <th scope="col">支払額</th>
+                <th scope="col">受取額</th>
               </tr>
             </thead>
             <tbody>
               {data.memberBreakdown.map((member) => (
                 <tr key={member.membershipId}>
-                  <th>{member.displayName}</th>
-                  <td>{formatAnalyticsJpy(member.usageTotal)}</td>
-                  <td>{formatAnalyticsJpy(member.paidTotal)}</td>
-                  <td>{formatAnalyticsJpy(member.receivedTotal)}</td>
+                  <th scope="row">{member.displayName}</th>
+                  <DetailsAmountCell
+                    label="負担額"
+                    value={formatAnalyticsJpy(member.usageTotal)}
+                  />
+                  <DetailsAmountCell
+                    label="支払額"
+                    value={formatAnalyticsJpy(member.paidTotal)}
+                  />
+                  <DetailsAmountCell
+                    label="受取額"
+                    value={formatAnalyticsJpy(member.receivedTotal)}
+                  />
                 </tr>
               ))}
             </tbody>
@@ -256,19 +280,28 @@ export function AnalyticsDetails({
         >
           <thead>
             <tr>
-              <th>月</th>
-              <th>支出</th>
-              <th>収入</th>
-              <th>収支</th>
+              <th scope="col">月</th>
+              <th scope="col">支出</th>
+              <th scope="col">収入</th>
+              <th scope="col">収支</th>
             </tr>
           </thead>
           <tbody>
             {data.months.map((month) => (
               <tr key={month.month}>
-                <th>{formatAnalyticsMonth(month.month)}</th>
-                <td>{formatAnalyticsJpy(month.expenseTotal)}</td>
-                <td>{formatAnalyticsJpy(month.incomeTotal)}</td>
-                <td>{formatAnalyticsSignedJpy(month.balance)}</td>
+                <th scope="row">{formatAnalyticsMonth(month.month)}</th>
+                <DetailsAmountCell
+                  label="支出"
+                  value={formatAnalyticsJpy(month.expenseTotal)}
+                />
+                <DetailsAmountCell
+                  label="収入"
+                  value={formatAnalyticsJpy(month.incomeTotal)}
+                />
+                <DetailsAmountCell
+                  label="収支"
+                  value={formatAnalyticsSignedJpy(month.balance)}
+                />
               </tr>
             ))}
           </tbody>

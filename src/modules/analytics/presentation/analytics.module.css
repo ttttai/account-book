@@ -482,7 +482,19 @@
   text-align: left;
 }
 
+.details-cell-label {
+  display: none;
+}
+
 @media (max-width: 520px) {
+  .details-cell-label {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
   .details-table thead {
     position: absolute;
     width: 1px;

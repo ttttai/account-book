@@ -1,6 +1,6 @@
 # 詳細分析のモバイル数値表へ項目名を表示する
 
-状態: 承認済み
+状態: 実装確認済み
 レビュー日: 2026-09-03
 ブランチ: feat/analytics-details
 対象仕様: `specs/12-analytics-and-reporting.md`、`specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/07-acceptance-test-plan.md`、`specs/15-e2e-testing.md`
@@ -31,3 +31,5 @@ review: 2026-09-03-analytics-detailsの実画面確認で、520px以下の表が
 ANA-009、AC-ANA-008-4、NFR-UI-001・002・006、NFR-A11Y-001・005と整合し、安全かつ実装可能である。component/E2Eの回帰テストを先に追加し、lint・型検査・本番buildと320px・375px・1280pxの実画面確認を行う条件で実装開始を承認する。
 
 ## 実装確認
+
+金額セルをDetailsAmountCellへ揃えて項目名のspanを追加し、520px以下だけ表示した。列・行見出しにscopeを明示し、補助ラベルはaria-hiddenで重複読み上げを防いだ。新しいcomponent testは実装前に項目名の欠如で失敗し、実装後は金額・ラベル・scope・aria-hiddenの組を確認して成功した。Docker Compose上でformat、警告なしlint、型検査、構造test 141件、単体・component test 659件、本番buildが成功した。本番buildを起動した専用E2E stackで全20件が一度の実行ですべて成功し、E2E-010では320px・375pxの補助ラベル表示、1280pxの補助ラベル非表示と列見出し表示、横scroll不発生を確認した。3幅のスクリーンショットも確認し、0円と支出のある月、メンバー別の各金額を項目名から区別できることを確認した。認証・認可・DB・金額計算・URLの変更はない。最新mainのカレンダー操作変更とレビュー記録の移管も保持している。

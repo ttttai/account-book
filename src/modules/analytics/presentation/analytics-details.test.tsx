@@ -129,6 +129,42 @@ describe("AnalyticsDetails", () => {
     ).toContain("month=2026-09");
   });
 
+  it("各金額にモバイル用項目名を持ち、表の見出しと重複して読み上げない (AC-ANA-009-6)", () => {
+    render(<AnalyticsDetails data={createData()} />);
+
+    for (const [name, labels, values] of [
+      [
+        "メンバー別の内訳",
+        ["負担額", "支払額", "受取額"],
+        ["￥21,000", "￥18,000", "￥25,000"],
+      ],
+      [
+        "月別の正確な数値",
+        ["支出", "収入", "収支"],
+        ["￥10,000", "￥20,000", "＋￥10,000"],
+      ],
+    ] as const) {
+      const table = screen.getByRole("table", { name });
+      const firstRow = within(table).getAllByRole("row")[1];
+      const cells = within(firstRow).getAllByRole("cell");
+      labels.forEach((label, index) => {
+        expect(
+          within(cells[index]).getByText(label).getAttribute("aria-hidden"),
+        ).toBe("true");
+        expect(within(cells[index]).getByText(values[index])).toBeTruthy();
+        expect(cells[index].getAttribute("aria-label")).toBeNull();
+        expect(
+          within(table)
+            .getByRole("columnheader", { name: label })
+            .getAttribute("scope"),
+        ).toBe("col");
+      });
+      expect(
+        within(firstRow).getByRole("rowheader").getAttribute("scope"),
+      ).toBe("row");
+    }
+  });
+
   it("空期間は0円の各月と説明を表示し、member対象ではメンバー比較を隠す", () => {
     render(
       <AnalyticsDetails
