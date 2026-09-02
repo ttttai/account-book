@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.12
+バージョン: 0.2.13
 
 ## 1. Next.js境界方針
 
@@ -94,9 +94,10 @@ listRecurringTransactions(groupId)
 getRecurringTransactionForEdit(groupId, recurringTransactionId)
 getAnalyticsOverview(groupId, searchParams)
 getAnalyticsPeriodSummary({ groupId, startMonth, endMonth, target })
+getAnalyticsDetails(groupId, searchParams)
 ```
 
-概要分析（`ANA-*`）は上の2つのqueryだけを公開する。両queryは同じ内部集計処理を共有し、同じグループ・期間・対象に対して同じ金額を返す。詳細分析と定期レポートは`getAnalyticsPeriodSummary`を再利用し、取引行を直接読まず、金額の再計算を別実装で行わない。期間は1〜24か月に制限し、超過・不正な月・開始月が終了月より後の要求は取引を読み込まずに拒否する。分析専用の集計テーブル、Route Handler、内部APIは追加しない。
+分析（`ANA-*`）は上の3つのqueryだけを公開する。3つは同じ月次集計純関数と共有読み取り境界を使い、同じグループ・期間・対象に対して同じ金額を返す。`getAnalyticsDetails`は1要求につき`listMonthlyTransactions`を1回だけ呼び、その結果から期間指標、カテゴリ、メンバー比較を作る。定期レポートは`getAnalyticsPeriodSummary`を再利用し、取引行を直接読まず、金額の再計算を別実装で行わない。期間は1〜24か月に制限し、超過・不正な月・開始月が終了月より後の要求は取引を読み込まずに拒否する。分析専用の集計テーブル、Route Handler、内部APIは追加しない。
 
 ### 共有する認可済み読み取り境界
 
