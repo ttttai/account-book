@@ -2,9 +2,9 @@
 
 状態: 実装開始を承認
 
-レビュー日: 2026-09-02
+レビュー日: 2026-09-03
 
-対象バージョン: 0.3.10
+対象バージョン: 0.3.12
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.11の自動文書検査では、要件ID 151件、明示的な受け入れ条件ID 201件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-075で`CAL-016`の1件と`AC-CAL-016-1`〜`AC-CAL-016-3`の3件、R-076で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加した。R-074は要件ID・受け入れ条件IDを追加しない）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.12の自動文書検査では、要件ID 150件、明示的な受け入れ条件ID 196件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-075で`CAL-016`の1件と`AC-CAL-016-1`〜`AC-CAL-016-3`の3件、R-076で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加し、R-077で`CAL-015`と`AC-CAL-015-1`〜`AC-CAL-015-6`を廃止して`AC-CAL-001-19`の1件を追加した。R-074は要件ID・受け入れ条件IDを追加しない）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -883,6 +883,22 @@ MVP範囲確認: 祝日の判定・表示、曜日色のユーザー設定、六
 
 判定: `CAL-016`と`AC-CAL-016-1`〜`AC-CAL-016-3`は`CAL-001`、`AC-CAL-001-12`、`NFR-A11Y-005`、`NFR-UI-*`、`NFR-MNT-010`と整合し、安全かつ実装可能である。グリッドの曜日付与の単体testとcomponent testを先に追加し、幅375 x 812（日曜始まり・月曜始まりの両方）と1280 x 800で日番号の色と曜日見出し・今日・選択日の表示を実画面確認する条件で実装開始を承認する。
 
+### R-077 ホームカレンダーの月移動をボタン操作へ限定する（Issue #90）
+
+指摘: R-070・R-073で追加したカレンダー本体の横スワイプおよびマウスドラッグによる月移動（`CAL-015`）は、日付セル上の縦スクロール・タップ・iOS Safariの戻る／進むジェスチャーと同じ領域でpointerを判定するため、閾値・pointer capture・click抑止・追従表示・方向インジケーターといった付随処理が増え、日付タップの即時反映（`AC-CAL-001-17`）を守るための例外が積み重なっていた。月移動は既存の前月・翌月ボタンと「今日」で十分に到達でき、スワイプは補助手段（`AC-CAL-015-4`）にとどまるため、機能を残す価値より誤操作と保守負担のほうが大きい（Issue #90）。
+
+対応: `CAL-015`と`AC-CAL-015-1`〜`AC-CAL-015-6`を廃止し、`AC-CAL-001-19`を追加して「月移動は前月・翌月ボタンと『今日』操作だけで行い、カレンダー本体上の横方向のpointer操作では月を移動しない。横方向のpointer操作は日付タップ・縦スクロール・即時反映を妨げない」ことを条件化した。画面仕様の「月移動と今日へ戻る」からスワイプの発火条件・追従表示・インジケーターの記述を削除し、ボタン限定の規則へ置き換えた。テスト計画の単体・component項目、E2Eシナリオ22、375pxの実画面確認項目をボタン限定へ更新した。実装は`calendar-swipe-navigator.tsx`、判定純関数`calendar-swipe.ts`、専用CSS（判定領域・追従transform・インジケーター・`prefers-reduced-motion`ブロック）、関連するcomponent test・単体test・CSS構造testを削除し、カレンダー本体を`table`だけの構成へ戻す。
+
+安全性確認: 変更はClient Componentの入力処理とCSSの削除に限られ、月間query、認可、集計、金額計算、URL規約、`day`同期、前月・翌月・「今日」のリンク先は変更しない。`touch-action`と`user-select`の上書きを取り除くため、カレンダー上のブラウザ既定の縦スクロール・ピンチ・テキスト選択が復元される。`router.push`を呼ぶClient側の遷移経路がなくなり、月移動はServer Componentが生成した`<a href>`だけになる。
+
+実装可能性確認: `CalendarSwipeNavigator`は`CalendarDayExplorer`からのみ利用され、外側の`<div>`と2つのインジケーター`<span>`を取り除いても`table`の構造・class・aria属性は変わらない。`calendar-day-explorer.tsx`側の`shiftMonth`のimportはスワイプ用URLにしか使っていないため削除できる。CSS構造testは年月中央揃え（5列grid・中央列）の検証を残し、スワイプfeedbackの検証だけを外す。component testは、横方向のpointerDown→pointerMove→pointerUpの後にURLの`month`が変わらず`router.push`が呼ばれないこと、直後の日付タップが即時反映されること、スワイプ判定領域の`data-*`属性がDOMに存在しないことを検証できる。
+
+MVP範囲確認: 前月・翌月ボタン、「今日へ戻る」（`CAL-014`）、月移動中のskeleton、日付タップと日別sheet、縦スクロール、分析画面の月移動は変更しない。他画面へのジェスチャー操作の追加、月移動ボタンの配置変更は行わない。
+
+判定: `AC-CAL-001-19`と画面仕様の更新は`CAL-006`・`CAL-007`・`CAL-011`・`CAL-014`、`AC-CAL-001-17`、`NAV-002`、`NFR-UI-008`、`NFR-MNT-010`と整合し、サーバー境界を変更せず安全に実装できる。component testとCSS構造testを先に更新し、削除後に幅375 x 812で縦スクロール・日付タップ・前月・翌月・「今日」を、1280 x 800でマウスドラッグにより月が移動しないことを実画面確認する条件で実装開始を承認する。
+
+実装確認: `calendar-swipe-navigator.tsx`、`calendar-swipe.ts`とその単体test、スワイプ専用CSS（判定領域・追従transform・方向インジケーター・`prefers-reduced-motion`ブロック、74行）を削除し、`CalendarDayExplorer`はカレンダー本体の`table`を`section`直下へ戻した。`calendar`モジュールからClient側の`useRouter`による遷移経路が消え、月移動はServer Componentが生成した前月・翌月・「今日」の`<a href>`だけになった。component testは横方向のタッチスワイプ・マウスドラッグ後にURLの`month`が変わらず`router.push`が呼ばれないこと、直後の日付タップの即時反映、スワイプ判定領域とインジケーターの不在を検証する4件へ置き換え、CSS構造testは年月中央揃えの検証を残してスワイプfeedbackの検証を外し、スワイプ実装が復活しないことを検証するtestを追加した。architecture test 132件、単体・component test 626件、format、lint、型検査、本番buildが成功した。fixtureを描画する一時previewをheadless Chromiumで確認し、375 x 812（タッチ）では左右スワイプ後もURLと表示月が変わらず、DOMにスワイプ判定領域・インジケーターが無く、`touch-action`の上書きが解除され、日付タップで日別sheetが開いて`day`がURLへ同期し、前月・翌月・「今日」のリンク先が従来どおり（`scope`維持・`day`解除）で「今日」は44 x 44pxを維持した。1280 x 800（マウス）ではカレンダー幅いっぱいの左右ドラッグ後もURLと表示月が変わらず、日付クリックで日別panelが開いた。両幅で横scrollは0pxだった。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                                                                                 |
@@ -891,7 +907,7 @@ MVP範囲確認: 祝日の判定・表示、曜日色のユーザー設定、六
 | `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                                                                          |
 | `CAT-001`〜`CAT-003`   | category integration、権限test                                                                               |
 | `TXN-001`〜`TXN-015`   | 金額・負担単体test、取引integration、入力UI component test、E2E                                              |
-| `CAL-001`〜`CAL-016`   | calendar query integration、月移動・スワイプ判定test、曜日色分けcomponent test、viewport E2E                 |
+| `CAL-001`〜`CAL-016`   | calendar query integration、月移動test、曜日色分けcomponent test、viewport E2E                               |
 | `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認                                                               |
 | `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                                                                            |
 | `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E                                                              |
