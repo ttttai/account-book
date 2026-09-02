@@ -12,15 +12,25 @@ test("履歴queryをserver-only認可境界へ隔離する", async () => {
   const query = await read(
     "src/modules/history/application/get-group-history.ts",
   );
+  const context = await read(
+    "src/modules/groups/application/group-read-context.ts",
+  );
 
+  // 認証・所属・表示名は共有境界を使い、履歴は過去参照のため削除済みmembershipを明示して含める
   assert.match(query, /import "server-only"/);
-  assert.match(query, /auth\.getClaims\(\)/);
-  assert.match(query, /getAllowedGoogleUserId/);
-  assert.match(query, /\.from\("group_members"\)/);
+  assert.match(query, /resolveGroupReadContext/);
+  assert.match(query, /includeRemovedMembers: true/);
+  assert.match(query, /loadGroupMembers/);
+  assert.doesNotMatch(query, /auth\.getClaims\(\)|\.from\("group_members"\)/);
   assert.match(query, /\.from\("transactions"\)/);
   assert.match(query, /\.is\("deleted_at", null\)/);
   assert.match(query, /status.*active|"active"/);
-  assert.doesNotMatch(query, /SERVICE_ROLE|unstable_cache|fetch\(/);
+  assert.match(context, /auth\.getClaims\(\)/);
+  assert.match(context, /getAllowedGoogleUserId/);
+  assert.match(context, /\.from\("group_members"\)/);
+  for (const source of [query, context]) {
+    assert.doesNotMatch(source, /SERVICE_ROLE|unstable_cache|fetch\(/);
+  }
 });
 
 test("履歴一覧はoffsetを使わない検証済みcursor paginationとする", async () => {
@@ -104,10 +114,11 @@ test("historyモジュールは他機能の内部実装へ依存しない", asyn
 
   for (const file of files) {
     const content = await readFile(`${file.parentPath}/${file.name}`, "utf8");
+    // 他機能は公開server境界（共有読み取りcontextなど）だけを使い、内部ファイルへ依存しない
     assert.doesNotMatch(
       content,
-      /@\/modules\/(?:calendar|transactions|groups)\//,
-      `${file.name}が他機能へ依存しています`,
+      /@\/modules\/(?:calendar|transactions|groups)\/(?!server")/,
+      `${file.name}が他機能の内部へ依存しています`,
     );
     assert.doesNotMatch(
       content,

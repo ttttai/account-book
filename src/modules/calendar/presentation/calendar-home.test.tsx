@@ -38,6 +38,8 @@ function createData(
         day,
         isCurrentMonth: day <= 31,
         isToday: false,
+        // 2026-07-01は水曜（3）
+        weekday: ((3 + index) % 7) as 0 | 1 | 2 | 3 | 4 | 5 | 6,
       };
     }),
     dayTransactionsByDate: {},

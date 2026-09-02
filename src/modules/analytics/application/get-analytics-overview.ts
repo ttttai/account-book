@@ -1,5 +1,7 @@
 import "server-only";
 
+import { resolveGroupReadContext } from "@/modules/groups/server";
+
 import { parseAnalyticsSelection } from "../domain/analytics-input";
 import { shiftAnalyticsMonth } from "../domain/analytics-month";
 import {
@@ -8,7 +10,6 @@ import {
 } from "../domain/analytics-summary";
 import {
   loadAnalyticsMembers,
-  resolveAnalyticsContext,
   resolveAnalyticsTarget,
 } from "./analytics-context";
 import type {
@@ -38,7 +39,7 @@ export async function getAnalyticsOverview(
   unsafeGroupId: string,
   search: AnalyticsSearchInput,
 ): Promise<AnalyticsOverviewData | null> {
-  const context = await resolveAnalyticsContext(unsafeGroupId);
+  const context = await resolveGroupReadContext(unsafeGroupId);
   if (!context) return null;
 
   const invalid = (
