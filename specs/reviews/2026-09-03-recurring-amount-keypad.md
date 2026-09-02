@@ -1,0 +1,35 @@
+# 定期取引の金額入力でOSキーボードが下部ナビゲーションを押し上げる不具合
+
+状態: 承認済み
+レビュー日: 2026-09-03
+ブランチ: fix/recurring-amount-keypad
+対象仕様: `specs/01-product-requirements.md`、`specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/06-non-functional-requirements.md`、`specs/07-acceptance-test-plan.md`、`specs/14-recurring-transactions.md`
+関連ID: `REC-010`と`AC-REC-005-1`〜`AC-REC-005-4`を追加
+
+> `specs/09-spec-review.md`の凍結（R-077まで）後に同ファイルへ追記されていた記録を、内容を変えずに移設した（元の番号: R-078）。
+
+## 指摘
+
+定期取引画面の作成・編集フォームの金額欄は`inputmode="numeric"`でOSの仮想キーボードを開く。iOS Safariでは仮想キーボード表示中に`position: fixed`の下部ナビゲーションがキーボード上端へ移動し、金額欄や隣接する入力欄を覆ってフォームが崩れる。取引入力は`TXN-014`で画面内テンキーへ移行済みのため同じ問題が起きないが、定期取引は仕様（`14-recurring-transactions.md`§7、画面仕様§10）が`inputmode="numeric"`のままで、金額の入力体験が取引入力と食い違っていた。
+
+## 対応
+
+`REC-010`と`AC-REC-005-1`〜`AC-REC-005-4`を追加し、定期取引の金額欄を取引入力と同じ画面内テンキー（`inputmode="none"`、1〜9・0・00・1文字削除、先頭0と上限の規則）へ揃えた。取引入力の固定ドックは持ち込まず、テンキーは金額欄の直下へフォーム内に静的に配置し、金額欄を選ぶと開き、他の入力欄を選ぶと閉じる。閉じている間は再開手段を示し、開いたときにキーが下部ナビゲーションへ隠れる場合は表示位置を移動する。実装はテンキーの桁追加規則を`transactions`モジュールの`domain`へ純関数として抽出し、キー部品を`transactions`のpresentation公開エントリーポイントから`AmountKeypad`として提供して、取引入力と定期取引の両方が同じ部品を使う。`NFR-UI-004`の文言を、OSの数字キーボードと画面内テンキーのどちらも許容する形へ整えた。
+
+## 安全性確認
+
+変更はClient Componentの入力手段とCSSに限られ、Server Action、入力schema（金額は文字列としてサーバーで検証）、DB関数、認可、楽観的ロックは変更しない。金額欄の`name`と送信値の形式は従来と同じで、`E2E-009`の`fill`による入力も維持される。
+
+## 実装可能性確認
+
+取引入力の`appendAmountDigit`とキー配置のCSSが既にあり、部品化は既存のcomponent test（`TXN-014`・`TXN-016`）で回帰を固定できる。定期取引側は金額のcontrolled inputとテンキーの開閉stateを追加するだけで、フォームの他の入力欄は非制御のまま維持できる。PC幅の`.keypad`のgrid配置ルールは取引入力のフォームだけへ限定し、定期取引の2カラムレイアウトへ影響させない。
+
+## MVP範囲確認
+
+名称・メモなど文字入力欄は引き続きOSのキーボードを使い、固定ドック、保存ボタンの常設、カテゴリの1行表示など取引入力固有の構成は定期取引へ持ち込まない。下部ナビゲーション自体をキーボード表示へ追従させる制御（visualViewport連動）は行わない。
+
+## 判定
+
+`REC-010`と`AC-REC-005-*`は`TXN-014`・`AC-TXN-014-*`、`NFR-UI-001`・`NFR-UI-002`・`NFR-UI-004`・`NFR-UI-007`、`NFR-A11Y-*`と整合し、安全かつ実装可能である。桁追加の単体test、定期取引のcomponent test、モジュール境界のarchitecture testを先に追加し、375 x 812・320px・1280 x 800で金額入力中に下部ナビゲーションがフォームを覆わないことを実画面確認する条件で実装開始を承認する。
+
+## 実装確認
