@@ -189,7 +189,9 @@ function DayPanel({
             <li key={transaction.id}>
               <div className={styles["calendar-transaction-heading"]}>
                 <span
-                  className={`${styles["category-dot"]} category-${transaction.categoryColor}`}
+                  className={styles["category-dot"]}
+                  data-category-color={transaction.categoryColor}
+                  aria-hidden="true"
                 />
                 <strong>{transaction.categoryName}</strong>
                 {transaction.isRecurring ? (

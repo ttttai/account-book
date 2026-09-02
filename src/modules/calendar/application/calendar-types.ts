@@ -1,3 +1,5 @@
+import type { CategoryColor } from "@/modules/categories";
+
 import type { CalendarGridCell } from "../domain/calendar-grid";
 import type { CalendarScope } from "../domain/calendar-input";
 
@@ -20,7 +22,8 @@ export type CalendarDayTransaction = Readonly<{
   amountMinor: number;
   targetAmountMinor: number;
   categoryName: string;
-  categoryColor: string;
+  /** 許可済みカテゴリ色token。サーバーqueryが正規化し、表示層は`data-category-color`へ渡すだけにする (AC-CAL-001-18) */
+  categoryColor: CategoryColor;
   categoryIcon: string;
   /** 支出は支払者、収入は受取者の表示名 */
   partyDisplayName: string;
