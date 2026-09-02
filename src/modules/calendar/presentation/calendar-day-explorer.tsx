@@ -11,13 +11,20 @@ import {
 } from "react";
 
 import type { CalendarReadyData } from "../application/calendar-types";
-import { shiftMonth } from "../domain/calendar-grid";
+import { shiftMonth, type Weekday } from "../domain/calendar-grid";
 import { formatCalendarCellJpy, formatJpy } from "../domain/calendar-summary";
 import { CalendarSwipeNavigator } from "./calendar-swipe-navigator";
 
 import styles from "./calendar.module.css";
 
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"] as const;
+
+// 土曜・日曜の日番号だけに色分け用classを返す。曜日見出しの文字で判別できるため色は補助 (CAL-016)
+function weekendClassName(weekday: Weekday): string {
+  if (weekday === 6) return styles["is-saturday"] ?? "";
+  if (weekday === 0) return styles["is-sunday"] ?? "";
+  return "";
+}
 
 type CalendarDayExplorerData = Readonly<
   Pick<
@@ -371,6 +378,7 @@ export function CalendarDayExplorer({
                       cell.isCurrentMonth
                         ? styles["is-current-month"]
                         : styles["is-other-month"],
+                      weekendClassName(cell.weekday),
                       cell.isToday ? styles["is-today"] : "",
                       isSelected ? styles["is-selected"] : "",
                     ]
