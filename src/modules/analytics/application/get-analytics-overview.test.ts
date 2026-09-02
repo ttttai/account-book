@@ -61,11 +61,22 @@ const groupRow = {
   id: GROUP_ID,
   name: "わが家",
   timezone: "Asia/Tokyo",
+  week_starts_on: 1,
 };
 
 const membershipRows = [
-  { id: MEMBER_A, user_id: USER_A, joined_at: "2026-01-01T00:00:00Z" },
-  { id: MEMBER_B, user_id: USER_B, joined_at: "2026-02-01T00:00:00Z" },
+  {
+    id: MEMBER_A,
+    user_id: USER_A,
+    status: "active",
+    joined_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: MEMBER_B,
+    user_id: USER_B,
+    status: "active",
+    joined_at: "2026-02-01T00:00:00Z",
+  },
 ];
 
 const profileRows = [
@@ -75,34 +86,51 @@ const profileRows = [
 
 const expenseRows = [
   {
+    id: "70000000-0000-4000-8000-000000000001",
     transaction_date: "2026-09-03",
+    created_at: "2026-09-03T00:00:00Z",
+    payer_member_id: MEMBER_A,
     amount_minor: 6000,
     category_id: FOOD,
-    categories: { name: "食費", color: "food" },
+    categories: { id: FOOD, name: "食費", color: "food", icon: "food" },
     transaction_allocations: [
       { member_id: MEMBER_A, amount_minor: 3000 },
       { member_id: MEMBER_B, amount_minor: 3000 },
     ],
   },
   {
+    id: "70000000-0000-4000-8000-000000000002",
     transaction_date: "2026-09-27",
+    created_at: "2026-09-27T00:00:00Z",
+    payer_member_id: MEMBER_B,
     amount_minor: 4000,
     category_id: HOME,
-    categories: { name: "住居", color: "home" },
+    categories: { id: HOME, name: "住居", color: "home", icon: "home" },
     transaction_allocations: [{ member_id: MEMBER_A, amount_minor: 4000 }],
   },
   {
+    id: "70000000-0000-4000-8000-000000000003",
     transaction_date: "2026-09-28",
+    created_at: "2026-09-28T00:00:00Z",
+    payer_member_id: MEMBER_B,
     amount_minor: 1000,
     category_id: ARCHIVED,
-    categories: { name: "旧サブスク", color: "other" },
+    categories: {
+      id: ARCHIVED,
+      name: "旧サブスク",
+      color: "other",
+      icon: "other",
+    },
     transaction_allocations: [{ member_id: MEMBER_B, amount_minor: 1000 }],
   },
   {
+    id: "70000000-0000-4000-8000-000000000004",
     transaction_date: "2026-08-10",
+    created_at: "2026-08-10T00:00:00Z",
+    payer_member_id: MEMBER_A,
     amount_minor: 10000,
     category_id: FOOD,
-    categories: { name: "食費", color: "food" },
+    categories: { id: FOOD, name: "食費", color: "food", icon: "food" },
     transaction_allocations: [
       { member_id: MEMBER_A, amount_minor: 5000 },
       { member_id: MEMBER_B, amount_minor: 5000 },
@@ -112,18 +140,22 @@ const expenseRows = [
 
 const incomeRows = [
   {
+    id: "70000000-0000-4000-8000-000000000005",
     transaction_date: "2026-09-25",
+    created_at: "2026-09-25T00:00:00Z",
     amount_minor: 300000,
     recipient_member_id: MEMBER_A,
     category_id: SALARY,
-    categories: { name: "給与", color: "salary" },
+    categories: { id: SALARY, name: "給与", color: "salary", icon: "salary" },
   },
   {
+    id: "70000000-0000-4000-8000-000000000006",
     transaction_date: "2026-08-25",
+    created_at: "2026-08-25T00:00:00Z",
     amount_minor: 200000,
     recipient_member_id: MEMBER_A,
     category_id: SALARY,
-    categories: { name: "給与", color: "salary" },
+    categories: { id: SALARY, name: "給与", color: "salary", icon: "salary" },
   },
 ];
 
@@ -374,7 +406,7 @@ describe("getAnalyticsOverview", () => {
 
     await expect(
       getAnalyticsOverview(GROUP_ID, { month: "2026-09" }),
-    ).rejects.toThrow("分析データを取得できませんでした。");
+    ).rejects.toThrow("取引を取得できませんでした。");
   });
 });
 

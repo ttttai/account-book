@@ -1,10 +1,15 @@
 type WeekStartsOn = 0 | 1;
 
+/** 曜日（0=日曜〜6=土曜） */
+export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
 export type CalendarGridCell = Readonly<{
   date: string;
   day: number;
   isCurrentMonth: boolean;
   isToday: boolean;
+  /** 実際の曜日。土日の色分けに使い、Client側でDateから再計算しない (CAL-016) */
+  weekday: Weekday;
 }>;
 
 function parseMonth(monthValue: string): { year: number; month: number } {
@@ -78,19 +83,6 @@ function dayOfWeek(year: number, month: number, day: number): number {
   );
 }
 
-// 月初日と翌月初日（排他的終端）をYYYY-MM-DDで返す
-export function getMonthRange(monthValue: string): Readonly<{
-  start: string;
-  endExclusive: string;
-}> {
-  const { year, month } = parseMonth(monthValue);
-  const next = normalizeDate(year, month + 1, 1);
-  return {
-    start: formatDate(year, month, 1),
-    endExclusive: formatDate(next.year, next.month, next.day),
-  };
-}
-
 // 前月または翌月のYYYY-MM文字列を返す
 export function shiftMonth(monthValue: string, offset: -1 | 1): string {
   const { year, month } = parseMonth(monthValue);
@@ -116,6 +108,8 @@ export function createCalendarGrid(
       day: value.day,
       isCurrentMonth: value.year === year && value.month === month,
       isToday: date === today,
+      // グリッドの先頭は週開始曜日なので、先頭からの位置で曜日が決まる
+      weekday: ((weekStartsOn + index) % 7) as Weekday,
     };
   });
 }

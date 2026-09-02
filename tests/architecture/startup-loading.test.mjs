@@ -39,5 +39,5 @@ test("仕様・テスト計画に起動直後のskeleton表示を記録する", 
   assert.match(useCases, /^- `AC-AUTH-001-13`/m);
   assert.match(screens, /route-level loadingを先に表示/);
   assert.match(testPlan, /AC-AUTH-001-13/);
-  assert.match(review, /### R-074/);
+  assert.match(review, /### R-077/);
 });

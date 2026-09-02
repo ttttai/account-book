@@ -48,7 +48,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
           <p className="eyebrow">アカウント</p>
           <h2>プロフィール</h2>
           <ProfileForm displayName={profile.displayName} />
-          <Link className="settings-row-link" href="/app">
+          <Link className="settings-row-link" href="/app?view=groups">
             <span>
               <strong>グループを切り替える・作る</strong>
               <small>参加中グループと新規作成を管理します</small>

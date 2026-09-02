@@ -140,6 +140,9 @@ test("occurrenceを保存せず読み取り時の純関数で展開する (REC-0
   const calendar = await read(
     "src/modules/calendar/application/get-group-calendar.ts",
   );
+  const loader = await read(
+    "src/modules/transactions/application/list-monthly-transactions.ts",
+  );
 
   // 展開結果を保存するテーブル・job用endpointを作らない
   assert.doesNotMatch(migration, /create table[^;]*occurrence/i);
@@ -147,9 +150,11 @@ test("occurrenceを保存せず読み取り時の純関数で展開する (REC-0
   assert.match(schedule, /export function expandRecurringForMonth/);
   assert.doesNotMatch(schedule, /server-only|supabase/i);
 
-  // カレンダーは設定を展開して既存の集計関数へ渡す
-  assert.match(calendar, /expandRecurringForMonth/);
-  assert.match(calendar, /listRecurringSchedules/);
+  // 展開は共有の月次読み取りで1箇所だけ行い、カレンダーはその結果を既存の集計関数へ渡す
+  assert.match(loader, /expandRecurringForMonth/);
+  assert.match(loader, /listRecurringSchedules/);
+  assert.match(calendar, /listMonthlyTransactions/);
+  assert.doesNotMatch(calendar, /expandRecurringForMonth/);
   assert.match(calendar, /calculateCalendarSummary\(allExpenses/);
   assert.match(calendar, /calculateCalendarIncomeSummary\(\s*allIncomes/);
 });

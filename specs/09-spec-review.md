@@ -4,7 +4,7 @@
 
 レビュー日: 2026-09-02
 
-対象バージョン: 0.3.10
+対象バージョン: 0.3.12
 
 ## 1. レビュー目的
 
@@ -25,7 +25,7 @@
 - 延期判断が実装を暗黙に妨げないか
 - 仕様、レビュー、テスト、実装、検証の順序が運用ルールとして固定されているか
 
-バージョン0.3.9の自動文書検査では、要件ID 149件、明示的な受け入れ条件ID 194件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-074で`AC-AUTH-001-13`の1件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
+バージョン0.3.12の自動文書検査では、要件ID 151件、明示的な受け入れ条件ID 202件が一意であり、重複宣言はなかった（R-050でTXN-010・EXP-003を廃止してUC-006の受け入れ条件を4件へ再定義し、R-051で`NFR-PWA-001`〜`NFR-PWA-005`の5件、R-052で`NFR-SEC-011`・`NFR-PWA-006`・`NFR-MNT-011`の3件と`AC-AUTH-001-10`〜`AC-AUTH-001-12`の3件、R-053で`NFR-OPS-008`の1件、R-056で`AC-TXN-013-5`・`AC-TXN-013-6`の2件、R-057で`CAL-012`と`AC-CAL-012-1`〜`AC-CAL-012-4`、R-058で`CAL-013`と`AC-CAL-013-1`〜`AC-CAL-013-6`、R-061で`NFR-MNT-012`、R-063で`TXN-014`・`TXN-015`の2件と`AC-TXN-014-1`〜`AC-TXN-014-4`・`AC-TXN-015-1`〜`AC-TXN-015-4`の8件、R-064で`REC-001`〜`REC-009`の9件と`AC-REC-001-1`〜`AC-REC-003-2`の11件、R-066で`NFR-E2E-001`〜`NFR-E2E-005`の5件、R-067で`TXN-016`の1件と`AC-TXN-014-5`〜`AC-TXN-014-7`・`AC-TXN-016-1`・`AC-TXN-016-2`の5件、R-068で`ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`の9件と`AC-ANA-001-1`〜`AC-ANA-012-2`の17件、R-069で`AC-TXN-009-5`の1件、R-070で`CAL-014`・`CAL-015`の2件と`AC-CAL-014-1`〜`AC-CAL-014-4`・`AC-CAL-015-1`〜`AC-CAL-015-5`の9件、R-071で`AC-REC-004-1`の1件、R-072で`AC-CAL-001-18`の1件、R-073で`AC-CAL-015-6`の1件、R-075で`CAL-016`の1件と`AC-CAL-016-1`〜`AC-CAL-016-3`の3件、R-076で`GRP-011`の1件と`AC-GRP-011-1`〜`AC-GRP-011-5`の5件を追加した。R-074は要件ID・受け入れ条件IDを追加しない、R-077で`AC-AUTH-001-13`の1件を追加した）。R-066では、区分名に数字を含む要件ID（`NFR-A11Y-*`の6件と`NFR-E2E-*`の5件）を件数検査が数えていなかったため、検査の正規表現を修正して再集計した。過去版のレビューに記載した要件ID件数には集計誤りがあったため、0.2.25で宣言行を再集計して訂正した。
 
 ## 3. 指摘・対応
 
@@ -869,6 +869,20 @@ MVP範囲確認: 詳細分析の全グラフ・任意期間、LINEの送信・�
 
 判定: `ANA-001`〜`ANA-005`・`ANA-009`〜`ANA-012`と`AC-ANA-001-1`〜`AC-ANA-012-2`は`CAL-009`・`CAL-010`・`CAL-013`、`HIS-001`〜`HIS-005`、`REC-005`、`NFR-SEC-002`・`NFR-SEC-003`、`NFR-A11Y-*`、`NFR-UI-*`と整合し、安全かつ実装可能である。集計の純関数test、認可境界test、グラフなしで値を確認できるcomponent test、別グループ・削除済みmembershipのRLS testを先に追加し、320px・375 x 812・1280 x 800で実画面確認する条件で、実装開始を承認する。
 
+### R-075 カレンダーの土曜・日曜の色分け
+
+指摘: ホームカレンダーの曜日見出しと日番号は曜日によらず同じ色で表示され、42セルの中から週末を見つけるには曜日見出しの列を目で追う必要がある。一般的な日本のカレンダー（土曜は青、日曜は赤）に慣れた利用者にとって週末の位置が直感的に分からず、給料日・休日の支出を見返す際の視認性を損なう。
+
+対応: `CAL-016`と`AC-CAL-016-1`〜`AC-CAL-016-3`を追加し、日番号を土曜日は薄い青、日曜日は薄い赤で表示することを要件化した。色を変えるのは日番号だけとし、曜日見出し・セル背景・金額の色は変えない（当初案の曜日見出しの着色とセル背景の淡色は、利用者の確認で日番号だけに絞った）。画面仕様の日付セル節へ、色は曜日見出しの文字（土・日）による識別の補助であること、今日の塗りつぶしを維持すること、選択月外の土日は弱い表示のまま色相だけを区別することを追記した。テスト計画へ、グリッドの各セルが曜日を持ち週開始曜日に依存せず色分けが実際の曜日と一致する検証項目を追加した。実装は`calendar`モジュールのグリッド生成（純関数）で各セルへ曜日（0=日曜）を付与し、Client Componentは日付セルへ曜日に応じたclassを付けるだけとする。あわせて、日付リンクが文字色を自身で固定していたため選択月外の日番号が弱い表示（既存仕様）になっていなかった不整合を、リンクの文字色をセルから継承させる形で修正する。
+
+安全性確認: 変更は表示用DTOへ曜日1項目を加算的に追加することとCSSの追加に限られ、月間query、認可、集計、金額計算、URL同期、スワイプ判定へ影響しない。曜日は既存のSakamotoのアルゴリズムによる日付計算で決まり、`Date`や端末timezoneを使わないためserver renderとclient hydrationで一致する。曜日見出しの文字を常に表示するため`NFR-A11Y-005`（状態を色だけで表現しない）を維持し、日番号の文字色は背景に対してWCAG AAのコントラストを満たす値を用いる。
+
+実装可能性確認: `createCalendarGrid`は既に月初の曜日を計算しているため、各セルの曜日は`(月初の曜日 + index - 先行日数) mod 7`で求められ、単体testで固定できる。component testは`td`のclassで土日・平日を、`th`にclassが付かないことで曜日見出しが不変であることを検証できる。CSSは既存の`.calendar-cell`のmodifierとして日番号の文字色だけを切り替え、背景は変更しないため選択日・hoverの表現と干渉しない。日番号のボックス寸法は変えないため縦位置と行の高さは変わらない（R-060の規則を維持）。DB変更は不要である。
+
+MVP範囲確認: 祝日の判定・表示、曜日色のユーザー設定、六曜、履歴・分析画面の曜日表示は追加しない。週開始曜日の設定、42セル構成、日別取引sheetの構成は変更しない。
+
+判定: `CAL-016`と`AC-CAL-016-1`〜`AC-CAL-016-3`は`CAL-001`、`AC-CAL-001-12`、`NFR-A11Y-005`、`NFR-UI-*`、`NFR-MNT-010`と整合し、安全かつ実装可能である。グリッドの曜日付与の単体testとcomponent testを先に追加し、幅375 x 812（日曜始まり・月曜始まりの両方）と1280 x 800で日番号の色と曜日見出し・今日・選択日の表示を実画面確認する条件で実装開始を承認する。
+
 ## 4. 要件と検証方法の対応
 
 | 要件範囲               | 主な検証方法                                                                                                 |
@@ -877,7 +891,7 @@ MVP範囲確認: 詳細分析の全グラフ・任意期間、LINEの送信・�
 | `GRP-001`〜`GRP-010`   | group command、RLS、招待・所有権E2E                                                                          |
 | `CAT-001`〜`CAT-003`   | category integration、権限test                                                                               |
 | `TXN-001`〜`TXN-015`   | 金額・負担単体test、取引integration、入力UI component test、E2E                                              |
-| `CAL-001`〜`CAL-015`   | calendar query integration、月移動・スワイプ判定test、viewport E2E                                           |
+| `CAL-001`〜`CAL-016`   | calendar query integration、月移動・スワイプ判定test、曜日色分けcomponent test、viewport E2E                 |
 | `NAV-001`〜`NAV-004`   | navigation構造test、viewport E2E、keyboard確認                                                               |
 | `HIS-001`〜`HIS-005`   | query/filter integration、履歴E2E                                                                            |
 | `EXP-001`〜`EXP-004`   | export integration、CSV inject単体test、復元E2E                                                              |
@@ -995,7 +1009,37 @@ MVP範囲確認: 前月・翌月の内容をdrag中に同時描画するカル�
 
 実装確認: `CalendarSwipeNavigator`へ`pointermove`の追従表示、前月・翌月の方向インジケーター、未成立・cancel時の原点復帰、成立時の送り出しを追加した。`prefers-reduced-motion`ではtransformとtransitionを抑制した。月移動行は5列gridとし、年月を中央列、「今日」と翌月を右側の44px列へ配置した。architecture test 130件、単体・component test 601件、format、lint、型検査、本番buildが成功した。使い捨てE2E環境の実ブラウザで左スワイプの翌月遷移を確認し、320px・375 x 812・1280 x 800の年月中心のずれは0px、横scrollは0pxだった。375pxの過去月表示で「今日」は44 x 44pxを維持した。
 
-### R-074 起動直後のホーム表示が白いままになる（PWA standalone）
+### R-074 月次取引読み取りと認可contextの共有境界（refactor）
+
+指摘: カレンダー（`getGroupCalendar`）、履歴（`getGroupHistory`）、分析（`loadAnalyticsMonths`・`analytics-context`）が、`groupId`検証、Google検証済みsession、アクティブ所属、プロフィール表示名の取得を各moduleで再実装していた。さらにカレンダーと分析は、未削除の支出・収入取引の月範囲query、行schema、定期取引の展開と合流を別々に実装していた。予算（Issue #54）と詳細分析（Issue #56）は月次の支出・収入実績の4番目・5番目の利用者になるため、このまま進めると同型の実装が増え、同じ月・同じ対象で画面ごとに金額が食い違う不具合の温床になる。
+
+対応: 利用者向け動作を変えないrefactorとして、`groups`モジュールへ`resolveGroupReadContext`と`loadGroupMembers`を、`transactions`モジュールへ`listMonthlyTransactions`を追加し、`05-api-and-application-boundaries.md`へ共有する認可済み読み取り境界として記載した。カレンダーと分析は`listMonthlyTransactions`の結果へ既存の集計純関数（`calculateCalendarSummary`・`aggregateAnalyticsMonth`）を適用し、履歴は絞り込み・cursor pagination用の取引queryを固有に保ちつつ、認可contextと表示名解決を共有境界へ置き換える。`12-analytics-and-reporting.md`と`14-recurring-transactions.md`の展開の記述を共有境界経由へ更新し、`07-acceptance-test-plan.md`へ共有境界のApplication testを追加した。要件ID・受け入れ条件IDは追加しない。
+
+安全性確認: 共有境界は呼び出しごとに`groupId`をschema検証し、Google検証済みsessionとアクティブ所属を確認し、不正ID・未認証・非メンバーは存在を明かさず`null`を返す。削除済みmembershipは履歴が過去参照のために明示した場合だけ含め、操作者自身は常にアクティブ所属を要求する。取引はRLS適用のユーザーsession clientで`group_id`・`type`・`deleted_at is null`・取引日の半開区間の条件を付けて読み、service role、cache、Route Handlerを追加しない。返却物は既存DTOと同じ最小項目とし、Client Componentへ渡す内容は変わらない。取得失敗はカレンダー・履歴・分析のいずれでも例外としてerror boundaryへ渡す。履歴がプロフィール取得失敗を「表示不可（`null`）」として扱っていた挙動は、他画面と同じ例外へ揃える（error boundaryの表示は変えない）。
+
+実装可能性確認: 3 moduleのquery条件は`group_id`・`type`・`deleted_at`・`transaction_date`の半開区間で一致しており、選択列はカレンダーの列集合が分析の列集合を包含する。共有queryはカレンダーと同じ列（`id`・`created_at`・支払者または受取者・カテゴリの`id`/`name`/`color`/`icon`・負担行）を返し、分析は必要な項目だけを集計入力へ写す。定期取引の展開は既存の`expandRecurringForMonth`を月ごとに呼ぶ処理を共有境界へ移すだけで、展開規則を変えない。既存のApplication test（カレンダー、分析）はSupabase clientをmodule境界でmockしており、query順序を維持すれば同じ検証を継続できる。
+
+MVP範囲確認: 画面、URL、DTO、DB schema、RLS、金額計算規則、定期取引の展開規則、履歴の絞り込みとpaginationは変更しない。取引編集・入力選択肢のqueryが持つ同型の認可処理と、Server Action間のFormData helperの共通化は本refactorに含めず、必要になった作業で個別に扱う。
+
+判定: 本refactorは`NFR-MNT-002`・`NFR-MNT-006`（機能単位の整理と依存ルール）、`ANA-012`・`AC-ANA-012-1`（同じ認可済み集計の共有）、`REC-005`・`AC-REC-002-2`（展開の一貫性）、`CAL-010`・`AC-ANA-002-1`（カレンダーと分析の一致）と整合し、安全かつ実装可能である。共有境界のApplication testを先に追加し、既存のカレンダー・分析・履歴のtest、architecture test、lint、型検査、本番buildが通り、幅375pxと1280pxでホーム・履歴・分析の表示が変わらないことを確認する条件で、実装開始を承認する。
+
+実装確認: `groups`へ`resolveGroupReadContext`・`loadGroupMembers`（Application test 11件）、`transactions`へ`listMonthlyTransactions`と月範囲の純関数`monthlyDateRange`（Application test 8件、単体test 5件）を追加し、カレンダー・履歴・分析を共有境界経由へ置き換えた。重複していた行schema、月範囲helper（`getMonthRange`・`analyticsMonthRange`）、Intl日付変換を削除し、production codeは544行追加・609行削除（正味65行減）、testは約600行増となった。architecture test 128件、component・unit test 601件、format、警告なしlint、型検査、本番buildが成功し、coverageはstatement 61.95%、branch 59.15%、function 60.06%、line 61.86%を維持した。使い捨てE2E stackを本branchのimageで再構築し、E2E 16件（375 x 812と1280 x 800）が成功した。あわせて支出1件を登録したグループのホーム・履歴・分析を375pxと1280pxで実画面確認し、3画面が同じ¥6,000を表示することを確認した。取得失敗時の例外文言は共有境界のもの（「取引を取得できませんでした。」「メンバー一覧を取得できませんでした。」）へ変わるが、error boundaryは文言を表示しないため利用者向け表示は変わらない。
+
+### R-076 所属グループが1件のときのホーム直行（GRP-011）
+
+指摘: 家計簿を1つのグループだけで使う利用者が大半だが、ログイン後・`start_url`・ホーム（`/app`）の到達時に毎回グループ一覧が表示され、1件しかないグループを選ぶ操作が必要になる。主対象のスマートフォンでは記録までのタップ数と表示の連続性を損なう。
+
+対応: `GRP-011`と`UC-018`（`AC-GRP-011-1`〜`AC-GRP-011-5`）を追加した。`/app`はサーバー側で認証済みsessionの所属を取得し、アクティブな所属が1件だけなら`/groups/{groupId}`へ遷移する。0件は作成画面、2件以上は一覧を従来どおり表示する。一覧・プロフィール・グループ作成へ明示的に到達する導線（設定の「グループを切り替える・作る」、履歴の「グループ一覧」）は`/app?view=groups`とし、件数にかかわらず一覧を表示する。
+
+安全性確認: 遷移先はサーバーが`listMyGroups`（RLS配下の所属query）から決め、クライアントから渡されたgroupIDや件数を使わない。`view`はサーバーで`groups`との完全一致だけを見る表示切替であり、認可判定には関与しない。直行先の`/groups/{groupId}`は既存どおり認証・所属を再確認するため、遷移の間に所属が変わっても他グループの存在や内容を明かさない。Proxyの認証redirect先（`/app`）や`next`検証は変更しない。
+
+実装可能性確認: 判定は`groups`ドメインの純関数（所属ID一覧と`view`を受け取り、`list`または`group`とhrefを返す）として単体テストでき、`/app`のServer Componentが`redirect`を呼ぶだけで済む。設定・履歴のリンク先変更とarchitecture testの更新、E2E補助関数（グループ作成・ログアウト）の`/app?view=groups`化で、所属件数が変動する共有E2E利用者でも安定する。ログイン完了の`next`既定値は`/app`のままとし、二段階のredirectは同一originのserver redirectで完結する。
+
+MVP範囲確認: 「最後に開いたグループを記憶して直行する」「既定グループの設定」「一覧の並び替え」は追加しない。所属が2件以上の場合の挙動、グループ作成直後の遷移（`AC-GRP-001-4`）、下部ナビゲーションの「ホーム」（選択中グループの当月カレンダー）は変更しない。
+
+判定: `GRP-011`は`GRP-002`・`GRP-003`（複数所属・切替は一覧から引き続き可能）、`AC-AUTH-001-11`・`AC-AUTH-004-1`（Proxyのホーム転送先は`/app`のまま）、`NAV-004`（設定ハブに一覧・作成の入口を集約）、`NFR-UI-*`と整合し、認可境界を変更せず安全に実装できる。純関数の単体テスト、architecture test、E2E補助関数の更新を先に行い、所属1件のアカウントで375pxの実画面（ログイン後の直行と設定からの一覧復帰）を確認する条件で実装開始を承認する。
+
+### R-077 起動直後のホーム表示が白いままになる（PWA standalone）
 
 指摘: ホーム画面インストール版（standalone）でアプリを開くと、最初の数秒が全面白のまま経過する。起動経路は`start_url`（`/`）→ Proxyのsession確認 → `/app`へredirect → `/app`のServer Componentで`getCurrentProfile`と`listMyGroups`を`await`、であり、`/app`にはroute-level `loading.tsx`が無いため、データ取得が完了するまでHTMLを1バイトも返さない。`groups/[groupId]`配下の7画面にはskeletonがあるが、起動直後に必ず通る`/app`だけが全面白になる。Cloud Runの`min instances 0`によるcold start（`NFR-PERF-005`）と、iOS standaloneが`background_color`のsplashを描かないことが体感時間を延ばしている。
 
@@ -1009,4 +1053,4 @@ MVP範囲確認: Service Worker、オフラインキャッシュ、プッシュ�
 
 判定: `AC-AUTH-001-13`は`AC-AUTH-001-11`（認証済みの起動導線）、`NFR-UI-001`・`NFR-UI-005`・`NFR-UI-006`、`NFR-PWA-005`・`NFR-PWA-006`と整合し、認可・データ境界を変更せず安全に実装できる。architecture testとcomponent testを先に追加し、375pxと1280pxでskeletonと確定後の画面の配置が一致することを実画面確認する条件で、実装開始を承認する。
 
-実装確認: `src/app/app/loading.tsx`を追加し、確定後の画面と同じshell（`protected-shell groups-overview`）でheader・プロフィール欄・グループカード形状のskeletonを`aria-busy`付きで描画した。skeleton styleは`src/app/styles.css`へ`.groups-skeleton*`として追加し、1280pxの2カラム配置は既存の`.groups-overview` ruleを共有した（当初追加したグループ一覧の列指定は確定後の配置と食い違ったため削除した）。architecture testで境界の存在、shellの一致、操作要素・家計データ・認証情報の不在を固定し、component testで`aria-busy`と操作要素の不在を確認した。architecture test 132件、component・unit test 609件、format、警告なしlint、型検査、本番buildが成功し、使い捨てE2E stackを本branchのimageで再構築してE2E 18件（375 x 812と1280 x 800）が成功した。E2E stackでPostgRESTを一時停止して`/app`のデータ取得を止め、375pxと1280pxでskeletonが即時表示され、再開後に確定画面へ置き換わることを実画面確認した。cold start中のサーバー無応答とiOS standaloneのsplash未描画は本件の範囲外として据え置いた。
+実装確認: `src/app/app/loading.tsx`を追加し、確定後の画面と同じshell（`protected-shell groups-overview`）でheader・プロフィール欄・グループカード形状のskeletonを`aria-busy`付きで描画した。skeleton styleは`src/app/styles.css`へ`.groups-skeleton*`として追加し、1280pxの2カラム配置は既存の`.groups-overview` ruleを共有した（当初追加したグループ一覧の列指定は確定後の配置と食い違ったため削除した）。architecture testで境界の存在、shellの一致、操作要素・家計データ・認証情報の不在を固定し、component testで`aria-busy`と操作要素の不在を確認した。architecture test 132件、component・unit test 609件、format、警告なしlint、型検査、本番buildが成功し、使い捨てE2E stackを本branchのimageで再構築してE2E 18件（375 x 812と1280 x 800）が成功した。E2E stackでPostgRESTを一時停止して`/app`のデータ取得を止め、375pxと1280pxでskeletonが即時表示され、再開後に確定画面へ置き換わることを実画面確認した。cold start中のサーバー無応答とiOS standaloneのsplash未描画は本件の範囲外として据え置いた。R-076（GRP-011）の取り込みにより所属が1件の利用者は`/app`のskeletonの直後にカレンダーへredirectされ、カレンダーのskeletonへ続くが、全面白の代替として許容し、skeletonは特定画面を想起させない汎用の配置のままとする。
