@@ -3,9 +3,10 @@ import "server-only";
 import { z } from "zod";
 
 import {
-  createServerSupabaseClient,
-  getAllowedGoogleUserId,
-} from "@/modules/auth/server";
+  type GroupReadContext,
+  loadGroupMembers,
+  resolveGroupReadContext,
+} from "@/modules/groups/server";
 
 import {
   buildHistoryCursorCondition,
@@ -18,7 +19,6 @@ import {
 } from "../domain/history-filter";
 import {
   compareHistoryRowSourcesDesc,
-  historyFallbackDisplayName,
   toHistoryRow,
   type HistoryRowSource,
 } from "../domain/history-row";
@@ -28,23 +28,6 @@ import type {
   HistorySearchInput,
 } from "./history-types";
 
-// 削除済みメンバーのプロフィールはRLSで取得できないため、過去参照用の表示名で補う
-const removedMemberDisplayName = "退会メンバー";
-
-const groupIdSchema = z.uuid();
-const groupRowSchema = z.object({
-  id: z.uuid(),
-  name: z.string(),
-});
-const membershipRowSchema = z.object({
-  id: z.uuid(),
-  user_id: z.uuid(),
-  status: z.union([z.literal("active"), z.literal("removed")]),
-});
-const profileRowSchema = z.object({
-  user_id: z.uuid(),
-  display_name: z.string(),
-});
 const categoryRowSchema = z.object({
   id: z.uuid(),
   name: z.string(),
@@ -85,101 +68,57 @@ const baseSelectColumns =
 const memberFilterSelectColumn =
   "member_filter:transaction_allocations!transaction_allocations_transaction_group_fk!inner(member_id)";
 
+type HistoryMember = Readonly<{
+  membershipId: string;
+  displayName: string;
+  isActive: boolean;
+  isCurrentUser: boolean;
+}>;
+
 type HistoryContext = Readonly<{
-  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>;
-  group: Readonly<{ id: string; name: string }>;
-  currentMembershipId: string;
-  memberships: readonly z.infer<typeof membershipRowSchema>[];
+  read: GroupReadContext;
+  members: readonly HistoryMember[];
   categories: readonly z.infer<typeof categoryRowSchema>[];
   displayNameByMembershipId: ReadonlyMap<string, string>;
 }>;
 
+// 履歴は過去の取引を参照するため、削除済みmembershipも絞り込み候補と表示名の解決に含める
 async function loadHistoryContext(
   unsafeGroupId: string,
 ): Promise<HistoryContext | null> {
-  const groupIdResult = groupIdSchema.safeParse(unsafeGroupId);
-  if (!groupIdResult.success) return null;
+  const read = await resolveGroupReadContext(unsafeGroupId, {
+    includeRemovedMembers: true,
+  });
+  if (!read) return null;
 
-  const supabase = await createServerSupabaseClient();
-  const { data: claimsData, error: claimsError } =
-    await supabase.auth.getClaims();
-  const userId = getAllowedGoogleUserId(claimsData?.claims);
-  if (claimsError || !userId) return null;
-
-  const [groupResult, membershipResult, categoryResult] = await Promise.all([
-    supabase
-      .from("groups")
-      .select("id, name")
-      .eq("id", groupIdResult.data)
-      .maybeSingle(),
-    supabase
-      .from("group_members")
-      .select("id, user_id, status")
-      .eq("group_id", groupIdResult.data)
-      .order("joined_at", { ascending: true }),
-    supabase
+  const [groupMembers, categoryResult] = await Promise.all([
+    loadGroupMembers(read),
+    read.supabase
       .from("categories")
       .select("id, name, type, color")
-      .eq("group_id", groupIdResult.data)
+      .eq("group_id", read.group.id)
       .order("type", { ascending: true })
       .order("sort_order", { ascending: true }),
   ]);
-  if (
-    groupResult.error ||
-    membershipResult.error ||
-    categoryResult.error ||
-    !groupResult.data
-  ) {
-    return null;
-  }
+  if (categoryResult.error) return null;
 
-  const group = groupRowSchema.parse(groupResult.data);
-  const memberships = z
-    .array(membershipRowSchema)
-    .parse(membershipResult.data ?? []);
   const categories = z
     .array(categoryRowSchema)
     .parse(categoryResult.data ?? []);
-
-  // 履歴データはアクティブメンバーだけに返す
-  const currentMembership = memberships.find(
-    (membership) =>
-      membership.user_id === userId && membership.status === "active",
-  );
-  if (!currentMembership) return null;
-
-  const profileResult = await supabase
-    .from("profiles")
-    .select("user_id, display_name")
-    .in(
-      "user_id",
-      memberships.map((membership) => membership.user_id),
-    );
-  if (profileResult.error) return null;
-
-  const displayNameByUserId = new Map(
-    z
-      .array(profileRowSchema)
-      .parse(profileResult.data ?? [])
-      .map((profile) => [profile.user_id, profile.display_name]),
-  );
-  const displayNameByMembershipId = new Map(
-    memberships.map((membership) => [
-      membership.id,
-      displayNameByUserId.get(membership.user_id) ??
-        (membership.status === "active"
-          ? historyFallbackDisplayName
-          : removedMemberDisplayName),
-    ]),
-  );
+  const members: readonly HistoryMember[] = groupMembers.map((member) => ({
+    membershipId: member.membershipId,
+    displayName: member.displayName,
+    isActive: member.status === "active",
+    isCurrentUser: member.isCurrentUser,
+  }));
 
   return {
-    supabase,
-    group,
-    currentMembershipId: currentMembership.id,
-    memberships,
+    read,
+    members,
     categories,
-    displayNameByMembershipId,
+    displayNameByMembershipId: new Map(
+      members.map((member) => [member.membershipId, member.displayName]),
+    ),
   };
 }
 
@@ -187,7 +126,7 @@ function createFilterContext(context: HistoryContext) {
   return {
     categoryIds: new Set(context.categories.map((category) => category.id)),
     membershipIds: new Set(
-      context.memberships.map((membership) => membership.id),
+      context.members.map((member) => member.membershipId),
     ),
   };
 }
@@ -198,14 +137,14 @@ async function queryHistoryPage(
 ): Promise<
   Readonly<{ sources: readonly HistoryRowSource[]; nextCursor?: string }>
 > {
-  let query = context.supabase
+  let query = context.read.supabase
     .from("transactions")
     .select(
       filter.memberMemberId
         ? `${baseSelectColumns}, ${memberFilterSelectColumn}`
         : baseSelectColumns,
     )
-    .eq("group_id", context.group.id)
+    .eq("group_id", context.read.group.id)
     .is("deleted_at", null);
 
   if (filter.month) {
@@ -276,6 +215,7 @@ async function queryHistoryPage(
   };
 }
 
+// 認証・所属確認と絞り込み条件の検証を行い、履歴画面の初回表示データ一式を取得する
 export async function getGroupHistory(
   unsafeGroupId: string,
   search: HistorySearchInput,
@@ -287,7 +227,7 @@ export async function getGroupHistory(
   if (!filterResult.success) {
     return {
       kind: "invalid",
-      groupId: context.group.id,
+      groupId: context.read.group.id,
       reason: filterResult.reason,
     };
   }
@@ -297,18 +237,11 @@ export async function getGroupHistory(
 
   return {
     kind: "ready",
-    group: context.group,
-    currentMembershipId: context.currentMembershipId,
+    group: { id: context.read.group.id, name: context.read.group.name },
+    currentMembershipId: context.read.currentMembershipId,
     filter: appliedFilter,
     ...(cursor ? { appliedCursor: encodeHistoryCursor(cursor) } : {}),
-    members: context.memberships.map((membership) => ({
-      membershipId: membership.id,
-      displayName:
-        context.displayNameByMembershipId.get(membership.id) ??
-        historyFallbackDisplayName,
-      isActive: membership.status === "active",
-      isCurrentUser: membership.id === context.currentMembershipId,
-    })),
+    members: context.members,
     categories: context.categories.map((category) => ({
       id: category.id,
       name: category.name,

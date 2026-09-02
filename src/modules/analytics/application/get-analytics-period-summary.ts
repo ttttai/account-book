@@ -1,10 +1,9 @@
 import "server-only";
 
+import { resolveGroupReadContext } from "@/modules/groups/server";
+
 import { listAnalyticsMonths } from "../domain/analytics-month";
-import {
-  resolveAnalyticsContext,
-  resolveAnalyticsTarget,
-} from "./analytics-context";
+import { resolveAnalyticsTarget } from "./analytics-context";
 import type {
   AnalyticsPeriodRequest,
   AnalyticsPeriodSummary,
@@ -20,7 +19,7 @@ export async function getAnalyticsPeriodSummary(
   const months = listAnalyticsMonths(request.startMonth, request.endMonth);
   if (!months) return null;
 
-  const context = await resolveAnalyticsContext(request.groupId);
+  const context = await resolveGroupReadContext(request.groupId);
   if (!context) return null;
 
   const target = resolveAnalyticsTarget(context, request.target);
