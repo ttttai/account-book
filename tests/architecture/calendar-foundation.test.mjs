@@ -126,3 +126,21 @@ test("今日の強調は日番号ボックスの寸法を変えず縦位置を�
     );
   }
 });
+
+test("年月を左右対称の中央列へ固定し、スワイプfeedbackの動きを抑制できる", async () => {
+  const css = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
+  const navigation = readRule(css, ".calendar-month-navigation");
+  const title = readRule(css, ".calendar-month-title");
+
+  assert.match(
+    navigation,
+    /grid-template-columns:\s*44px 44px minmax\(0, 1fr\) 44px 44px/,
+  );
+  assert.match(title, /grid-column:\s*3/);
+  assert.match(css, /\.calendar-swipe-content\s*\{[^}]*transform:/s);
+  assert.match(css, /\[data-swipe-direction="next"\]/);
+  assert.match(css, /\[data-swipe-direction="previous"\]/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});

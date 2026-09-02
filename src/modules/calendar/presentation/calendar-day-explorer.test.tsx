@@ -271,9 +271,9 @@ describe("CalendarDayExplorer スワイプ月移動", () => {
   afterEach(() => vi.restoreAllMocks());
 
   function swipeArea(): HTMLElement {
-    const area = screen.getByRole("table", {
-      name: "2026年8月の取引",
-    }).parentElement;
+    const area = screen
+      .getByRole("table", { name: "2026年8月の取引" })
+      .closest<HTMLElement>("[data-swipe-area]");
     if (!area) throw new Error("swipe area not found");
     return area;
   }
@@ -312,6 +312,69 @@ describe("CalendarDayExplorer スワイプ月移動", () => {
     );
   });
 
+  it("横スワイプ中はカレンダーがpointerへ追従し、翌月の方向を表示する (AC-CAL-015-6)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const area = swipeArea();
+
+    fireEvent.pointerDown(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 300,
+      clientY: 200,
+      isPrimary: true,
+    });
+    fireEvent.pointerMove(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 220,
+      clientY: 204,
+      isPrimary: true,
+    });
+
+    expect(area.dataset.swipeDirection).toBe("next");
+    expect(
+      area
+        .querySelector<HTMLElement>("[data-swipe-content]")
+        ?.style.getPropertyValue("--calendar-swipe-x"),
+    ).toBe("-80px");
+    expect(area.textContent).toContain("翌月");
+  });
+
+  it("閾値未満でpointerを放すと追従表示を原点へ戻す (AC-CAL-015-6)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const area = swipeArea();
+
+    fireEvent.pointerDown(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 200,
+      clientY: 200,
+      isPrimary: true,
+    });
+    fireEvent.pointerMove(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 150,
+      clientY: 202,
+      isPrimary: true,
+    });
+    fireEvent.pointerUp(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 150,
+      clientY: 202,
+      isPrimary: true,
+    });
+
+    expect(area.dataset.swipeDirection).toBeUndefined();
+    expect(
+      area
+        .querySelector<HTMLElement>("[data-swipe-content]")
+        ?.style.getPropertyValue("--calendar-swipe-x"),
+    ).toBe("0px");
+    expect(routerPush).not.toHaveBeenCalled();
+  });
+
   it("右スワイプで前月へ、memberを維持して遷移する (AC-CAL-015-1)", () => {
     render(
       <CalendarDayExplorer
@@ -348,6 +411,66 @@ describe("CalendarDayExplorer スワイプ月移動", () => {
     );
   });
 
+  it("pointerdownではpointerを捕捉せず、水平dragが始まってから捕捉する (AC-CAL-015-3, AC-CAL-015-6)", () => {
+    // pointerdown時点で捕捉するとclickの発火先が判定領域へ変わり、日付リンクのタップが選択にならない
+    const setPointerCapture = vi.fn();
+    const hasPointerCapture = vi.fn(() => false);
+    Object.assign(HTMLElement.prototype, {
+      setPointerCapture,
+      hasPointerCapture,
+    });
+    render(<CalendarDayExplorer data={data} />);
+    const area = swipeArea();
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月16日、支出￥2,000",
+    });
+
+    fireEvent.pointerDown(dayLink, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 200,
+      clientY: 200,
+      isPrimary: true,
+    });
+    // タップの微小なぶれでも捕捉しない
+    fireEvent.pointerMove(dayLink, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 204,
+      clientY: 201,
+      isPrimary: true,
+    });
+    fireEvent.pointerUp(dayLink, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 204,
+      clientY: 201,
+      isPrimary: true,
+    });
+    expect(setPointerCapture).not.toHaveBeenCalled();
+
+    fireEvent.click(dayLink);
+    expect(screen.getByRole("heading", { name: "2026年8月16日" })).toBeTruthy();
+    expect(routerPush).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(area, {
+      pointerId: 2,
+      pointerType: "touch",
+      clientX: 300,
+      clientY: 200,
+      isPrimary: true,
+    });
+    fireEvent.pointerMove(area, {
+      pointerId: 2,
+      pointerType: "touch",
+      clientX: 280,
+      clientY: 202,
+      isPrimary: true,
+    });
+    expect(setPointerCapture).toHaveBeenCalledTimes(1);
+    expect(setPointerCapture).toHaveBeenCalledWith(2);
+  });
+
   it("縦方向が主の移動は縦スクロールとして扱い月移動しない (AC-CAL-015-2)", () => {
     render(<CalendarDayExplorer data={data} />);
 
@@ -367,6 +490,13 @@ describe("CalendarDayExplorer スワイプ月移動", () => {
       clientY: 200,
       isPrimary: true,
     });
+    fireEvent.pointerMove(area, {
+      pointerId: 1,
+      pointerType: "touch",
+      clientX: 200,
+      clientY: 200,
+      isPrimary: true,
+    });
     fireEvent.pointerCancel(area, { pointerId: 1, pointerType: "touch" });
     fireEvent.pointerUp(area, {
       pointerId: 1,
@@ -377,6 +507,12 @@ describe("CalendarDayExplorer スワイプ月移動", () => {
     });
 
     expect(routerPush).not.toHaveBeenCalled();
+    expect(area.dataset.swipeDirection).toBeUndefined();
+    expect(
+      area
+        .querySelector<HTMLElement>("[data-swipe-content]")
+        ?.style.getPropertyValue("--calendar-swipe-x"),
+    ).toBe("0px");
   });
 
   it("日付リンク上からのマウスドラッグをネイティブdragへ奪われないようdragstartを抑止する (AC-CAL-015-4)", () => {

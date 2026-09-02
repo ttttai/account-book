@@ -48,6 +48,16 @@ function createData(
 afterEach(() => cleanup());
 
 describe("CalendarHome 今日へ戻る", () => {
+  it("年月を左右の操作から独立した中央列に配置する", () => {
+    const { container } = render(<CalendarHome data={createData()} />);
+
+    const title = screen.getByRole("heading", { name: "2026年7月" });
+    expect(title.parentElement?.classList).toContain("calendar-month-title");
+    expect(
+      container.querySelector(".calendar-month-navigation")?.children,
+    ).toHaveLength(4);
+  });
+
   it("表示月が当月でないとき「今日」を表示し、scopeとmemberを維持して当月へ移動する (AC-CAL-014-1, AC-CAL-014-3)", () => {
     render(
       <CalendarHome
