@@ -117,6 +117,24 @@ function readRule(css, selector) {
   return css.slice(start + selector.length + 2, css.indexOf("}", start));
 }
 
+test("集計対象は2枠・3枠とも等幅1行で長い名前を枠内へ収める (AC-CAL-004-1)", async () => {
+  const css = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
+  const nav = readRule(css, ".calendar-scope-nav");
+  assert.match(nav, /grid-auto-flow: column/);
+  assert.match(nav, /grid-auto-columns: minmax\(0, 1fr\)/);
+  assert.doesNotMatch(nav, /grid-template-columns|flex-wrap/);
+  const control = readRule(css, ".calendar-member-picker > summary");
+  assert.match(control, /min-height: 44px/);
+  assert.match(control, /text-overflow: ellipsis/);
+  assert.match(control, /white-space: nowrap/);
+  assert.match(
+    readRule(css, ".calendar-member-options a"),
+    /overflow-wrap: anywhere/,
+  );
+});
+
 test("今日の強調は日番号ボックスの寸法を変えず縦位置を揃える", async () => {
   const css = await read(
     "src/modules/calendar/presentation/calendar.module.css",

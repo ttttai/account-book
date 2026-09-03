@@ -63,6 +63,7 @@ npx playwright show-report
 
 - シナリオを追加・変更する場合は、先に[`specs/15-e2e-testing.md`](../../specs/15-e2e-testing.md)へシナリオIDと対象要件を追記し、`specs/reviews/`へレビュー結果を残す。
 - 画面のselectorは`data-testid`ではなくrole・labelを優先し、CSS Modulesのハッシュ化クラス名に依存させない。
+- 均等共有（E2E-004）のホームは、2人グループの相手名を直接選ぶ3枠で検証する。1人時は2枠、3人以上の選択欄・候補除外・再選択時の開閉はcalendar component testで補完する。
 - 詳細分析（E2E-010）は金額だけでなく、320px・375pxの各金額の項目名と1280pxの列見出しを確認する。見えない見出しがDOMに存在するだけで合格にせず、表示状態も検証する。
 - E2Eユーザーの値を変える場合は、[`tests/e2e/support/e2e-users.ts`](../../tests/e2e/support/e2e-users.ts)、[`tests/e2e/seed/seed-e2e-users.sql`](../../tests/e2e/seed/seed-e2e-users.sql)、[`scripts/e2e-stack.sh`](../../scripts/e2e-stack.sh)の3か所をそろえる（architecture testが一致を検証する）。
 - グループ越境の認可証明は`tests/integration/*.sql`、OAuth開始Routeの検証は`tests/integration/oauth-start-local.test.mjs`が正本である。E2Eへ移さない。

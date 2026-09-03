@@ -61,8 +61,24 @@ export function CalendarValidationError({
   );
 }
 
-// グループ・自分・メンバー別の集計対象を切り替えるナビゲーション
+// 自分以外のアクティブメンバー数で2枠・直接リンク・選択欄を切り替える (AC-CAL-004-1)
 function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
+  const others = data.members.filter((member) => !member.isCurrentUser);
+  const currentMember = data.members.find((member) => member.isCurrentUser);
+  const isSelfActive =
+    data.scope === "self" ||
+    (data.scope === "member" &&
+      !!currentMember &&
+      data.selectedMemberId === currentMember.membershipId);
+  const isOtherSelected = data.scope === "member" && !isSelfActive;
+  const onlyOther = others.length === 1 ? others[0] : undefined;
+  const memberHref = (membershipId: string) =>
+    createCalendarUrl(data.group.id, {
+      month: data.month,
+      scope: "member",
+      memberId: membershipId,
+    });
+
   return (
     <nav
       className={styles["calendar-scope-nav"]}
@@ -79,33 +95,41 @@ function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
         グループ
       </Link>
       <Link
-        className={data.scope === "self" ? "is-active" : undefined}
+        className={isSelfActive ? "is-active" : undefined}
         href={createCalendarUrl(data.group.id, {
           month: data.month,
           scope: "self",
         })}
-        aria-current={data.scope === "self" ? "page" : undefined}
+        aria-current={isSelfActive ? "page" : undefined}
       >
         自分
       </Link>
-      <CalendarMemberPicker
-        isActive={data.scope === "member"}
-        summaryLabel={
-          data.scope === "member"
-            ? (data.selectedMemberLabel ?? "メンバー")
-            : "メンバー"
-        }
-        options={data.members.map((member) => ({
-          membershipId: member.membershipId,
-          label: `${member.displayName}${member.isCurrentUser ? "（自分）" : ""}`,
-          href: createCalendarUrl(data.group.id, {
-            month: data.month,
-            scope: "member",
-            memberId: member.membershipId,
-          }),
-          isSelected: data.selectedMemberId === member.membershipId,
-        }))}
-      />
+      {onlyOther ? (
+        <Link
+          className={isOtherSelected ? "is-active" : undefined}
+          aria-current={isOtherSelected ? "page" : undefined}
+          href={memberHref(onlyOther.membershipId)}
+        >
+          {onlyOther.displayName}
+        </Link>
+      ) : null}
+      {others.length >= 2 ? (
+        <CalendarMemberPicker
+          isActive={isOtherSelected}
+          summaryLabel={
+            isOtherSelected
+              ? (data.selectedMemberLabel ?? "メンバー")
+              : "メンバー"
+          }
+          options={others.map((member) => ({
+            membershipId: member.membershipId,
+            label: member.displayName,
+            href: memberHref(member.membershipId),
+            isSelected:
+              isOtherSelected && data.selectedMemberId === member.membershipId,
+          }))}
+        />
+      ) : null}
     </nav>
   );
 }
