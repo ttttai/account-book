@@ -225,7 +225,7 @@ Bの支出: 3,000円
 基本フロー:
 
 1. ユーザーが通常のtop-level navigationでGoogleログイン開始Route Handlerへ遷移する。
-2. Googleが本人確認し、Supabase AuthがPKCE callbackを処理する。
+2. Googleがアカウント選択画面を表示し、ユーザーが選んだアカウントで本人確認したうえで、Supabase AuthがPKCE callbackを処理する。
 3. 登録前フックがGoogle providerと許可リストを照合し、対象外はAuthユーザー作成前に拒否する。
 4. 許可された初回ログインでSupabase Authのユーザーと`profiles`行を作成する。
 5. アプリがcookieのsession、Google provider、許可リストを再検証し、保護画面を表示する。
@@ -246,6 +246,8 @@ Bの支出: 3,000円
 - `AC-AUTH-001-11` 認証済みで`start_url`（`/`）またはOAuth開始Routeへ到達した場合、ログイン画面とGoogle認証を経由せず、ホームまたは検証済みの戻り先を表示する。
 - `AC-AUTH-001-12` 失効したAuth cookieが残った状態でも、1回のGoogleログインでsessionが成立する。callbackは既存のsession cookieを参照せずPKCEのcode verifierだけでcodeを交換し、交換したsession cookieを同じ応答内の削除cookieで打ち消さない。
 - `AC-AUTH-001-13` 認証済みでホーム（`/app`）を開く要求では、プロフィールとグループ一覧の取得完了を待たずにroute shellとskeletonを先に返し、ホーム画面インストール版の起動直後を含めて全面が白いままの状態を作らない。skeletonは`aria-busy`で読み込み中を伝え、確定後の画面と同じ配置（header、プロフィール、グループ一覧）と375px・1280pxのカラム構成を保つ。
+- `AC-AUTH-006-1` OAuth開始Route Handlerは、Googleへ転送する認可要求に`prompt=select_account`を付与し、ブラウザにGoogleアカウントのsessionが1件だけ残っている場合でも、Googleのアカウント選択画面を毎回表示する。`login_hint`など特定アカウントを既定にするパラメータは付けない。
+- `AC-AUTH-006-2` アプリの有効なsessionがある間は`AC-AUTH-001-11`に従いGoogle認証を経由しないため、別のGoogleアカウントへ切り替える手順は「ログアウト」→「Googleでログイン」→Googleのアカウント選択とし、ログイン画面と利用者向けガイドにこの手順を示す。切り替え後も許可リストの照合（`AC-AUTH-001-4`）は変わらない。
 - `AC-AUTH-002-1` ログインユーザーは自分のプロフィールを取得・更新でき、別ユーザーとして更新できない。
 - `AC-AUTH-003-1` ログアウト後は保護画面を閲覧できず、ログイン画面へ遷移する。
 - `AC-AUTH-004-1` 未認証で保護画面へアクセスすると、ログイン後の戻り先を安全な相対pathとして保持してログイン画面へ遷移する。

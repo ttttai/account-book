@@ -65,6 +65,7 @@
 - 定期取引のowner/admin限定更新、member閲覧、別グループ拒否、支出の負担額合計一致
 - Proxyがframeworkの規約位置（`src`直下）に置かれ、未認証の保護画面要求を戻り先付きでログイン画面へredirectすること
 - 認証済みの`/`とOAuth開始Route到達時に、OAuthを再実行せずホームまたは検証済みの戻り先へredirectすること
+- OAuth開始Route Handlerが返す認可URLに`prompt=select_account`が含まれ、`login_hint`を含まないこと（architecture testとOAuth HTTP integration test）
 - callbackが既存のsession cookieを参照せず、交換したsession cookieを同じ応答の削除cookieで打ち消さないこと
 - 更新commandがDB失敗時に、利用者向け分類を維持したまま操作名と失敗codeをサーバーlogへ記録し、家計データやtokenを含めないこと
 - OAuth metadata欠損時も制約内のプロフィール表示名を作れること

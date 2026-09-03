@@ -42,6 +42,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <p className="field-hint">
         現在は、管理者が許可したGoogleアカウントだけ利用できます。
       </p>
+      <p className="field-hint">
+        別のGoogleアカウントで使う場合は、ログアウトしてからもう一度Googleでログインし、アカウントを選び直してください。
+      </p>
       {params.error === "not_allowed" && (
         <p className="form-message error" role="alert">
           このGoogleアカウントは利用を許可されていません。
