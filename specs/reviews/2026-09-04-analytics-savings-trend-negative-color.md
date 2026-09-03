@@ -35,4 +35,4 @@ CSS Modulesの色指定だけの変更で、計算、DTO、認可、URL、DBは�
 
 ## 実装確認
 
-`i[data-chart-bar="negative"]`へ背景色`#d8664f`（月別推移の支出棒と同色）を追加し、正と0円の棒はaccent色のまま維持した。component testで負の累積収支の月に`negative`が付くこと、architecture testで`negative`向けの背景色規則があることを先に固定して失敗を確認し、実装後に成功した。prettier、警告なしbiome lint、型検査、本番build、architecture test 143件、単体・component test 672件が成功した。iOS Simulator（開発stackへ反映した実データ）で2026年8月の赤字の棒が赤系、9月の黒字の棒がaccent色で表示され、向きと数値表の符号と一致することを確認した。
+`i[data-chart-bar="negative"]`へ背景色`#d8664f`（月別推移の支出棒と同色）を追加し、正と0円の棒はaccent色のまま維持した。component testで負の累積収支の月に`negative`が付くこと、architecture testで`negative`向けの背景色規則があることを先に固定して失敗を確認し、実装後に成功した。prettier、警告なしbiome lint、型検査、本番build、architecture test 143件、単体・component test 672件が成功した。iOS Simulator（開発stackへ反映した実データ）で2026年8月の赤字の棒が赤系、9月の黒字の棒がaccent色で表示され、向きと数値表の符号と一致することを確認した。320px・375 x 812・1280 x 800のChromiumでも赤字の月だけが赤系の棒になり、横scrollなく表示されることを確認した。
