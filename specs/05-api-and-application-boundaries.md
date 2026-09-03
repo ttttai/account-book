@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.13
+バージョン: 0.2.14
 
 ## 1. Next.js境界方針
 
@@ -35,6 +35,7 @@ Server Actionへ再利用可能な業務ロジックを書かず、Web要求をc
 - 認証callback
 - OAuth開始
 - CSV download
+- 共有データの変更確認（`GET /api/v1/groups/{groupId}/changes`。認可済みの不透明な変更tokenだけを返し、取引データを返さない）
 - Webhook
 - health check
 - 将来のネイティブアプリ・外部クライアント向けAPI
@@ -95,7 +96,10 @@ getRecurringTransactionForEdit(groupId, recurringTransactionId)
 getAnalyticsOverview(groupId, searchParams)
 getAnalyticsPeriodSummary({ groupId, startMonth, endMonth, target })
 getAnalyticsDetails(groupId, searchParams)
+getGroupChangeToken(groupId)
 ```
+
+`getGroupChangeToken`（`sync`モジュール）は`resolveGroupReadContext`で認可を確認し、`transactions`・`recurring_transactions`・`categories`の行数と`updated_at`最大値から決定的な不透明tokenを返す。取引行を読まず、集約値をクライアントへ渡さない。詳細は[`16-shared-data-sync.md`](16-shared-data-sync.md)を正本とする。
 
 分析（`ANA-*`）は上の3つのqueryだけを公開する。3つは同じ月次集計純関数と共有読み取り境界を使い、同じグループ・期間・対象に対して同じ金額を返す。`getAnalyticsDetails`は1要求につき`listMonthlyTransactions`を1回だけ呼び、その結果から期間指標、カテゴリ、メンバー比較を作る。定期レポートは`getAnalyticsPeriodSummary`を再利用し、取引行を直接読まず、金額の再計算を別実装で行わない。期間は1〜24か月に制限し、超過・不正な月・開始月が終了月より後の要求は取引を読み込まずに拒否する。分析専用の集計テーブル、Route Handler、内部APIは追加しない。
 
@@ -162,6 +166,7 @@ POST   /api/v1/groups/{groupId}/transactions
 PATCH  /api/v1/groups/{groupId}/transactions/{transactionId}
 DELETE /api/v1/groups/{groupId}/transactions/{transactionId}
 GET    /api/v1/groups/{groupId}/exports/transactions.csv
+GET    /api/v1/groups/{groupId}/changes
 ```
 
 ## 6. エラー契約
@@ -186,10 +191,11 @@ resourceの存在推測を防ぐため、非メンバーがグループ所有res
 - グループ単位のkeyと無効化について、自動分離テストができるまで共有component/function cacheを有効にしない。
 - 公開static pageや不変の初期カテゴリ定義はキャッシュ可能とする。
 - 取引更新後、現在のグループ・月に新しい値を即時表示する。
+- 他メンバーの更新は、自動反映画面（ホーム・履歴・分析）が表示中の間の軽量な変更確認と`router.refresh()`で反映する。変更tokenの応答も`no-store`とし、cacheしない。
 
 ## 8. Realtime方針
 
-Realtimeは最初の縦切り実装から延期する。導入時は次を守る。
+Realtimeは最初の縦切り実装から延期する。Realtime導入までは、[`16-shared-data-sync.md`](16-shared-data-sync.md)の変更確認（表示中30秒間隔・表示復帰時）で他メンバーの変更を反映する。導入時は次を守る。
 
 - グループ画面がactiveな間だけsubscribeする。
 - eventを唯一の正本にせず、再取得の通知として扱う。
