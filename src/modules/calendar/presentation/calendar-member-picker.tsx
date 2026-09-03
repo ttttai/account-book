@@ -34,7 +34,10 @@ export function CalendarMemberPicker({
 
   return (
     <details className={styles["calendar-member-picker"]} ref={pickerRef}>
-      <summary className={isActive ? "is-active" : undefined}>
+      <summary
+        className={isActive ? "is-active" : undefined}
+        aria-current={isActive ? "page" : undefined}
+      >
         {summaryLabel}
       </summary>
       <div className={styles["calendar-member-options"]}>

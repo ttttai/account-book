@@ -25,6 +25,11 @@ async function setUpSharedExpense(
   groupName: string,
 ): Promise<Readonly<{ groupId: string; month: string; day: string }>> {
   const groupId = await createGroup(ownerPage, groupName);
+  const scopeNav = ownerPage.getByRole("navigation", {
+    name: "カレンダーの集計対象",
+  });
+  await expect(scopeNav.getByRole("link")).toHaveText(["グループ", "自分"]);
+  await expect(scopeNav.locator("details")).toHaveCount(0);
   const shareUrl = await createInvitationLink(ownerPage, groupId, "メンバー");
   const invitedPage = await openUserPage(E2E_USER_B);
   await acceptInvitation(invitedPage, shareUrl);
@@ -53,7 +58,7 @@ async function setUpSharedExpense(
 test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desktop", async ({
   memberPage,
   openUserPage,
-}) => {
+}, testInfo) => {
   const { groupId, month, day } = await setUpSharedExpense(
     memberPage,
     openUserPage,
@@ -70,12 +75,73 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
   await expect(memberPage).toHaveURL(/scope=self/);
   await expect(monthlyTotal(memberPage)).toContainText("￥3,000");
 
-  await memberPage.locator("summary").filter({ hasText: "メンバー" }).click();
-  await memberPage
+  const scopeNav = memberPage.getByRole("navigation", {
+    name: "カレンダーの集計対象",
+  });
+  await expect(scopeNav.getByRole("link")).toHaveText([
+    "グループ",
+    "自分",
+    E2E_USER_B.displayName,
+  ]);
+  await expect(scopeNav.locator("details")).toHaveCount(0);
+  await scopeNav
     .getByRole("link", { name: E2E_USER_B.displayName, exact: true })
     .click();
   await expect(memberPage).toHaveURL(/scope=member&member=[0-9a-f-]{36}/);
   await expect(monthlyTotal(memberPage)).toContainText("￥3,000");
+  await expect(
+    scopeNav.getByRole("link", { name: E2E_USER_B.displayName, exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  const selectedMember = new URL(memberPage.url()).searchParams.get("member");
+  const previousMonthHref = await memberPage
+    .getByRole("link", { name: /^\d{4}年\d{1,2}月を表示$/ })
+    .first()
+    .getAttribute("href");
+  if (!previousMonthHref) throw new Error("前月のリンクが必要です");
+  await memberPage
+    .getByRole("link", { name: /^\d{4}年\d{1,2}月を表示$/ })
+    .first()
+    .click();
+  await expect(memberPage).toHaveURL(
+    new URL(previousMonthHref, memberPage.url()).toString(),
+  );
+  await memberPage
+    .getByRole("link", { name: /^\d{4}年\d{1,2}月を表示$/ })
+    .last()
+    .click();
+  await expect(memberPage).toHaveURL(
+    new RegExp(`month=${month}&scope=member&member=${selectedMember}`),
+  );
+  for (const width of testInfo.project.name === "mobile"
+    ? [375, 320]
+    : [1280]) {
+    await memberPage.setViewportSize({
+      width,
+      height: width === 1280 ? 800 : 812,
+    });
+    const boxes = await scopeNav.getByRole("link").evaluateAll((links) =>
+      links.map((link) => {
+        const { x, y, width, height } = link.getBoundingClientRect();
+        return { x, y, width, height };
+      }),
+    );
+    expect(boxes).toHaveLength(3);
+    for (const box of boxes) {
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(Math.abs(box.y - boxes[0].y)).toBeLessThan(1);
+      expect(Math.abs(box.width - boxes[0].width)).toBeLessThan(1);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+    }
+    expect(
+      await memberPage.evaluate(
+        () => document.documentElement.scrollWidth - innerWidth,
+      ),
+    ).toBe(0);
+    await memberPage.screenshot({
+      path: testInfo.outputPath(`calendar-member-tabs-${width}.png`),
+      fullPage: true,
+    });
+  }
 
   // 日別取引に負担内訳を表示する
   await openCalendar(memberPage, groupId, { month, scope: "group", day });
