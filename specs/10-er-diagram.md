@@ -2,13 +2,13 @@
 
 状態: 承認済み
 
-バージョン: 0.2.0
+バージョン: 0.3.0
 
-最終更新日: 2026-08-28
+最終更新日: 2026-09-04
 
 ## 1. 対象と正本
 
-この図は、2026-08-28時点で`supabase/migrations/`に実装済みのテーブルと外部キーを表す。列の制約、RLS、index、将来のデータ設計は`04-data-model.md`、実際のDB構造はmigrationを正本とする。
+この図は、2026-09-04時点で`supabase/migrations/`に実装済みのテーブルと外部キーを表す。列の制約、RLS、index、将来のデータ設計は`04-data-model.md`、実際のDB構造はmigrationを正本とする。
 
 `auth.users`はSupabase Authが管理する外部schemaである。`app_private.allowed_google_accounts`は認証許可リストであり、email照合に利用するが、`auth.users`との外部キーは持たない。
 
@@ -139,6 +139,27 @@ erDiagram
         timestamptz created_at
     }
 
+    BUDGET_REVISIONS {
+        uuid id PK
+        uuid group_id FK
+        date effective_month
+        text status
+        bigint total_amount_minor
+        integer version
+        uuid created_by FK
+        uuid updated_by FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    BUDGET_CATEGORY_LIMITS {
+        uuid budget_revision_id PK,FK
+        uuid category_id PK,FK
+        uuid group_id FK
+        bigint amount_minor
+        timestamptz created_at
+    }
+
     AUTH_USERS ||--|| PROFILES : "プロフィールを持つ"
     AUTH_USERS ||--o{ GROUPS : "作成する"
     AUTH_USERS ||--o{ GROUP_MEMBERS : "所属する"
@@ -163,6 +184,12 @@ erDiagram
     GROUP_MEMBERS o|--o{ RECURRING_TRANSACTIONS : "支払者・受取者になる"
     RECURRING_TRANSACTIONS ||--o{ RECURRING_TRANSACTION_ALLOCATIONS : "負担額を持つ"
     GROUP_MEMBERS ||--o{ RECURRING_TRANSACTION_ALLOCATIONS : "負担する"
+
+    AUTH_USERS ||--o{ BUDGET_REVISIONS : "作成・更新する"
+    GROUPS ||--o{ BUDGET_REVISIONS : "予算改定を持つ"
+    GROUPS ||--o{ BUDGET_CATEGORY_LIMITS : "内訳を分離する"
+    BUDGET_REVISIONS ||--o{ BUDGET_CATEGORY_LIMITS : "カテゴリ予算を持つ"
+    CATEGORIES ||--o{ BUDGET_CATEGORY_LIMITS : "上限を持つ"
 ```
 
 ## 3. 重要な関係と制約
@@ -176,6 +203,7 @@ erDiagram
 - `group_invitations.token_hash`にはhashだけを保存し、生の招待tokenは保存しない。
 - カレンダー集計は`transactions`と`transaction_allocations`から読み取り時に計算し、現時点で`daily_summaries`テーブルは作成しない。
 - `recurring_transactions`は定期取引の設定だけを保持し、月ごとの展開結果（occurrence）は保存しない。カレンダー集計は選択月へ展開した擬似取引を読み取り時に加える。
+- `budget_revisions`は適用開始月ごとの改定だけを保持し、月ごとの予算行を複製しない。`(group_id, effective_month)`をuniqueにし、`budget_category_limits`は`group_id`を含む複合外部キーで同じグループの支出カテゴリへ固定する。実績・残額・消化率は保存せず読み取り時に計算する。
 
 ## 4. 更新ルール
 
