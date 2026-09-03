@@ -129,6 +129,7 @@ deleteTransaction(groupId, transactionId, expectedVersion)
 createRecurringTransaction(groupId, input)
 updateRecurringTransaction(groupId, recurringTransactionId, expectedVersion, input)
 endRecurringTransaction(groupId, recurringTransactionId, expectedVersion, endMonth)
+setDefaultGroup(groupId | null)
 ```
 
 `createTransaction`は支出と収入を種別ごとの原子的なDB関数で受け付ける。Server Actionは`groupId`をbind引数として受け取っても未信頼入力としてUUID検証し、FormDataの金額、日付、カテゴリ、種別に応じた支払者または受取者、支出の負担方法・負担メンバー・金額、メモ、`client_request_id`をschemaで検証する。commandは検証済みGoogle sessionを取得し、ユーザーsession付きSupabase clientでDB関数を呼ぶ。DB関数はアクティブ所属、種別に一致するカテゴリ、支払者・受取者・負担者の同一グループ所属とアクティブ状態、支出の合計一致、冪等性を再確認する。収入は負担行を作成しない。
@@ -142,6 +143,8 @@ commandがDB関数の失敗で完了しなかった場合、利用者向けに�
 `getGroupHome`は`groupId`、`month`、`scope`、`member`、`day`をschema検証し、検証済みGoogle sessionとアクティブ所属を確認してから、選択月の半開区間だけをqueryする。`scope=group`は支出取引本体を1回だけ、`scope=self|member`は対象membershipの負担行だけを合計する。日別取引、カテゴリ、支払者、負担内訳は同じ認可済み月データから最小DTOへ変換する。別グループ・削除済みmembershipを選択できず、収入・論理削除済み・月外取引を標準支出集計へ含めない。個人家計データへ共有cacheは追加しない。
 
 定期取引のcommandは、Server Actionで入力を検証したうえで`security definer`のDB関数を1回呼び、設定と負担行を同一transactionで保存する。DB関数内でowner/admin、アクティブ所属、カテゴリと支払者・受取者・負担者の同一グループ所属、支出の負担額合計一致、`day_of_month`（1〜28）と開始月・終了月の月初日・前後関係を再検証する。展開（対象月の同じ日付へ1件作ること）は純関数として実装し、定期取引queryとカレンダー集計の両方から同じ関数を使う。展開結果をDBへ保存せず、job・scheduler・queue・retry・occurrence用endpointを追加しない。
+
+`setDefaultGroup`は、Server Actionがbind引数のgroupIDと操作種別（設定・解除）をschema検証したうえで、検証済みGoogle sessionのユーザーsession付きSupabase clientから`security definer`のDB関数`set_default_group`を1回呼ぶ。DB関数は本人・許可リスト・対象グループへのアクティブ所属を再確認し、`user_preferences`をupsertする。ホーム（`/app`）の遷移先はサーバー専用query`getDefaultGroupId`と`listMyGroups`の結果だけから純関数`resolveHomeDestination`で決め、設定先がアクティブ所属に含まれない場合は所属件数の判定へ戻す。
 
 招待作成Actionはroleとgroup IDを検証し、command内で認証・owner/admin権限を再確認する。256 bit以上の生トークンはサーバーで生成してSHA-256 hashだけをDB commandへ渡し、作成成功時だけURL fragment形式の共有リンクを最小DTOとしてClientへ返す。生トークンを再取得するqueryは提供しない。
 
