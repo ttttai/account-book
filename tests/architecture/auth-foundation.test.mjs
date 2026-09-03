@@ -51,6 +51,18 @@ test("Google OAuthだけをユーザーへ提供する", async () => {
   }
 });
 
+test("Googleログインは毎回アカウント選択画面を表示し、切替手順を案内する (AUTH-006)", async () => {
+  const startRoute = await read("src/app/auth/google/start/route.ts");
+  const loginPage = await read("src/app/login/page.tsx");
+
+  // 認可要求にprompt=select_accountを付け、特定アカウントを既定にしない (AC-AUTH-006-1)
+  assert.match(startRoute, /queryParams:\s*\{[^}]*prompt:\s*"select_account"/);
+  assert.doesNotMatch(startRoute, /login_hint/);
+  // ログアウト後にアカウントを選び直す手順を画面で示す (AC-AUTH-006-2)
+  assert.match(loginPage, /別のGoogleアカウント/);
+  assert.match(loginPage, /ログアウト/);
+});
+
 test("OAuth認可URLをDocker内部hostnameのままブラウザへ返さない", async () => {
   const startRoute = await read("src/app/auth/google/start/route.ts");
 
