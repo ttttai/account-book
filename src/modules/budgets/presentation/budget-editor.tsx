@@ -72,6 +72,15 @@ function submitLabel(view: BudgetViewReady): string {
   return "予算を設定";
 }
 
+function initialCategoryLimits(view: BudgetViewReady): Record<string, string> {
+  return Object.fromEntries(
+    (view.progress?.categories ?? []).map((category) => [
+      category.categoryId,
+      String(category.limitMinor),
+    ]),
+  );
+}
+
 // グループ予算とカテゴリ別予算の入力フォーム。金額欄はOSの数字キーボードを使い、合計と未配分額を即時表示する (AC-BUD-010-3)
 function BudgetForm({ view }: BudgetEditorProps) {
   const fieldId = useId();
@@ -82,14 +91,16 @@ function BudgetForm({ view }: BudgetEditorProps) {
   const [total, setTotal] = useState(
     view.progress ? String(view.progress.limitMinor) : "",
   );
-  const [limits, setLimits] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      (view.progress?.categories ?? []).map((category) => [
-        category.categoryId,
-        String(category.limitMinor),
-      ]),
-    ),
-  );
+  const [limits, setLimits] = useState(() => initialCategoryLimits(view));
+  const revisionKey = `${view.progress?.effectiveMonth ?? ""}:${view.progress?.version ?? ""}:${view.revisionAtMonth?.version ?? ""}`;
+  const [inputRevisionKey, setInputRevisionKey] = useState(revisionKey);
+
+  // 改定が変わったときだけ入力を同期し、古い金額を新versionで送らない。実績更新では入力・focusを維持する。
+  if (inputRevisionKey !== revisionKey) {
+    setInputRevisionKey(revisionKey);
+    setTotal(view.progress ? String(view.progress.limitMinor) : "");
+    setLimits(initialCategoryLimits(view));
+  }
   const fieldErrors = state.fieldErrors ?? {};
 
   const totalMinor = parseAmount(total);
@@ -269,7 +280,10 @@ export function BudgetEditor({ view }: BudgetEditorProps) {
     );
   }
   return (
-    <section className={styles["budget-editor"]}>
+    <section
+      className={styles["budget-editor"]}
+      key={`${view.group.id}:${view.month}`}
+    >
       <BudgetForm view={view} />
       {view.progress ? <DisableBudgetForm view={view} /> : null}
     </section>

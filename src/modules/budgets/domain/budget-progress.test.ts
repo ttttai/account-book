@@ -70,6 +70,16 @@ describe("budgetStatusOf", () => {
 });
 
 describe("budgetUsedPercent", () => {
+  it("0.5%の丸め境界を浮動小数点誤差で切り下げない (AC-BUD-007-2)", () => {
+    expect(budgetUsedPercent(29, 200)).toBe(15);
+    expect(budgetUsedPercent(145, 1000)).toBe(15);
+    expect(budgetUsedPercent(144, 1000)).toBe(14);
+    expect(budgetUsedPercent(146, 1000)).toBe(15);
+    expect(
+      budgetUsedPercent(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER),
+    ).toBe(100);
+  });
+
   it("整数パーセントへ四捨五入し、100%超も切り詰めない (AC-BUD-007-2)", () => {
     expect(budgetUsedPercent(0, 10000)).toBe(0);
     expect(budgetUsedPercent(1234, 10000)).toBe(12);

@@ -22,7 +22,7 @@ test("E2E-010 設定した予算に対して実績・残額・状態が予算画
   ).toBeVisible();
 
   // owner/adminが当月からグループ予算とカテゴリ予算を設定する (AC-BUD-001-1)
-  await memberPage.getByLabel("グループ予算").fill("50000");
+  await memberPage.getByRole("textbox", { name: "グループ予算" }).fill("50000");
   await memberPage.getByLabel("食費").fill("20000");
   await expect(
     memberPage.getByText(/カテゴリ予算の合計 ￥20,000/),
@@ -75,4 +75,58 @@ test("E2E-010 設定した予算に対して実績・残額・状態が予算画
   await expect(summary).toContainText("超過 ￥1,000");
   await expect(summary).toContainText("102%");
   await expect(summary.getByText("超過", { exact: true })).toBeVisible();
+});
+
+// Linkで移動した場合のClient stateと送信対象を実ブラウザで確認する。
+test("E2E-010 月を往復しても各月の予算だけを保存する @desktop", async ({
+  memberPage,
+}) => {
+  const groupId = await createGroup(memberPage, "E2E 予算月移動");
+  const month = currentMonthInGroupTimezone();
+  await memberPage.goto(`/groups/${groupId}/budgets?month=${month}`);
+  await memberPage.getByRole("textbox", { name: "グループ予算" }).fill("50000");
+  await memberPage.getByLabel("食費").fill("20000");
+  await memberPage.getByRole("button", { name: "予算を設定" }).click();
+  await expect(memberPage.getByText("予算を保存しました。")).toBeVisible();
+  const navigation = memberPage
+    .locator("header")
+    .filter({ has: memberPage.getByRole("heading", { level: 2 }) });
+  await navigation.getByRole("link").last().click();
+  await expect(
+    memberPage.getByRole("button", { name: "この月から変更" }),
+  ).toBeVisible();
+  await memberPage.getByRole("textbox", { name: "グループ予算" }).fill("80000");
+  await memberPage.getByLabel("食費").fill("30000");
+  await memberPage.getByRole("button", { name: "この月から変更" }).click();
+  await expect(memberPage.getByText("予算を保存しました。")).toBeVisible();
+  await navigation.getByRole("link").first().click();
+  await expect(
+    memberPage.getByRole("textbox", { name: "グループ予算" }),
+  ).toHaveValue("50000");
+  await expect(memberPage.getByLabel("食費")).toHaveValue("20000");
+  await memberPage.getByRole("textbox", { name: "グループ予算" }).fill("55000");
+  await memberPage.getByRole("button", { name: "予算を保存" }).click();
+  await expect(
+    memberPage.getByRole("region", { name: "グループ予算" }),
+  ).toContainText("￥55,000");
+  await navigation.getByRole("link").last().click();
+  await expect(
+    memberPage.getByRole("textbox", { name: "グループ予算" }),
+  ).toHaveValue("80000");
+  await expect(memberPage.getByLabel("食費")).toHaveValue("30000");
+  for (const width of [375, 1280, 320]) {
+    await memberPage.setViewportSize({
+      width,
+      height: width === 1280 ? 800 : 812,
+    });
+    expect(
+      await memberPage.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await memberPage.screenshot({
+      path: `test-results/budget-month-navigation-${width}.png`,
+      fullPage: true,
+    });
+  }
 });

@@ -74,7 +74,10 @@ export function budgetUsedPercent(
   assertSafeAmount(usedMinor);
   assertSafeAmount(limitMinor);
   if (limitMinor <= 0) return 0;
-  return Math.round((usedMinor / limitMinor) * 100);
+  // 0.5%の境界を正確に四捨五入し、上限近くの金額でも乗算を桁あふれさせない。
+  const used = BigInt(usedMinor);
+  const limit = BigInt(limitMinor);
+  return Number((used * BigInt(200) + limit) / (limit * BigInt(2)));
 }
 
 function progressOf(

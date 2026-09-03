@@ -191,6 +191,141 @@ describe("BudgetEditor", () => {
     expect(hiddenValue("expectedVersion")).toBe("4");
   });
 
+  it("月切替で入力・送信先・停止確認を遷移先にそろえる (AC-BUD-010-3)", () => {
+    const view = createView({ progress: activeProgress });
+    const { rerender } = render(<BudgetEditor view={view} />);
+    fireEvent.change(screen.getByLabelText("グループ予算"), {
+      target: { value: "999999" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "この月から停止する" }));
+
+    rerender(
+      <BudgetEditor
+        view={{
+          ...view,
+          month: "2026-10",
+          progress: {
+            ...activeProgress,
+            effectiveMonth: "2026-10",
+            limitMinor: 400000,
+            categories: [],
+          },
+          revisionAtMonth: { version: 1, status: "active" },
+        }}
+      />,
+    );
+
+    expect(
+      (screen.getByLabelText("グループ予算") as HTMLInputElement).value,
+    ).toBe("400000");
+    expect((screen.getByLabelText("食費") as HTMLInputElement).value).toBe("");
+    expect(hiddenValue("effectiveMonth")).toBe("2026-10");
+    expect(hiddenValue("expectedVersion")).toBe("1");
+    expect(screen.queryByRole("button", { name: "停止を確定する" })).toBeNull();
+
+    rerender(<BudgetEditor view={view} />);
+    expect(
+      (screen.getByLabelText("グループ予算") as HTMLInputElement).value,
+    ).toBe("300000");
+    expect((screen.getByLabelText("食費") as HTMLInputElement).value).toBe(
+      "60000",
+    );
+  });
+
+  it("同月の改定更新で古い入力と新しいversionを組み合わせない (AC-BUD-009-1)", () => {
+    const view = createView({
+      progress: activeProgress,
+      revisionAtMonth: { version: 2, status: "active" },
+    });
+    const { rerender } = render(<BudgetEditor view={view} />);
+    const input = screen.getByLabelText("グループ予算") as HTMLInputElement;
+    input.focus();
+    fireEvent.change(input, { target: { value: "999999" } });
+    rerender(
+      <BudgetEditor
+        view={{
+          ...view,
+          progress: {
+            ...activeProgress,
+            version: 3,
+            limitMinor: 450000,
+            categories: [],
+          },
+          revisionAtMonth: { version: 3, status: "active" },
+        }}
+      />,
+    );
+    expect(input.value).toBe("450000");
+    expect((screen.getByLabelText("食費") as HTMLInputElement).value).toBe("");
+    expect(hiddenValue("expectedVersion")).toBe("3");
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("実績だけの更新では未保存入力とfocusを維持する (AC-BUD-010-3)", () => {
+    const view = createView({ progress: activeProgress });
+    const { rerender } = render(<BudgetEditor view={view} />);
+    const input = screen.getByLabelText("グループ予算") as HTMLInputElement;
+    input.focus();
+    fireEvent.change(input, { target: { value: "350000" } });
+    rerender(
+      <BudgetEditor
+        view={{
+          ...view,
+          progress: {
+            ...activeProgress,
+            usedMinor: 260000,
+          },
+        }}
+      />,
+    );
+    expect(input.value).toBe("350000");
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("同じ月・同じversionの別グループに入力を持ち越さない", () => {
+    const view = createView({ progress: activeProgress });
+    const { rerender } = render(<BudgetEditor view={view} />);
+    rerender(
+      <BudgetEditor
+        view={{
+          ...view,
+          group: {
+            id: "10000000-0000-4000-8000-000000000002",
+            name: "別グループ",
+          },
+          progress: { ...activeProgress, limitMinor: 500000 },
+        }}
+      />,
+    );
+    expect(
+      (screen.getByLabelText("グループ予算") as HTMLInputElement).value,
+    ).toBe("500000");
+  });
+
+  it("停止後の同月再表示では停止前の金額を新規設定へ持ち越さない (AC-BUD-006-1)", () => {
+    const view = createView({ progress: activeProgress });
+    const { rerender } = render(<BudgetEditor view={view} />);
+    rerender(
+      <BudgetEditor
+        view={{
+          ...view,
+          progress: null,
+          appliedRevision: {
+            effectiveMonth: "2026-09",
+            version: 3,
+            status: "disabled",
+          },
+          revisionAtMonth: { version: 3, status: "disabled" },
+        }}
+      />,
+    );
+    expect(
+      (screen.getByLabelText("グループ予算") as HTMLInputElement).value,
+    ).toBe("");
+    expect((screen.getByLabelText("食費") as HTMLInputElement).value).toBe("");
+    expect(hiddenValue("expectedVersion")).toBe("3");
+  });
+
   it("停止は確認操作を経て確定する (AC-BUD-006-1)", () => {
     render(
       <BudgetEditor
