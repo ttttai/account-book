@@ -235,6 +235,11 @@ test("詳細分析の月入力欄はWebKitでも列幅に収まり、累積収�
   assert.match(savings, /export function scaleAnalyticsSavingsChart/);
   assert.doesNotMatch(details, /^"use client";/m);
   assert.match(details, /data-details-chart="savings"/);
+  // 赤字の棒は赤系の背景色を持つ (review: 2026-09-04-analytics-savings-trend-negative-color)
+  assert.match(
+    moduleCss,
+    /i\[data-chart-bar="negative"\] \{[^}]*background:\s*#d8664f;/,
+  );
   assert.doesNotMatch(details, /cumulativeBalance\s*[+-]=|reduce\(/);
 });
 

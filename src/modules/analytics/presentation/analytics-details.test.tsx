@@ -196,6 +196,22 @@ describe("AnalyticsDetails", () => {
     ).toBe("col");
     const lastRow = within(table).getAllByRole("row").at(-1);
     expect(lastRow?.textContent).toContain("＋￥4,000");
+
+    // 赤字の月は色分け用の値を持つ。意味は向きと数値表の符号でも伝える
+    cleanup();
+    const negative = render(
+      <AnalyticsDetails
+        data={createData({
+          cumulativeBalances: [
+            { month: "2026-08", balance: 10000, cumulativeBalance: 10000 },
+            { month: "2026-09", balance: -16000, cumulativeBalance: -6000 },
+          ],
+        })}
+      />,
+    );
+    const negativeBars =
+      negative.container.querySelectorAll("[data-chart-bar]");
+    expect(negativeBars[1]?.getAttribute("data-chart-bar")).toBe("negative");
   });
 
   it("空期間は0円の各月と説明を表示し、member対象ではメンバー比較を隠す", () => {

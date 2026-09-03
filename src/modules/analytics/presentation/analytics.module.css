@@ -535,7 +535,7 @@
   background: var(--border);
 }
 
-/* 棒は基準線を起点に先端側だけ角を丸め、正負を色で区別しない */
+/* 棒は基準線を起点に先端側だけ角を丸める。赤字は支出棒と同じ赤系にするが、向きと数値表の符号でも伝える */
 .details-savings-plot i[data-chart-bar] {
   min-height: 2px;
   background: var(--accent);
@@ -548,6 +548,7 @@
 
 .details-savings-plot i[data-chart-bar="negative"] {
   border-radius: 0 0 4px 4px;
+  background: #d8664f;
 }
 
 .details-savings-plot i[data-chart-bar="zero"] {
