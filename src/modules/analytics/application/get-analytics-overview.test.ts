@@ -49,7 +49,9 @@ function createChain(table: string, resolve: Resolver) {
     in: () => self,
     gte: () => self,
     lt: () => self,
+    lte: () => self,
     order: () => self,
+    limit: () => self,
     maybeSingle: () => Promise.resolve(resolve(table, filters)),
     // biome-ignore lint/suspicious/noThenProperty: Supabaseのquery builderを模したthenableが必要
     then: <T>(onfulfilled: (value: QueryResult) => T) =>
@@ -318,6 +320,73 @@ describe("getAnalyticsOverview", () => {
     // Aは6000円支出の支払者だが、負担額3000円と4000円だけを数える
     expect(data.totals.expenseTotal).toBe(7000);
     expect(data.totals.incomeTotal).toBe(300000);
+  });
+
+  it("グループ対象で有効な予算がある月は予算進捗を返す (AC-ANA-011-1、AC-BUD-010-1)", async () => {
+    setupSupabase({
+      overrides: {
+        budget_revisions: {
+          data: [
+            {
+              id: "20000000-0000-4000-8000-000000000001",
+              effective_month: "2026-08-01",
+              status: "active",
+              total_amount_minor: 20000,
+              version: 1,
+              budget_category_limits: [],
+            },
+          ],
+          error: null,
+        },
+      },
+    });
+
+    const data = await getAnalyticsOverview(GROUP_ID, { month: "2026-09" });
+    if (data?.kind !== "ready") throw new Error("ready DTOが必要です");
+
+    expect(data.budget).toEqual({
+      limitMinor: 20000,
+      usedMinor: 11000,
+      remainingMinor: 9000,
+      usedPercent: 55,
+      status: "ok",
+      statusLabel: "順調",
+    });
+  });
+
+  it("予算がない月と自分・メンバー対象では予算進捗を持たない (AC-ANA-011-1)", async () => {
+    const budgetRows = {
+      budget_revisions: {
+        data: [
+          {
+            id: "20000000-0000-4000-8000-000000000001",
+            effective_month: "2026-08-01",
+            status: "active",
+            total_amount_minor: 20000,
+            version: 1,
+            budget_category_limits: [],
+          },
+        ],
+        error: null,
+      },
+    };
+
+    setupSupabase();
+    const withoutBudget = await getAnalyticsOverview(GROUP_ID, {
+      month: "2026-09",
+    });
+    if (withoutBudget?.kind !== "ready") throw new Error("ready DTOが必要です");
+    expect(withoutBudget.budget).toBeUndefined();
+
+    const { from } = setupSupabase({ overrides: budgetRows });
+    const selfScope = await getAnalyticsOverview(GROUP_ID, {
+      month: "2026-09",
+      scope: "self",
+    });
+    if (selfScope?.kind !== "ready") throw new Error("ready DTOが必要です");
+    expect(selfScope.budget).toBeUndefined();
+    // 個人対象では予算を読まない
+    expect(from).not.toHaveBeenCalledWith("budget_revisions");
   });
 
   it("定期取引を選択月へ展開して合計へ含める (REC-005、AC-ANA-002-1)", async () => {

@@ -96,6 +96,7 @@ export function GroupNavigation({ groupId }: Readonly<{ groupId: string }>) {
         `${groupBase}/members`,
         `${groupBase}/categories`,
         `${groupBase}/recurring-transactions`,
+        `${groupBase}/budgets`,
       ],
     },
   ];

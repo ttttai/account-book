@@ -170,6 +170,8 @@ describe("AnalyticsOverview", () => {
             usedMinor: 11000,
             remainingMinor: 9000,
             usedPercent: 55,
+            status: "ok",
+            statusLabel: "順調",
           },
         })}
       />,
@@ -177,8 +179,38 @@ describe("AnalyticsOverview", () => {
 
     const budget = screen.getByRole("group", { name: "予算" });
     expect(within(budget).getByText(/￥20,000/)).toBeTruthy();
+    expect(within(budget).getByText(/￥11,000/)).toBeTruthy();
     expect(within(budget).getByText(/￥9,000/)).toBeTruthy();
     expect(within(budget).getByText(/55%/)).toBeTruthy();
+    expect(within(budget).getByText("順調")).toBeTruthy();
+    // 同じ月の予算画面へ遷移できる (AC-BUD-010-1)
+    expect(
+      within(budget)
+        .getByRole("link", { name: "予算の詳細を見る" })
+        .getAttribute("href"),
+    ).toBe(`/groups/${GROUP_ID}/budgets?month=2026-09`);
+  });
+
+  it("予算超過は超過額と状態ラベルで示す (AC-BUD-007-2)", () => {
+    render(
+      <AnalyticsOverview
+        data={createData({
+          budget: {
+            limitMinor: 10000,
+            usedMinor: 11000,
+            remainingMinor: -1000,
+            usedPercent: 110,
+            status: "over",
+            statusLabel: "超過",
+          },
+        })}
+      />,
+    );
+
+    const budget = screen.getByRole("group", { name: "予算" });
+    expect(within(budget).getByText(/超過 ￥1,000/)).toBeTruthy();
+    expect(within(budget).getByText("超過")).toBeTruthy();
+    expect(within(budget).getByText(/110%/)).toBeTruthy();
   });
 
   it("月移動と集計対象の切替が月・scopeをURLへ保持する (AC-ANA-005-1)", () => {

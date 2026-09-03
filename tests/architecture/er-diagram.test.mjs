@@ -6,6 +6,8 @@ const repositoryRoot = process.cwd();
 
 const diagramEntityByTable = {
   "app_private.allowed_google_accounts": "ALLOWED_GOOGLE_ACCOUNTS",
+  "public.budget_category_limits": "BUDGET_CATEGORY_LIMITS",
+  "public.budget_revisions": "BUDGET_REVISIONS",
   "public.categories": "CATEGORIES",
   "public.group_invitations": "GROUP_INVITATIONS",
   "public.group_members": "GROUP_MEMBERS",
@@ -66,4 +68,9 @@ test("ER図を実装済みmigrationとグループ境界へ同期する", async 
   );
   // 展開結果（occurrence）はテーブル化しない (REC-008)
   assert.doesNotMatch(diagram, /\n\s{4}RECURRING_OCCURRENCES\s+\{/);
+  // 予算は改定履歴と内訳だけを持ち、月ごとの予算行・実績を保存しない (BUD-005)
+  assert.match(diagram, /GROUPS \|\|--o\{ BUDGET_REVISIONS/);
+  assert.match(diagram, /BUDGET_REVISIONS \|\|--o\{ BUDGET_CATEGORY_LIMITS/);
+  assert.match(diagram, /CATEGORIES \|\|--o\{ BUDGET_CATEGORY_LIMITS/);
+  assert.doesNotMatch(diagram, /\n\s{4}BUDGET_MONTHS\s+\{/);
 });

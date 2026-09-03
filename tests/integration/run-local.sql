@@ -9,3 +9,4 @@
 \ir member-administration-local.sql
 \ir recurring-transactions-local.sql
 \ir analytics-local.sql
+\ir budget-management-local.sql

@@ -82,20 +82,46 @@ function AnalyticsMetric({
   );
 }
 
-// 予算値がある月だけ表示する進捗 (AC-ANA-011-1)
+// グループ対象で予算がある月だけ表示する進捗。状態はラベルで示し、同じ月の予算画面へ遷移できる (AC-ANA-011-1、AC-BUD-010-1)
 function AnalyticsBudget({
   budget,
-}: Readonly<{ budget: AnalyticsBudgetProgress }>) {
+  groupId,
+  month,
+}: Readonly<{
+  budget: AnalyticsBudgetProgress;
+  groupId: string;
+  month: string;
+}>) {
+  const remaining =
+    budget.remainingMinor < 0
+      ? `超過 ${formatAnalyticsJpy(-budget.remainingMinor)}`
+      : `残り ${formatAnalyticsJpy(budget.remainingMinor)}`;
   return (
     // biome-ignore lint/a11y/useSemanticElements: 予算進捗もform制御ではないため、fieldsetではなくARIAのgroupで読み上げ単位を示す
-    <div aria-label="予算" className={styles["analytics-budget"]} role="group">
-      <p className={styles["analytics-metric-label"]}>予算</p>
+    <div
+      aria-label="予算"
+      className={styles["analytics-budget"]}
+      data-status={budget.status}
+      role="group"
+    >
+      <p className={styles["analytics-budget-heading"]}>
+        <span className={styles["analytics-metric-label"]}>予算</span>
+        <span className={styles["analytics-budget-status"]}>
+          {budget.statusLabel}
+        </span>
+      </p>
       <p className={styles["analytics-budget-limit"]}>
-        {`予算 ${formatAnalyticsJpy(budget.limitMinor)}`}
+        {`予算 ${formatAnalyticsJpy(budget.limitMinor)} ／ 実績 ${formatAnalyticsJpy(budget.usedMinor)}`}
       </p>
       <p className={styles["analytics-budget-progress"]}>
-        {`残り ${formatAnalyticsJpy(Math.max(budget.remainingMinor, 0))}（消化 ${budget.usedPercent}%）`}
+        {`${remaining}（消化 ${budget.usedPercent}%）`}
       </p>
+      <Link
+        className={styles["analytics-budget-link"]}
+        href={`/groups/${encodeURIComponent(groupId)}/budgets?month=${month}`}
+      >
+        予算の詳細を見る
+      </Link>
     </div>
   );
 }
@@ -289,7 +315,13 @@ export function AnalyticsOverview({
         />
       </section>
 
-      {data.budget ? <AnalyticsBudget budget={data.budget} /> : null}
+      {data.budget ? (
+        <AnalyticsBudget
+          budget={data.budget}
+          groupId={data.group.id}
+          month={data.month}
+        />
+      ) : null}
 
       {data.categoryBreakdown.top.length > 0 ? (
         <section className={styles["analytics-category"]}>
