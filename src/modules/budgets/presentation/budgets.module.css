@@ -344,6 +344,31 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 入力欄群（枠なしのfieldset）。focusの伝播でテンキーの開閉を判定する境界 (AC-BUD-010-4) */
+.budget-fields {
+  display: grid;
+  min-width: 0;
+  min-inline-size: 0;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* 取引入力と共有するテンキーは選んだ金額欄の直下へ静的に置く。開いたときのscrollIntoViewで
+   下部ナビゲーションぶんの余白を確保し、キーがナビに隠れないようにする */
+.budget-keypad {
+  margin-top: 0.25rem;
+  scroll-margin-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+}
+
+.budget-keypad-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .budget-fieldset {
   display: grid;
   min-width: 0;

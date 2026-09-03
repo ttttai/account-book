@@ -207,9 +207,14 @@ test("予算スタイルを機能のCSS Modulesへ置き、横scrollと44px未�
   assert.match(moduleCss, /min-height:\s*44px;/);
   assert.doesNotMatch(moduleCss, /overflow-x:\s*(?:auto|scroll)/);
   assert.match(moduleCss, /@media \(min-width: 900px\)/);
-  // 金額欄はOSの数字キーボードを使う (AC-BUD-010-3)
-  assert.match(editor, /inputMode="numeric"/);
-  assert.match(editor, /pattern="\[0-9\]\*"/);
+  // 金額欄はOSの仮想キーボードを開かず、取引入力と共有するテンキーで入力する (AC-BUD-010-4)
+  assert.match(editor, /inputMode="none"/);
+  assert.doesNotMatch(editor, /inputMode="numeric"/);
+  assert.match(editor, /@\/modules\/transactions\/presentation/);
+  assert.match(editor, /AmountKeypad/);
+  assert.match(editor, /appendAmountDigit/);
+  assert.match(editor, /removeLastAmountDigit/);
+  assert.match(moduleCss, /scroll-margin-bottom/);
 });
 
 test("予算はRoute Handlerと内部APIを追加しない", async () => {

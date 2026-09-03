@@ -58,6 +58,16 @@ const activeProgress: NonNullable<BudgetViewReady["progress"]> = {
   ],
 };
 
+const KEYPAD_HINT = "金額欄をタップするとテンキーを開きます。";
+
+function pressKey(name: string) {
+  fireEvent.click(screen.getByRole("button", { name }));
+}
+
+function keypadIsOpen(): boolean {
+  return screen.queryByRole("button", { name: "1桁削除" }) !== null;
+}
+
 function hiddenValue(name: string): string | null {
   return (
     document.querySelector<HTMLInputElement>(`input[name="${name}"]`)?.value ??
@@ -89,15 +99,77 @@ describe("BudgetEditor", () => {
     expect(document.querySelector("form")).toBeNull();
   });
 
-  it("金額欄はOSの数字キーボードを使い、入力中に合計と未配分額を表示する (AC-BUD-010-3)", () => {
+  it("金額欄はOSの仮想キーボードを開かず、選んだ欄の直下のテンキーで入力する (AC-BUD-010-4)", () => {
     render(<BudgetEditor view={createView()} />);
 
     const total = screen.getByLabelText("グループ予算") as HTMLInputElement;
-    expect(total.getAttribute("inputmode")).toBe("numeric");
-    expect(total.getAttribute("pattern")).toBe("[0-9]*");
     const food = screen.getByLabelText("食費") as HTMLInputElement;
-    expect(food.getAttribute("inputmode")).toBe("numeric");
+    expect(total.getAttribute("inputmode")).toBe("none");
+    expect(food.getAttribute("inputmode")).toBe("none");
     expect(food.getAttribute("name")).toBe(`categoryLimit:${FOOD}`);
+    expect(keypadIsOpen()).toBe(false);
+    expect(screen.getByText(KEYPAD_HINT)).toBeTruthy();
+
+    // グループ予算欄へfocusするとその直下に開き、キーは選択中の欄だけへ反映する
+    fireEvent.focus(total);
+    expect(keypadIsOpen()).toBe(true);
+    expect(screen.queryByText(KEYPAD_HINT)).toBeNull();
+    pressKey("3");
+    pressKey("0");
+    pressKey("00");
+    pressKey("00");
+    expect(total.value).toBe("300000");
+    pressKey("1桁削除");
+    expect(total.value).toBe("30000");
+    pressKey("0");
+    expect(total.value).toBe("300000");
+    expect(
+      total
+        .closest("[data-budget-field]")
+        ?.querySelector("[data-budget-keypad]"),
+    ).toBeTruthy();
+
+    // 別の金額欄を選ぶとテンキーが移動し、前の欄の値は変わらない
+    fireEvent.focus(food);
+    pressKey("6");
+    pressKey("00");
+    pressKey("00");
+    expect(food.value).toBe("60000");
+    expect(total.value).toBe("300000");
+    expect(
+      food
+        .closest("[data-budget-field]")
+        ?.querySelector("[data-budget-keypad]"),
+    ).toBeTruthy();
+    expect(
+      total
+        .closest("[data-budget-field]")
+        ?.querySelector("[data-budget-keypad]"),
+    ).toBeNull();
+    expect(screen.getByText(/カテゴリ予算の合計 ￥60,000/)).toBeTruthy();
+    expect(screen.getByText(/未配分 ￥240,000/)).toBeTruthy();
+  });
+
+  it("金額欄以外へfocusが移るとテンキーを閉じ、物理キーボードからの入力は維持する (AC-BUD-010-4)", () => {
+    render(<BudgetEditor view={createView()} />);
+
+    const total = screen.getByLabelText("グループ予算") as HTMLInputElement;
+    fireEvent.focus(total);
+    expect(keypadIsOpen()).toBe(true);
+
+    fireEvent.focus(screen.getByRole("button", { name: "予算を設定" }));
+    expect(keypadIsOpen()).toBe(false);
+    expect(screen.getByText(KEYPAD_HINT)).toBeTruthy();
+
+    fireEvent.change(total, { target: { value: "12345" } });
+    expect(total.value).toBe("12345");
+  });
+
+  it("入力中に合計と未配分額を表示する (AC-BUD-010-3)", () => {
+    render(<BudgetEditor view={createView()} />);
+
+    const total = screen.getByLabelText("グループ予算") as HTMLInputElement;
+    const food = screen.getByLabelText("食費") as HTMLInputElement;
 
     fireEvent.change(total, { target: { value: "300000" } });
     fireEvent.change(food, { target: { value: "60000" } });
