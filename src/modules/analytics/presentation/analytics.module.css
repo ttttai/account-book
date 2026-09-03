@@ -495,7 +495,7 @@
   overflow-wrap: anywhere;
 }
 
-/* 左に最大・最小の目盛り、右に折れ線、下に開始月・終了月を置く1系列の折れ線 (AC-ANA-013-2) */
+/* 左に最大・最小の目盛り、右に基準線から上下へ伸びる棒、下に開始月・終了月を置く (AC-ANA-013-2) */
 .details-savings-chart {
   display: grid;
   min-width: 0;
@@ -515,7 +515,6 @@
   white-space: nowrap;
 }
 
-/* 点の半径分だけ上下に余白を取り、端の点が見切れないようにする */
 .details-savings-plot {
   position: relative;
   min-width: 0;
@@ -523,37 +522,36 @@
   margin: 6px 0;
 }
 
-.details-savings-plot svg {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.details-savings-plot line {
-  stroke: var(--border);
-  stroke-width: 1;
-}
-
-.details-savings-plot polyline {
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* 各月の点は8pxとし、線と重なっても白い縁で見分けられるようにする */
 .details-savings-plot i {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  border: 2px solid white;
-  border-radius: 50%;
+  display: block;
+}
+
+/* 0円の基準線は控えめな1pxの実線とする */
+.details-savings-plot i[data-chart-baseline] {
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+/* 棒は基準線を起点に先端側だけ角を丸め、正負を色で区別しない */
+.details-savings-plot i[data-chart-bar] {
+  min-height: 2px;
   background: var(--accent);
-  box-sizing: content-box;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
+}
+
+.details-savings-plot i[data-chart-bar="positive"] {
+  border-radius: 4px 4px 0 0;
+}
+
+.details-savings-plot i[data-chart-bar="negative"] {
+  border-radius: 0 0 4px 4px;
+}
+
+.details-savings-plot i[data-chart-bar="zero"] {
+  border-radius: 1px;
 }
 
 .details-savings-axis {

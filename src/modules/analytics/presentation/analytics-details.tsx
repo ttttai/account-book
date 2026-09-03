@@ -62,13 +62,15 @@ function DetailsAmountCell({
   );
 }
 
-// 累積収支の折れ線。数値は表が主情報のため、グラフ全体を装飾として隠す (AC-ANA-013-2)
+// 累積収支の棒グラフ。数値は表が主情報のため、グラフ全体を装飾として隠す (AC-ANA-013-2)
 function SavingsChart({
   balances,
 }: Readonly<{ balances: readonly AnalyticsCumulativeBalance[] }>) {
   const chart = scaleAnalyticsSavingsChart(balances);
   const firstMonth = balances[0]?.month;
   const lastMonth = balances.at(-1)?.month;
+  // 棒は枡の6割の太さとし、月数が少なくても24pxを超えない
+  const barWidth = `min(${chart.slotWidth * 0.6}%, 24px)`;
 
   return (
     <div
@@ -81,33 +83,23 @@ function SavingsChart({
         <span>{formatAnalyticsSignedJpy(chart.minMinor)}</span>
       </div>
       <div className={styles["details-savings-plot"]}>
-        <svg
-          aria-hidden="true"
-          preserveAspectRatio="none"
-          viewBox="0 0 100 100"
-        >
-          <line
-            data-chart-baseline="zero"
-            vectorEffect="non-scaling-stroke"
-            x1="0"
-            x2="100"
-            y1={chart.zeroY}
-            y2={chart.zeroY}
-          />
-          {chart.points.length > 1 ? (
-            <polyline
-              fill="none"
-              points={chart.points
-                .map((point) => `${point.x},${point.y}`)
-                .join(" ")}
-              vectorEffect="non-scaling-stroke"
-            />
-          ) : null}
-        </svg>
+        <i data-chart-baseline="zero" style={{ top: `${chart.zeroY}%` }} />
         {chart.points.map((point) => (
           <i
+            data-chart-bar={
+              point.y < chart.zeroY
+                ? "positive"
+                : point.y > chart.zeroY
+                  ? "negative"
+                  : "zero"
+            }
             key={point.month}
-            style={{ left: `${point.x}%`, top: `${point.y}%` }}
+            style={{
+              left: `${point.x}%`,
+              top: `${Math.min(point.y, chart.zeroY)}%`,
+              height: `${Math.abs(point.y - chart.zeroY)}%`,
+              width: barWidth,
+            }}
           />
         ))}
       </div>

@@ -169,15 +169,19 @@ describe("AnalyticsDetails", () => {
     }
   });
 
-  it("貯金額の推移を装飾の折れ線と数値表の累積収支列で示し、注記を表示する (AC-ANA-013-1〜3)", () => {
+  it("貯金額の推移を装飾の棒グラフと数値表の累積収支列で示し、注記を表示する (AC-ANA-013-1〜3)", () => {
     const { container } = render(<AnalyticsDetails data={createData()} />);
 
     const section = screen.getByRole("region", { name: "貯金額の推移" });
     expect(within(section).getByText(/期間開始時を0円として計算/)).toBeTruthy();
     const chart = container.querySelector("[data-details-chart='savings']");
     expect(chart?.getAttribute("aria-hidden")).toBe("true");
-    expect(chart?.querySelector("svg polyline")).toBeTruthy();
     expect(chart?.querySelector("[data-chart-baseline]")).toBeTruthy();
+    // 棒は月数と同じ本数で、正の値は基準線より上に先端を持つ
+    const bars = chart?.querySelectorAll("[data-chart-bar]") ?? [];
+    expect(bars).toHaveLength(2);
+    expect(bars[0]?.getAttribute("data-chart-bar")).toBe("positive");
+    expect(chart?.querySelector("svg polyline")).toBeNull();
     // 最大値・最小値・開始月・終了月は文字で添える
     expect(chart?.textContent).toContain("＋￥10,000");
     expect(chart?.textContent).toContain("±￥0");

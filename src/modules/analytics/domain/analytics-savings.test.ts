@@ -62,7 +62,7 @@ describe("accumulateAnalyticsBalance", () => {
 });
 
 describe("scaleAnalyticsSavingsChart", () => {
-  it("縦軸は0円を含み、0円の基準線と各月の座標を0〜100の範囲で返す (AC-ANA-013-2)", () => {
+  it("縦軸は0円を含み、0円の基準線と等間隔の棒の中心・先端を0〜100の範囲で返す (AC-ANA-013-2)", () => {
     const chart = scaleAnalyticsSavingsChart([
       { month: "2026-07", balance: 20000, cumulativeBalance: 20000 },
       { month: "2026-08", balance: -60000, cumulativeBalance: -40000 },
@@ -73,7 +73,9 @@ describe("scaleAnalyticsSavingsChart", () => {
     expect(chart.minMinor).toBe(-40000);
     // 最大20000・最小-40000の範囲では、0円は上から1/3の位置になる
     expect(chart.zeroY).toBeCloseTo(33.333, 2);
-    expect(chart.points.map((point) => point.x)).toEqual([0, 50, 100]);
+    // 3本の棒は幅33.333%の枡の中心に並ぶ
+    expect(chart.slotWidth).toBeCloseTo(33.333, 2);
+    expect(chart.points.map((point) => point.x)).toEqual([16.667, 50, 83.333]);
     expect(chart.points.map((point) => point.y)).toEqual([0, 100, 66.667]);
   });
 
@@ -92,10 +94,11 @@ describe("scaleAnalyticsSavingsChart", () => {
     expect(negative.zeroY).toBe(0);
   });
 
-  it("1か月だけの期間は中央に点1つを置き、全月0円でも0除算せず基準線上に並べる", () => {
+  it("1か月だけの期間は中央に棒1本を置き、全月0円でも0除算せず基準線上に並べる", () => {
     const single = scaleAnalyticsSavingsChart([
       { month: "2026-09", balance: 500, cumulativeBalance: 500 },
     ]);
+    expect(single.slotWidth).toBe(100);
     expect(single.points).toEqual([{ month: "2026-09", x: 50, y: 0 }]);
 
     const flat = scaleAnalyticsSavingsChart([
