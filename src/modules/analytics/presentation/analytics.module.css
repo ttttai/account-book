@@ -366,6 +366,21 @@
   font: inherit;
 }
 
+/* WebKitの月入力は固有幅と中央寄せを持つため、外観を外して列幅へ収める (AC-ANA-009-7) */
+.details-filter-form input[type="month"] {
+  display: block;
+  max-width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.details-filter-form input[type="month"]::-webkit-date-and-time-value {
+  min-height: 1.4em;
+  text-align: left;
+}
+
 .details-filter-form button {
   min-height: 44px;
   grid-column: 1 / -1;
@@ -461,6 +476,93 @@
   background: var(--accent);
 }
 
+.details-savings-summary {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0.5rem 0 0;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.details-savings-summary strong {
+  color: var(--text);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* 左に最大・最小の目盛り、右に折れ線、下に開始月・終了月を置く1系列の折れ線 (AC-ANA-013-2) */
+.details-savings-chart {
+  display: grid;
+  min-width: 0;
+  margin-top: 0.7rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.details-savings-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 点の半径分だけ上下に余白を取り、端の点が見切れないようにする */
+.details-savings-plot {
+  position: relative;
+  min-width: 0;
+  height: 150px;
+  margin: 6px 0;
+}
+
+.details-savings-plot svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.details-savings-plot line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.details-savings-plot polyline {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 各月の点は8pxとし、線と重なっても白い縁で見分けられるようにする */
+.details-savings-plot i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: var(--accent);
+  box-sizing: content-box;
+  transform: translate(-50%, -50%);
+}
+
+.details-savings-axis {
+  display: flex;
+  grid-column: 2;
+  justify-content: space-between;
+  color: var(--muted);
+}
+
 .details-table {
   width: 100%;
   margin-top: 0.6rem;
@@ -518,6 +620,11 @@
     padding: 0.55rem 0;
     border-bottom: 1px solid var(--border);
     gap: 0.3rem;
+  }
+
+  /* 4値の月別表は2列2行のカード行にし、長い金額でも欄が潰れないようにする */
+  .details-table-quad tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .details-table tr > th {

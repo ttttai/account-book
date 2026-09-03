@@ -11,6 +11,10 @@ import {
   formatAnalyticsSignedJpy,
 } from "../domain/analytics-jpy";
 import { formatAnalyticsMonth } from "../domain/analytics-month";
+import {
+  type AnalyticsCumulativeBalance,
+  scaleAnalyticsSavingsChart,
+} from "../domain/analytics-savings";
 
 import styles from "./analytics.module.css";
 
@@ -58,6 +62,67 @@ function DetailsAmountCell({
   );
 }
 
+// 累積収支の折れ線。数値は表が主情報のため、グラフ全体を装飾として隠す (AC-ANA-013-2)
+function SavingsChart({
+  balances,
+}: Readonly<{ balances: readonly AnalyticsCumulativeBalance[] }>) {
+  const chart = scaleAnalyticsSavingsChart(balances);
+  const firstMonth = balances[0]?.month;
+  const lastMonth = balances.at(-1)?.month;
+
+  return (
+    <div
+      aria-hidden="true"
+      className={styles["details-savings-chart"]}
+      data-details-chart="savings"
+    >
+      <div className={styles["details-savings-scale"]}>
+        <span>{formatAnalyticsSignedJpy(chart.maxMinor)}</span>
+        <span>{formatAnalyticsSignedJpy(chart.minMinor)}</span>
+      </div>
+      <div className={styles["details-savings-plot"]}>
+        <svg
+          aria-hidden="true"
+          preserveAspectRatio="none"
+          viewBox="0 0 100 100"
+        >
+          <line
+            data-chart-baseline="zero"
+            vectorEffect="non-scaling-stroke"
+            x1="0"
+            x2="100"
+            y1={chart.zeroY}
+            y2={chart.zeroY}
+          />
+          {chart.points.length > 1 ? (
+            <polyline
+              fill="none"
+              points={chart.points
+                .map((point) => `${point.x},${point.y}`)
+                .join(" ")}
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null}
+        </svg>
+        {chart.points.map((point) => (
+          <i
+            key={point.month}
+            style={{ left: `${point.x}%`, top: `${point.y}%` }}
+          />
+        ))}
+      </div>
+      <div className={styles["details-savings-axis"]}>
+        <span>{firstMonth ? formatAnalyticsMonth(firstMonth) : ""}</span>
+        <span>
+          {lastMonth && lastMonth !== firstMonth
+            ? formatAnalyticsMonth(lastMonth)
+            : ""}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // 期間・対象filterと、推移・カテゴリ・メンバー別統計を数値中心で表示する
 export function AnalyticsDetails({
   data,
@@ -67,6 +132,11 @@ export function AnalyticsDetails({
     1,
     ...data.months.flatMap((month) => [month.expenseTotal, month.incomeTotal]),
   );
+  const cumulativeByMonth = new Map(
+    data.cumulativeBalances.map((item) => [item.month, item.cumulativeBalance]),
+  );
+  const finalCumulative =
+    data.cumulativeBalances.at(-1)?.cumulativeBalance ?? 0;
 
   return (
     <div className={styles["details-layout"]}>
@@ -204,6 +274,18 @@ export function AnalyticsDetails({
         </ul>
       </section>
 
+      <section aria-label="貯金額の推移" className={styles["details-panel"]}>
+        <h3>貯金額の推移</h3>
+        <p className={styles["details-savings-summary"]}>
+          <span>期間末の累積収支</span>
+          <strong>{formatAnalyticsSignedJpy(finalCumulative)}</strong>
+        </p>
+        <SavingsChart balances={data.cumulativeBalances} />
+        <p className={styles["details-muted"]}>
+          収入−支出を開始月から足し上げた値です。期間開始時を0円として計算し、期間前の残高は含みません。各月の値は下の数値表の「累積収支」で確認できます。
+        </p>
+      </section>
+
       <section className={styles["details-panel"]}>
         <h3>支出カテゴリ構成</h3>
         {data.period.expenseByCategory.length > 0 ? (
@@ -276,7 +358,7 @@ export function AnalyticsDetails({
         <h3>月別の正確な数値</h3>
         <table
           aria-label="月別の正確な数値"
-          className={styles["details-table"]}
+          className={`${styles["details-table"]} ${styles["details-table-quad"]}`}
         >
           <thead>
             <tr>
@@ -284,6 +366,7 @@ export function AnalyticsDetails({
               <th scope="col">支出</th>
               <th scope="col">収入</th>
               <th scope="col">収支</th>
+              <th scope="col">累積収支</th>
             </tr>
           </thead>
           <tbody>
@@ -301,6 +384,12 @@ export function AnalyticsDetails({
                 <DetailsAmountCell
                   label="収支"
                   value={formatAnalyticsSignedJpy(month.balance)}
+                />
+                <DetailsAmountCell
+                  label="累積収支"
+                  value={formatAnalyticsSignedJpy(
+                    cumulativeByMonth.get(month.month) ?? 0,
+                  )}
                 />
               </tr>
             ))}

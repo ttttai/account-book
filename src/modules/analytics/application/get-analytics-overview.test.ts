@@ -513,6 +513,14 @@ describe("getAnalyticsDetails", () => {
       highestExpenseMonth: "2026-09",
     });
     expect(details.months).toHaveLength(2);
+    // 累積収支は月別収支を順に足し、最終月で期間収支と一致する (AC-ANA-013-1)
+    expect(details.cumulativeBalances).toEqual([
+      expect.objectContaining({
+        month: "2026-08",
+        cumulativeBalance: details.months[0]?.balance,
+      }),
+      expect.objectContaining({ month: "2026-09", cumulativeBalance: 479000 }),
+    ]);
     expect(
       details.period.expenseByCategory.reduce(
         (total, item) => total + item.amountMinor,

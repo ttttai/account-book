@@ -71,6 +71,10 @@ function createData(
         receivedTotal: 25000,
       },
     ],
+    cumulativeBalances: [
+      { month: "2026-08", balance: 10000, cumulativeBalance: 10000 },
+      { month: "2026-09", balance: -6000, cumulativeBalance: 4000 },
+    ],
     hasTransactions: true,
     ...overrides,
   };
@@ -140,8 +144,8 @@ describe("AnalyticsDetails", () => {
       ],
       [
         "月別の正確な数値",
-        ["支出", "収入", "収支"],
-        ["￥10,000", "￥20,000", "＋￥10,000"],
+        ["支出", "収入", "収支", "累積収支"],
+        ["￥10,000", "￥20,000", "＋￥10,000", "＋￥10,000"],
       ],
     ] as const) {
       const table = screen.getByRole("table", { name });
@@ -165,17 +169,47 @@ describe("AnalyticsDetails", () => {
     }
   });
 
+  it("貯金額の推移を装飾の折れ線と数値表の累積収支列で示し、注記を表示する (AC-ANA-013-1〜3)", () => {
+    const { container } = render(<AnalyticsDetails data={createData()} />);
+
+    const section = screen.getByRole("region", { name: "貯金額の推移" });
+    expect(within(section).getByText(/期間開始時を0円として計算/)).toBeTruthy();
+    const chart = container.querySelector("[data-details-chart='savings']");
+    expect(chart?.getAttribute("aria-hidden")).toBe("true");
+    expect(chart?.querySelector("svg polyline")).toBeTruthy();
+    expect(chart?.querySelector("[data-chart-baseline]")).toBeTruthy();
+    // 最大値・最小値・開始月・終了月は文字で添える
+    expect(chart?.textContent).toContain("＋￥10,000");
+    expect(chart?.textContent).toContain("±￥0");
+    expect(chart?.textContent).toContain("2026年8月");
+    expect(chart?.textContent).toContain("2026年9月");
+
+    const table = screen.getByRole("table", { name: "月別の正確な数値" });
+    expect(
+      within(table)
+        .getByRole("columnheader", { name: "累積収支" })
+        .getAttribute("scope"),
+    ).toBe("col");
+    const lastRow = within(table).getAllByRole("row").at(-1);
+    expect(lastRow?.textContent).toContain("＋￥4,000");
+  });
+
   it("空期間は0円の各月と説明を表示し、member対象ではメンバー比較を隠す", () => {
     render(
       <AnalyticsDetails
         data={createData({
           scope: "self",
           memberBreakdown: [],
+          cumulativeBalances: [
+            { month: "2026-08", balance: 0, cumulativeBalance: 0 },
+            { month: "2026-09", balance: 0, cumulativeBalance: 0 },
+          ],
           hasTransactions: false,
         })}
       />,
     );
     expect(screen.getByText("この期間の取引はまだありません。")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "貯金額の推移" })).toBeTruthy();
     expect(
       screen.queryByRole("table", { name: "メンバー別の内訳" }),
     ).toBeNull();
