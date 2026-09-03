@@ -190,6 +190,8 @@ E2E stackのアプリは`next dev`で動くため、routeごとの初回request�
 - 失敗時はtrace、screenshot、video、HTML reportをartifactとして保存する。
 - E2Eの成功を、DB・RLS test、HTTP integration test、coverage、実画面確認の代替にしない。
 
+E2E-011には初回token取得前の変更、非メンバーへの404、履歴の追加ページの削除（先頭ページは変わらない）も含める。375px・1280pxで画面を確認する。
+
 ## 7. 初回スコープ外
 
 - 権限変更・メンバー削除・カテゴリ管理・収入登録・定期取引の編集と終了のE2E（縦切りごとに追加する）

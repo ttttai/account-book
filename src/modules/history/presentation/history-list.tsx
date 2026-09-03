@@ -1,13 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { formatHistoryJpy } from "../domain/history-jpy";
-import {
-  appendHistoryRows,
-  areHistoryRowsEqual,
-  type HistoryRow,
-} from "../domain/history-row";
+import { appendHistoryRows, type HistoryRow } from "../domain/history-row";
 import { loadMoreHistoryAction } from "./actions";
 
 import styles from "./history.module.css";
@@ -17,6 +13,7 @@ type HistoryListProps = Readonly<{
   filterParams: Readonly<Record<string, string>>;
   initialRows: readonly HistoryRow[];
   initialNextCursor?: string;
+  syncToken?: string;
 }>;
 
 function formatHistoryDate(date: string): string {
@@ -81,7 +78,7 @@ function HistoryRowItem({
   );
 }
 
-export function HistoryList({
+function HistoryListPage({
   groupId,
   filterParams,
   initialRows,
@@ -91,15 +88,13 @@ export function HistoryList({
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
-  const [syncedInitialRows, setSyncedInitialRows] = useState(initialRows);
-
-  // 他メンバーの変更による再取得で先頭ページが変わったときだけ、表示中の行を最新の先頭ページへ置き換える (AC-SYNC-004-2)
-  if (!areHistoryRowsEqual(syncedInitialRows, initialRows)) {
-    setSyncedInitialRows(initialRows);
-    setRows(initialRows);
-    setNextCursor(initialNextCursor);
-    setErrorMessage(undefined);
-  }
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
 
   // 編集から戻るときに現在の絞り込みを復元できるよう、適用中条件つきの履歴URLを組み立てる
   const historySearch = new URLSearchParams(filterParams).toString();
@@ -116,6 +111,8 @@ export function HistoryList({
       ...filterParams,
       cursor,
     });
+    // 再取得で一覧が置き換わった後は、旧一覧の行・cursor・エラーを復活させない。
+    if (!active.current) return;
     if (result.status === "ready") {
       // 表示済みの行を維持したまま、重複を除いて続きを追記する
       setRows((currentRows) => appendHistoryRows(currentRows, result.rows));
@@ -166,4 +163,18 @@ export function HistoryList({
       ) : null}
     </section>
   );
+}
+
+// tokenと表示内容で再取得を識別し、追加読み込みActionに同梱される同内容のRSCでは一覧を維持する (AC-SYNC-004-2)
+export function HistoryList(props: HistoryListProps) {
+  const snapshotKey = JSON.stringify([
+    props.syncToken,
+    props.initialRows,
+    props.initialNextCursor,
+  ]);
+  const [snapshot, setSnapshot] = useState({ key: snapshotKey, revision: 0 });
+  if (snapshot.key !== snapshotKey) {
+    setSnapshot({ key: snapshotKey, revision: snapshot.revision + 1 });
+  }
+  return <HistoryListPage key={snapshot.revision} {...props} />;
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { getCurrentProfile } from "@/modules/auth/server";
+import { getGroupChangeToken } from "@/modules/sync/server";
 import {
   HistoryValidationError,
   HistoryView,
@@ -16,6 +17,7 @@ type GroupHistoryPageProps = Readonly<{
   searchParams: Promise<HistorySearchInput>;
 }>;
 
+// 認証済みの履歴と変更tokenを読み込み、絞り込み・一覧画面を組み立てる。
 export default async function GroupHistoryPage({
   params,
   searchParams,
@@ -30,6 +32,8 @@ export default async function GroupHistoryPage({
     redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
 
+  // tokenの読み取り後に履歴を読むことで、表示より新しい変更を基準値へ取り込まない。
+  const changeState = await getGroupChangeToken(groupId).catch(() => undefined);
   const history = await getGroupHistory(groupId, search);
   if (!history) notFound();
   const groupName =
@@ -55,7 +59,12 @@ export default async function GroupHistoryPage({
         </nav>
       </header>
       {history.kind === "ready" ? (
-        <HistoryView data={history} />
+        <HistoryView
+          data={history}
+          syncToken={
+            changeState?.kind === "ready" ? changeState.token : undefined
+          }
+        />
       ) : (
         <HistoryValidationError data={history} />
       )}

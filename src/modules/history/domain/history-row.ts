@@ -73,17 +73,6 @@ export function toHistoryRow(
   };
 }
 
-// 先頭ページの内容が同じかを判定する。再取得後に変化が無ければ追加読み込み済みの行を維持する (AC-SYNC-004-2)
-export function areHistoryRowsEqual(
-  left: readonly HistoryRow[],
-  right: readonly HistoryRow[],
-): boolean {
-  if (left.length !== right.length) return false;
-  return left.every(
-    (row, index) => JSON.stringify(row) === JSON.stringify(right[index]),
-  );
-}
-
 // 表示済みの行を維持したまま、同一IDの行を重複させずに追記する
 export function appendHistoryRows(
   existing: readonly HistoryRow[],

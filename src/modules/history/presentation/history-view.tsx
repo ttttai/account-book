@@ -301,7 +301,11 @@ function AppliedFilters({ data }: Readonly<{ data: HistoryReadyData }>) {
   );
 }
 
-export function HistoryView({ data }: Readonly<{ data: HistoryReadyData }>) {
+// 適用中の絞り込みと、変更tokenで同期する取引一覧を組み立てる。
+export function HistoryView({
+  data,
+  syncToken,
+}: Readonly<{ data: HistoryReadyData; syncToken?: string }>) {
   const params = filterToParams(data.filter);
   const listKey = `${new URLSearchParams(params).toString()}|${data.appliedCursor ?? ""}`;
 
@@ -321,6 +325,7 @@ export function HistoryView({ data }: Readonly<{ data: HistoryReadyData }>) {
         filterParams={params}
         initialRows={data.rows}
         initialNextCursor={data.nextCursor}
+        syncToken={syncToken}
       />
     </div>
   );

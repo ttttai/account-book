@@ -1,3 +1,6 @@
+/** 変更確認は応答bodyを含めて15秒で打ち切る（AC-SYNC-006-1） */
+export const CHANGE_CHECK_TIMEOUT_MS = 15_000;
+
 /** 表示中に変更を確認する基本間隔（AC-SYNC-001-1） */
 export const BASE_CHECK_INTERVAL_MS = 30_000;
 

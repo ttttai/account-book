@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -115,7 +116,7 @@ describe("HistoryList", () => {
     expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
   });
 
-  it("再取得後の先頭ページが同じ内容なら、追加読み込み済みの行を維持する (AC-SYNC-004-2)", async () => {
+  it("再取得後の先頭ページが同じ内容でも、古い追加ページを破棄する (AC-SYNC-004-2)", async () => {
     vi.mocked(loadMoreHistoryAction).mockResolvedValue({
       status: "ready",
       rows: [rowC],
@@ -125,6 +126,7 @@ describe("HistoryList", () => {
       <HistoryList
         groupId={groupId}
         filterParams={{ month: "2026-08" }}
+        syncToken="before"
         initialRows={[rowA, rowB]}
         initialNextCursor="cursor-1"
       />,
@@ -137,6 +139,7 @@ describe("HistoryList", () => {
       <HistoryList
         groupId={groupId}
         filterParams={{ month: "2026-08" }}
+        syncToken="after"
         initialRows={[{ ...rowA }, { ...rowB }]}
         initialNextCursor="cursor-1"
       />,
@@ -144,8 +147,8 @@ describe("HistoryList", () => {
 
     expect(screen.getByText("カテゴリA")).toBeTruthy();
     expect(screen.getByText("カテゴリB")).toBeTruthy();
-    expect(screen.getByText("カテゴリC")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
+    expect(screen.queryByText("カテゴリC")).toBeNull();
+    expect(screen.getByRole("button", { name: "さらに読み込む" })).toBeTruthy();
   });
 
   it("再取得後の先頭ページが変わっていれば、先頭ページだけを表示して続きを再度読み込める (AC-SYNC-004-2)", async () => {
@@ -221,5 +224,103 @@ describe("HistoryList", () => {
     );
 
     expect(screen.getByText("条件に一致する取引はありません。")).toBeTruthy();
+  });
+});
+
+describe("履歴の同期競合", () => {
+  it("行が同じでも次cursorだけの変化を反映する (AC-SYNC-004-2)", () => {
+    const rows = [rowA];
+    const view = render(
+      <HistoryList groupId={groupId} filterParams={{}} initialRows={rows} />,
+    );
+    view.rerender(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{}}
+        initialRows={rows}
+        initialNextCursor="new-cursor"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "さらに読み込む" })).toBeTruthy();
+  });
+
+  it.each(["ready", "error"])(
+    "再取得前の追加読み込みの%s応答を無視する (AC-SYNC-004-2)",
+    async (status) => {
+      let resolveLoad!: (
+        value: Awaited<ReturnType<typeof loadMoreHistoryAction>>,
+      ) => void;
+      vi.mocked(loadMoreHistoryAction).mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveLoad = resolve;
+          }),
+      );
+      const view = render(
+        <HistoryList
+          groupId={groupId}
+          filterParams={{}}
+          initialRows={[rowA]}
+          initialNextCursor="old-cursor"
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
+      view.rerender(
+        <HistoryList
+          groupId={groupId}
+          filterParams={{}}
+          initialRows={[rowB]}
+          initialNextCursor="new-cursor"
+        />,
+      );
+      const href = window.location.href;
+      await act(async () => {
+        resolveLoad(
+          status === "ready"
+            ? { status: "ready", rows: [rowC] }
+            : { status: "error", message: "古いエラー" },
+        );
+      });
+      expect(screen.queryByText("カテゴリC")).toBeNull();
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.getByText("カテゴリB")).toBeTruthy();
+      expect(window.location.href).toBe(href);
+      expect(
+        screen
+          .getByRole("button", { name: "さらに読み込む" })
+          .hasAttribute("disabled"),
+      ).toBe(false);
+    },
+  );
+});
+
+describe("追加読み込みActionのRSC", () => {
+  it("同じtoken・ページ・cursorのRSCでは追加行を維持する (AC-SYNC-004-2)", async () => {
+    vi.mocked(loadMoreHistoryAction).mockResolvedValue({
+      status: "ready",
+      rows: [rowC],
+    });
+    const view = render(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{}}
+        syncToken="same"
+        initialRows={[rowA]}
+        initialNextCursor="cursor"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
+    await waitFor(() => expect(screen.getByText("カテゴリC")).toBeTruthy());
+    view.rerender(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{}}
+        syncToken="same"
+        initialRows={[{ ...rowA }]}
+        initialNextCursor="cursor"
+      />,
+    );
+    expect(screen.getByText("カテゴリC")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
   });
 });

@@ -109,10 +109,7 @@ test("グループlayoutが変更確認componentを1つ置き、画面はrouter�
   assert.match(refresher, /urlWithoutHistoryCursor/);
   // 何も描画せず、金額やDB行を扱わない
   assert.match(refresher, /return null;\s*\}\s*$/);
-  assert.doesNotMatch(
-    refresher,
-    /amountMinor|supabase|router\.push|router\.replace/,
-  );
+  assert.doesNotMatch(refresher, /amountMinor|supabase|router\.push/);
 
   // 自動反映画面はホーム・履歴・概要分析・詳細分析だけ
   assert.match(policy, /"\/history"/);
@@ -142,16 +139,6 @@ test("Realtime・Service Worker・pushを導入しない (SYNC-006)", async () =
   }
   assert.equal(await exists("public/sw.js"), false);
   assert.equal(await exists("public/service-worker.js"), false);
-});
-
-test("履歴一覧は再取得後の先頭ページの変化を検出して行を同期する (AC-SYNC-004-2)", async () => {
-  const list = await read("src/modules/history/presentation/history-list.tsx");
-  const rowDomain = await read("src/modules/history/domain/history-row.ts");
-
-  assert.match(rowDomain, /export function areHistoryRowsEqual/);
-  assert.match(list, /areHistoryRowsEqual\(syncedInitialRows, initialRows\)/);
-  assert.match(list, /setRows\(initialRows\)/);
-  assert.match(list, /setNextCursor\(initialNextCursor\)/);
 });
 
 test("共有データの反映仕様がレビュー済みで、要件・受け入れ条件・E2Eと結び付いている", async () => {

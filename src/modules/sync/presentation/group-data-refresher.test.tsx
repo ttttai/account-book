@@ -1,4 +1,4 @@
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GroupDataRefresher } from "./group-data-refresher";
@@ -6,11 +6,12 @@ import { GroupDataRefresher } from "./group-data-refresher";
 const navigation = vi.hoisted(() => ({
   pathname: "/",
   refresh: vi.fn(),
+  replace: vi.fn((href: string) => window.history.replaceState(null, "", href)),
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
-  useRouter: () => ({ refresh: navigation.refresh }),
+  useRouter: () => navigation,
 }));
 
 const GROUP_ID = "10000000-0000-4000-8000-000000000001";
@@ -43,7 +44,9 @@ function setVisibility(state: DocumentVisibilityState) {
 }
 
 async function flush(ms = 0) {
-  await vi.advanceTimersByTimeAsync(ms);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms);
+  });
 }
 
 beforeEach(() => {
@@ -52,6 +55,7 @@ beforeEach(() => {
   onLine = true;
   navigation.pathname = BASE;
   navigation.refresh.mockReset();
+  navigation.replace.mockClear();
   fetchMock.mockReset();
   vi.stubGlobal("fetch", fetchMock);
   Object.defineProperty(document, "visibilityState", {
@@ -72,7 +76,7 @@ afterEach(() => {
 });
 
 describe("GroupDataRefresher", () => {
-  it("開いた直後に基準値を取得し、変更が無い間は再取得しない (AC-SYNC-001-2)", async () => {
+  it("初回は同期し、その後変更が無い間は再取得しない (AC-SYNC-001-2)", async () => {
     fetchMock.mockResolvedValue(tokenResponse("aaaa"));
     const { container } = render(<GroupDataRefresher groupId={GROUP_ID} />);
 
@@ -82,11 +86,11 @@ describe("GroupDataRefresher", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]?.[0]).toBe(CHANGES_PATH);
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ cache: "no-store" });
-    expect(navigation.refresh).not.toHaveBeenCalled();
+    expect(navigation.refresh).toHaveBeenCalledTimes(1);
 
     await flush(30_000);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(navigation.refresh).not.toHaveBeenCalled();
+    expect(navigation.refresh).toHaveBeenCalledTimes(1);
 
     await flush(29_999);
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -101,11 +105,11 @@ describe("GroupDataRefresher", () => {
 
     await flush();
     await flush(30_000);
-    expect(navigation.refresh).toHaveBeenCalledTimes(1);
+    expect(navigation.refresh).toHaveBeenCalledTimes(2);
 
     await flush(30_000);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(navigation.refresh).toHaveBeenCalledTimes(1);
+    expect(navigation.refresh).toHaveBeenCalledTimes(2);
     // URLは変更しない
     expect(window.location.search).toBe("?month=2026-09&scope=group");
   });
@@ -164,11 +168,11 @@ describe("GroupDataRefresher", () => {
     expect(document.activeElement).toBe(input);
     await flush(30_000);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(navigation.refresh).not.toHaveBeenCalled();
+    expect(navigation.refresh).toHaveBeenCalledTimes(1);
 
     input.blur();
     await flush(30_000);
-    expect(navigation.refresh).toHaveBeenCalledTimes(1);
+    expect(navigation.refresh).toHaveBeenCalledTimes(2);
     input.remove();
   });
 
@@ -198,7 +202,7 @@ describe("GroupDataRefresher", () => {
     // 成功したら30秒へ戻る
     await flush(30_000);
     expect(fetchMock).toHaveBeenCalledTimes(5);
-    expect(navigation.refresh).not.toHaveBeenCalled();
+    expect(navigation.refresh).toHaveBeenCalledTimes(1);
     expect(container.innerHTML).toBe("");
   });
 
@@ -237,12 +241,16 @@ describe("GroupDataRefresher", () => {
     await flush();
     await flush(30_000);
 
-    expect(navigation.refresh).toHaveBeenCalledTimes(1);
+    expect(navigation.refresh).toHaveBeenCalledTimes(2);
+    expect(navigation.replace).toHaveBeenCalledWith(
+      `${BASE}/history?month=2026-09&type=expense`,
+      { scroll: false },
+    );
     expect(window.location.pathname).toBe(`${BASE}/history`);
     expect(window.location.search).toBe("?month=2026-09&type=expense");
   });
 
-  it("pathnameが変わると基準値を取り直し、余分な再取得をしない", async () => {
+  it("pathnameが変わると初回同期で表示を最新化する", async () => {
     fetchMock
       .mockResolvedValueOnce(tokenResponse("aaaa"))
       .mockResolvedValue(tokenResponse("bbbb"));
@@ -253,7 +261,7 @@ describe("GroupDataRefresher", () => {
     view.rerender(<GroupDataRefresher groupId={GROUP_ID} />);
     await flush();
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(navigation.refresh).not.toHaveBeenCalled();
+    expect(navigation.refresh).toHaveBeenCalledTimes(2);
   });
 
   it("unmount後は確認しない", async () => {
@@ -263,5 +271,103 @@ describe("GroupDataRefresher", () => {
     view.unmount();
     await flush(120_000);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+// 遅延応答はfetch本体だけでなくbodyの読み取り中にも発生する。
+describe("変更確認の競合", () => {
+  it.each(["navigate", "unmount", "hidden"])(
+    "%s後に届いたbodyで画面やURLを更新しない (AC-SYNC-005-1)",
+    async (mode) => {
+      let resolveBody!: (value: unknown) => void;
+      fetchMock.mockResolvedValueOnce(tokenResponse("aaaa")).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) => {
+            resolveBody = resolve;
+          }),
+      } as unknown as Response);
+      const view = render(<GroupDataRefresher groupId={GROUP_ID} />);
+      await flush();
+      navigation.refresh.mockClear();
+      await flush(30_000);
+      if (mode === "navigate") {
+        navigation.pathname = `${BASE}/transactions/new`;
+        window.history.replaceState(
+          null,
+          "",
+          `${navigation.pathname}?cursor=keep`,
+        );
+        view.rerender(<GroupDataRefresher groupId={GROUP_ID} />);
+      } else if (mode === "unmount") {
+        view.unmount();
+      } else {
+        setVisibility("hidden");
+      }
+      const href = window.location.href;
+      resolveBody({ token: "bbbb" });
+      await flush();
+      expect(navigation.refresh).not.toHaveBeenCalled();
+      expect(window.location.href).toBe(href);
+      expect(fetchMock.mock.calls[1]?.[1]?.signal?.aborted).toBe(true);
+    },
+  );
+
+  it("初回確認まで非表示でも復帰時に画面を同期する (AC-SYNC-001-2)", async () => {
+    setVisibility("hidden");
+    fetchMock.mockResolvedValue(tokenResponse("newer-than-screen"));
+    render(<GroupDataRefresher groupId={GROUP_ID} />);
+    await flush(60_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+    setVisibility("visible");
+    await flush();
+    expect(navigation.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("15秒で応答bodyを打ち切りbackoff後に再試行する (AC-SYNC-006-1)", async () => {
+    let resolveBody!: (value: unknown) => void;
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) => {
+            resolveBody = resolve;
+          }),
+      } as unknown as Response)
+      .mockResolvedValue(tokenResponse("aaaa"));
+    render(<GroupDataRefresher groupId={GROUP_ID} />);
+    await flush(15_000);
+    expect(fetchMock.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
+    await flush(60_000);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(navigation.refresh).toHaveBeenCalledTimes(1);
+    resolveBody({ token: "obsolete" });
+    await flush();
+    expect(navigation.refresh).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("画面再取得中の重複防止", () => {
+  it("画面の再取得が完了するまでは次の変更確認を保留する (SYNC-004)", async () => {
+    let completeRefresh!: () => void;
+    navigation.refresh.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          completeRefresh = resolve;
+        }),
+    );
+    fetchMock.mockResolvedValue(tokenResponse("aaaa"));
+    render(<GroupDataRefresher groupId={GROUP_ID} />);
+    await flush();
+    await flush(30_000);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      completeRefresh();
+    });
+    await flush(30_000);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(navigation.refresh).toHaveBeenCalledTimes(1);
   });
 });
