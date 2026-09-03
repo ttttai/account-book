@@ -3,26 +3,32 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/modules/auth/server";
 import { LogoutForm, ProfileForm } from "@/modules/auth/presentation";
 import { CreateGroupForm, GroupList } from "@/modules/groups/presentation";
-import { listMyGroups, resolveHomeDestination } from "@/modules/groups/server";
+import {
+  getDefaultGroupId,
+  listMyGroups,
+  resolveHomeDestination,
+} from "@/modules/groups/server";
 
 type ProtectedAppPageProps = Readonly<{
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>;
 
-// ログイン後のホーム画面（プロフィール編集と所属グループの一覧・作成）。所属が1件だけならカレンダーへ直行する (GRP-011)
+// ログイン後のホーム画面（プロフィール編集と所属グループの一覧・作成）。起動時に開くグループまたは唯一の所属へ直行する (GRP-011, GRP-012)
 export default async function ProtectedAppPage({
   searchParams,
 }: ProtectedAppPageProps) {
-  const [profile, groups, search] = await Promise.all([
+  const [profile, groups, defaultGroupId, search] = await Promise.all([
     getCurrentProfile(),
     listMyGroups(),
+    getDefaultGroupId(),
     searchParams,
   ]);
   if (!profile) redirect("/login");
 
-  // 遷移先はサーバーが取得した所属だけから決め、view=groupsのときだけ一覧を表示する (AC-GRP-011-1, AC-GRP-011-3, AC-GRP-011-4)
+  // 遷移先はサーバーが取得した所属と本人の設定だけから決め、view=groupsのときだけ一覧を表示する (AC-GRP-011-1, AC-GRP-011-3, AC-GRP-011-4, AC-GRP-012-3)
   const destination = resolveHomeDestination({
     groupIds: groups.map((group) => group.id),
+    defaultGroupId,
     view: search.view,
   });
   if (destination.kind === "group") redirect(destination.href);
@@ -40,7 +46,7 @@ export default async function ProtectedAppPage({
         <h1 id="profile-title">プロフィール</h1>
         <ProfileForm displayName={profile.displayName} />
       </section>
-      <GroupList groups={groups} />
+      <GroupList defaultGroupId={defaultGroupId} groups={groups} />
       <section className="empty-panel" aria-labelledby="create-group-title">
         <p className="empty-icon" aria-hidden="true">
           家

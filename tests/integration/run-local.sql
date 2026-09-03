@@ -7,5 +7,6 @@
 \ir income-transactions-local.sql
 \ir category-management-local.sql
 \ir member-administration-local.sql
+\ir default-group-local.sql
 \ir recurring-transactions-local.sql
 \ir analytics-local.sql

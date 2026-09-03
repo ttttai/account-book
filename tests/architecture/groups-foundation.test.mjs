@@ -91,6 +91,96 @@ test("所属が1件のホームは純関数の判定でカレンダーへ直行�
   assert.match(history, /href="\/app\?view=groups"/);
 });
 
+test("起動時に開くグループは本人だけの設定として保存し、DB関数だけで更新する (GRP-012)", async () => {
+  const migration = await read(
+    "supabase/migrations/202609040001_user_preferences_default_group.sql",
+  );
+  const runLocal = await read("tests/integration/run-local.sql");
+
+  // 本人だけがselectでき、直接の書き込み権限を与えない (AC-GRP-012-6)
+  assert.match(migration, /create table public\.user_preferences/i);
+  assert.match(
+    migration,
+    /alter table public\.user_preferences enable row level security/i,
+  );
+  assert.match(
+    migration,
+    /alter table public\.user_preferences force row level security/i,
+  );
+  assert.match(migration, /app_private\.is_allowed_google_identity\(\)/);
+  assert.match(migration, /\(select auth\.uid\(\)\) = user_id/);
+  assert.match(
+    migration,
+    /revoke all on table public\.user_preferences from public, anon, authenticated/i,
+  );
+  assert.match(
+    migration,
+    /grant select on table public\.user_preferences to authenticated/i,
+  );
+  assert.doesNotMatch(
+    migration,
+    /grant (?:insert|update|delete|all)[^;]*user_preferences/i,
+  );
+  // 更新はsecurity definer関数で、アクティブ所属を再確認する (AC-GRP-012-2)
+  assert.match(
+    migration,
+    /create or replace function public\.set_default_group\(p_group_id uuid\)/i,
+  );
+  assert.match(migration, /security definer/i);
+  assert.match(migration, /set search_path = ''/);
+  assert.match(migration, /app_private\.is_active_group_member\(p_group_id\)/);
+  assert.match(migration, /raise insufficient_privilege/);
+  assert.match(migration, /on conflict \(user_id\)/i);
+  assert.match(
+    migration,
+    /revoke all on function public\.set_default_group\(uuid\) from public/i,
+  );
+  assert.match(
+    migration,
+    /grant execute on function public\.set_default_group\(uuid\) to authenticated/i,
+  );
+  assert.match(runLocal, /\\ir default-group-local\.sql/);
+});
+
+test("ホームは起動時に開くグループを所属と照合して直行し、設定画面から設定・解除できる (GRP-012)", async () => {
+  const appPage = await read("src/app/app/page.tsx");
+  const settings = await read("src/app/groups/[groupId]/settings/page.tsx");
+  const destination = await read(
+    "src/modules/groups/domain/home-destination.ts",
+  );
+  const query = await read("src/modules/groups/application/default-group.ts");
+  const actions = await read("src/modules/groups/presentation/actions.ts");
+  const form = await read(
+    "src/modules/groups/presentation/default-group-form.tsx",
+  );
+  const list = await read("src/modules/groups/presentation/group-list.tsx");
+  const server = await read("src/modules/groups/server.ts");
+  const presentation = await read("src/modules/groups/presentation.ts");
+
+  // 遷移先はサーバーが取得した所属と本人の設定だけから決める (AC-GRP-012-3, AC-GRP-012-4)
+  assert.match(appPage, /getDefaultGroupId\(\)/);
+  assert.match(appPage, /defaultGroupId/);
+  assert.match(destination, /groupIds\.includes\(defaultGroupId\)/);
+  assert.match(server, /getDefaultGroupId/);
+  assert.match(query, /import "server-only"/);
+  assert.match(query, /auth\.getClaims\(\)/);
+  assert.match(query, /from\("user_preferences"\)/);
+  assert.match(query, /rpc\("set_default_group"/);
+  assert.doesNotMatch(query, /SERVICE_ROLE/);
+  // Server Actionはbind引数を再検証し、成功時にホームと設定画面を更新する (AC-GRP-012-1, AC-GRP-012-2)
+  assert.match(actions, /setDefaultGroupSchema\.safeParse/);
+  assert.match(actions, /revalidatePath\("\/app"\)/);
+  assert.match(form, /"use client"/);
+  assert.match(form, /このグループを起動時に開く/);
+  assert.match(form, /解除する/);
+  assert.match(settings, /DefaultGroupForm/);
+  assert.match(settings, /getDefaultGroupId\(\)/);
+  assert.match(presentation, /DefaultGroupForm/);
+  // 一覧では該当行だけへ表示を付ける (AC-GRP-012-5)
+  assert.match(list, /起動時に開く/);
+  assert.match(list, /defaultGroupId/);
+});
+
 test("App Routerはgroupsモジュールの公開境界だけを使う", async () => {
   const appPage = await read("src/app/app/page.tsx");
   const groupPage = await read("src/app/groups/[groupId]/page.tsx");
