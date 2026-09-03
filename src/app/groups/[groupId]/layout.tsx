@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { GroupNavigation } from "@/modules/groups/presentation";
+import { GroupDataRefresher } from "@/modules/sync/presentation";
 
 type GroupLayoutProps = Readonly<{
   children: ReactNode;
@@ -17,6 +18,7 @@ export default async function GroupLayout({
     <div className="group-route-layout">
       <div className="group-route-content">{children}</div>
       <GroupNavigation groupId={groupId} />
+      <GroupDataRefresher groupId={groupId} />
     </div>
   );
 }

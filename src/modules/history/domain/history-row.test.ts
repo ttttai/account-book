@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   appendHistoryRows,
+  areHistoryRowsEqual,
   compareHistoryRowSourcesDesc,
   toHistoryRow,
   type HistoryRow,
@@ -174,5 +175,40 @@ describe("appendHistoryRows", () => {
 
   it("追記対象が空でも表示済みの行を欠落させない", () => {
     expect(appendHistoryRows([rowA, rowB], [])).toEqual([rowA, rowB]);
+  });
+});
+
+describe("areHistoryRowsEqual", () => {
+  const displayNames = new Map([
+    ["00000000-0000-4000-8000-000000000021", "山田"],
+  ]);
+  const rowA = toHistoryRow(
+    createSource({ id: "00000000-0000-4000-8000-000000000101" }),
+    displayNames,
+  );
+  const rowB = toHistoryRow(
+    createSource({
+      id: "00000000-0000-4000-8000-000000000102",
+      amountMinor: 2000,
+    }),
+    displayNames,
+  );
+
+  it("同じ内容の別インスタンスを等しいと判定する (AC-SYNC-004-2)", () => {
+    expect(areHistoryRowsEqual([rowA, rowB], [{ ...rowA }, { ...rowB }])).toBe(
+      true,
+    );
+    expect(areHistoryRowsEqual([], [])).toBe(true);
+  });
+
+  it("件数・順序・金額の違いを検出する", () => {
+    expect(areHistoryRowsEqual([rowA, rowB], [rowA])).toBe(false);
+    expect(areHistoryRowsEqual([rowA, rowB], [rowB, rowA])).toBe(false);
+    expect(
+      areHistoryRowsEqual(
+        [rowA],
+        [{ ...rowA, amountMinor: rowA.amountMinor + 1 }],
+      ),
+    ).toBe(false);
   });
 });

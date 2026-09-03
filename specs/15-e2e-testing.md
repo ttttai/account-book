@@ -181,6 +181,7 @@ E2E stackのアプリは`next dev`で動くため、routeごとの初回request�
 - 利用者Aのページを再読み込み・操作せずに、60秒以内に月間合計と日別金額へBの支出が反映される（`AC-SYNC-001-1`）。
 - 反映の間、route-levelのskeleton（`カレンダーを読み込み中`）が表示されず、`window`へ置いたmarkerが保持され（全画面再読み込みが起きない）、URLの`month`・`scope`が維持される（`AC-SYNC-004-1`）。
 - 変更確認要求は`/api/v1/groups/{groupId}/changes`へ送られ、応答本文に金額・件数・時刻が含まれない（`AC-SYNC-003-3`）。
+- 375 x 812と1280 x 800の両projectで実行し、どちらでも同じ反映と状態維持を確認する。
 
 ## 6. CI
 

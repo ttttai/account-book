@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 import { formatHistoryJpy } from "../domain/history-jpy";
-import { appendHistoryRows, type HistoryRow } from "../domain/history-row";
+import {
+  appendHistoryRows,
+  areHistoryRowsEqual,
+  type HistoryRow,
+} from "../domain/history-row";
 import { loadMoreHistoryAction } from "./actions";
 
 import styles from "./history.module.css";
@@ -87,6 +91,15 @@ export function HistoryList({
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
+  const [syncedInitialRows, setSyncedInitialRows] = useState(initialRows);
+
+  // 他メンバーの変更による再取得で先頭ページが変わったときだけ、表示中の行を最新の先頭ページへ置き換える (AC-SYNC-004-2)
+  if (!areHistoryRowsEqual(syncedInitialRows, initialRows)) {
+    setSyncedInitialRows(initialRows);
+    setRows(initialRows);
+    setNextCursor(initialNextCursor);
+    setErrorMessage(undefined);
+  }
 
   // 編集から戻るときに現在の絞り込みを復元できるよう、適用中条件つきの履歴URLを組み立てる
   const historySearch = new URLSearchParams(filterParams).toString();

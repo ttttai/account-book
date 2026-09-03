@@ -115,6 +115,77 @@ describe("HistoryList", () => {
     expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
   });
 
+  it("再取得後の先頭ページが同じ内容なら、追加読み込み済みの行を維持する (AC-SYNC-004-2)", async () => {
+    vi.mocked(loadMoreHistoryAction).mockResolvedValue({
+      status: "ready",
+      rows: [rowC],
+      nextCursor: undefined,
+    });
+    const view = render(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ month: "2026-08" }}
+        initialRows={[rowA, rowB]}
+        initialNextCursor="cursor-1"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
+    await waitFor(() => expect(screen.getByText("カテゴリC")).toBeTruthy());
+
+    // Server Componentの再描画は同じ内容の新しい配列を渡す
+    view.rerender(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ month: "2026-08" }}
+        initialRows={[{ ...rowA }, { ...rowB }]}
+        initialNextCursor="cursor-1"
+      />,
+    );
+
+    expect(screen.getByText("カテゴリA")).toBeTruthy();
+    expect(screen.getByText("カテゴリB")).toBeTruthy();
+    expect(screen.getByText("カテゴリC")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
+  });
+
+  it("再取得後の先頭ページが変わっていれば、先頭ページだけを表示して続きを再度読み込める (AC-SYNC-004-2)", async () => {
+    vi.mocked(loadMoreHistoryAction).mockResolvedValue({
+      status: "ready",
+      rows: [rowC],
+      nextCursor: undefined,
+    });
+    const view = render(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ month: "2026-08" }}
+        initialRows={[rowA, rowB]}
+        initialNextCursor="cursor-1"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
+    await waitFor(() => expect(screen.getByText("カテゴリC")).toBeTruthy());
+
+    const rowD = createRow({
+      id: "00000000-0000-4000-8000-000000000104",
+      categoryName: "カテゴリD",
+      amountMinor: 2500,
+    });
+    view.rerender(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ month: "2026-08" }}
+        initialRows={[rowD, rowA]}
+        initialNextCursor="cursor-2"
+      />,
+    );
+
+    expect(screen.getByText("カテゴリD")).toBeTruthy();
+    expect(screen.getByText("カテゴリA")).toBeTruthy();
+    expect(screen.queryByText("カテゴリB")).toBeNull();
+    expect(screen.queryByText("カテゴリC")).toBeNull();
+    expect(screen.getByRole("button", { name: "さらに読み込む" })).toBeTruthy();
+  });
+
   it("読み込み失敗時は表示済みの行を消さずエラーを表示して再試行できる", async () => {
     vi.mocked(loadMoreHistoryAction).mockResolvedValue({
       status: "error",
