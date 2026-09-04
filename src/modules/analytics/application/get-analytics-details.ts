@@ -8,6 +8,7 @@ import {
 } from "../domain/analytics-details";
 import { parseAnalyticsDetailsSelection } from "../domain/analytics-details-input";
 import { listAnalyticsMonths } from "../domain/analytics-month";
+import { accumulateAnalyticsBalance } from "../domain/analytics-savings";
 import {
   loadAnalyticsMembers,
   resolveAnalyticsTarget,
@@ -98,6 +99,7 @@ export async function getAnalyticsDetails(
       selection.value.scope === "group"
         ? aggregateAnalyticsMembers(members, inputs.expenses, inputs.incomes)
         : [],
+    cumulativeBalances: accumulateAnalyticsBalance(monthlyTotals),
     hasTransactions: period.expenseTotal > 0 || period.incomeTotal > 0,
   };
 }

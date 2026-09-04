@@ -30,6 +30,17 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
   await expect(
     memberPage.getByRole("table", { name: "メンバー別の内訳" }),
   ).toContainText("負担額");
+  // 累積収支は最終月で期間の収支と一致し、注記を表示する (AC-ANA-013-1、3)
+  const savings = memberPage.getByRole("region", { name: "貯金額の推移" });
+  await expect(savings).toContainText("期間開始時を0円として計算");
+  await expect(
+    memberPage
+      .getByRole("table", { name: "月別の正確な数値" })
+      .locator("tbody tr")
+      .last()
+      .getByRole("cell")
+      .nth(3),
+  ).toContainText("−￥6,000");
 
   await memberPage.getByRole("link", { name: "3か月" }).click();
   const month = currentMonthInGroupTimezone();
@@ -47,8 +58,22 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
       width,
       height: width < 520 ? 812 : 800,
     });
+    // 開始月・終了月はそれぞれの列幅に収まり、formの右端を越えない (AC-ANA-009-7)
+    const form = memberPage.getByRole("form", { name: "詳細分析の表示条件" });
+    const formBox = await form.boundingBox();
+    const startBox = await form.getByLabel("開始月").boundingBox();
+    const endBox = await form.getByLabel("終了月").boundingBox();
+    expect(formBox && startBox && endBox).toBeTruthy();
+    if (formBox && startBox && endBox) {
+      expect(startBox.x + startBox.width).toBeLessThanOrEqual(endBox.x);
+      expect(endBox.x + endBox.width).toBeLessThanOrEqual(
+        formBox.x + formBox.width + 1,
+      );
+      expect(startBox.height).toBeGreaterThanOrEqual(44);
+      expect(endBox.height).toBeGreaterThanOrEqual(44);
+    }
     for (const [name, labels] of [
-      ["月別の正確な数値", ["支出", "収入", "収支"]],
+      ["月別の正確な数値", ["支出", "収入", "収支", "累積収支"]],
       ["メンバー別の内訳", ["負担額", "支払額", "受取額"]],
     ] as const) {
       const table = memberPage.getByRole("table", { name });

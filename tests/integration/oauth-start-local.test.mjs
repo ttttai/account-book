@@ -51,6 +51,9 @@ test("OAuth開始はPKCE cookie付きの公開Supabase redirectを返す", async
     authorizationUrl.searchParams.get("code_challenge_method"),
     "s256",
   );
+  // 毎回Googleのアカウント選択画面を表示し、特定アカウントを既定にしない (AC-AUTH-006-1)
+  assert.equal(authorizationUrl.searchParams.get("prompt"), "select_account");
+  assert.equal(authorizationUrl.searchParams.get("login_hint"), null);
 
   const callbackUrl = new URL(
     authorizationUrl.searchParams.get("redirect_to") ?? "",

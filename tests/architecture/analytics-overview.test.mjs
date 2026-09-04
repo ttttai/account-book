@@ -208,6 +208,41 @@ test("分析の集計対象枠は折り返さず、選択欄は選択後に閉�
   );
 });
 
+test("詳細分析の月入力欄はWebKitでも列幅に収まり、累積収支は純関数とServer Componentで描く (AC-ANA-009-7, AC-ANA-013-1〜3)", async () => {
+  const moduleCss = await read(
+    "src/modules/analytics/presentation/analytics.module.css",
+  );
+  const details = await read(
+    "src/modules/analytics/presentation/analytics-details.tsx",
+  );
+  const savings = await read(
+    "src/modules/analytics/domain/analytics-savings.ts",
+  );
+
+  // WebKitの日付入力は固有幅を持つため、appearanceを外して列幅へ収める
+  const monthInput = moduleCss.match(
+    /\.details-filter-form input\[type="month"\] \{[^}]*\}/,
+  )?.[0];
+  assert.ok(monthInput, 'input[type="month"]向けの規則が必要です');
+  assert.match(monthInput, /appearance:\s*none;/);
+  assert.match(monthInput, /text-align:\s*left;/);
+  assert.match(
+    moduleCss,
+    /input\[type="month"\]::-webkit-date-and-time-value \{[^}]*\}/,
+  );
+  // 累積収支の計算と座標は純関数に置き、componentはClient化せずSVGを描く
+  assert.match(savings, /export function accumulateAnalyticsBalance/);
+  assert.match(savings, /export function scaleAnalyticsSavingsChart/);
+  assert.doesNotMatch(details, /^"use client";/m);
+  assert.match(details, /data-details-chart="savings"/);
+  // 赤字の棒は赤系の背景色を持つ (review: 2026-09-04-analytics-savings-trend-negative-color)
+  assert.match(
+    moduleCss,
+    /i\[data-chart-bar="negative"\] \{[^}]*background:\s*#d8664f;/,
+  );
+  assert.doesNotMatch(details, /cumulativeBalance\s*[+-]=|reduce\(/);
+});
+
 test("分析は集計テーブルとRoute Handlerを追加しない", async () => {
   const migrations = await readdir(new URL("supabase/migrations/", root));
 
