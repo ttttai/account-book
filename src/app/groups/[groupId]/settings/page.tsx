@@ -3,7 +3,8 @@ import { notFound, redirect } from "next/navigation";
 
 import { LogoutForm, ProfileForm } from "@/modules/auth/presentation";
 import { getCurrentProfile } from "@/modules/auth/server";
-import { getGroupMembership } from "@/modules/groups/server";
+import { DefaultGroupForm } from "@/modules/groups/presentation";
+import { getDefaultGroupId, getGroupMembership } from "@/modules/groups/server";
 
 type SettingsPageProps = Readonly<{
   params: Promise<{ groupId: string }>;
@@ -17,13 +18,15 @@ const roleLabels = {
 
 export default async function SettingsPage({ params }: SettingsPageProps) {
   const { groupId } = await params;
-  const profile = await getCurrentProfile();
+  const [profile, membership, defaultGroupId] = await Promise.all([
+    getCurrentProfile(),
+    getGroupMembership(groupId),
+    getDefaultGroupId(),
+  ]);
   if (!profile) {
     const nextPath = `/groups/${encodeURIComponent(groupId)}/settings`;
     redirect(`/login?next=${encodeURIComponent(nextPath)}`);
   }
-
-  const membership = await getGroupMembership(groupId);
   if (!membership) notFound();
 
   const encodedGroupId = encodeURIComponent(membership.group.id);
@@ -48,6 +51,10 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
           <p className="eyebrow">アカウント</p>
           <h2>プロフィール</h2>
           <ProfileForm displayName={profile.displayName} />
+          <DefaultGroupForm
+            groupId={membership.group.id}
+            isDefault={defaultGroupId === membership.group.id}
+          />
           <Link className="settings-row-link" href="/app?view=groups">
             <span>
               <strong>グループを切り替える・作る</strong>
