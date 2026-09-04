@@ -7,8 +7,10 @@ import { acceptInvitation } from "../application/accept-invitation";
 import { changeMemberRole } from "../application/change-member-role";
 import { createInvitation } from "../application/create-invitation";
 import { createGroup } from "../application/create-group";
+import { setDefaultGroup } from "../application/default-group";
 import { removeMember } from "../application/remove-member";
 import { revokeInvitation } from "../application/revoke-invitation";
+import { setDefaultGroupSchema } from "../domain/default-group-input";
 import { createGroupSchema } from "../domain/group-input";
 import {
   acceptInvitationSchema,
@@ -20,6 +22,7 @@ import {
   removeMemberSchema,
 } from "../domain/member-administration-input";
 import type { GroupActionState } from "./action-state";
+import type { DefaultGroupActionState } from "./default-group-action-state";
 import type {
   AcceptInvitationActionState,
   CreateInvitationActionState,
@@ -275,4 +278,44 @@ export async function revokeInvitationAction(
       message: "招待を取り消せませんでした。権限を確認してください。",
     };
   }
+}
+
+// 起動時に開くグループの設定・解除Server Action。groupIdはbindで受け取り再検証し、成功時はホームと設定画面を更新する (AC-GRP-012-1, AC-GRP-012-2)
+export async function setDefaultGroupAction(
+  groupId: string,
+  _previousState: DefaultGroupActionState,
+  formData: FormData,
+): Promise<DefaultGroupActionState> {
+  const result = setDefaultGroupSchema.safeParse({
+    groupId,
+    mode: value(formData, "mode"),
+  });
+  if (!result.success) {
+    return {
+      status: "error",
+      message: "操作内容を確認できませんでした。画面を再読み込みしてください。",
+    };
+  }
+
+  try {
+    await setDefaultGroup(
+      result.data.mode === "set" ? result.data.groupId : null,
+    );
+  } catch {
+    return {
+      status: "error",
+      message:
+        "起動時に開くグループを変更できませんでした。もう一度お試しください。",
+    };
+  }
+
+  revalidatePath("/app");
+  revalidatePath(`/groups/${result.data.groupId}/settings`);
+  return {
+    status: "success",
+    message:
+      result.data.mode === "set"
+        ? "このグループを起動時に開くように設定しました。"
+        : "起動時に開くグループの設定を解除しました。",
+  };
 }

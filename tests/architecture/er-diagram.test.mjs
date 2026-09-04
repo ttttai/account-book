@@ -18,6 +18,7 @@ const diagramEntityByTable = {
   "public.recurring_transactions": "RECURRING_TRANSACTIONS",
   "public.transaction_allocations": "TRANSACTION_ALLOCATIONS",
   "public.transactions": "TRANSACTIONS",
+  "public.user_preferences": "USER_PREFERENCES",
 };
 
 async function read(path) {
@@ -54,6 +55,9 @@ test("ER図を実装済みmigrationとグループ境界へ同期する", async 
   }
 
   assert.match(diagram, /AUTH_USERS \|\|--\|\| PROFILES/);
+  // 起動時に開くグループは本人だけの設定で、所属の正本にしない (GRP-012)
+  assert.match(diagram, /AUTH_USERS \|\|--o\| USER_PREFERENCES/);
+  assert.match(diagram, /GROUPS \|o--o\{ USER_PREFERENCES/);
   assert.match(diagram, /GROUPS \|\|--o\{ GROUP_MEMBERS/);
   assert.match(diagram, /GROUPS \|\|--o\{ TRANSACTIONS/);
   assert.match(diagram, /CATEGORIES \|\|--o\{ TRANSACTIONS/);

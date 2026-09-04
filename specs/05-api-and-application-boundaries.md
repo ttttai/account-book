@@ -133,6 +133,7 @@ updateRecurringTransaction(groupId, recurringTransactionId, expectedVersion, inp
 endRecurringTransaction(groupId, recurringTransactionId, expectedVersion, endMonth)
 setGroupBudget(groupId, effectiveMonth, expectedVersion, totalAmountMinor, categoryLimits)
 disableGroupBudget(groupId, effectiveMonth, expectedVersion)
+setDefaultGroup(groupId | null)
 ```
 
 `createTransaction`は支出と収入を種別ごとの原子的なDB関数で受け付ける。Server Actionは`groupId`をbind引数として受け取っても未信頼入力としてUUID検証し、FormDataの金額、日付、カテゴリ、種別に応じた支払者または受取者、支出の負担方法・負担メンバー・金額、メモ、`client_request_id`をschemaで検証する。commandは検証済みGoogle sessionを取得し、ユーザーsession付きSupabase clientでDB関数を呼ぶ。DB関数はアクティブ所属、種別に一致するカテゴリ、支払者・受取者・負担者の同一グループ所属とアクティブ状態、支出の合計一致、冪等性を再確認する。収入は負担行を作成しない。
@@ -148,6 +149,8 @@ commandがDB関数の失敗で完了しなかった場合、利用者向けに�
 定期取引のcommandは、Server Actionで入力を検証したうえで`security definer`のDB関数を1回呼び、設定と負担行を同一transactionで保存する。DB関数内でowner/admin、アクティブ所属、カテゴリと支払者・受取者・負担者の同一グループ所属、支出の負担額合計一致、`day_of_month`（1〜28）と開始月・終了月の月初日・前後関係を再検証する。展開（対象月の同じ日付へ1件作ること）は純関数として実装し、定期取引queryとカレンダー集計の両方から同じ関数を使う。展開結果をDBへ保存せず、job・scheduler・queue・retry・occurrence用endpointを追加しない。
 
 予算（`BUD-*`）のqueryは`resolveGroupReadContext`で認証・所属を確認し、選択月の実績を`listMonthlyTransactions`と分析の集計純関数`aggregateAnalyticsMonth`で求め、適用改定とあわせて純関数`calculateBudgetProgress`で進捗DTOを作る。分析概要は同じ認可済みcontextと選択月の集計結果から`loadAppliedBudgetRevision`で適用改定を読み、同じ純関数で予算カードのDTOを作る。commandはServer Actionで入力を検証したうえで`security definer`のDB関数`set_group_budget`・`disable_group_budget`を1回呼び、改定本体とカテゴリ内訳を同一transactionで保存する。DB関数内でowner/admin、グループのタイムゾーン上の当月以降、金額範囲、カテゴリの同一グループ・支出種別・未アーカイブ・重複なし、合計がグループ予算以下、`expectedVersion`を再検証する。予算のRoute Handler、内部API、共有cacheは追加しない。
+
+`setDefaultGroup`は、Server Actionがbind引数のgroupIDと操作種別（設定・解除）をschema検証したうえで、検証済みGoogle sessionのユーザーsession付きSupabase clientから`security definer`のDB関数`set_default_group`を1回呼ぶ。DB関数は本人・許可リスト・対象グループへのアクティブ所属を再確認し、`user_preferences`をupsertする。ホーム（`/app`）の遷移先はサーバー専用query`getDefaultGroupId`と`listMyGroups`の結果だけから純関数`resolveHomeDestination`で決め、設定先がアクティブ所属に含まれない場合は所属件数の判定へ戻す。
 
 招待作成Actionはroleとgroup IDを検証し、command内で認証・owner/admin権限を再確認する。256 bit以上の生トークンはサーバーで生成してSHA-256 hashだけをDB commandへ渡し、作成成功時だけURL fragment形式の共有リンクを最小DTOとしてClientへ返す。生トークンを再取得するqueryは提供しない。
 

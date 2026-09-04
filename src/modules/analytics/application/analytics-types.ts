@@ -10,6 +10,7 @@ import type {
   AnalyticsMemberTotal,
   AnalyticsPeriodTotals,
 } from "../domain/analytics-details";
+import type { AnalyticsCumulativeBalance } from "../domain/analytics-savings";
 
 export type AnalyticsSearchInput = Readonly<{
   month?: string | string[];
@@ -116,6 +117,8 @@ export type AnalyticsDetailsReady = Readonly<{
   months: readonly AnalyticsMonthTotals[];
   period: AnalyticsPeriodTotals;
   memberBreakdown: readonly AnalyticsMemberTotal[];
+  /** 開始月から各月までの累積収支。`months`と同じ順序 (ANA-013) */
+  cumulativeBalances: readonly AnalyticsCumulativeBalance[];
   hasTransactions: boolean;
 }>;
 

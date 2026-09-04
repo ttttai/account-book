@@ -114,21 +114,25 @@ function splitJpyDigitGroups(amountMinor: number): readonly JpyDigitGroup[] {
   });
 }
 
-// 5桁以下（99,999円以下）は320pxでも1行で収まるため折り返し機会を与えない
-const maxUnwrappedAmountMinor = 99999;
+// 収入の符号を含め6桁までは1行に保ち、7桁以上だけ桁区切りで折り返せるようにする
+const maxUnwrappedAmountMinor = 999999;
 
 function CalendarCellAmount({
   amountMinor,
   variant,
 }: Readonly<{ amountMinor: number; variant?: "income" }>) {
-  const className =
-    variant === "income"
-      ? `${styles["calendar-cell-amount"]} ${styles["calendar-cell-income"]}`
-      : styles["calendar-cell-amount"];
+  const isUnwrapped = amountMinor <= maxUnwrappedAmountMinor;
+  const className = [
+    styles["calendar-cell-amount"],
+    variant === "income" ? styles["calendar-cell-income"] : "",
+    isUnwrapped ? styles["calendar-cell-amount-nowrap"] : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <span className={className} aria-hidden="true">
       {variant === "income" ? "+" : null}
-      {amountMinor <= maxUnwrappedAmountMinor
+      {isUnwrapped
         ? formatCalendarCellJpy(amountMinor)
         : splitJpyDigitGroups(amountMinor).map((digitGroup) => (
             <Fragment key={digitGroup.offset}>

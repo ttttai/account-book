@@ -80,7 +80,11 @@ export async function GET(request: NextRequest) {
   callbackUrl.searchParams.set("next", nextPath);
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: callbackUrl.toString() },
+    options: {
+      redirectTo: callbackUrl.toString(),
+      // ブラウザに残ったGoogle sessionで自動ログインさせず、毎回アカウントを選ばせる (AC-AUTH-006-1)
+      queryParams: { prompt: "select_account" },
+    },
   });
   if (error || !data.url) return loginRedirect(siteOrigin, "oauth");
 

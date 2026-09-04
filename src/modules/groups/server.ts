@@ -1,6 +1,10 @@
 import "server-only";
 
 export { createGroup } from "./application/create-group";
+export {
+  getDefaultGroupId,
+  setDefaultGroup,
+} from "./application/default-group";
 export { getGroupMembership } from "./application/get-group-membership";
 export {
   loadGroupMembers,

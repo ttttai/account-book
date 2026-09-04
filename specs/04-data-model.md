@@ -18,6 +18,7 @@
 
 ```text
 auth.users 1---1 profiles
+auth.users 1---1 user_preferences *---1 groups（起動時に開くグループ、nullable）
 auth.users 1---* group_members *---1 groups
 groups     1---* group_invitations
 groups     1---* categories
@@ -40,6 +41,17 @@ groups     1---* budget_revisions 1---* budget_category_limits *---1 categories
 | `updated_at`   | timestamptz | UTC                    |
 
 Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回登録ではprovider metadataの`full_name`、`name`、「ユーザー」の順で初期値を選び、前後空白を除去して50文字以内にする。provider metadataをそのままHTMLとして扱わない。
+
+### user_preferences
+
+| column             | 型               | 説明                                               |
+| ------------------ | ---------------- | -------------------------------------------------- |
+| `user_id`          | uuid PK/FK       | `auth.users(id)`を参照、削除時にcascade            |
+| `default_group_id` | uuid FK nullable | 起動時に開くグループ。`groups(id)`、削除時に`null` |
+| `created_at`       | timestamptz      | UTC                                                |
+| `updated_at`       | timestamptz      | UTC                                                |
+
+ユーザーごとに1行で、本人だけが参照する起動時の設定を保持する（`GRP-012`）。`profiles`は同じグループのメンバーへ表示名を開示するため、他メンバーへ見せない設定は`profiles`へ列を追加せず本テーブルへ分離する。更新は`public.set_default_group(p_group_id uuid)`だけで行い、関数内で検証済みGoogle sessionの本人・許可リスト・対象グループへのアクティブ所属を再確認して行をupsertする。`null`を渡すと解除する。所属を失った設定は読み取り側で無効として扱い、DB側で自動削除しない。
 
 ### allowed_google_accounts
 
@@ -266,6 +278,7 @@ recurring_transaction_allocations(member_id, recurring_transaction_id)
 budget_revisions(group_id, effective_month DESC)
 budget_category_limits(category_id, budget_revision_id)
 categories(group_id, type, archived_at, sort_order)
+user_preferences(default_group_id)
 ```
 
 cursor paginationにはoffsetではなく`(transaction_date, id)`を使う。
@@ -289,6 +302,8 @@ exists (
 更新policyでは、操作に必要なroleも確認する。RLSは多層防御であり、アプリ層の認可を省略する理由にはしない。
 
 `profiles`は許可された本人、または同じグループにアクティブ所属する許可済みユーザーからselectできる。insertは`auth.users`作成時のDB triggerに限定し、updateは許可された本人だけに許可する。triggerは`security definer`を使う場合も`search_path`を空文字へ固定し、`new.id`と検証済みmetadataだけから行を作成する。表示名metadataが制約違反の場合、認証ユーザーを不完全な状態で残さず登録全体を失敗させる。
+
+`user_preferences`は許可された本人だけがselectでき、insert・update・deleteは`authenticated`へ許可せず`security definer`の`set_default_group`関数だけで更新する。関数は`search_path`を空文字へ固定し、非メンバー・存在しないグループを同じ権限エラーで拒否する。
 
 Authの登録前フックは`app_metadata.provider = 'google'`と許可リストを照合し、不一致をユーザー行作成前に拒否する。RLSと`security definer`関数でも、検証済みJWTのGoogle providerと許可リストを再確認する。
 

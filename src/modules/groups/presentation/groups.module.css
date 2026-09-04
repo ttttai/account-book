@@ -102,7 +102,47 @@
 }
 
 .group-list small {
+  flex-shrink: 0;
   color: var(--muted);
+}
+
+.group-list-name {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.group-list-badge {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.default-group-form {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.default-group-text {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.default-group-text small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.default-group-form button {
+  min-height: 44px;
 }
 
 .group-form {
