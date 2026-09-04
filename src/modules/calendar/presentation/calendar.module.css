@@ -298,13 +298,20 @@
 .calendar-cell-amount {
   max-width: 100%;
   color: var(--accent);
-  /* 最小幅320pxのセルでも99,999を1行で収める */
+  /* 日本語UIフォントの広い数字幅を避け、320pxでも+999,999を1行で収める */
+  font-family: Arial, Helvetica, sans-serif;
+  font-variant-numeric: tabular-nums;
   font-size: clamp(0.5rem, 2.4vw, 0.72rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.05;
   word-break: keep-all;
   text-align: center;
+}
+
+/* 6桁以下は符号や桁区切りの位置でも改行しない (AC-CAL-012-5) */
+.calendar-cell-amount-nowrap {
+  white-space: nowrap;
 }
 
 .calendar-empty-message {

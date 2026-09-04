@@ -220,7 +220,54 @@ describe("CalendarDayExplorer", () => {
     expect(fiveDigitAmount?.innerHTML).toBe("99,999");
   });
 
-  it("6桁以上のセル金額は桁区切り位置にだけ折り返し機会を与え、けたの途中で分断しない", () => {
+  it.each([99999, 100000, 999999])(
+    "収入・支出%s円は符号も含めて折り返さない (AC-CAL-012-5)",
+    (amountMinor) => {
+      const formatted = String(amountMinor).replace(
+        /\B(?=(\d{3})+(?!\d))/g,
+        ",",
+      );
+      render(
+        <CalendarDayExplorer
+          data={{
+            ...data,
+            dailyTotals: { "2026-08-15": amountMinor },
+            incomeDailyTotals: { "2026-08-15": amountMinor },
+          }}
+        />,
+      );
+      const cell = screen.getByRole("link", {
+        name: `2026年8月15日、支出￥${formatted}、収入￥${formatted}`,
+      });
+      const amounts = cell.querySelectorAll(".calendar-cell-amount");
+      expect(amounts[0]?.innerHTML).toBe(formatted);
+      expect(amounts[1]?.innerHTML).toBe(`+${formatted}`);
+      for (const amount of amounts) {
+        expect(amount.classList.contains("calendar-cell-amount-nowrap")).toBe(
+          true,
+        );
+      }
+    },
+  );
+
+  it("100万円の収入は符号と全桁を保ち桁区切り直後だけ折り返せる (AC-CAL-012-5)", () => {
+    render(
+      <CalendarDayExplorer
+        data={{ ...data, incomeDailyTotals: { "2026-08-15": 1000000 } }}
+      />,
+    );
+    const amount = screen
+      .getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥1,000,000",
+      })
+      .querySelector(".calendar-cell-income");
+    expect(amount?.innerHTML).toBe("+1,<wbr>000,<wbr>000");
+    expect(amount?.classList.contains("calendar-cell-amount-nowrap")).toBe(
+      false,
+    );
+  });
+
+  it("7桁以上のセル金額は桁区切り位置にだけ折り返し機会を与え、けたの途中で分断しない", () => {
     render(<CalendarDayExplorer data={data} />);
     const largeAmount = screen
       .getByRole("link", { name: "2026年8月20日、支出￥1,234,567" })
