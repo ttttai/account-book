@@ -67,17 +67,17 @@ function toErrorState(result: RecurringCommandResult): RecurringActionState {
       return {
         status: "error",
         message:
-          "他のメンバーが先にこの定期取引を更新しました。画面を再読み込みして最新の内容を確認してください。",
+          "他のメンバーが先にこの固定費を更新しました。画面を再読み込みして最新の内容を確認してください。",
       };
     case "not_found":
       return {
         status: "error",
-        message: "この定期取引は見つからないか、すでに削除されています。",
+        message: "この固定費は見つからないか、すでに削除されています。",
       };
     case "forbidden":
       return {
         status: "error",
-        message: "定期取引を設定する権限がありません。",
+        message: "固定費を設定する権限がありません。",
       };
     case "invalid":
       return { status: "error", message: "入力内容を確認してください。" };
@@ -85,7 +85,7 @@ function toErrorState(result: RecurringCommandResult): RecurringActionState {
       return {
         status: "error",
         message:
-          "定期取引を保存できませんでした。接続状態を確認して、もう一度お試しください。",
+          "固定費を保存できませんでした。接続状態を確認して、もう一度お試しください。",
       };
   }
 }
@@ -119,7 +119,7 @@ function resolveAllocations(input: {
   }
 }
 
-// 定期取引の作成Server Action。入力検証と負担額計算を経てDB関数へ渡す
+// 固定費の作成Server Action。入力検証と負担額計算を経てDB関数へ渡す
 export async function createRecurringAction(
   groupId: string,
   _previousState: RecurringActionState,
@@ -154,10 +154,10 @@ export async function createRecurringAction(
   if (commandResult.kind !== "ok") return toErrorState(commandResult);
 
   revalidateRecurringScreens(result.data.groupId);
-  return { status: "success", message: "定期取引を登録しました。" };
+  return { status: "success", message: "固定費を登録しました。" };
 }
 
-// 定期取引の編集Server Action。versionを添えて楽観的ロック付きで更新する
+// 固定費の編集Server Action。versionを添えて楽観的ロック付きで更新する
 export async function updateRecurringAction(
   groupId: string,
   recurringTransactionId: string,
@@ -195,10 +195,10 @@ export async function updateRecurringAction(
   if (commandResult.kind !== "ok") return toErrorState(commandResult);
 
   revalidateRecurringScreens(result.data.groupId);
-  return { status: "success", message: "定期取引を更新しました。" };
+  return { status: "success", message: "固定費を更新しました。" };
 }
 
-// 定期取引の終了Server Action。end_monthを設定し翌月以降の展開を止める
+// 固定費の終了Server Action。end_monthを設定し翌月以降の展開を止める
 export async function endRecurringAction(
   groupId: string,
   recurringTransactionId: string,
@@ -223,5 +223,5 @@ export async function endRecurringAction(
   if (commandResult.kind !== "ok") return toErrorState(commandResult);
 
   revalidateRecurringScreens(result.data.groupId);
-  return { status: "success", message: "定期取引を終了しました。" };
+  return { status: "success", message: "固定費を終了しました。" };
 }

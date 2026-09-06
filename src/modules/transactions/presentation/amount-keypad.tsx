@@ -20,7 +20,7 @@ type AmountKeypadProps = Readonly<{
   ref?: Ref<HTMLDivElement>;
 }>;
 
-// 取引入力と定期取引で共有する金額テンキー。数字・00・1文字削除を備え、各キーはフォームを送信しない (TXN-014, REC-010)
+// 取引入力と固定費で共有する金額テンキー。数字・00・1文字削除を備え、各キーはフォームを送信しない (TXN-014, REC-010)
 export function AmountKeypad({
   open,
   onKey,

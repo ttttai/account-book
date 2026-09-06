@@ -57,7 +57,7 @@ const INCOME_COLUMNS = `id, transaction_date, amount_minor, recipient_member_id,
 // 展開結果は登録日時を持たないため、日別表示では単発取引より後ろへ並ぶ固定値を使う
 const RECURRING_SORT_KEY = "0000-01-01T00:00:00.000Z";
 
-// 月次の表示・集計が共有する取引読み取り。指定月の未削除の支出・収入を半開区間で読み、定期取引を同じ月へ展開して合流させる
+// 月次の表示・集計が共有する取引読み取り。指定月の未削除の支出・収入を半開区間で読み、固定費を同じ月へ展開して合流させる
 // 認可は呼び出し側のcontextで確認済みとし、RLS適用のユーザーsession clientで読む。展開結果はDBへ保存せず、単発取引と重複しない (REC-005)
 export async function listMonthlyTransactions(
   supabase: ServerSupabaseClient,
@@ -121,7 +121,7 @@ export async function listMonthlyTransactions(
       isRecurring: false,
     }));
 
-  // 定期取引は設定から各月へ展開する。transactionsを読まずに作るため、単発取引との二重集計は構造的に発生しない
+  // 固定費は設定から各月へ展開する。transactionsを読まずに作るため、単発取引との二重集計は構造的に発生しない
   for (const month of months) {
     for (const occurrence of expandRecurringForMonth(schedules, month)) {
       if (occurrence.type === "expense") {

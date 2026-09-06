@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.13
+バージョン: 0.2.14
 
 ## 1. 設計目標
 
@@ -10,7 +10,7 @@
 - アプリ層とDB層の両方で、グループ間アクセスを防ぐ。
 - 取引の操作者、支出の支払者、収入の受取者、支出の負担額を区別する。
 - メンバーやカテゴリがアーカイブされても、過去取引の意味を維持する。
-- 2人限定の構造を入れず、将来の予算、定期取引、精算、口座へ拡張できる。
+- 2人限定の構造を入れず、将来の予算、固定費、精算、口座へ拡張できる。
 
 ## 2. エンティティ関連
 
@@ -178,7 +178,7 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 
 ### recurring_transactions
 
-固定額・月次の定期取引設定。詳細な列と制約は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。
+固定額・月次の固定費設定。詳細な列と制約は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。
 
 | column                                    | 型               | 説明                       |
 | ----------------------------------------- | ---------------- | -------------------------- |
@@ -217,7 +217,7 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 制約:
 
 - `(recurring_transaction_id, member_id)`をuniqueにする。
-- 支出では負担額合計が定期取引金額と一致する状態だけをcommitできる。収入には作成しない。
+- 支出では負担額合計が固定費金額と一致する状態だけをcommitできる。収入には作成しない。
 - 更新はowner/admin検証を含む`security definer`関数に限定し、直接のinsert/update/delete権限を付与しない。
 
 ### budget_revisions
@@ -321,7 +321,7 @@ RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB�
 
 月間の収支差額は、同じ集計対象で求めた収入合計から支出合計を引いた整数とする。差額をDBへ保存せず、読み取り時に算出する。
 
-定期取引（`REC-*`）は、選択月へ展開した擬似取引として同じ集計規則へ渡す。展開結果はDBへ保存せず、`transactions`を読まずに設定から作るため、単発取引との二重集計は発生しない。
+固定費（`REC-*`）は、選択月へ展開した擬似取引として同じ集計規則へ渡す。展開結果はDBへ保存せず、`transactions`を読まずに設定から作るため、単発取引との二重集計は発生しない。
 
 分析（`ANA-*`）は集計用のテーブル、materialized view、集計列を追加しない。月範囲とカテゴリ別の集計は`transactions_group_date_idx`・`transactions_group_category_date_idx`と`transaction_allocations`の主keyを使い、サーバー上の純関数で合計する。
 

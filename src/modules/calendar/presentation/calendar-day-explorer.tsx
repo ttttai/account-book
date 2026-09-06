@@ -206,7 +206,7 @@ function DayPanel({
                 <strong>{transaction.categoryName}</strong>
                 {transaction.isRecurring ? (
                   <span className={styles["calendar-recurring-badge"]}>
-                    定期
+                    固定費
                   </span>
                 ) : null}
                 {transaction.type === "income" ? (
@@ -244,7 +244,7 @@ function DayPanel({
                   className={`secondary-link ${styles["calendar-transaction-edit"]}`}
                   href={`/groups/${encodeURIComponent(data.group.id)}/recurring-transactions`}
                 >
-                  定期取引の設定
+                  固定費の設定
                 </a>
               ) : (
                 <a
