@@ -2,15 +2,15 @@
 
 状態: 承認済み
 
-バージョン: 0.3.1
+バージョン: 0.3.2
 
-最終更新日: 2026-09-04
+最終更新日: 2026-09-06
 
 ## 1. 対象と正本
 
-この図は、2026-09-04時点で`supabase/migrations/`に実装済みのテーブルと外部キーを表す。列の制約、RLS、index、将来のデータ設計は`04-data-model.md`、実際のDB構造はmigrationを正本とする。
+この図は、2026-09-06時点で`supabase/migrations/`に実装済みのテーブルと外部キーを表す。列の制約、RLS、index、将来のデータ設計は`04-data-model.md`、実際のDB構造はmigrationを正本とする。
 
-`auth.users`はSupabase Authが管理する外部schemaである。`app_private.allowed_google_accounts`は認証許可リストであり、email照合に利用するが、`auth.users`との外部キーは持たない。
+`auth.users`はSupabase Authが管理する外部schemaである。`app_private.allowed_google_accounts`は認証許可リストであり、email照合に利用するが、`auth.users`との外部キーは持たない。`app_private.line_notification_targets`と`app_private.weekly_notification_log`はLINE週次レポート用のテーブルで、通知専用ロールの`security definer`関数だけが更新する。
 
 ## 2. 実装済みER図
 
@@ -167,6 +167,18 @@ erDiagram
         timestamptz created_at
     }
 
+    LINE_NOTIFICATION_TARGETS {
+        uuid group_id PK,FK
+        text line_group_id
+        timestamptz linked_at
+    }
+
+    WEEKLY_NOTIFICATION_LOG {
+        uuid group_id PK,FK
+        date week_start_date PK
+        timestamptz sent_at
+    }
+
     AUTH_USERS ||--|| PROFILES : "プロフィールを持つ"
     AUTH_USERS ||--o| USER_PREFERENCES : "起動時の設定を持つ"
     GROUPS |o--o{ USER_PREFERENCES : "起動時に開かれる"
@@ -199,6 +211,9 @@ erDiagram
     GROUPS ||--o{ BUDGET_CATEGORY_LIMITS : "内訳を分離する"
     BUDGET_REVISIONS ||--o{ BUDGET_CATEGORY_LIMITS : "カテゴリ予算を持つ"
     CATEGORIES ||--o{ BUDGET_CATEGORY_LIMITS : "上限を持つ"
+
+    GROUPS ||--o| LINE_NOTIFICATION_TARGETS : "LINEグループと連携する"
+    GROUPS ||--o{ WEEKLY_NOTIFICATION_LOG : "週次レポートの送信記録を持つ"
 ```
 
 ## 3. 重要な関係と制約
@@ -214,6 +229,7 @@ erDiagram
 - カレンダー集計は`transactions`と`transaction_allocations`から読み取り時に計算し、現時点で`daily_summaries`テーブルは作成しない。
 - `recurring_transactions`は定期取引の設定だけを保持し、月ごとの展開結果（occurrence）は保存しない。カレンダー集計は選択月へ展開した擬似取引を読み取り時に加える。
 - `budget_revisions`は適用開始月ごとの改定だけを保持し、月ごとの予算行を複製しない。`(group_id, effective_month)`をuniqueにし、`budget_category_limits`は`group_id`を含む複合外部キーで同じグループの支出カテゴリへ固定する。実績・残額・消化率は保存せず読み取り時に計算する。
+- `line_notification_targets`は家計グループ1件につきLINEグループ1件の連携だけを保持し、`weekly_notification_log`は`(group_id, week_start_date)`の送信記録だけを保持する。どちらも`app_private`に置き、`authenticated`から参照できない。通知内容は保存しない。
 
 ## 4. 更新ルール
 

@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.13
+バージョン: 0.2.14
 
 ## 1. 設計目標
 
@@ -27,6 +27,8 @@ transactions 1---* transaction_allocations *---1 group_members
 transactions *---1 group_members（支出の支払者または収入の受取者）
 transactions *---1 auth.users（created_by / updated_by）
 groups     1---* budget_revisions 1---* budget_category_limits *---1 categories
+groups     1---1 line_notification_targets（LINE連携、任意）
+groups     1---* weekly_notification_log（週次レポートの送信記録）
 ```
 
 ## 3. テーブル
@@ -257,6 +259,40 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 - 改定とカテゴリは`group_id`を含む複合外部キーで同じグループへ固定する。
 - 合計が親改定の`total_amount_minor`以下で、支出種別かつ未アーカイブのカテゴリだけを持つ状態だけをDB commandでcommitする。停止改定には内訳を作らない。
 - 更新はowner/admin検証を含む`security definer`関数に限定し、直接のinsert/update/delete権限を付与しない。
+
+### line_notification_targets（`app_private`）
+
+家計グループとLINEグループトークの対応。詳細は[`16-line-weekly-report.md`](16-line-weekly-report.md)を正本とする。
+
+| column          | 型          | 説明                                                   |
+| --------------- | ----------- | ------------------------------------------------------ |
+| `group_id`      | uuid PK/FK  | 家計グループ。初回スコープは1グループにつき1連携       |
+| `line_group_id` | text        | LINEのgroupId。英数字・`_`・`-`で1〜64文字             |
+| `linked_at`     | timestamptz | UTC。join eventの受信時刻                              |
+
+制約:
+
+- `app_private`スキーマに置き、`anon`・`authenticated`から参照できない。RLSの対象外だが、`group_id`で家計グループへ紐付ける。
+- 登録・解除は通知専用ロール`line_notifier`がEXECUTEできる`security definer`関数（join/leave event用）だけで行う。
+- `line_group_id`はログ・画面へ出さない（`NOTIF-009`）。
+
+### weekly_notification_log（`app_private`）
+
+| column            | 型          | 説明                             |
+| ----------------- | ----------- | -------------------------------- |
+| `group_id`        | uuid PK/FK  | 家計グループ                     |
+| `week_start_date` | date        | 対象週の月曜                     |
+| `sent_at`         | timestamptz | UTC。送信枠を確保した時刻        |
+
+制約:
+
+- `(group_id, week_start_date)`を主キーとし、同一グループ・同一週の二重送信を防ぐ（`NOTIF-008`）。
+- 送信前に枠を確保し、送信失敗時は枠を削除して再試行できるようにする。送信内容は保存しない。
+- `app_private`スキーマに置き、通知専用ロールの`security definer`関数だけが更新する。
+
+### 通知専用ロール
+
+`line_notifier`は`nologin`で作成し、`app_private`のusageと通知用関数のEXECUTEだけを持つ。テーブルへの直接権限、他機能のDB関数の実行権限、`service_role`相当の権限を持たない。LOGIN権限とpasswordの付与は運用手順で手動で行い、Gitへ含めない。
 
 ## 4. インデックス
 

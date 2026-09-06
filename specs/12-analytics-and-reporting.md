@@ -18,7 +18,7 @@
 | ---- | ---------------------------------------------------------------- | -------------------------- |
 | 1    | 概要分析（`ANA-001`〜`ANA-005`、`ANA-009`〜`ANA-012`）と共通集計 | 承認済み・本仕様の実装対象 |
 | 2    | 詳細分析（`ANA-006`〜`ANA-008`、`ANA-013`）                      | 承認済み・本仕様の実装対象 |
-| 3    | LINE定期レポートの送信処理                                       | 通知仕様側で別途承認       |
+| 3    | LINE定期レポートの送信処理                                       | [`16-line-weekly-report.md`](16-line-weekly-report.md)で承認済み |
 
 段階2は[review: 2026-09-03-analytics-details](reviews/2026-09-03-analytics-details.md)で承認済みとする。累積収支（貯金額の推移）と期間入力欄の修正は[review: 2026-09-04-analytics-savings-trend](reviews/2026-09-04-analytics-savings-trend.md)で承認し、グラフ形式を折れ線から棒へ変更する再レビューは[review: 2026-09-04-analytics-savings-trend-bars](reviews/2026-09-04-analytics-savings-trend-bars.md)で承認する。段階3は本仕様で範囲だけを示し、通知仕様で`reviews/`へレビューファイルを追加して別途レビューする。
 
@@ -136,7 +136,7 @@
 
 共有cacheは使用しない。性能測定で必要性が確認された場合だけ、グループ・期間・対象を含むkey、取引・予算更新時の無効化、グループ分離テストを先に仕様化する。
 
-LINEレポートは生の取引行を受け取らず、`getAnalyticsPeriodSummary`が返す期間サマリーDTOを利用する。LINE連携のtoken、送信先、同意、解除、再送、失敗監視は本仕様の実装範囲外とし、通知仕様で別途承認する。
+LINE週次レポート（[`16-line-weekly-report.md`](16-line-weekly-report.md)）は利用者sessionを持たない定期ジョブのため、`getAnalyticsPeriodSummary`ではなく、本モジュールが公開する集計純関数（`aggregateAnalyticsMonth`、日付範囲版の`aggregateAnalyticsDateRange`、`summarizeCategoryBreakdown`、`compareAnalyticsAmount`）へ同じ形の入力を渡して計算する。日付範囲版は月版と同じ内部処理を共有し、月版の結果を変えない。LINE連携のtoken、送信先、解除、再送、失敗監視は本仕様の実装範囲外とし、通知仕様で扱う。
 
 予算（`BUD-*`、[`13-budget-management.md`](13-budget-management.md)）は、概要DTOの任意項目`budget`として渡す。概要分析は集計対象がグループのときだけ、認可済みcontextと選択月から予算moduleの`loadAppliedBudgetRevision`で適用改定を読み、既に集計した選択月の`AnalyticsMonthTotals`を予算moduleの純関数`calculateBudgetProgress`へ渡して予算額・実績・残額・消化率・状態ラベルを作る。取引を二重に読まず、金額を別実装で再計算しない。予算がない月と自分・メンバー対象では予算領域を表示しない。予算カードから同じ月の予算画面へ遷移できる。
 
