@@ -12,7 +12,11 @@ import {
 import { useFormStatus } from "react-dom";
 
 import type { CategorySummary } from "../application/category-types";
-import { CATEGORY_COLORS, type CategoryType } from "../domain/category-input";
+import {
+  CATEGORY_COLORS,
+  type CategoryColor,
+  type CategoryType,
+} from "../domain/category-input";
 import {
   INITIAL_CATEGORY_ACTION_STATE,
   type CategoryActionState,
@@ -102,7 +106,8 @@ function AddCategoryForm({
   );
 }
 
-const colorLabels: Readonly<Record<string, string>> = {
+// swatchの読み上げ・tooltip用の色名。パレット (AC-CAT-002-7) の全tokenを網羅する
+const colorLabels: Readonly<Record<CategoryColor, string>> = {
   food: "レッド",
   daily: "ブルー",
   home: "ブラウン",
@@ -112,6 +117,15 @@ const colorLabels: Readonly<Record<string, string>> = {
   other: "グレー",
   salary: "グリーン",
   extra: "ピンク",
+  orange: "オレンジ",
+  olive: "オリーブ",
+  mint: "ミント",
+  sky: "スカイブルー",
+  indigo: "インディゴ",
+  navy: "ネイビー",
+  rose: "ローズ",
+  wine: "ワイン",
+  charcoal: "チャコール",
 };
 
 // 名称・色の変更と削除をまとめた行内編集パネル。結果は親のメッセージ領域へ通知する

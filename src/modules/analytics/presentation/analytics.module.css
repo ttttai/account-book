@@ -284,6 +284,11 @@
   background: var(--accent);
 }
 
+/* カテゴリ棒はstyles.cssのdesign token（--category-color）で塗る */
+.analytics-category-bar[data-category-color] {
+  background: var(--category-color, #758178);
+}
+
 .analytics-category-note {
   margin: 0;
   color: var(--muted);
@@ -676,34 +681,6 @@
     border: 0;
     text-align: left;
   }
-}
-
-.analytics-category-bar[data-category-color="food"] {
-  background: #d8664f;
-}
-.analytics-category-bar[data-category-color="daily"] {
-  background: #6582c4;
-}
-.analytics-category-bar[data-category-color="home"] {
-  background: #a06a45;
-}
-.analytics-category-bar[data-category-color="utilities"] {
-  background: #d29a35;
-}
-.analytics-category-bar[data-category-color="transport"] {
-  background: #397f8f;
-}
-.analytics-category-bar[data-category-color="leisure"] {
-  background: #8a67ae;
-}
-.analytics-category-bar[data-category-color="other"] {
-  background: #758178;
-}
-.analytics-category-bar[data-category-color="salary"] {
-  background: #3d8a5f;
-}
-.analytics-category-bar[data-category-color="extra"] {
-  background: #b0589a;
 }
 
 /* PCでも同じ情報構造を保ったまま、指標とカテゴリ内訳を2カラムへ適応させる (AC-ANA-009-3) */

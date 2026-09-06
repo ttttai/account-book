@@ -11,7 +11,7 @@ async function read(path) {
 const migrationPath =
   "supabase/migrations/202609010001_recurring_transactions.sql";
 
-test("定期取引テーブルをgroup_id付きRLSテーブルとして保護する (AC-REC-001-1)", async () => {
+test("固定費テーブルをgroup_id付きRLSテーブルとして保護する (AC-REC-001-1)", async () => {
   const migration = await read(migrationPath);
 
   for (const table of [
@@ -77,7 +77,7 @@ test("定期取引テーブルをgroup_id付きRLSテーブルとして保護す
   }
 });
 
-test("定期取引の制約で日付・月・金額・当事者を固定する (AC-REC-001-2, AC-REC-001-3)", async () => {
+test("固定費の制約で日付・月・金額・当事者を固定する (AC-REC-001-2, AC-REC-001-3)", async () => {
   const migration = await read(migrationPath);
 
   // 毎月1〜28日だけを許可し、29〜31日・月末は扱わない
@@ -96,7 +96,7 @@ test("定期取引の制約で日付・月・金額・当事者を固定する (
   );
 });
 
-test("定期取引の更新はowner/adminのsecurity definer関数に限定する (AC-REC-001-1)", async () => {
+test("固定費の更新はowner/adminのsecurity definer関数に限定する (AC-REC-001-1)", async () => {
   const migration = await read(migrationPath);
 
   assert.match(migration, /app_private\.assert_recurring_manager/i);
@@ -159,7 +159,7 @@ test("occurrenceを保存せず読み取り時の純関数で展開する (REC-0
   assert.match(calendar, /calculateCalendarIncomeSummary\(\s*allIncomes/);
 });
 
-test("定期取引画面と設定ハブ導線を用意し、展開取引を識別する (REC-009, AC-REC-002-3)", async () => {
+test("固定費画面と設定ハブ導線を用意し、展開取引を識別する (REC-009, AC-REC-002-3)", async () => {
   const page = await read(
     "src/app/groups/[groupId]/recurring-transactions/page.tsx",
   );
@@ -175,9 +175,9 @@ test("定期取引画面と設定ハブ導線を用意し、展開取引を識�
   assert.match(page, /RecurringManagement/);
   assert.match(settings, /recurring-transactions/);
 
-  // 日別sheetは展開取引へ「定期」labelを出し、編集導線を出さない
+  // 日別sheetは展開取引へ「固定費」labelを出し、編集導線を出さない
   assert.match(explorer, /transaction\.isRecurring \?/);
-  assert.match(explorer, /定期/);
+  assert.match(explorer, /固定費/);
   assert.match(
     explorer,
     /isRecurring \?[\s\S]{0,400}recurring-transactions[\s\S]{0,400}transactions\/\$\{transaction\.id\}\/edit/,
@@ -187,7 +187,7 @@ test("定期取引画面と設定ハブ導線を用意し、展開取引を識�
   assert.match(management, /view\.canManage \?/);
 });
 
-test("定期取引の金額欄は取引入力と共有する画面内テンキーで入力する (REC-010, AC-REC-005-1, AC-REC-005-4)", async () => {
+test("固定費の金額欄は取引入力と共有する画面内テンキーで入力する (REC-010, AC-REC-005-1, AC-REC-005-4)", async () => {
   const management = await read(
     "src/modules/recurring/presentation/recurring-management.tsx",
   );
@@ -221,7 +221,7 @@ test("定期取引の金額欄は取引入力と共有する画面内テンキ�
   assert.match(expenseForm, /AmountKeypad/);
   assert.doesNotMatch(expenseForm, /function appendAmountDigit/);
 
-  // PC幅の.keypadのgrid配置は取引入力のフォームだけに限定し、定期取引側へ影響させない
+  // PC幅の.keypadのgrid配置は取引入力のフォームだけに限定し、固定費側へ影響させない
   assert.doesNotMatch(transactionsCss, /^\s{2}\.keypad \{/m);
   assert.match(transactionsCss, /\.expense-form \.keypad \{/);
 

@@ -44,7 +44,7 @@ const OPERATOR_LABELS: Readonly<Record<AmountOperator, string>> = {
   "+": "足す",
 };
 
-// 取引入力と定期取引で共有する金額テンキー。数字・00・1文字削除に加え、任意で四則演算と=を備える。各キーはフォームを送信しない (TXN-014, REC-010, TXN-017)
+// 取引入力と固定費で共有する金額テンキー。数字・00・1文字削除に加え、任意で四則演算と=を備える。各キーはフォームを送信しない (TXN-014, REC-010, TXN-017)
 export function AmountKeypad({
   open,
   onKey,

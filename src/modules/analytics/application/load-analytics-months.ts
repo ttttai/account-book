@@ -55,7 +55,7 @@ export function aggregateAnalyticsMonths(
 }
 
 // 概要分析・詳細分析・定期レポートが共有する唯一の集計処理 (ANA-012)
-// 取引の読み取りと定期取引の展開は共有の`listMonthlyTransactions`に任せ、月ごとの同じ規則で合計する (REC-005)
+// 取引の読み取りと固定費の展開は共有の`listMonthlyTransactions`に任せ、月ごとの同じ規則で合計する (REC-005)
 export async function loadAnalyticsMonths(
   context: GroupReadContext,
   months: readonly string[],

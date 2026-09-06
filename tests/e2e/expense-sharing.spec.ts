@@ -151,14 +151,55 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
   await expect(dayPanel).toContainText(`${E2E_USER_A.displayName} ￥3,000`);
   await expect(dayPanel).toContainText(`${E2E_USER_B.displayName} ￥3,000`);
 
-  // 履歴の「自分が支払った」で支払者としての取引を抽出する (HIS-004)
+  // 履歴は自分の負担額を主表示し、取引全体と区別する (HIS-003、HIS-004)
   await memberPage.goto(`/groups/${groupId}/history`);
-  await memberPage.getByRole("link", { name: "自分が支払った" }).click();
+  await memberPage.getByRole("link", { name: "自分が負担" }).click();
+  await expect(memberPage.getByLabel("負担メンバー")).toHaveValue(
+    new URL(memberPage.url()).searchParams.get("member") ?? "",
+  );
   const historyRows = memberPage.getByRole("region", {
     name: "取引履歴の一覧",
   });
-  await expect(historyRows).toContainText("￥6,000");
+  await expect(historyRows).toContainText("取引全体 ￥6,000");
+  await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
+    "￥3,000",
+  );
+  await expect(historyRows).toContainText("負担額");
   await expect(historyRows).toContainText("食費");
+  await expect(
+    memberPage.getByRole("link", { name: "自分が支払った", exact: true }),
+  ).toHaveCount(0);
+  for (const width of testInfo.project.name === "mobile"
+    ? [375, 320]
+    : [1280]) {
+    await memberPage.setViewportSize({
+      width,
+      height: width === 1280 ? 800 : 812,
+    });
+    expect(
+      await memberPage.evaluate(
+        () => document.documentElement.scrollWidth - innerWidth,
+      ),
+    ).toBe(0);
+    await memberPage.screenshot({
+      path: testInfo.outputPath(`history-burden-${width}.png`),
+      fullPage: true,
+    });
+  }
+  await memberPage.reload();
+  await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
+    "￥3,000",
+  );
+  const partnerPage = await openUserPage(E2E_USER_B);
+  await partnerPage.goto(`/groups/${groupId}/history`);
+  await partnerPage
+    .getByRole("link", { name: "自分が負担", exact: true })
+    .click();
+  await expect(
+    partnerPage
+      .getByRole("region", { name: "取引履歴の一覧" })
+      .locator('[class*="history-amount"]'),
+  ).toHaveText("￥3,000");
 });
 
 // E2E-005 支出の編集と削除（TXN-008、TXN-009、TXN-012）

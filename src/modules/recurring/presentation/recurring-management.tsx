@@ -406,10 +406,10 @@ function CreateRecurringForm({ view }: RecurringManagementProps) {
 
   return (
     <form action={formAction} className={styles["recurring-form"]}>
-      <h2>定期取引を追加</h2>
+      <h2>固定費を追加</h2>
       <RecurringFormFields state={state} view={view} />
       <ActionMessage state={state} />
-      <SaveButton label="定期取引を保存" />
+      <SaveButton label="固定費を保存" />
     </form>
   );
 }
@@ -470,7 +470,7 @@ function EndRecurringForm({
   );
 }
 
-// 定期取引の一覧と作成・編集・終了操作（owner/adminだけに操作を表示する）
+// 固定費の一覧と作成・編集・終了操作（owner/adminだけに操作を表示する）
 export function RecurringManagement({ view }: RecurringManagementProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const editing = view.recurringTransactions.find(
@@ -480,7 +480,7 @@ export function RecurringManagement({ view }: RecurringManagementProps) {
   return (
     <div className={styles["recurring-layout"]}>
       <section className={styles["recurring-list-panel"]}>
-        <h2>登録済みの定期取引</h2>
+        <h2>登録済みの固定費</h2>
         {view.recurringTransactions.length === 0 ? (
           <p className={styles["recurring-empty"]}>
             家賃や給与のように毎月同じ日・同じ金額で発生する取引を登録すると、ホームカレンダーの対象月へ自動で反映されます。
@@ -565,7 +565,7 @@ export function RecurringManagement({ view }: RecurringManagementProps) {
         </section>
       ) : (
         <p className={styles["recurring-readonly"]}>
-          定期取引の設定はオーナーと管理者が行います。
+          固定費の設定はオーナーと管理者が行います。
         </p>
       )}
     </div>

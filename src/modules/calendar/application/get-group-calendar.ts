@@ -46,6 +46,7 @@ function createDayTransactionsByDate(
       createdAt: expense.createdAt,
       transaction: {
         id: expense.id,
+        memo: expense.memo ?? null,
         type: "expense",
         amountMinor: expense.amountMinor,
         targetAmountMinor,
@@ -78,6 +79,7 @@ function createDayTransactionsByDate(
       createdAt: income.createdAt,
       transaction: {
         id: income.id,
+        memo: income.memo ?? null,
         type: "income",
         amountMinor: income.amountMinor,
         targetAmountMinor: income.amountMinor,
@@ -146,7 +148,7 @@ export async function getGroupCalendar(
     };
   }
 
-  // 定期取引は共有読み取りの中で選択月へ展開され、単発取引と同じ集計規則へ渡る (REC-005、AC-REC-002-2)
+  // 固定費は共有読み取りの中で選択月へ展開され、単発取引と同じ集計規則へ渡る (REC-005、AC-REC-002-2)
   const [groupMembers, monthly] = await Promise.all([
     loadGroupMembers(context),
     listMonthlyTransactions(context.supabase, group.id, [selection.month]),

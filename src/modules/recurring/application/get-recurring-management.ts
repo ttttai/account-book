@@ -52,7 +52,7 @@ function currentMonthInTimeZone(timeZone: string): string {
   return `${values.get("year")}-${values.get("month")}`;
 }
 
-// 定期取引画面の表示データを取得する。アクティブメンバーだけが閲覧でき、更新可否はroleで決まる
+// 固定費画面の表示データを取得する。アクティブメンバーだけが閲覧でき、更新可否はroleで決まる
 export async function getRecurringManagement(
   unsafeGroupId: string,
 ): Promise<RecurringManagementView | null> {
@@ -118,7 +118,7 @@ export async function getRecurringManagement(
       .order("day_of_month", { ascending: true }),
   ]);
   if (profileResult.error || categoryResult.error || recurringResult.error) {
-    throw new Error("定期取引を取得できませんでした。");
+    throw new Error("固定費を取得できませんでした。");
   }
 
   const displayNameByUserId = new Map(

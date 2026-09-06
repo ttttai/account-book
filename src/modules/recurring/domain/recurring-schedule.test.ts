@@ -92,7 +92,7 @@ describe("occurrenceDate", () => {
 });
 
 describe("expandRecurringForMonth", () => {
-  it("有効な定期取引を対象月へ1件だけ展開する (AC-REC-002-1)", () => {
+  it("有効な固定費を対象月へ1件だけ展開する (AC-REC-002-1)", () => {
     const occurrences = expandRecurringForMonth([schedule()], "2026-09");
 
     expect(occurrences).toHaveLength(1);
@@ -106,7 +106,7 @@ describe("expandRecurringForMonth", () => {
     expect(occurrences[0]?.allocations).toHaveLength(2);
   });
 
-  it("合成IDは定期取引IDと対象月から作り、実在取引と混同しない", () => {
+  it("合成IDは固定費IDと対象月から作り、実在取引と混同しない", () => {
     const [septemberOccurrence] = expandRecurringForMonth(
       [schedule()],
       "2026-09",

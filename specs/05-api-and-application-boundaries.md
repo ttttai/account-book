@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.14
+バージョン: 0.2.15
 
 ## 1. Next.js境界方針
 
@@ -109,9 +109,9 @@ loadAppliedBudgetRevision(context, month)
 | ---------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `resolveGroupReadContext(groupId, options)`          | `groups`       | `groupId`のschema検証、Google検証済みsession、操作者のアクティブ所属を確認し、グループ、membership一覧、操作者のmembership、グループのタイムゾーン上の今日を返す。不正ID・未認証・非メンバーは存在を明かさず`null`を返す。標準はアクティブmembershipだけを含み、履歴のように過去参照が必要な場合だけ`includeRemovedMembers`で削除済みmembershipを含める。 |
 | `loadGroupMembers(context)`                          | `groups`       | membershipの表示名を解決する。プロフィールを読めないアクティブmembershipは「メンバー」、削除済みは「退会メンバー」で補う。取得失敗は例外にする。                                                                                                                                                                                                          |
-| `listMonthlyTransactions(supabase, groupId, months)` | `transactions` | 指定月（1か月以上）の未削除の支出・収入取引を半開区間で読み、定期取引を同じ月へ展開して合流させた一覧を返す。展開結果は`isRecurring`で識別でき、DBへ保存しない。                                                                                                                                                                                          |
+| `listMonthlyTransactions(supabase, groupId, months)` | `transactions` | 指定月（1か月以上）の未削除の支出・収入取引を半開区間で読み、固定費を同じ月へ展開して合流させた一覧を返す。展開結果は`isRecurring`で識別でき、DBへ保存しない。                                                                                                                                                                                            |
 
-カレンダー（`getGroupCalendar`）と分析（`getAnalyticsOverview`・`getAnalyticsPeriodSummary`）は`listMonthlyTransactions`の結果へそれぞれの集計純関数を適用し、取引行の読み取りと定期取引の展開を独自に実装しない。履歴は絞り込みとcursor paginationのため取引queryを固有に持つが、認証・所属・表示名は共有境界を使う。予算、詳細分析、定期レポートなど月次の支出・収入実績を必要とする機能は、この境界を再利用する。共有境界は呼び出しごとに認可を再確認し、cacheを持たない。
+カレンダー（`getGroupCalendar`）と分析（`getAnalyticsOverview`・`getAnalyticsPeriodSummary`）は`listMonthlyTransactions`の結果へそれぞれの集計純関数を適用し、取引行の読み取りと固定費の展開を独自に実装しない。履歴は絞り込みとcursor paginationのため取引queryを固有に持つが、認証・所属・表示名は共有境界を使う。予算、詳細分析、定期レポートなど月次の支出・収入実績を必要とする機能は、この境界を再利用する。共有境界は呼び出しごとに認可を再確認し、cacheを持たない。
 
 ### Command
 
@@ -146,7 +146,7 @@ commandがDB関数の失敗で完了しなかった場合、利用者向けに�
 
 `getGroupHome`は`groupId`、`month`、`scope`、`member`、`day`をschema検証し、検証済みGoogle sessionとアクティブ所属を確認してから、選択月の半開区間だけをqueryする。`scope=group`は支出取引本体を1回だけ、`scope=self|member`は対象membershipの負担行だけを合計する。日別取引、カテゴリ、支払者、負担内訳は同じ認可済み月データから最小DTOへ変換する。別グループ・削除済みmembershipを選択できず、収入・論理削除済み・月外取引を標準支出集計へ含めない。個人家計データへ共有cacheは追加しない。
 
-定期取引のcommandは、Server Actionで入力を検証したうえで`security definer`のDB関数を1回呼び、設定と負担行を同一transactionで保存する。DB関数内でowner/admin、アクティブ所属、カテゴリと支払者・受取者・負担者の同一グループ所属、支出の負担額合計一致、`day_of_month`（1〜28）と開始月・終了月の月初日・前後関係を再検証する。展開（対象月の同じ日付へ1件作ること）は純関数として実装し、定期取引queryとカレンダー集計の両方から同じ関数を使う。展開結果をDBへ保存せず、job・scheduler・queue・retry・occurrence用endpointを追加しない。
+固定費のcommandは、Server Actionで入力を検証したうえで`security definer`のDB関数を1回呼び、設定と負担行を同一transactionで保存する。DB関数内でowner/admin、アクティブ所属、カテゴリと支払者・受取者・負担者の同一グループ所属、支出の負担額合計一致、`day_of_month`（1〜28）と開始月・終了月の月初日・前後関係を再検証する。展開（対象月の同じ日付へ1件作ること）は純関数として実装し、固定費queryとカレンダー集計の両方から同じ関数を使う。展開結果をDBへ保存せず、job・scheduler・queue・retry・occurrence用endpointを追加しない。
 
 予算（`BUD-*`）のqueryは`resolveGroupReadContext`で認証・所属を確認し、選択月の実績を`listMonthlyTransactions`と分析の集計純関数`aggregateAnalyticsMonth`で求め、適用改定とあわせて純関数`calculateBudgetProgress`で進捗DTOを作る。分析概要は同じ認可済みcontextと選択月の集計結果から`loadAppliedBudgetRevision`で適用改定を読み、同じ純関数で予算カードのDTOを作る。commandはServer Actionで入力を検証したうえで`security definer`のDB関数`set_group_budget`・`disable_group_budget`を1回呼び、改定本体とカテゴリ内訳を同一transactionで保存する。DB関数内でowner/admin、グループのタイムゾーン上の当月以降、金額範囲、カテゴリの同一グループ・支出種別・未アーカイブ・重複なし、合計がグループ予算以下、`expectedVersion`を再検証する。予算のRoute Handler、内部API、共有cacheは追加しない。
 

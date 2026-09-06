@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addCategorySchema,
   archiveCategorySchema,
+  CATEGORY_COLORS,
   normalizeCategoryName,
   toCategoryColor,
   updateCategorySchema,
@@ -21,6 +22,27 @@ describe("toCategoryColor", () => {
   it("許可済みの色tokenはそのまま返す", () => {
     expect(toCategoryColor("food")).toBe("food");
     expect(toCategoryColor("extra")).toBe("extra");
+  });
+
+  it("追加した9色のtokenもそのまま返す (AC-CAT-002-7)", () => {
+    for (const color of [
+      "orange",
+      "olive",
+      "mint",
+      "sky",
+      "indigo",
+      "navy",
+      "rose",
+      "wine",
+      "charcoal",
+    ]) {
+      expect(toCategoryColor(color)).toBe(color);
+    }
+  });
+
+  it("パレットは18色で構成される (AC-CAT-002-7)", () => {
+    expect(CATEGORY_COLORS).toHaveLength(18);
+    expect(new Set(CATEGORY_COLORS).size).toBe(18);
   });
 
   it("未定義・許可外の色は既定色otherへ寄せる", () => {
@@ -81,6 +103,17 @@ describe("updateCategorySchema", () => {
         color: "leisure",
       }),
     ).toEqual({ groupId, categoryId, name: "定期購入", color: "leisure" });
+  });
+
+  it("追加した色（navy）をパレット内として受け取る (AC-CAT-002-7)", () => {
+    expect(
+      updateCategorySchema.safeParse({
+        groupId,
+        categoryId,
+        name: "定期購入",
+        color: "navy",
+      }).success,
+    ).toBe(true);
   });
 
   it("パレット外の色を拒否する", () => {

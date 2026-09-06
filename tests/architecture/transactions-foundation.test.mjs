@@ -194,7 +194,7 @@ test("金額はOSの仮想キーボードを開かず画面内テンキーで入
   // OSの仮想キーボードを抑止しつつ、物理キーボードからの入力は維持する。
   assert.match(form, /inputMode="none"/);
   assert.doesNotMatch(form, /id="amountMinor"[\s\S]{0,400}readOnly/);
-  // テンキーは共有部品を使い、キーは送信ボタンにしない (REC-010で定期取引と共有)。
+  // テンキーは共有部品を使い、キーは送信ボタンにしない (REC-010で固定費と共有)。
   assert.match(form, /<AmountKeypad/);
   assert.match(
     keypad,

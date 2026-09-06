@@ -120,6 +120,7 @@ const memberships = [
 const expenseRows = [
   {
     id: EXPENSE_ID,
+    memo: "夕食メモ",
     transaction_date: "2026-09-10",
     amount_minor: 6000,
     payer_member_id: MEMBERSHIP_ID,
@@ -140,6 +141,7 @@ const expenseRows = [
 const incomeRows = [
   {
     id: INCOME_ID,
+    memo: "給与メモ",
     transaction_date: "2026-09-10",
     amount_minor: "10000",
     recipient_member_id: MEMBERSHIP_ID,
@@ -163,7 +165,7 @@ const recurringRows = [
     start_month: "2026-01-01",
     end_month: null,
     version: 1,
-    memo: null,
+    memo: "毎月の家賃メモ",
     payer_member_id: MEMBERSHIP_ID,
     recipient_member_id: null,
     categories: {
@@ -356,6 +358,7 @@ describe("getGroupCalendar", () => {
     ).toEqual([
       expect.objectContaining({
         id: INCOME_ID,
+        memo: "給与メモ",
         type: "income",
         partyDisplayName: "自分",
         categoryName: "給与",
@@ -364,6 +367,7 @@ describe("getGroupCalendar", () => {
       }),
       expect.objectContaining({
         id: EXPENSE_ID,
+        memo: "夕食メモ",
         type: "expense",
         partyDisplayName: "自分",
         categoryName: "食費",
@@ -407,7 +411,7 @@ describe("getGroupCalendar", () => {
     },
   );
 
-  it("定期取引を対象月へ展開して月間合計と日別取引へ含める", async () => {
+  it("固定費を対象月へ展開して月間合計と日別取引へ含める", async () => {
     setupReadyQueries(undefined, undefined, undefined, {
       data: recurringRows,
       error: null,
@@ -432,12 +436,13 @@ describe("getGroupCalendar", () => {
         amountMinor: 80000,
         isRecurring: true,
         recurringName: "家賃",
+        memo: "毎月の家賃メモ",
         categoryColor: "home",
       }),
     ]);
   });
 
-  it("対象月が開始月より前なら定期取引を展開しない", async () => {
+  it("対象月が開始月より前なら固定費を展開しない", async () => {
     setupReadyQueries(undefined, undefined, undefined, {
       data: [{ ...recurringRows[0], start_month: "2026-10-01" }],
       error: null,
@@ -451,7 +456,7 @@ describe("getGroupCalendar", () => {
     ).toBeUndefined();
   });
 
-  it("定期取引のquery失敗を一般化した例外にする", async () => {
+  it("固定費のquery失敗を一般化した例外にする", async () => {
     setupReadyQueries(undefined, undefined, undefined, {
       data: null,
       error: { code: "XX000" },
@@ -459,7 +464,7 @@ describe("getGroupCalendar", () => {
 
     await expect(
       getGroupCalendar(GROUP_ID, { month: "2026-09" }),
-    ).rejects.toThrow("定期取引を取得できませんでした。");
+    ).rejects.toThrow("固定費を取得できませんでした。");
   });
 
   it("プロフィール欠損時は表示名をメンバーで補う", async () => {

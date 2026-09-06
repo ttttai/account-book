@@ -75,6 +75,38 @@ function pressKey(name: string) {
 
 afterEach(() => cleanup());
 
+describe("ExpenseForm の種別切替 (TXN-013)", () => {
+  it("種別は支出と収入の2択だけを表示し、空の選択枠を残さない (AC-TXN-013-7)", () => {
+    renderForm();
+
+    const fieldset = screen.getByRole("group", { name: "種別" });
+    const radios = fieldset.querySelectorAll('input[type="radio"]');
+    expect([...radios].map((radio) => radio.getAttribute("value"))).toEqual([
+      "expense",
+      "income",
+    ]);
+    expect(
+      (screen.getByRole("radio", { name: "支出" }) as HTMLInputElement).checked,
+    ).toBe(true);
+
+    // 切替内の子要素はすべて選択肢のlabelで、空の枠が無い
+    const control = radios[0].closest("div");
+    expect(control).not.toBeNull();
+    const slots = [...(control as HTMLElement).children];
+    expect(slots).toHaveLength(2);
+    expect(slots.every((slot) => slot.tagName === "LABEL")).toBe(true);
+    expect(slots.every((slot) => slot.textContent?.trim() !== "")).toBe(true);
+  });
+
+  it("負担方法の切替は1人・均等・カスタムの3択のまま維持する", () => {
+    renderForm();
+
+    const fieldset = screen.getByRole("group", { name: "負担方法" });
+    const radios = fieldset.querySelectorAll('input[type="radio"]');
+    expect(radios).toHaveLength(3);
+  });
+});
+
 describe("ExpenseForm の金額テンキー (TXN-014)", () => {
   it("OSの仮想キーボードを開かず、テンキーで金額を組み立てる (AC-TXN-014-1)", () => {
     renderForm();
