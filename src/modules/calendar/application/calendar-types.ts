@@ -28,9 +28,9 @@ export type CalendarDayTransaction = Readonly<{
   /** 支出は支払者、収入は受取者の表示名 */
   partyDisplayName: string;
   allocations: readonly CalendarAllocationDetail[];
-  /** 定期取引の展開結果か。単発取引と識別し、編集導線を出さない (REC-009) */
+  /** 固定費の展開結果か。単発取引と識別し、編集導線を出さない (REC-009) */
   isRecurring: boolean;
-  /** 定期取引の名称。展開結果のときだけ設定する */
+  /** 固定費の名称。展開結果のときだけ設定する */
   recurringName?: string;
 }>;
 

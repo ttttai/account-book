@@ -177,7 +177,7 @@ describe("CalendarDayExplorer", () => {
     expect(screen.getByText("給与")).toBeTruthy();
   });
 
-  it("定期取引の展開行にもカテゴリ名と色tokenを表示する", () => {
+  it("固定費の展開行にもカテゴリ名と色tokenを表示する", () => {
     render(<CalendarDayExplorer data={data} />);
     fireEvent.click(
       screen.getByRole("link", { name: "2026年8月16日、支出￥2,000" }),
@@ -187,7 +187,7 @@ describe("CalendarDayExplorer", () => {
 
     expect(dot?.getAttribute("data-category-color")).toBe("home");
     expect(screen.getByText("家賃")).toBeTruthy();
-    expect(screen.getByText("定期")).toBeTruthy();
+    expect(screen.getByText("固定費")).toBeTruthy();
   });
 
   it("閉じる操作でdayを削除し、選択した日付へfocusを戻す", () => {

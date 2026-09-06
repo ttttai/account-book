@@ -10,7 +10,7 @@ export type MonthlyAllocation = Readonly<{
   amountMinor: number;
 }>;
 
-/** 月次の表示・集計へ渡す支出。定期取引の展開結果は`isRecurring`で識別する (REC-005、REC-009) */
+/** 月次の表示・集計へ渡す支出。固定費の展開結果は`isRecurring`で識別する (REC-005、REC-009) */
 export type MonthlyExpense = Readonly<{
   /** 展開結果は実在する取引と混同しないよう合成IDを持つ */
   id: string;

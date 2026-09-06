@@ -389,7 +389,7 @@ describe("getAnalyticsOverview", () => {
     expect(from).not.toHaveBeenCalledWith("budget_revisions");
   });
 
-  it("定期取引を選択月へ展開して合計へ含める (REC-005、AC-ANA-002-1)", async () => {
+  it("固定費を選択月へ展開して合計へ含める (REC-005、AC-ANA-002-1)", async () => {
     setupSupabase({ schedules: [rentSchedule] });
 
     const data = await getAnalyticsOverview(GROUP_ID, { month: "2026-09" });

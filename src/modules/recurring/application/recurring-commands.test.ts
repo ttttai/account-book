@@ -277,7 +277,7 @@ describe("recurring application commands", () => {
       ).toBe("2026-12");
     });
 
-    it("グループの定期取引設定を取得する", async () => {
+    it("グループの固定費設定を取得する", async () => {
       const order2 = vi.fn().mockResolvedValue({ data: [row], error: null });
       const order1 = vi.fn().mockReturnValue({ order: order2 });
       const eq = vi.fn().mockReturnValue({ order: order1 });
@@ -306,7 +306,7 @@ describe("recurring application commands", () => {
 
       await expect(
         listRecurringSchedules(supabase as never, GROUP_ID),
-      ).rejects.toThrow("定期取引を取得できませんでした。");
+      ).rejects.toThrow("固定費を取得できませんでした。");
     });
   });
 });

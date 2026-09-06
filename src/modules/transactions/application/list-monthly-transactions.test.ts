@@ -197,7 +197,7 @@ describe("listMonthlyTransactions", () => {
     ]);
   });
 
-  it("定期取引を各月へ展開し、単発取引の後ろへ識別可能な形で合流させる (REC-005)", async () => {
+  it("固定費を各月へ展開し、単発取引の後ろへ識別可能な形で合流させる (REC-005)", async () => {
     const { supabase } = setupSupabase({ schedules: [rentSchedule] });
 
     const result = await listMonthlyTransactions(supabase, GROUP_ID, [
@@ -229,7 +229,7 @@ describe("listMonthlyTransactions", () => {
     expect(result.incomes.every((income) => !income.isRecurring)).toBe(true);
   });
 
-  it("収入の定期取引は受取者付きで収入へ合流させる", async () => {
+  it("収入の固定費は受取者付きで収入へ合流させる", async () => {
     const { supabase } = setupSupabase({
       income: { data: [], error: null },
       schedules: [
@@ -275,14 +275,14 @@ describe("listMonthlyTransactions", () => {
     },
   );
 
-  it("定期取引の取得失敗はそのまま例外として伝える", async () => {
+  it("固定費の取得失敗はそのまま例外として伝える", async () => {
     const { supabase } = setupSupabase();
     recurringMocks.listRecurringSchedules.mockRejectedValue(
-      new Error("定期取引を取得できませんでした。"),
+      new Error("固定費を取得できませんでした。"),
     );
 
     await expect(
       listMonthlyTransactions(supabase, GROUP_ID, ["2026-09"]),
-    ).rejects.toThrow("定期取引を取得できませんでした。");
+    ).rejects.toThrow("固定費を取得できませんでした。");
   });
 });

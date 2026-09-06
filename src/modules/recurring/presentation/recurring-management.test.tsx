@@ -161,9 +161,7 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
       );
     }
     expect(
-      screen
-        .getByRole("button", { name: "定期取引を保存" })
-        .getAttribute("type"),
+      screen.getByRole("button", { name: "固定費を保存" }).getAttribute("type"),
     ).toBe("submit");
   });
 
