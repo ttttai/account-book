@@ -172,7 +172,19 @@ migrationはロール`line_notifier`を`nologin`で作成している。password
 docker run --rm -it --env-file .env supabase/postgres:17.6.1.136 sh -c 'psql "$PROD_DB_URL" -c "\password line_notifier" -c "alter role line_notifier login"'
 ```
 
-接続文字列は`postgresql://line_notifier:<password>@<SupabaseのSession poolerのhost>:5432/postgres`の形式で作る（Cloud RunはIPv4のためSession poolerを使う）。このロールは通知用関数のEXECUTEしか持たないため、漏洩時の影響は週次集計値の読み取りと連携登録・解除に限られる。
+接続文字列は次の形式で作る。Cloud RunはIPv4のため、Supabase Dashboardの「Connect」で表示される**Session pooler**のhostとport 5432を使う。poolerはuser名でprojectを判別するため、userは`line_notifier.<project-ref>`の形式にする（Dashboardの接続文字列で`postgres.<project-ref>`となっている部分の`postgres`を`line_notifier`へ置き換える）。passwordにURLで意味を持つ記号（`@`、`:`、`/`、`#`、`%`など）を含めた場合はpercent-encodingする。
+
+```text
+postgresql://line_notifier.<project-ref>:<password>@<Session poolerのhost>:5432/postgres
+```
+
+Secret Managerへ登録する前に、手元から接続して通知用関数を呼べることを確かめる（テーブル直接参照はできないのが正常）。
+
+```bash
+docker run --rm -it supabase/postgres:17.6.1.136 psql "postgresql://line_notifier.<project-ref>:<password>@<Session poolerのhost>:5432/postgres" -c "select app_private.get_line_report_target('<通知対象の家計グループUUID>'::uuid)"
+```
+
+このロールは通知用関数のEXECUTEしか持たないため、漏洩時の影響は週次集計値の読み取りと連携登録・解除に限られる。
 
 ### 3-3. Secret Managerへ登録する
 
