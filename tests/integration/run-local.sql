@@ -12,3 +12,4 @@
 \ir analytics-local.sql
 \ir budget-management-local.sql
 \ir line-weekly-report-local.sql
+\ir line-bug-report-local.sql

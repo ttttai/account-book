@@ -6,6 +6,7 @@ const repositoryRoot = process.cwd();
 
 const diagramEntityByTable = {
   "app_private.allowed_google_accounts": "ALLOWED_GOOGLE_ACCOUNTS",
+  "app_private.line_issue_reports": "LINE_ISSUE_REPORTS",
   "app_private.line_notification_targets": "LINE_NOTIFICATION_TARGETS",
   "app_private.weekly_notification_log": "WEEKLY_NOTIFICATION_LOG",
   "public.budget_category_limits": "BUDGET_CATEGORY_LIMITS",
@@ -83,4 +84,6 @@ test("ER図を実装済みmigrationとグループ境界へ同期する", async 
   assert.match(diagram, /GROUPS \|\|--o\| LINE_NOTIFICATION_TARGETS/);
   assert.match(diagram, /GROUPS \|\|--o\{ WEEKLY_NOTIFICATION_LOG/);
   assert.doesNotMatch(diagram, /\n\s{4}WEEKLY_NOTIFICATION_MESSAGES\s+\{/);
+  // LINE不具合報告はmessage.idごとの起票記録だけを持ち、本文・報告者を保存しない (LBR-007)
+  assert.match(diagram, /GROUPS \|\|--o\{ LINE_ISSUE_REPORTS/);
 });

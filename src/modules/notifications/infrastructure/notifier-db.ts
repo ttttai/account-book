@@ -3,6 +3,7 @@ import "server-only";
 import postgres from "postgres";
 import { z } from "zod";
 
+import type { LineBugReportGateway } from "../application/handle-line-messages";
 import type { LineLinkGateway } from "../application/handle-line-webhook";
 import type {
   WeeklyReportGateway,
@@ -219,8 +220,52 @@ async function unlink(databaseUrl: string, lineGroupId: string): Promise<void> {
   });
 }
 
+// message.idの起票記録を確保する。falseなら既に処理済み（二重起票防止、LBR-007）
+async function claimReport(
+  databaseUrl: string,
+  groupId: string,
+  messageId: string,
+  receivedAt: Date,
+): Promise<boolean> {
+  return withNotifierDb(databaseUrl, async (sql) => {
+    const rows = await sql`
+      select app_private.claim_line_issue_report(
+        ${groupId}::uuid, ${messageId}, ${receivedAt.toISOString()}::timestamptz
+      ) as claimed
+    `;
+    return rows[0]?.claimed === true;
+  });
+}
+
+// 起票成功後にIssue番号を記録する
+async function completeReport(
+  databaseUrl: string,
+  messageId: string,
+  issueNumber: number,
+): Promise<void> {
+  await withNotifierDb(databaseUrl, async (sql) => {
+    await sql`
+      select app_private.complete_line_issue_report(${messageId}, ${issueNumber}::integer)
+    `;
+  });
+}
+
+// 起票失敗時に未完了の記録を返上する
+async function releaseReport(
+  databaseUrl: string,
+  messageId: string,
+): Promise<void> {
+  await withNotifierDb(databaseUrl, async (sql) => {
+    await sql`select app_private.release_line_issue_report(${messageId})`;
+  });
+}
+
 export type NotifierDbGateway = Omit<WeeklyReportGateway, "pushText"> &
-  LineLinkGateway;
+  LineLinkGateway &
+  Pick<
+    LineBugReportGateway,
+    "claimReport" | "completeReport" | "releaseReport"
+  >;
 
 // 通知専用ロールで接続するDB境界をまとめて作る。LINEへのpushは別の境界が担う
 export function createNotifierDbGateway(
@@ -236,5 +281,10 @@ export function createNotifierDbGateway(
       releaseWeek(databaseUrl, groupId, weekStart),
     link: (groupId, lineGroupId) => link(databaseUrl, groupId, lineGroupId),
     unlink: (lineGroupId) => unlink(databaseUrl, lineGroupId),
+    claimReport: (groupId, messageId, receivedAt) =>
+      claimReport(databaseUrl, groupId, messageId, receivedAt),
+    completeReport: (messageId, issueNumber) =>
+      completeReport(databaseUrl, messageId, issueNumber),
+    releaseReport: (messageId) => releaseReport(databaseUrl, messageId),
   };
 }
