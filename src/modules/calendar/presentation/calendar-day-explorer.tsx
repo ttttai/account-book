@@ -238,6 +238,11 @@ function DayPanel({
                     .join(" / ")}
                 </p>
               ) : null}
+              {transaction.memo?.trim() ? (
+                <p className={styles["calendar-transaction-memo"]}>
+                  {transaction.memo}
+                </p>
+              ) : null}
               {transaction.isRecurring ? (
                 /* 展開取引は実在の取引ではないため編集導線を出さない (AC-REC-002-3) */
                 <a

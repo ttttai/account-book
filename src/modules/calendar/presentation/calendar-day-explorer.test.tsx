@@ -108,6 +108,48 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("CalendarDayExplorer", () => {
+  it.each(["expense", "income"] as const)(
+    "%sのメモを全文テキスト表示する (AC-CAL-005-1)",
+    (type) => {
+      const memo = "夕食\n<script>alert(1)</script>";
+      const transaction = data.dayTransactionsByDate["2026-08-15"]?.[0];
+      if (!transaction) throw new Error("missing fixture");
+      const { container } = render(
+        <CalendarDayExplorer
+          data={{
+            ...data,
+            selectedDay: "2026-08-15",
+            dayTransactionsByDate: {
+              "2026-08-15": [{ ...transaction, type, memo }],
+            },
+          }}
+        />,
+      );
+      expect(
+        container.querySelector(".calendar-transaction-memo")?.textContent,
+      ).toBe(memo);
+      expect(container.querySelector("script")).toBeNull();
+    },
+  );
+
+  it.each([null, "", "  \n "])(
+    "未記入メモ%sの欄を省く (AC-CAL-005-1)",
+    (memo) => {
+      const transaction = data.dayTransactionsByDate["2026-08-15"]?.[0];
+      if (!transaction) throw new Error("missing fixture");
+      const { container } = render(
+        <CalendarDayExplorer
+          data={{
+            ...data,
+            selectedDay: "2026-08-15",
+            dayTransactionsByDate: { "2026-08-15": [{ ...transaction, memo }] },
+          }}
+        />,
+      );
+      expect(container.querySelector(".calendar-transaction-memo")).toBeNull();
+    },
+  );
+
   it("月間カレンダーを維持したまま日付とURLを即時に切り替える", () => {
     render(<CalendarDayExplorer data={data} />);
     const calendar = screen.getByRole("table", {

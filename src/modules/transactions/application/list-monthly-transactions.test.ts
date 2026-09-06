@@ -61,6 +61,7 @@ function createChain(
 const expenseRows = [
   {
     id: EXPENSE_ID,
+    memo: "夕食メモ",
     transaction_date: "2026-09-10",
     amount_minor: 6000,
     payer_member_id: MEMBER_A,
@@ -76,6 +77,7 @@ const expenseRows = [
 const incomeRows = [
   {
     id: INCOME_ID,
+    memo: "給与メモ",
     transaction_date: "2026-08-25",
     amount_minor: "300000",
     recipient_member_id: MEMBER_A,
@@ -88,6 +90,7 @@ const rentSchedule: RecurringSchedule = {
   id: RENT_ID,
   type: "expense",
   name: "家賃",
+  memo: "定期メモ",
   amountMinor: 80000,
   dayOfMonth: 5,
   startMonth: "2026-09",
@@ -172,6 +175,7 @@ describe("listMonthlyTransactions", () => {
     expect(result.expenses).toEqual([
       {
         id: EXPENSE_ID,
+        memo: "夕食メモ",
         date: "2026-09-10",
         amountMinor: 6000,
         payerMemberId: MEMBER_A,
@@ -187,6 +191,7 @@ describe("listMonthlyTransactions", () => {
     expect(result.incomes).toEqual([
       {
         id: INCOME_ID,
+        memo: "給与メモ",
         date: "2026-08-25",
         amountMinor: 300000,
         recipientMemberId: MEMBER_A,
@@ -225,6 +230,7 @@ describe("listMonthlyTransactions", () => {
       ],
       isRecurring: true,
       recurringName: "家賃",
+      memo: "定期メモ",
     });
     expect(result.incomes.every((income) => !income.isRecurring)).toBe(true);
   });

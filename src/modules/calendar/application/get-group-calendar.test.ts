@@ -120,6 +120,7 @@ const memberships = [
 const expenseRows = [
   {
     id: EXPENSE_ID,
+    memo: "夕食メモ",
     transaction_date: "2026-09-10",
     amount_minor: 6000,
     payer_member_id: MEMBERSHIP_ID,
@@ -140,6 +141,7 @@ const expenseRows = [
 const incomeRows = [
   {
     id: INCOME_ID,
+    memo: "給与メモ",
     transaction_date: "2026-09-10",
     amount_minor: "10000",
     recipient_member_id: MEMBERSHIP_ID,
@@ -163,7 +165,7 @@ const recurringRows = [
     start_month: "2026-01-01",
     end_month: null,
     version: 1,
-    memo: null,
+    memo: "毎月の家賃メモ",
     payer_member_id: MEMBERSHIP_ID,
     recipient_member_id: null,
     categories: {
@@ -356,6 +358,7 @@ describe("getGroupCalendar", () => {
     ).toEqual([
       expect.objectContaining({
         id: INCOME_ID,
+        memo: "給与メモ",
         type: "income",
         partyDisplayName: "自分",
         categoryName: "給与",
@@ -364,6 +367,7 @@ describe("getGroupCalendar", () => {
       }),
       expect.objectContaining({
         id: EXPENSE_ID,
+        memo: "夕食メモ",
         type: "expense",
         partyDisplayName: "自分",
         categoryName: "食費",
@@ -432,6 +436,7 @@ describe("getGroupCalendar", () => {
         amountMinor: 80000,
         isRecurring: true,
         recurringName: "家賃",
+        memo: "毎月の家賃メモ",
         categoryColor: "home",
       }),
     ]);

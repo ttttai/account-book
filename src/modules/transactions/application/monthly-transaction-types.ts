@@ -17,6 +17,7 @@ export type MonthlyExpense = Readonly<{
   /** `YYYY-MM-DD` */
   date: string;
   amountMinor: number;
+  memo?: string | null;
   payerMemberId: string;
   /** 展開結果は登録日時を持たないため、単発取引より後ろへ並ぶ固定値を持つ */
   createdAt: string;
@@ -30,6 +31,7 @@ export type MonthlyIncome = Readonly<{
   id: string;
   date: string;
   amountMinor: number;
+  memo?: string | null;
   recipientMemberId: string;
   createdAt: string;
   category: MonthlyTransactionCategory;
