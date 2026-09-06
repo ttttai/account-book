@@ -37,12 +37,21 @@ function HistoryRowItem({
             styles[`history-type-${row.type}`] ?? ""
           }`}
         >
-          {row.type === "expense" ? "支出" : "収入"}
+          {row.targetAmountMinor !== undefined
+            ? "負担額"
+            : row.type === "expense"
+              ? "支出"
+              : "収入"}
         </span>
         <span className={styles["history-amount"]}>
-          {formatHistoryJpy(row.amountMinor)}
+          {formatHistoryJpy(row.targetAmountMinor ?? row.amountMinor)}
         </span>
       </div>
+      {row.targetAmountMinor !== undefined ? (
+        <p className={styles["history-row-meta"]}>
+          取引全体 {formatHistoryJpy(row.amountMinor)}
+        </p>
+      ) : null}
       <p className={styles["history-row-meta"]}>
         <time dateTime={row.transactionDate}>
           {formatHistoryDate(row.transactionDate)}
@@ -77,6 +86,7 @@ function HistoryRowItem({
   );
 }
 
+// 取得済み履歴と追加ページを保持し、負担額と取引全体を区別して表示する
 export function HistoryList({
   groupId,
   filterParams,

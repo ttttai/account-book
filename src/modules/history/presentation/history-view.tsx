@@ -72,46 +72,29 @@ export function HistoryValidationError({
   );
 }
 
+// 自分へ割り当てられた負担額で絞り込むshortcutを表示する (HIS-003)
 function ShortcutChips({ data }: Readonly<{ data: HistoryReadyData }>) {
   const params = filterToParams(data.filter);
-  const isMyShareActive =
+  const isMyBurdenActive =
     data.filter.memberMemberId === data.currentMembershipId;
-  const isMyPaymentActive =
-    data.filter.payerMemberId === data.currentMembershipId;
 
   return (
     <nav className={styles["history-shortcuts"]} aria-label="よく使う絞り込み">
       <Link
         className={
-          isMyShareActive
+          isMyBurdenActive
             ? `${styles["history-chip"]} is-active`
             : styles["history-chip"]
         }
-        aria-current={isMyShareActive ? "true" : undefined}
+        aria-current={isMyBurdenActive ? "true" : undefined}
         href={createHistoryUrl(
           data.group.id,
-          isMyShareActive
+          isMyBurdenActive
             ? withoutParam(params, "member")
             : { ...params, member: data.currentMembershipId },
         )}
       >
-        自分の利用
-      </Link>
-      <Link
-        className={
-          isMyPaymentActive
-            ? `${styles["history-chip"]} is-active`
-            : styles["history-chip"]
-        }
-        aria-current={isMyPaymentActive ? "true" : undefined}
-        href={createHistoryUrl(
-          data.group.id,
-          isMyPaymentActive
-            ? withoutParam(params, "payer")
-            : { ...params, payer: data.currentMembershipId },
-        )}
-      >
-        自分が支払った
+        自分が負担
       </Link>
     </nav>
   );
@@ -301,6 +284,7 @@ function AppliedFilters({ data }: Readonly<{ data: HistoryReadyData }>) {
   );
 }
 
+// 履歴の絞り込みと条件に対応した取引一覧を組み立てる
 export function HistoryView({ data }: Readonly<{ data: HistoryReadyData }>) {
   const params = filterToParams(data.filter);
   const listKey = `${new URLSearchParams(params).toString()}|${data.appliedCursor ?? ""}`;
@@ -312,7 +296,7 @@ export function HistoryView({ data }: Readonly<{ data: HistoryReadyData }>) {
         aria-label="履歴の絞り込み"
       >
         <ShortcutChips data={data} />
-        <FilterSheet data={data} />
+        <FilterSheet key={new URLSearchParams(params).toString()} data={data} />
         <AppliedFilters data={data} />
       </section>
       <HistoryList
