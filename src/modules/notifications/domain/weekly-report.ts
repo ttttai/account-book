@@ -5,7 +5,6 @@ import {
   type AnalyticsComparison,
   compareAnalyticsAmount,
   formatAnalyticsJpy,
-  formatAnalyticsPercent,
   formatAnalyticsSignedJpy,
   summarizeCategoryBreakdown,
 } from "@/modules/analytics";
@@ -119,14 +118,10 @@ function weekLines(week: WeeklyReport["week"]): readonly string[] {
   if (week.expenseCount === 0) {
     return ["今週の支出登録はありませんでした。"];
   }
-  // 前週比の比率は比較元が正のときだけ付ける (ANA-003と同じ規則)
-  const comparison =
-    week.comparison.changePercent === null
-      ? formatAnalyticsSignedJpy(week.comparison.diffMinor)
-      : `${formatAnalyticsSignedJpy(week.comparison.diffMinor)}（${formatAnalyticsPercent(week.comparison.changePercent)}）`;
+  // 先週比は符号付きの差額だけを示し、比率は算出しない (ANA-003と同じ規則)
   const lines = [
     `支出 ${formatAnalyticsJpy(week.expenseTotal)}（${week.expenseCount}件）`,
-    `先週比 ${comparison}`,
+    `先週比 ${formatAnalyticsSignedJpy(week.comparison.diffMinor)}`,
     ...week.breakdown.top.map(
       (category) =>
         `・${category.name} ${formatAnalyticsJpy(category.amountMinor)}`,

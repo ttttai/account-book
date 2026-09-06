@@ -9,20 +9,20 @@ import { expect, test } from "./support/fixtures";
 const RECURRING_NAME = "E2E 家賃";
 const RECURRING_AMOUNT = 80000;
 
-// E2E-009 定期取引の登録と一覧表示
+// E2E-009 固定費の登録と一覧表示
 // （REC-001〜REC-004、AC-REC-004-1、AC-REC-002-2）
-test("E2E-009 登録した定期取引が再読み込み後も一覧とカレンダーへ表示される @desktop", async ({
+test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダーへ表示される @desktop", async ({
   memberPage,
 }) => {
-  const groupId = await createGroup(memberPage, "E2E 定期取引");
+  const groupId = await createGroup(memberPage, "E2E 固定費");
   const month = currentMonthInGroupTimezone();
 
   await memberPage.goto(`/groups/${groupId}/recurring-transactions`);
   await expect(
-    memberPage.getByRole("heading", { name: "登録済みの定期取引" }),
+    memberPage.getByRole("heading", { name: "登録済みの固定費" }),
   ).toBeVisible();
 
-  const form = memberPage.locator("form").filter({ hasText: "定期取引を追加" });
+  const form = memberPage.locator("form").filter({ hasText: "固定費を追加" });
   await form.getByLabel("名称").fill(RECURRING_NAME);
   await form.getByLabel("金額").fill(String(RECURRING_AMOUNT));
   await form.getByLabel("毎月の日付").selectOption("1");
@@ -31,7 +31,7 @@ test("E2E-009 登録した定期取引が再読み込み後も一覧とカレン
   await form
     .getByLabel("支払う人")
     .selectOption({ label: `${E2E_USER_A.displayName}（自分）` });
-  await form.getByRole("button", { name: "定期取引を保存" }).click();
+  await form.getByRole("button", { name: "固定費を保存" }).click();
 
   const card = memberPage
     .getByRole("listitem")
@@ -41,10 +41,10 @@ test("E2E-009 登録した定期取引が再読み込み後も一覧とカレン
   // 1件以上登録された状態で再読み込みしてもerror境界へ落ちない (AC-REC-004-1)
   await memberPage.reload();
   await expect(
-    memberPage.getByRole("heading", { name: "定期取引", exact: true }),
+    memberPage.getByRole("heading", { name: "固定費", exact: true }),
   ).toBeVisible();
   await expect(
-    memberPage.getByRole("heading", { name: "定期取引を開けませんでした" }),
+    memberPage.getByRole("heading", { name: "固定費を開けませんでした" }),
   ).toHaveCount(0);
   await expect(card).toBeVisible();
   await expect(card).toContainText("毎月1日に￥80,000");

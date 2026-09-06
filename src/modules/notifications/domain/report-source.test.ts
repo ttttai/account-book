@@ -62,7 +62,7 @@ const source: WeeklyReportSource = {
 };
 
 describe("toAnalyticsInputs", () => {
-  it("単発取引と各月へ展開した定期取引を、分析の集計入力へ変換する (AC-NOTIF-003-1)", () => {
+  it("単発取引と各月へ展開した固定費を、分析の集計入力へ変換する (AC-NOTIF-003-1)", () => {
     const inputs = toAnalyticsInputs(source, ["2026-08", "2026-09"]);
 
     expect(
@@ -77,7 +77,7 @@ describe("toAnalyticsInputs", () => {
       categoryName: "住居",
       categoryColor: "home",
     });
-    // 収入の定期取引は対象月だけ展開され、終了月以降は含まれない
+    // 収入の固定費は対象月だけ展開され、終了月以降は含まれない
     expect(inputs.incomes.map((item) => [item.date, item.amountMinor])).toEqual(
       [
         ["2026-09-01", 300000],

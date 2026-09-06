@@ -21,7 +21,7 @@
   - 通知専用ロール `line_notifier`（`nologin`。通知用関数6つのEXECUTEのみ、テーブル直接参照不可）
   - `app_private.line_notification_targets`（家計グループとLINEグループの対応）
   - `app_private.weekly_notification_log`（`(group_id, week_start_date)`一意。二重送信防止）
-  - 連携登録/解除、連携先取得、集計元取得（支出・収入の最小列、定期取引の展開条件、適用予算改定）、送信枠claim/releaseの`security definer`関数
+  - 連携登録/解除、連携先取得、集計元取得（支出・収入の最小列、固定費の展開条件、適用予算改定）、送信枠claim/releaseの`security definer`関数
 - **通知module** `src/modules/notifications/`
   - domain: 週範囲・対象月の計算、集計入力への変換、文面組み立て、LINE署名検証
   - application: 送信フロー（連携先 → 集計元 → 純関数で集計 → 送信枠 → push）、Webhook処理

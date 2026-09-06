@@ -118,7 +118,7 @@ values
    null, :'owner_membership_id', null, gen_random_uuid(),
    '51000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000001', null);
 
--- 定期取引: 範囲に有効な家賃と、範囲より前に終了した設定
+-- 固定費: 範囲に有効な家賃と、範囲より前に終了した設定
 insert into public.recurring_transactions (
   id, group_id, type, name, amount_minor, day_of_month, start_month, end_month,
   category_id, payer_member_id, recipient_member_id, memo, created_by, updated_by
@@ -171,7 +171,7 @@ select pg_temp.assert_privilege_denied(
 
 select pg_temp.assert_privilege_denied(
   'select count(*) from public.recurring_transactions',
-  'line_notifierは定期取引を直接参照できない'
+  'line_notifierは固定費を直接参照できない'
 );
 
 select pg_temp.assert_privilege_denied(
@@ -269,7 +269,7 @@ select pg_temp.assert_true(
       select array_agg(key order by key)
       from jsonb_object_keys(:'source'::jsonb -> 'recurring' -> 0) as key
     ) = array['amount_minor', 'category_color', 'category_id', 'category_name', 'day_of_month', 'end_month', 'id', 'start_month', 'type'],
-  '範囲に有効な定期取引だけを、名称・メモ・支払者・負担額を除いた展開条件で返す'
+  '範囲に有効な固定費だけを、名称・メモ・支払者・負担額を除いた展開条件で返す'
 );
 
 select pg_temp.assert_true(
@@ -300,7 +300,7 @@ select app_private.get_line_report_source(
 select pg_temp.assert_true(
   (:'source_before_budget'::jsonb -> 'budget') = 'null'::jsonb
     and jsonb_array_length(:'source_before_budget'::jsonb -> 'recurring') = 2,
-  '予算前の月は改定がnullで、期間に有効だった定期取引は返る'
+  '予算前の月は改定がnullで、期間に有効だった固定費は返る'
 );
 
 -- 不正な期間の拒否

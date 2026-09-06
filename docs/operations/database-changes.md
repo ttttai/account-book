@@ -165,13 +165,19 @@ Docker経由でも手順自体（1ファイルずつ・単一トランザクシ�
 
 ### 許可リストの同期
 
-ローカルでは起動時に`apply-migrations.sh`が`.env`の`AUTH_ALLOWED_GOOGLE_EMAILS`を`app_private.allowed_google_accounts`へ同期するが、**本番ではこの同期も手動運用**である。許可リストを変更した場合（Secret Managerのrotationと合わせて）、次を本番へ実行する。値はコマンドライン引数に直書きせず、psqlの変数として渡す。
+ローカルでは起動時に`apply-migrations.sh`が`.env`の`AUTH_ALLOWED_GOOGLE_EMAILS`を`app_private.allowed_google_accounts`へ同期するが、**本番ではこの同期も手動運用**である。許可リストを変更した場合は、Secret Managerのrotationと合わせて[`allowed-google-emails.md`](allowed-google-emails.md)の手順で同期する。手入力で再度一覧を渡すと Cloud Run側と食い違う恐れがあるため、Secret Managerの同じversionから値を取得する`sync-db`を使う（`<version>`はCloud Runへ固定したversion番号）。
 
 ```bash
-psql "本番の接続文字列" --set=allowed_google_accounts="カンマ区切りの許可メール一覧" -c "select app_private.sync_allowed_google_accounts(:'allowed_google_accounts')"
+./scripts/rotate-allowed-google-emails.sh sync-db <version>
 ```
 
-同期関数はfail closedであり、不正値・重複・空値を含む入力では全件が無効化されログインできなくなる。実行後は必ずGoogle OAuthログインをsmoke testする。
+`psql`が手元に無い場合は、前節と同じ`postgres:17` imageのpsqlを指定する。接続文字列は`.env`の`PROD_DB_URL`から自動で読む。
+
+```bash
+PSQL="docker run --rm -i postgres:17 psql" ./scripts/rotate-allowed-google-emails.sh sync-db <version>
+```
+
+同期関数はfail closedであり、不正値・重複・空値を含む入力では全件が無効化されログインできなくなる。scriptは同期件数がsecretの件数と一致しない場合に失敗として報告する。実行後は必ずGoogle OAuthログインをsmoke testする。
 
 ## 復旧
 

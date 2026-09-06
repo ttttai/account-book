@@ -32,6 +32,15 @@ export const CATEGORY_COLORS = [
   "other",
   "salary",
   "extra",
+  "orange",
+  "olive",
+  "mint",
+  "sky",
+  "indigo",
+  "navy",
+  "rose",
+  "wine",
+  "charcoal",
 ] as const;
 
 export const categoryColorSchema = z.enum(CATEGORY_COLORS);

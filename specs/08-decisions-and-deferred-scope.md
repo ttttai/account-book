@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.4
+バージョン: 0.2.5
 
 ## 確定事項
 
@@ -72,7 +72,8 @@ MVPの認証はGoogle OAuthのみとし、アプリでパスワードや認証�
 次はMVPへ中途半端な実装を入れない。
 
 - 予算の翌月繰越、メンバー個別予算、日・週・年単位の予算、予算超過による取引停止、予算警告の通知（月間予算・カテゴリ予算と改定履歴は`BUD-*`として実装）
-- 定期取引のjob自動生成、週次・隔週・年次、29〜31日・月末調整、変動金額、過去月の確定値保持（固定額月次の定期取引設定は`REC-*`として実装）
+- 固定費のjob自動生成、週次・隔週・年次、29〜31日・月末調整、変動金額、過去月の確定値保持（固定額月次の固定費設定は`REC-*`として実装）
+- 固定費・予算フォームの金額テンキーへの電卓機能（取引入力の電卓は`TXN-017`として実装。共有部品`AmountKeypad`は演算子キーを任意指定で描画できるため、必要になれば各フォームの式状態と送信値の分離を仕様化して追加する）
 - 銀行・カード連携
 - レシートOCR
 - 振替・残高管理
@@ -84,6 +85,6 @@ MVPの認証はGoogle OAuthのみとし、アプリでパスワードや認証�
 - グループ削除
 - Service Workerによるオフラインキャッシュ・プッシュ通知（ホーム画面インストール可能化は`NFR-PWA-*`としてMVPに含む）
 
-MVP後の追加機能は、それぞれ独立した仕様と承認を経て実装する。概要分析・詳細分析と共通集計（`ANA-*`段階1・2）は[`12-analytics-and-reporting.md`](12-analytics-and-reporting.md)、固定額・月次の定期取引（`REC-*`）は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。予算（`BUD-*`）は[`13-budget-management.md`](13-budget-management.md)を正本とし、分析と同じ月次集計純関数を再利用する。LINE週次レポート（`NOTIF-*`）は[`16-line-weekly-report.md`](16-line-weekly-report.md)を正本とし、分析・定期取引・予算と同じ純関数を再利用して金額を再計算しない。
+MVP後の追加機能は、それぞれ独立した仕様と承認を経て実装する。概要分析・詳細分析と共通集計（`ANA-*`段階1・2）は[`12-analytics-and-reporting.md`](12-analytics-and-reporting.md)、固定額・月次の固定費（`REC-*`）は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。予算（`BUD-*`）は[`13-budget-management.md`](13-budget-management.md)を正本とし、分析と同じ月次集計純関数を再利用する。LINE週次レポート（`NOTIF-*`）は[`16-line-weekly-report.md`](16-line-weekly-report.md)を正本とし、分析・固定費・予算と同じ純関数を再利用して金額を再計算しない。
 
 延期機能は、初期コード内の未使用flagとして入れず、新しい仕様・レビューを作成してから追加する。

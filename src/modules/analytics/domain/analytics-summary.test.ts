@@ -242,33 +242,22 @@ describe("summarizeCategoryBreakdown", () => {
 });
 
 describe("compareAnalyticsAmount", () => {
-  it("差額と、比較元が正のときだけ前月比を返す (AC-ANA-003-2)", () => {
-    expect(compareAnalyticsAmount(11000, 10000)).toEqual({
+  it("差額だけを返し、比較元が正でも比率を算出しない (AC-ANA-003-2)", () => {
+    expect(compareAnalyticsAmount(11000, 10000)).toStrictEqual({
       diffMinor: 1000,
-      changePercent: 10,
     });
-    expect(compareAnalyticsAmount(5000, 10000)).toEqual({
+    expect(compareAnalyticsAmount(5000, 10000)).toStrictEqual({
       diffMinor: -5000,
-      changePercent: -50,
     });
-    expect(compareAnalyticsAmount(10500, 10000).changePercent).toBe(5);
   });
 
-  it("比較元が0円のときは比率を返さない (AC-ANA-003-1)", () => {
-    expect(compareAnalyticsAmount(11000, 0)).toEqual({
+  it("比較元が0円や負のときも差額だけを返す (AC-ANA-003-1)", () => {
+    expect(compareAnalyticsAmount(11000, 0)).toStrictEqual({
       diffMinor: 11000,
-      changePercent: null,
     });
-    expect(compareAnalyticsAmount(0, 0)).toEqual({
-      diffMinor: 0,
-      changePercent: null,
-    });
-  });
-
-  it("収支のように負の比較元でも比率を返さない (AC-ANA-003-1)", () => {
-    expect(compareAnalyticsAmount(-1000, -2000)).toEqual({
+    expect(compareAnalyticsAmount(0, 0)).toStrictEqual({ diffMinor: 0 });
+    expect(compareAnalyticsAmount(-1000, -2000)).toStrictEqual({
       diffMinor: 1000,
-      changePercent: null,
     });
   });
 });

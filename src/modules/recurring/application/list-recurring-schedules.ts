@@ -15,7 +15,7 @@ type ServerSupabaseClient = Awaited<
   ReturnType<typeof createServerSupabaseClient>
 >;
 
-// カレンダー等の集計から使う、グループの定期取引設定一覧
+// カレンダー等の集計から使う、グループの固定費設定一覧
 // RLSでアクティブメンバーだけがselectできる。展開は呼び出し側の純関数で行う
 export async function listRecurringSchedules(
   supabase: ServerSupabaseClient,
@@ -28,7 +28,7 @@ export async function listRecurringSchedules(
     .order("day_of_month", { ascending: true })
     .order("id", { ascending: true });
 
-  if (error) throw new Error("定期取引を取得できませんでした。");
+  if (error) throw new Error("固定費を取得できませんでした。");
 
   return z
     .array(recurringRowSchema)

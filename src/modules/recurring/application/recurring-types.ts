@@ -44,7 +44,7 @@ export type RecurringSummary = Readonly<{
   isEnded: boolean;
 }>;
 
-// 定期取引画面が必要とする最小DTO。DB行やユーザーIDをClientへ渡さない
+// 固定費画面が必要とする最小DTO。DB行やユーザーIDをClientへ渡さない
 export type RecurringManagementView = Readonly<{
   group: Readonly<{ id: string; name: string }>;
   currentMonth: string;

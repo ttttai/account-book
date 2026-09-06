@@ -105,7 +105,7 @@ async function fetchTarget(
   });
 }
 
-// 集計元（支出・収入の最小列、定期取引の展開条件、対象月の適用予算改定）を取得する (NOTIF-007)
+// 集計元（支出・収入の最小列、固定費の展開条件、対象月の適用予算改定）を取得する (NOTIF-007)
 async function fetchSource(
   databaseUrl: string,
   groupId: string,

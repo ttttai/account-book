@@ -244,11 +244,13 @@ Terraformの固定構成を変更する場合:
 
 ## secret rotation
 
-1. Secret Managerへ新versionを標準入力から追加する。
-2. `allowed_google_emails_version`を新番号へ変更する。
-3. planでsecret version以外の意図しない変更がないことを確認する。
-4. applyしてGoogle OAuthをスモークテストする。
-5. 問題がなければ旧versionを無効化する。即時削除はしない。
+許可Googleアカウントの追加・削除の手順は[`docs/operations/allowed-google-emails.md`](../../docs/operations/allowed-google-emails.md)を正本とする（`INF-018`）。
+
+1. `scripts/rotate-allowed-google-emails.sh add-version`で、Secret Managerへ新versionを標準入力から追加し、`allowed_google_emails_version`を新番号へ更新する。
+2. planでsecret version以外の意図しない変更がないことを確認する。
+3. applyしてCloud Runの新revisionを作る。secret参照は番号固定のため、version追加だけでは反映されない。
+4. `scripts/rotate-allowed-google-emails.sh sync-db <version>`で本番DBの許可テーブルを同じversionから同期する。
+5. Google OAuthをスモークテストし、問題がなければ旧versionを無効化する。即時削除はしない。
 
 ## ロールバック
 

@@ -22,7 +22,7 @@ export type ReportIncomeRow = Readonly<{
   amountMinor: number;
 }>;
 
-/** 定期取引の展開に必要な条件だけを持つ行 */
+/** 固定費の展開に必要な条件だけを持つ行 */
 export type ReportRecurringRow = Readonly<{
   id: string;
   type: "expense" | "income";
@@ -67,7 +67,7 @@ export type ReportAnalyticsInputs = Readonly<{
 // グループ対象の集計しか行わないため、支払者・受取者・負担額は空のまま渡す
 const NO_MEMBER = "";
 
-// 定期取引の展開純関数へ渡すため、通知用の行を展開条件だけ持つ設定へ変換する
+// 固定費の展開純関数へ渡すため、通知用の行を展開条件だけ持つ設定へ変換する
 function toRecurringSchedule(row: ReportRecurringRow): RecurringSchedule {
   return {
     id: row.id,
@@ -89,7 +89,7 @@ function toRecurringSchedule(row: ReportRecurringRow): RecurringSchedule {
   };
 }
 
-// 単発取引と各月へ展開した定期取引を、分析モジュールの集計入力へ変換する (AC-NOTIF-003-1)
+// 単発取引と各月へ展開した固定費を、分析モジュールの集計入力へ変換する (AC-NOTIF-003-1)
 // 展開はカレンダー・分析と同じ`expandRecurringForMonth`で行い、通知側で日付規則を持たない
 export function toAnalyticsInputs(
   source: WeeklyReportSource,

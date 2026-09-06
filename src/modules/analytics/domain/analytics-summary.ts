@@ -52,10 +52,9 @@ export type AnalyticsCategoryBreakdown = Readonly<{
   }>;
 }>;
 
+/** 前月との差額。比率は算出しない (AC-ANA-003-1、AC-ANA-003-2) */
 export type AnalyticsComparison = Readonly<{
   diffMinor: number;
-  /** 比較元が正のときだけ整数パーセント。0円以下ではnull (AC-ANA-003-1) */
-  changePercent: number | null;
 }>;
 
 /** 概要分析で表示するカテゴリ件数 (ANA-004) */
@@ -84,7 +83,7 @@ export type AnalyticsRangeTotals = Readonly<{
   start: string;
   end: string;
   expenseTotal: number;
-  /** 対象に金額が付いた支出の件数。定期取引の展開結果も1件と数える */
+  /** 対象に金額が付いた支出の件数。固定費の展開結果も1件と数える */
   expenseCount: number;
   incomeTotal: number;
   balance: number;
@@ -249,7 +248,7 @@ export function summarizeCategoryBreakdown(
   };
 }
 
-// 選択月と前月の差額を返す。比較元が正のときだけ前月比を付ける (AC-ANA-003-1、AC-ANA-003-2)
+// 選択月と前月の差額を返す。前月に対する比率は算出しない (AC-ANA-003-1、AC-ANA-003-2)
 export function compareAnalyticsAmount(
   current: number,
   previous: number,
@@ -261,9 +260,5 @@ export function compareAnalyticsAmount(
   if (!Number.isSafeInteger(diffMinor)) {
     throw new Error("analytics amount overflow");
   }
-  return {
-    diffMinor,
-    changePercent:
-      previous > 0 ? Math.round((diffMinor / previous) * 100) : null,
-  };
+  return { diffMinor };
 }

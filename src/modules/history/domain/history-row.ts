@@ -10,6 +10,8 @@ export type HistoryRow = Readonly<{
   type: "expense" | "income";
   transactionDate: string;
   amountMinor: number;
+  /** 負担メンバー選択時だけ設定する主表示用の負担額 */
+  targetAmountMinor?: number;
   categoryName: string;
   categoryColor: string;
   categoryIcon: string;
@@ -45,9 +47,11 @@ export function compareHistoryRowSourcesDesc(
   return right.id.localeCompare(left.id);
 }
 
+// 選択メンバーの負担額と表示名を解決した履歴DTOへ変換する
 export function toHistoryRow(
   source: HistoryRowSource,
   displayNameByMembershipId: ReadonlyMap<string, string>,
+  targetMembershipId?: string,
 ): HistoryRow {
   const partyMemberId =
     source.type === "expense" ? source.payerMemberId : source.recipientMemberId;
@@ -55,7 +59,17 @@ export function toHistoryRow(
     (membershipId ? displayNameByMembershipId.get(membershipId) : undefined) ??
     historyFallbackDisplayName;
 
+  const targetAllocation =
+    source.type === "expense" && targetMembershipId
+      ? source.allocations.find(
+          (allocation) => allocation.memberId === targetMembershipId,
+        )
+      : undefined;
+
   return {
+    ...(targetAllocation
+      ? { targetAmountMinor: targetAllocation.amountMinor }
+      : {}),
     id: source.id,
     type: source.type,
     transactionDate: source.transactionDate,

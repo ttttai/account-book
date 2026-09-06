@@ -72,6 +72,40 @@ describe("compareHistoryRowSourcesDesc", () => {
 });
 
 describe("toHistoryRow", () => {
+  it("相手が支払った6000円のうち自分の負担3000円を主表示用に返す (AC-HIS-003-3)", () => {
+    const row = toHistoryRow(
+      createSource({
+        id: "shared",
+        amountMinor: 6000,
+        payerMemberId: "00000000-0000-4000-8000-000000000022",
+        allocations: [
+          {
+            memberId: "00000000-0000-4000-8000-000000000021",
+            amountMinor: 3000,
+          },
+          {
+            memberId: "00000000-0000-4000-8000-000000000022",
+            amountMinor: 3000,
+          },
+        ],
+      }),
+      displayNames,
+      "00000000-0000-4000-8000-000000000021",
+    );
+    expect(row.targetAmountMinor).toBe(3000);
+    expect(row.amountMinor).toBe(6000);
+    expect(row.partyDisplayName).toBe("佐藤");
+  });
+
+  it("収入には負担額を設定しない", () => {
+    const row = toHistoryRow(
+      createSource({ id: "income", type: "income", allocations: [] }),
+      displayNames,
+      "00000000-0000-4000-8000-000000000021",
+    );
+    expect(row.targetAmountMinor).toBeUndefined();
+  });
+
   it("支出行を表示名解決済みの最小DTOへ変換する", () => {
     const row = toHistoryRow(
       createSource({

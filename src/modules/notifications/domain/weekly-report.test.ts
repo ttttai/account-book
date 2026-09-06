@@ -100,13 +100,11 @@ describe("buildWeeklyReport", () => {
 
     expect(report.groupName).toBe("わが家");
     expect(report.week.range).toEqual(period.week);
-    // 対象週の支出は単発7件（定期取引の25日は週の外）
+    // 対象週の支出は単発7件（固定費の25日は週の外）
     expect(report.week.expenseTotal).toBe(37060);
     expect(report.week.expenseCount).toBe(7);
-    expect(report.week.comparison).toEqual({
-      diffMinor: 37060 - 41200,
-      changePercent: -10,
-    });
+    // 先週比は差額だけで、比率は持たない (ANA-003)
+    expect(report.week.comparison).toEqual({ diffMinor: 37060 - 41200 });
     expect(report.week.breakdown.top.map((item) => item.name)).toEqual([
       "食費",
       "日用品",
@@ -120,7 +118,7 @@ describe("buildWeeklyReport", () => {
       sharePercent: 3,
     });
 
-    // 対象月は定期取引（9/25 住居 80,000）と週外の取引を含む
+    // 対象月は固定費（9/25 住居 80,000）と週外の取引を含む
     expect(report.month).toEqual({
       month: "2026-09",
       expenseTotal: 8360 + 5000 + 3000 + 1500 + 900 + 100 + 2000 + 80000,
@@ -163,7 +161,7 @@ describe("formatWeeklyReportMessage", () => {
       [
         "【わが家】今週のまとめ（8/31〜9/6）",
         "支出 ￥37,060（7件）",
-        "先週比 −￥4,140（−10%）",
+        "先週比 −￥4,140",
         "・食費 ￥18,200",
         "・日用品 ￥8,360",
         "・交通 ￥5,000",
@@ -181,7 +179,7 @@ describe("formatWeeklyReportMessage", () => {
     );
   });
 
-  it("前週が0円なら比率を出さず、支出0件の週は0件用の文面にする", () => {
+  it("支出0件の週は0件用の文面にする", () => {
     const quietSource: WeeklyReportSource = {
       expenses: [expenseRow("2026-09-20", 2000, FOOD, "食費")],
       incomes: [],

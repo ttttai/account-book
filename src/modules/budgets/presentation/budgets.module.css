@@ -204,32 +204,7 @@
   width: 0.7rem;
   height: 0.7rem;
   border-radius: 50%;
-  background: #758178;
-}
-
-.budget-category-color[data-category-color="food"] {
-  background: #d8664f;
-}
-.budget-category-color[data-category-color="daily"] {
-  background: #6582c4;
-}
-.budget-category-color[data-category-color="home"] {
-  background: #a06a45;
-}
-.budget-category-color[data-category-color="utilities"] {
-  background: #d29a35;
-}
-.budget-category-color[data-category-color="transport"] {
-  background: #397f8f;
-}
-.budget-category-color[data-category-color="leisure"] {
-  background: #8a67ae;
-}
-.budget-category-color[data-category-color="salary"] {
-  background: #3d8a5f;
-}
-.budget-category-color[data-category-color="extra"] {
-  background: #b0589a;
+  background: var(--category-color, #758178);
 }
 
 .budget-category-name {

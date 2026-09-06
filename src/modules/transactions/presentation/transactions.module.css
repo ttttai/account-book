@@ -157,31 +157,7 @@
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 50%;
-  background: #758178;
-}
-
-.category-option-dot[data-category-color="food"] {
-  background: #d8664f;
-}
-
-.category-option-dot[data-category-color="daily"] {
-  background: #6582c4;
-}
-
-.category-option-dot[data-category-color="home"] {
-  background: #a06a45;
-}
-
-.category-option-dot[data-category-color="utilities"] {
-  background: #d29a35;
-}
-
-.category-option-dot[data-category-color="transport"] {
-  background: #397f8f;
-}
-
-.category-option-dot[data-category-color="leisure"] {
-  background: #8a67ae;
+  background: var(--category-color, #758178);
 }
 
 .category-option-check {
@@ -250,6 +226,11 @@
   letter-spacing: -0.04em;
 }
 
+/* 8文字以上の式や金額は文字を小さくし、狭い幅でも式全体が見えるようにする (TXN-017) */
+.amount-input-wrap[data-long="true"] input {
+  font-size: clamp(1.5rem, 8.5vw, 2.4rem);
+}
+
 .allocation-fieldset {
   display: grid;
   min-width: 0;
@@ -266,7 +247,9 @@
 
 .segmented-control {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 選択肢の数だけ等幅の列を作る（種別は2択、負担方法は3択）。空の枠を残さない */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 0.35rem;
   padding: 0.25rem;
   border-radius: 0.8rem;
@@ -442,6 +425,8 @@
   font: inherit;
   font-size: 1.35rem;
   font-weight: 800;
+  /* ⌫などの記号がfallback fontで行高を広げても、キーの高さを数字と揃える */
+  line-height: 1.2;
   place-items: center;
   cursor: pointer;
 }
@@ -458,9 +443,39 @@
   font-size: 1.1rem;
 }
 
+/* 電卓を有効にしたテンキーは数字3列＋演算子1列の右へ、1文字削除・=・保存の列を置く。
+   数字の行数は変えず、ドックの高さを増やさない (AC-TXN-017-6) */
+.keypad[data-calculator="true"] {
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1.3fr);
+}
+
+.keypad[data-calculator="true"] .keypad-digits {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* 右列は数字と同じ4行に揃え、1文字削除・=を数字の行へ正確に合わせる。保存は下2行にまたがる */
+.keypad[data-calculator="true"] .keypad-side {
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+.keypad-key[data-operator] {
+  background: #eaf2ec;
+  color: var(--accent);
+  font-size: 1.5rem;
+}
+
+.keypad-key[data-operator]:active {
+  background: #d9e6dc;
+}
+
 /* 保存はテンキーの開閉・カテゴリ展開に関係なく常設する (AC-TXN-016-1) */
 .input-dock-save {
   display: grid;
+}
+
+/* 電卓有効時は右列の下2行にまたがり、数字4行の高さを保つ (AC-TXN-017-6) */
+.keypad[data-calculator="true"] .input-dock-save {
+  grid-row: 3 / span 2;
 }
 
 .input-dock-save > button {
@@ -476,12 +491,39 @@
   font-size: 1rem;
 }
 
+/* 演算子列を足すと右列が狭くなるため、320px級では保存の文言を1行に収まる大きさへ落とし、
+   折り返す場合も「支出を / 保存」のように均等に割る (AC-TXN-017-6) */
+@media (max-width: 359px) {
+  .keypad[data-calculator="true"] .input-dock-save > button {
+    padding-inline: 0.15rem;
+    font-size: 0.78rem;
+    text-wrap: balance;
+  }
+}
+
 /* 金額欄をドックの上へ寄せるための余白。ドックが画面へ重なる狭い画面だけに適用する (AC-TXN-014-7) */
 @media (max-width: 899px) {
   .amount-field,
   .delete-transaction-confirm {
     scroll-margin-bottom: calc(var(--input-dock-height, 19rem) + 0.75rem);
   }
+}
+
+/* 式の計算結果、または計算できない理由。保存される金額を式の入力中に示す (AC-TXN-017-3, AC-TXN-017-4) */
+.amount-calculation {
+  margin: 0.35rem 0 0;
+  padding-inline: 0.85rem;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-calculation[data-invalid="true"] {
+  color: #a13d2d;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 /* テンキーを閉じている間の再開手段の案内 (AC-TXN-014-6) */

@@ -62,7 +62,7 @@ select pg_temp.assert_true(
   app_private.sync_allowed_google_accounts(
     'recurring-a@example.test,recurring-b@example.test'
   ) = 2,
-  '定期取引test用のGoogle account 2件を同期する'
+  '固定費test用のGoogle account 2件を同期する'
 );
 
 insert into auth.users (
@@ -131,7 +131,7 @@ select set_config(
   true
 );
 
--- ownerが支出の定期取引を作成する（毎月27日・100,000円・A6万/B4万）(AC-REC-001-1、AC-REC-001-4)
+-- ownerが支出の固定費を作成する（毎月27日・100,000円・A6万/B4万）(AC-REC-001-1、AC-REC-001-4)
 select public.create_recurring_transaction(
   :'rec_group_id',
   'expense',
@@ -166,7 +166,7 @@ select pg_temp.assert_true(
     from public.recurring_transactions
     where id = :'rent_id'
   ),
-  '定期支出を正規化済みの名称・メモつきで保存する'
+  '支出の固定費を正規化済みの名称・メモつきで保存する'
 );
 
 select pg_temp.assert_true(
@@ -178,7 +178,7 @@ select pg_temp.assert_true(
   '負担行を合計一致で保存する (AC-REC-001-4)'
 );
 
--- 収入の定期取引は受取者を持ち、負担行を作らない (AC-REC-001-4)
+-- 収入の固定費は受取者を持ち、負担行を作らない (AC-REC-001-4)
 select public.create_recurring_transaction(
   :'rec_group_id',
   'income',
@@ -205,7 +205,7 @@ select pg_temp.assert_true(
     from public.recurring_transaction_allocations
     where recurring_transaction_id = :'salary_id'
   ),
-  '定期収入は受取者を持ち負担行を作らない'
+  '収入の固定費は受取者を持ち負担行を作らない'
 );
 
 -- 支出の負担額合計が金額と一致しない入力を拒否する (AC-REC-001-4)
@@ -223,7 +223,7 @@ select pg_temp.assert_create_denied(
   jsonb_build_array(
     jsonb_build_object('member_id', :'a_member_id', 'amount_minor', 50000)
   ),
-  '負担額合計が金額と一致しない定期支出を拒否する'
+  '負担額合計が金額と一致しない支出の固定費を拒否する'
 );
 
 -- 29日以降と0日を拒否する (AC-REC-001-2)
@@ -241,7 +241,7 @@ select pg_temp.assert_create_denied(
   jsonb_build_array(
     jsonb_build_object('member_id', :'a_member_id', 'amount_minor', 1000)
   ),
-  '29日の定期取引を拒否する'
+  '29日の固定費を拒否する'
 );
 
 -- 月初日以外の開始月と、開始月より前の終了月を拒否する (AC-REC-001-3)
@@ -293,7 +293,7 @@ select pg_temp.assert_create_denied(
   jsonb_build_array(
     jsonb_build_object('member_id', :'a_member_id', 'amount_minor', 1000)
   ),
-  '収入カテゴリを定期支出へ使えない'
+  '収入カテゴリを支出の固定費へ使えない'
 );
 
 -- DOブロック内はpsql変数を展開できないため、必要なIDをsessionのGUCへ渡す
@@ -393,7 +393,7 @@ select pg_temp.assert_true(
   '終了で終了月とversionを更新する'
 );
 
--- memberは定期取引を設定できない (AC-REC-001-1)
+-- memberは固定費を設定できない (AC-REC-001-1)
 select set_config(
   'request.jwt.claims',
   '{"sub":"90000000-0000-4000-8000-000000000002","role":"authenticated","email":"recurring-b@example.test","app_metadata":{"provider":"google"}}',
@@ -414,7 +414,7 @@ select pg_temp.assert_create_denied(
   jsonb_build_array(
     jsonb_build_object('member_id', :'b_member_id', 'amount_minor', 1000)
   ),
-  'memberは定期取引を作成できない'
+  'memberは固定費を作成できない'
 );
 
 do $$
@@ -432,7 +432,7 @@ begin
     when others then
       raise exception 'integration assertion failed: 権限不足以外のSQLSTATE %', sqlstate;
   end;
-  raise exception 'integration assertion failed: memberが定期取引を終了できてしまう';
+  raise exception 'integration assertion failed: memberが固定費を終了できてしまう';
 end;
 $$;
 
@@ -443,7 +443,7 @@ select pg_temp.assert_true(
     from public.recurring_transactions
     where group_id = :'rec_group_id'
   ),
-  'memberは同じグループの定期取引を閲覧できる'
+  'memberは同じグループの固定費を閲覧できる'
 );
 
 -- 別グループのユーザーからは見えない・作れない（グループ分離）
@@ -471,7 +471,7 @@ select pg_temp.assert_create_denied(
   jsonb_build_array(
     jsonb_build_object('member_id', :'b_only_member_id', 'amount_minor', 1000)
   ),
-  '別グループのカテゴリを定期取引へ使えない'
+  '別グループのカテゴリを固定費へ使えない'
 );
 
 select set_config(
@@ -486,7 +486,7 @@ select pg_temp.assert_true(
     from public.recurring_transactions
     where group_id = :'b_only_group_id'
   ),
-  '非メンバーは別グループの定期取引を閲覧できない'
+  '非メンバーは別グループの固定費を閲覧できない'
 );
 
 -- テーブルへの直接更新は許可しない（更新はsecurity definer関数だけ）
@@ -514,7 +514,7 @@ begin
     when others then
       raise exception 'integration assertion failed: 直接insertが権限不足以外で失敗 %', sqlstate;
   end;
-  raise exception 'integration assertion failed: 定期取引テーブルへ直接insertできてしまう';
+  raise exception 'integration assertion failed: 固定費テーブルへ直接insertできてしまう';
 end;
 $$;
 

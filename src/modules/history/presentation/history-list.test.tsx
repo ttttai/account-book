@@ -66,6 +66,37 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("HistoryList", () => {
+  it("負担メンバー指定時は主金額と取引全体を区別し、追加ページも負担額を表示する (AC-HIS-003-3)", async () => {
+    const shared = { ...rowA, amountMinor: 6000, targetAmountMinor: 3000 };
+    vi.mocked(loadMoreHistoryAction).mockResolvedValue({
+      status: "ready",
+      rows: [{ ...rowB, amountMinor: 8000, targetAmountMinor: 2000 }],
+    });
+    const { container } = render(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ member: "00000000-0000-4000-8000-000000000021" }}
+        initialRows={[shared]}
+        initialNextCursor="cursor-1"
+      />,
+    );
+    expect(container.querySelector(".history-amount")?.textContent).toBe(
+      "￥3,000",
+    );
+    expect(screen.getByText("負担額")).toBeTruthy();
+    expect(screen.getByText("取引全体 ￥6,000")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
+    await waitFor(() =>
+      expect(screen.getByText("取引全体 ￥8,000")).toBeTruthy(),
+    );
+    expect(
+      Array.from(
+        container.querySelectorAll(".history-amount"),
+        (e) => e.textContent,
+      ),
+    ).toEqual(["￥3,000", "￥2,000"]);
+  });
+
   it("初期ページの行と支払者・受取者・負担内訳を表示する", () => {
     render(
       <HistoryList

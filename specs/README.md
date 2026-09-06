@@ -2,9 +2,9 @@
 
 状態: MVP実装承認済み
 
-バージョン: 0.3.19
+バージョン: 0.3.22
 
-最終更新日: 2026-09-06
+最終更新日: 2026-09-07
 
 このディレクトリを、プロダクト仕様および技術仕様の正本とする。本番の振る舞いは、承認済みの要件と受け入れ条件まで追跡できなければならない。
 
@@ -26,7 +26,7 @@
 | `11-production-infrastructure.md`      | Cloud Run本番基盤のIaC・運用・費用管理仕様       |
 | `12-analytics-and-reporting.md`        | 概要分析・詳細分析・レポート共通集計の仕様       |
 | `13-budget-management.md`              | 月間予算・カテゴリ予算と改定履歴の仕様（MVP後）  |
-| `14-recurring-transactions.md`         | 固定額・月次の定期取引仕様（MVP後）              |
+| `14-recurring-transactions.md`         | 固定額・月次の固定費仕様（MVP後）                |
 | `15-e2e-testing.md`                    | E2Eテストの範囲、分離方針、シナリオ              |
 | `16-line-weekly-report.md`             | LINE週次レポートの内容・集計・連携・送信の仕様   |
 
@@ -64,7 +64,7 @@
 | `SEC`   | セキュリティ・プライバシー   |
 | `NFR`   | 非機能要件（E2Eは`NFR-E2E`） |
 | `INF`   | 本番インフラ・IaC            |
-| `REC`   | 定期取引                     |
+| `REC`   | 固定費                       |
 | `ANA`   | 統計・分析・レポート         |
 | `BUD`   | 予算管理                     |
 | `NOTIF` | LINE週次レポート・通知       |

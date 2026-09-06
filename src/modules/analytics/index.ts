@@ -1,7 +1,6 @@
 export type { AnalyticsScope } from "./domain/analytics-input";
 export {
   formatAnalyticsJpy,
-  formatAnalyticsPercent,
   formatAnalyticsSignedJpy,
 } from "./domain/analytics-jpy";
 export {

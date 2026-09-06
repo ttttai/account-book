@@ -48,7 +48,7 @@ const expectedVersionSchema = z
   .transform(Number)
   .refine(Number.isSafeInteger, "更新の前提となるversionが不正です。");
 
-// 定期取引の作成入力。FormData由来の文字列を検証済みの値へ変換する（AC-REC-001-2、AC-REC-001-3）
+// 固定費の作成入力。FormData由来の文字列を検証済みの値へ変換する（AC-REC-001-2、AC-REC-001-3）
 export const createRecurringInputSchema = z
   .object({
     groupId: z.uuid(),
@@ -76,7 +76,7 @@ export const createRecurringInputSchema = z
 
 export type CreateRecurringInput = z.infer<typeof createRecurringInputSchema>;
 
-// 定期取引の編集入力。作成と同じ制約に、対象IDと楽観的ロック用versionを加える
+// 固定費の編集入力。作成と同じ制約に、対象IDと楽観的ロック用versionを加える
 export const updateRecurringInputSchema = z
   .object({
     groupId: z.uuid(),
@@ -106,7 +106,7 @@ export const updateRecurringInputSchema = z
 
 export type UpdateRecurringInput = z.infer<typeof updateRecurringInputSchema>;
 
-// 定期取引の終了入力（AC-REC-003-2）
+// 固定費の終了入力（AC-REC-003-2）
 export const endRecurringInputSchema = z.object({
   groupId: z.uuid(),
   recurringTransactionId: z.uuid(),

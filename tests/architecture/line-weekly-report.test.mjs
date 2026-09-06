@@ -100,7 +100,7 @@ test("通知moduleがサーバー専用で公開エントリーポイントを�
 });
 
 // 他moduleの内部を直接importせず、公開エントリーポイントだけを使う
-test("通知moduleは分析・定期取引・予算を公開エントリーポイント経由で使う", async () => {
+test("通知moduleは分析・固定費・予算を公開エントリーポイント経由で使う", async () => {
   const directories = [
     "src/modules/notifications/domain",
     "src/modules/notifications/application",
