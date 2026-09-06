@@ -4,7 +4,7 @@
 
 夫婦やグループで共有できる、スマートフォン優先の家計簿Webアプリです。仕様の正本は[`specs/`](specs/README.md)、開発ルールの正本は[`AGENTS.md`](AGENTS.md)です。
 
-デプロイとDB変更の運用手順は[`docs/operations/`](docs/operations)（[デプロイ運用](docs/operations/deployment.md) / [DB変更の運用](docs/operations/database-changes.md)）にまとめています。
+デプロイとDB変更の運用手順は[`docs/operations/`](docs/operations)（[デプロイ運用](docs/operations/deployment.md) / [DB変更の運用](docs/operations/database-changes.md)）にまとめています。LINE週次レポート（段階導入中）は[導入ガイド](docs/operations/line-weekly-report.md)を参照してください。
 
 初めて利用する人向けの手順は[はじめてのログインガイド](docs/guides/first-login.md)（招待リンクの受け取りからログイン・グループ参加まで）にまとめています。
 

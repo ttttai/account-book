@@ -264,11 +264,11 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 
 家計グループとLINEグループトークの対応。詳細は[`16-line-weekly-report.md`](16-line-weekly-report.md)を正本とする。
 
-| column          | 型          | 説明                                                   |
-| --------------- | ----------- | ------------------------------------------------------ |
-| `group_id`      | uuid PK/FK  | 家計グループ。初回スコープは1グループにつき1連携       |
-| `line_group_id` | text        | LINEのgroupId。英数字・`_`・`-`で1〜64文字             |
-| `linked_at`     | timestamptz | UTC。join eventの受信時刻                              |
+| column          | 型          | 説明                                             |
+| --------------- | ----------- | ------------------------------------------------ |
+| `group_id`      | uuid PK/FK  | 家計グループ。初回スコープは1グループにつき1連携 |
+| `line_group_id` | text        | LINEのgroupId。英数字・`_`・`-`で1〜64文字       |
+| `linked_at`     | timestamptz | UTC。join eventの受信時刻                        |
 
 制約:
 
@@ -278,11 +278,11 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 
 ### weekly_notification_log（`app_private`）
 
-| column            | 型          | 説明                             |
-| ----------------- | ----------- | -------------------------------- |
-| `group_id`        | uuid PK/FK  | 家計グループ                     |
-| `week_start_date` | date        | 対象週の月曜                     |
-| `sent_at`         | timestamptz | UTC。送信枠を確保した時刻        |
+| column            | 型          | 説明                      |
+| ----------------- | ----------- | ------------------------- |
+| `group_id`        | uuid PK/FK  | 家計グループ              |
+| `week_start_date` | date        | 対象週の月曜              |
+| `sent_at`         | timestamptz | UTC。送信枠を確保した時刻 |
 
 制約:
 

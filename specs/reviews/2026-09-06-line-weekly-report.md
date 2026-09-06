@@ -1,6 +1,6 @@
 # LINE週次レポート（内容・集計・連携・送信）
 
-状態: 承認済み
+状態: 実装確認済み
 レビュー日: 2026-09-06
 ブランチ: feat/line-weekly-report
 対象仕様: specs/16-line-weekly-report.md、specs/01-product-requirements.md、specs/02-use-cases.md、specs/04-data-model.md、specs/05-api-and-application-boundaries.md、specs/07-acceptance-test-plan.md、specs/08-decisions-and-deferred-scope.md、specs/10-er-diagram.md、specs/12-analytics-and-reporting.md、specs/README.md
@@ -58,4 +58,9 @@
 
 ## 実装確認
 
-（実装後に記入）
+- 単体・componentテスト: vitest 92ファイル・791件通過（新規: 分析の日付範囲集計4件、期間計算6件、集計入力変換3件、レポート組み立て・文面6件、署名検証5件、送信フロー6件、Webhook本文4件）。
+- 構造テスト: `node --test tests/architecture/*.test.mjs` 162件通過（新規 `line-weekly-report.test.mjs` 9件、`er-diagram.test.mjs`へ2テーブルの同期を追加）。
+- DB統合テスト: 分離したDocker Compose project（`account-book-lwr`）で`tests/integration/run-local.sql`を実行し、`line-weekly-report-local.sql`を含め全件通過。`line_notifier`のテーブル直接参照・他機能関数の拒否、集計元関数の返却列（メモ・支払者・負担額・受取者を含まない）、定期取引の範囲抽出、適用予算改定（有効・停止・なし）、期間検証、送信枠の冪等性、連携登録・解除を確認。
+- lint（biome）、format（prettier）、型検査（tsc）、本番build（`next build`）通過。build出力に`/api/v1/jobs/weekly-line-report`と`/api/v1/line/webhook`が含まれることを確認。
+- UI変更を含まないため画面幅の実画面確認は対象外。既存画面のテストに回帰なし。
+- 段階2（Terraform）・段階3（LINE設定）は未実施。環境変数未設定のため本番挙動は変わらない。

@@ -77,6 +77,29 @@ export function safeAdd(left: number, right: number): number {
   return result;
 }
 
+/** `YYYY-MM-DD`の両端を含む日付範囲 */
+export type AnalyticsDateRange = Readonly<{ start: string; end: string }>;
+
+export type AnalyticsRangeTotals = Readonly<{
+  start: string;
+  end: string;
+  expenseTotal: number;
+  /** 対象に金額が付いた支出の件数。定期取引の展開結果も1件と数える */
+  expenseCount: number;
+  incomeTotal: number;
+  balance: number;
+  expenseByCategory: readonly AnalyticsCategoryTotal[];
+}>;
+
+type AggregatedTransactions = Readonly<{
+  expenseTotal: number;
+  expenseCount: number;
+  incomeTotal: number;
+  expenseByCategory: readonly AnalyticsCategoryTotal[];
+}>;
+
+const DATE_PATTERN = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
 // 対象月・対象者の支出、収入、収支、カテゴリ別支出を集計する
 // グループ対象は取引金額を1件につき1度だけ、メンバー対象は負担額だけを数える (AC-ANA-002-1)
 export function aggregateAnalyticsMonth(
@@ -85,12 +108,67 @@ export function aggregateAnalyticsMonth(
   incomes: readonly AnalyticsIncomeInput[],
   target: AnalyticsTarget,
 ): AnalyticsMonthTotals {
+  const totals = aggregateAnalyticsTransactions(
+    (date) => date.slice(0, 7) === month,
+    expenses,
+    incomes,
+    target,
+  );
+  return {
+    month,
+    expenseTotal: totals.expenseTotal,
+    incomeTotal: totals.incomeTotal,
+    balance: totals.incomeTotal - totals.expenseTotal,
+    expenseByCategory: totals.expenseByCategory,
+  };
+}
+
+// 両端を含む日付範囲で、月版と同じ規則で集計する。週次レポートなど月に揃わない期間が使う (NOTIF-003)
+// `YYYY-MM-DD`は固定長のため辞書順比較が時系列比較と一致する
+export function aggregateAnalyticsDateRange(
+  range: AnalyticsDateRange,
+  expenses: readonly AnalyticsExpenseInput[],
+  incomes: readonly AnalyticsIncomeInput[],
+  target: AnalyticsTarget,
+): AnalyticsRangeTotals {
+  if (
+    !DATE_PATTERN.test(range.start) ||
+    !DATE_PATTERN.test(range.end) ||
+    range.start > range.end
+  ) {
+    throw new Error("invalid analytics date range");
+  }
+  const totals = aggregateAnalyticsTransactions(
+    (date) => date >= range.start && date <= range.end,
+    expenses,
+    incomes,
+    target,
+  );
+  return {
+    start: range.start,
+    end: range.end,
+    expenseTotal: totals.expenseTotal,
+    expenseCount: totals.expenseCount,
+    incomeTotal: totals.incomeTotal,
+    balance: totals.incomeTotal - totals.expenseTotal,
+    expenseByCategory: totals.expenseByCategory,
+  };
+}
+
+// 月版・日付範囲版が共有する唯一の集計処理。期間判定だけを呼び出し側から受け取る
+function aggregateAnalyticsTransactions(
+  isInPeriod: (date: string) => boolean,
+  expenses: readonly AnalyticsExpenseInput[],
+  incomes: readonly AnalyticsIncomeInput[],
+  target: AnalyticsTarget,
+): AggregatedTransactions {
   let expenseTotal = 0;
+  let expenseCount = 0;
   let incomeTotal = 0;
   const categoryTotals = new Map<string, AnalyticsCategoryTotal>();
 
   for (const expense of expenses) {
-    if (expense.date.slice(0, 7) !== month) continue;
+    if (!isInPeriod(expense.date)) continue;
     const targetAmount =
       target.scope === "group"
         ? expense.amountMinor
@@ -100,6 +178,7 @@ export function aggregateAnalyticsMonth(
     if (targetAmount <= 0) continue;
 
     expenseTotal = safeAdd(expenseTotal, targetAmount);
+    expenseCount += 1;
     const current = categoryTotals.get(expense.categoryId);
     categoryTotals.set(expense.categoryId, {
       categoryId: expense.categoryId,
@@ -111,7 +190,7 @@ export function aggregateAnalyticsMonth(
 
   // 収入は受取者一致だけを数え、支出とカテゴリ別支出へ混入させない (AC-ANA-010-1)
   for (const income of incomes) {
-    if (income.date.slice(0, 7) !== month) continue;
+    if (!isInPeriod(income.date)) continue;
     if (
       target.scope === "member" &&
       income.recipientMemberId !== target.memberId
@@ -122,10 +201,9 @@ export function aggregateAnalyticsMonth(
   }
 
   return {
-    month,
     expenseTotal,
+    expenseCount,
     incomeTotal,
-    balance: incomeTotal - expenseTotal,
     expenseByCategory: [...categoryTotals.values()].sort(
       (left, right) =>
         right.amountMinor - left.amountMinor ||

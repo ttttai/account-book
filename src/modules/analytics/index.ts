@@ -1,12 +1,27 @@
 export type { AnalyticsScope } from "./domain/analytics-input";
-export { formatAnalyticsJpy } from "./domain/analytics-jpy";
+export {
+  formatAnalyticsJpy,
+  formatAnalyticsPercent,
+  formatAnalyticsSignedJpy,
+} from "./domain/analytics-jpy";
 export {
   formatAnalyticsMonth,
   isAnalyticsMonth,
   shiftAnalyticsMonth,
 } from "./domain/analytics-month";
-export { aggregateAnalyticsMonth } from "./domain/analytics-summary";
+export {
+  aggregateAnalyticsDateRange,
+  aggregateAnalyticsMonth,
+  compareAnalyticsAmount,
+  summarizeCategoryBreakdown,
+} from "./domain/analytics-summary";
 export type {
+  AnalyticsCategoryBreakdown,
   AnalyticsCategoryTotal,
+  AnalyticsComparison,
+  AnalyticsDateRange,
+  AnalyticsExpenseInput,
+  AnalyticsIncomeInput,
   AnalyticsMonthTotals,
+  AnalyticsRangeTotals,
 } from "./domain/analytics-summary";
