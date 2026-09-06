@@ -321,6 +321,218 @@ describe("ExpenseForm のテンキー開閉時のスクロール (AC-TXN-014-7)"
 
     // 閉じてから開き直したときも移動する
     await vi.waitFor(() => expect(scrollBy).toHaveBeenCalled());
+
+    // 式の計算結果の行が現れたときも、金額欄ごと隠れない位置へ移動する (AC-TXN-017-3)
+    scrollBy.mockClear();
+    pressKey("5");
+    pressKey("足す");
+    pressKey("5");
+    await vi.waitFor(() => expect(scrollBy).toHaveBeenCalled());
+  });
+});
+
+describe("ExpenseForm の電卓 (TXN-017)", () => {
+  function submittedAmount(): HTMLInputElement {
+    return document.querySelector(
+      'input[name="amountMinor"]',
+    ) as HTMLInputElement;
+  }
+
+  it("演算子で式を組み立て、計算結果を表示し、送信する金額は計算結果にする (AC-TXN-017-1, AC-TXN-017-3)", () => {
+    renderForm();
+
+    pressKey("1");
+    pressKey("2");
+    pressKey("00");
+    pressKey("足す");
+    pressKey("3");
+    pressKey("00");
+
+    expect(amountInput().value).toBe("1200+300");
+    const result = screen.getByText("= ¥1,500");
+    expect(amountInput().getAttribute("aria-describedby")).toContain(result.id);
+    // 表示用の金額欄はFormDataへ含めず、hidden inputだけが計算結果を送信する
+    expect(amountInput().hasAttribute("name")).toBe(false);
+    expect(submittedAmount().type).toBe("hidden");
+    expect(submittedAmount().value).toBe("1500");
+  });
+
+  it("右辺がある状態で別の演算子を押すと計算して新しい左辺にする (AC-TXN-017-1)", () => {
+    renderForm();
+
+    pressKey("1");
+    pressKey("0");
+    pressKey("足す");
+    pressKey("5");
+    pressKey("掛ける");
+
+    expect(amountInput().value).toBe("15×");
+    expect(submittedAmount().value).toBe("15");
+  });
+
+  it("空の金額欄では演算子を無視し、右辺が空の間は演算子を置き換える (AC-TXN-017-1)", () => {
+    renderForm();
+
+    pressKey("足す");
+    expect(amountInput().value).toBe("");
+
+    pressKey("5");
+    pressKey("足す");
+    pressKey("引く");
+    expect(amountInput().value).toBe("5−");
+    // 右辺が空の式は左辺を送信する
+    expect(submittedAmount().value).toBe("5");
+    expect(screen.queryByText(/^= ¥/)).toBeNull();
+  });
+
+  it("=で式を計算結果だけの表示へ戻し、0円は空欄へ戻す (AC-TXN-017-2)", () => {
+    renderForm();
+
+    pressKey("1");
+    pressKey("2");
+    pressKey("00");
+    pressKey("足す");
+    pressKey("3");
+    pressKey("00");
+    pressKey("計算する");
+    expect(amountInput().value).toBe("1500");
+    expect(screen.queryByText(/^= ¥/)).toBeNull();
+
+    pressKey("引く");
+    pressKey("1");
+    pressKey("5");
+    pressKey("00");
+    pressKey("計算する");
+    expect(amountInput().value).toBe("");
+  });
+
+  it("÷の端数は四捨五入する (AC-TXN-017-4)", () => {
+    renderForm();
+
+    pressKey("2");
+    pressKey("00");
+    pressKey("0");
+    pressKey("割る");
+    pressKey("3");
+
+    expect(screen.getByText("= ¥667")).toBeTruthy();
+    expect(submittedAmount().value).toBe("667");
+  });
+
+  it("0円未満・上限超過の式は計算せず理由を示し、送信する金額を空にする (AC-TXN-017-4)", () => {
+    renderForm();
+
+    pressKey("3");
+    pressKey("引く");
+    pressKey("5");
+    const reason = screen.getByText("0円未満にはできません");
+    expect(amountInput().getAttribute("aria-describedby")).toContain(reason.id);
+    expect(submittedAmount().value).toBe("");
+
+    // =や演算子を押しても式を壊さない
+    pressKey("計算する");
+    pressKey("足す");
+    expect(amountInput().value).toBe("3−5");
+
+    fireEvent.change(amountInput(), {
+      target: { value: "9007199254740991+1" },
+    });
+    expect(screen.getByText("金額が上限を超えます")).toBeTruthy();
+    expect(submittedAmount().value).toBe("");
+  });
+
+  it("右辺に0だけを置けないため、0で割る式は組み立てられない (AC-TXN-017-4, AC-TXN-017-5)", () => {
+    renderForm();
+
+    pressKey("3");
+    pressKey("割る");
+    pressKey("0");
+    pressKey("00");
+    expect(amountInput().value).toBe("3÷");
+    fireEvent.change(amountInput(), { target: { value: "3÷0" } });
+    expect(amountInput().value).toBe("3÷");
+    expect(submittedAmount().value).toBe("3");
+  });
+
+  it("右辺にも先頭0を作らず、1文字削除は演算子も取り消す (AC-TXN-017-5)", () => {
+    renderForm();
+
+    pressKey("5");
+    pressKey("足す");
+    pressKey("0");
+    pressKey("00");
+    expect(amountInput().value).toBe("5+");
+
+    pressKey("1桁削除");
+    expect(amountInput().value).toBe("5");
+  });
+
+  it("物理キーボードの+、-、*、/を演算子として受け付ける (AC-TXN-017-1)", () => {
+    renderForm();
+
+    fireEvent.change(amountInput(), { target: { value: "1000*3" } });
+    expect(amountInput().value).toBe("1000×3");
+    expect(submittedAmount().value).toBe("3000");
+
+    fireEvent.change(amountInput(), { target: { value: "50/2" } });
+    expect(amountInput().value).toBe("50÷2");
+
+    fireEvent.change(amountInput(), { target: { value: "9-4" } });
+    expect(amountInput().value).toBe("9−4");
+  });
+
+  it("演算子と=はフォームを送信せず、テンキーを閉じると数字キーと一緒に消える (AC-TXN-017-6)", () => {
+    renderForm();
+
+    for (const name of ["割る", "掛ける", "引く", "足す", "計算する"]) {
+      expect(screen.getByRole("button", { name }).getAttribute("type")).toBe(
+        "button",
+      );
+    }
+
+    fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+    expect(screen.queryByRole("button", { name: "足す" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "計算する" })).toBeNull();
+    expect(screen.getByRole("button", { name: "支出を保存" })).toBeTruthy();
+  });
+
+  it("8文字以上の式では金額欄の文字を小さくする指標を付ける (TXN-017)", () => {
+    renderForm();
+
+    fireEvent.change(amountInput(), { target: { value: "1200+30" } });
+    expect(amountInput().parentElement?.getAttribute("data-long")).toBeNull();
+
+    fireEvent.change(amountInput(), { target: { value: "1200+300" } });
+    expect(amountInput().parentElement?.getAttribute("data-long")).toBe("true");
+  });
+
+  it("編集時は保存済みの金額を式なしで表示し、送信値も一致する (AC-TXN-017-3)", () => {
+    render(
+      <ExpenseForm
+        clientRequestId="req-1"
+        edit={{
+          transaction: {
+            id: "00000000-0000-4000-8000-000000000901",
+            type: "expense",
+            amountMinor: 3200,
+            transactionDate: "2026-09-01",
+            categoryId: options.categories[0].id,
+            memo: "",
+            version: 1,
+            payerMemberId: currentMembershipId,
+            payerIsActive: true,
+            payerDisplayName: "山田",
+            allocationMethod: "single",
+            allocations: [{ memberId: currentMembershipId, amountMinor: 3200 }],
+          },
+          returnTo: "/app",
+        }}
+        options={options}
+      />,
+    );
+
+    expect(amountInput().value).toBe("3200");
+    expect(submittedAmount().value).toBe("3200");
   });
 });
 
