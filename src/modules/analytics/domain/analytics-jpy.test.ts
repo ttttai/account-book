@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  formatAnalyticsJpy,
-  formatAnalyticsPercent,
-  formatAnalyticsSignedJpy,
-} from "./analytics-jpy";
+import { formatAnalyticsJpy, formatAnalyticsSignedJpy } from "./analytics-jpy";
 
 describe("formatAnalyticsJpy", () => {
   it("桁区切りした正確な金額を返し、万表記へ省略しない", () => {
@@ -25,13 +21,5 @@ describe("formatAnalyticsSignedJpy", () => {
     expect(formatAnalyticsSignedJpy(1000)).toBe("＋￥1,000");
     expect(formatAnalyticsSignedJpy(-1000)).toBe("−￥1,000");
     expect(formatAnalyticsSignedJpy(0)).toBe("±￥0");
-  });
-});
-
-describe("formatAnalyticsPercent", () => {
-  it("整数パーセントを符号付きで返す", () => {
-    expect(formatAnalyticsPercent(10)).toBe("＋10%");
-    expect(formatAnalyticsPercent(-50)).toBe("−50%");
-    expect(formatAnalyticsPercent(0)).toBe("±0%");
   });
 });

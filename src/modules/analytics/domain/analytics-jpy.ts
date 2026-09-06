@@ -20,10 +20,3 @@ export function formatAnalyticsSignedJpy(amountMinor: number): string {
   const sign = amountMinor > 0 ? "＋" : amountMinor < 0 ? "−" : "±";
   return `${sign}${formatAnalyticsJpy(Math.abs(amountMinor))}`;
 }
-
-// 前月比の整数パーセントを符号付きで表示する
-export function formatAnalyticsPercent(percent: number): string {
-  if (!Number.isInteger(percent)) throw new Error("invalid percent");
-  const sign = percent > 0 ? "＋" : percent < 0 ? "−" : "±";
-  return `${sign}${Math.abs(percent)}%`;
-}
