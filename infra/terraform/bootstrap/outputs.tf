@@ -37,3 +37,8 @@ output "line_weekly_report_secret_ids" {
   description = "段階3でpayload versionを追加するLINE週次レポート用secret ID"
   value       = { for key, secret in google_secret_manager_secret.line_weekly_report : key => secret.secret_id }
 }
+
+output "line_bug_report_secret_ids" {
+  description = "段階3でpayload versionを追加するLINE不具合報告用secret ID"
+  value       = { for key, secret in google_secret_manager_secret.line_bug_report : key => secret.secret_id }
+}

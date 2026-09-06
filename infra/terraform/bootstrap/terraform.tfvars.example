@@ -15,3 +15,5 @@ labels = {
 
 # LINE週次レポート用のscheduler SAとsecret containerは既定名で作成されます。
 # 名前を変える場合だけ scheduler_service_account_id / line_weekly_report_secret_ids を指定してください。
+# LINE不具合報告用のsecret container（GitHub token、許可LINE userId一覧）も既定名で作成されます。
+# 名前を変える場合だけ line_bug_report_secret_ids を指定してください。

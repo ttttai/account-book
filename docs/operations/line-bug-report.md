@@ -6,12 +6,12 @@
 
 ## 全体像と現在地
 
-| 段階  | 内容                                                                    | 状態     | 主な作業場所        |
-| ----- | ----------------------------------------------------------------------- | -------- | ------------------- |
-| 段階1 | アプリ実装（message event処理、Issue作成、返信）とDB migration          | 実装済み | このリポジトリ      |
-| 段階0 | migrationの本番適用と段階1 PRのmerge                                    | 未実施   | 本番DB + GitHub     |
-| 段階2 | Terraform（secret container 2つ、`line_bug_report`変数、環境変数3つ）   | 未実施   | `infra/terraform/`  |
-| 段階3 | GitHubトークン発行、許可LINE userId取得、Secret Managerへの登録、有効化 | 未実施   | GitHub + GCP + LINE |
+| 段階  | 内容                                                                    | 状態                           | 主な作業場所        |
+| ----- | ----------------------------------------------------------------------- | ------------------------------ | ------------------- |
+| 段階1 | アプリ実装（message event処理、Issue作成、返信）とDB migration          | 実装済み                       | このリポジトリ      |
+| 段階0 | migrationの本番適用と段階1 PRのmerge                                    | 未実施                         | 本番DB + GitHub     |
+| 段階2 | Terraform（secret container 2つ、`line_bug_report`変数、環境変数3つ）   | Terraform実装済み・apply未実施 | `infra/terraform/`  |
+| 段階3 | GitHubトークン発行、許可LINE userId取得、Secret Managerへの登録、有効化 | 未実施                         | GitHub + GCP + LINE |
 
 段階0 → 2 → 3 の順に進める。各段階は独立して中断・再開できる。段階0のmigration適用は週次レポートの段階0（`202609060001_line_weekly_report.sql`）の後に行う（`line_notifier`ロールに依存する）。
 
@@ -54,14 +54,57 @@ cd /Users/yamamototaishi/Desktop/account-book/.claude/worktrees/feat-line-bug-re
 
 ## 段階2: Terraformでインフラを追加
 
-所要: plan確認とapplyで20分程度。Terraformコードは段階2のPR（sub-issue #120、ブランチ`feat/line-bug-report-infra`）で追加する。[`specs/11-production-infrastructure.md`](../../specs/11-production-infrastructure.md)の`INF-022`以降を正本とし、詳細な操作は[`infra/terraform/README.md`](../../infra/terraform/README.md)に記載する。
+所要: plan確認とapplyで20分程度。Terraformコードは`feat/line-bug-report-infra`（sub-issue #120）で実装済み（[`specs/11-production-infrastructure.md`](../../specs/11-production-infrastructure.md) `INF-022`〜`INF-024`、review: 2026-09-07-line-bug-report-infra）。Terraformの詳細は[`infra/terraform/README.md`](../../infra/terraform/README.md)の「LINE不具合報告のインフラ（段階2）」を参照する。
 
-追加する構成:
+実装済みの構成:
 
 - `infra/terraform/bootstrap`: Secret Manager secret container ×2（payloadはTerraform管理外、値は段階3で登録）: `account-book-line-bug-report-github-token`、`account-book-line-bug-report-allowed-user-ids`。runtime service accountへのsecret単位accessor
 - `infra/terraform/environments/prod`: 既定`null`の変数`line_bug_report`（`github_repository`、`github_token_version`、`allowed_user_ids_version`）。設定時だけCloud Run環境変数3つ（secret参照・version固定: `LINE_BUG_REPORT_GITHUB_TOKEN`、`LINE_BUG_REPORT_ALLOWED_USER_IDS`。平文: `LINE_BUG_REPORT_GITHUB_REPOSITORY`）を宣言する。`line_weekly_report`が設定済みでなければ設定できない（LINE channelと通知用DB接続を共有するため）
 
 有効化の順序は週次レポートと同じ「bootstrap apply → secret version登録（段階3） → `line_bug_report`設定 → plan確認（Cloud Run serviceのupdate in-placeで環境変数3つの追加だけ） → apply」とする。
+
+### 2-1. bootstrapをapplyする（secret container 2つ）
+
+`infra/terraform/bootstrap`で、Git管理外の`terraform.tfvars`と`backend.hcl`がある状態で実行する。追加する資源名は既定値のままでよく、tfvarsの変更は不要。
+
+```bash
+cd infra/terraform/bootstrap && terraform init -backend-config=backend.hcl && terraform plan -out=bootstrap.tfplan
+```
+
+planで次の追加だけが出ること（削除・置換が0件）を確認してからapplyする。
+
+- `google_secret_manager_secret.line_bug_report["github_token"]`、`["allowed_user_ids"]`
+- `google_secret_manager_secret_iam_member.line_bug_report_cloud_run_accessor[...]`（2件）
+
+```bash
+cd infra/terraform/bootstrap && terraform apply bootstrap.tfplan
+```
+
+### 2-2. 段階3のsecret登録を先に済ませる
+
+prodの有効化はsecret versionが存在してから行う。存在しないversionを参照すると、Cloud Runの新revisionが起動に失敗する。段階3の3-1〜3-4（token発行、ラベル作成、userId取得、`gcloud secrets versions add`）を先に実施し、2つのversion番号を控える。
+
+### 2-3. prodを有効化してapplyする
+
+`infra/terraform/environments/prod/terraform.tfvars`（Git管理外）へ段階3の3-5のとおり`line_bug_report`を追記し、planを確認してからapplyする。
+
+```bash
+cd infra/terraform/environments/prod && terraform init -backend-config=backend.hcl && terraform plan -out=prod.tfplan
+```
+
+planで次を確認してからapplyする。
+
+- `google_cloud_run_v2_service.app`が**update in-place**で、差分が環境変数3つ（`LINE_BUG_REPORT_GITHUB_TOKEN`、`LINE_BUG_REPORT_ALLOWED_USER_IDS`、`LINE_BUG_REPORT_GITHUB_REPOSITORY`）の追加だけであること。置換（replace）や既存環境変数・Cloud Scheduler jobの変更が出たらapplyしない。
+- `line_weekly_report`が未設定だとvalidationエラーになる。先に週次レポートの段階2・3を完了する。
+
+```bash
+cd infra/terraform/environments/prod && terraform apply prod.tfplan
+```
+
+### 注意点
+
+- 既存のCD（imageのみ更新）はこの構成を変更しないため、apply後もdeployフローは従来どおり。
+- 完了条件: `terraform fmt -check -recursive`、`terraform validate`、構造テスト（`tests/architecture/line-bug-report-infra.test.mjs`）、人によるplan確認、apply後にsecret version・環境変数の存在確認。
 
 ## 段階3: GitHubトークン・許可LINE userId・Secret Manager・有効化
 

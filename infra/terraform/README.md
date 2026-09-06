@@ -251,6 +251,31 @@ apply後、最低限次を手動確認する。
 - jobのURL・OIDC audience・`LINE_WEEKLY_REPORT_JOB_AUDIENCE`は`site_url`から導出した同じ値であり、個別に設定しない。`site_url`を変えると3つが同時に変わる。
 - Cloud Runは公開invokerのため、scheduler SAへ`roles/run.invoker`を付けない。呼び出しの認可はアプリのOIDC検証が行う。
 
+## LINE不具合報告のインフラ（段階2）
+
+`specs/17-line-bug-report.md`の段階2（`INF-022`〜`INF-024`、review: 2026-09-07-line-bug-report-infra）。全体の導入手順は[`docs/operations/line-bug-report.md`](../../docs/operations/line-bug-report.md)を正本とし、ここではTerraformの操作だけを説明する。
+
+管理する資源:
+
+- `bootstrap`: payloadを持たない2つのSecret Manager secret container（`account-book-line-bug-report-github-token`、`account-book-line-bug-report-allowed-user-ids`）とruntime service accountへのsecret単位accessor。
+- `environments/prod`: 変数`line_bug_report`が設定されたときだけ、Cloud Runの環境変数3つ（secret参照2つはversion固定: `LINE_BUG_REPORT_GITHUB_TOKEN`、`LINE_BUG_REPORT_ALLOWED_USER_IDS`。平文1つ: `LINE_BUG_REPORT_GITHUB_REPOSITORY`）を宣言する。既定は`null`で、何も作らず既存planに差分を出さない。
+
+前提: LINE channel secret・access token・通知用DB接続文字列は`line_weekly_report`と共有するため、`line_bug_report`は`line_weekly_report`が設定済みのときだけ設定できる（変数validationで拒否される）。`line_bug_report`を追加・削除しても`line_weekly_report`の環境変数とCloud Scheduler jobには差分が出ない。
+
+有効化は必ず次の順で行う。secret versionが存在しない状態で`prod`を有効化すると、Cloud Runの新revisionがsecret解決に失敗して起動しない。
+
+1. `bootstrap`でplan → 人による確認 → apply。追加されるのはsecret container 2つとIAM member 2つで、削除・置換は含まれない。
+2. 段階3の手順で2つのsecretへ値を登録する（`gcloud secrets versions add <secret id> --data-file=-`、標準入力）。返されたversion番号を控える。
+3. `environments/prod`のGit管理外`terraform.tfvars`へ`line_bug_report`を設定する（`terraform.tfvars.example`のコメント参照）。`github_repository`は`owner/repo`、各`*_version`は手順2の番号。
+4. `prod`でplan → 人による確認 → apply。差分は`google_cloud_run_v2_service.app`のupdate in-place（環境変数3つの追加）とdata source参照だけで、Cloud Run自体の置換、既存環境変数の変更、Cloud Scheduler jobの変更は含まれない。
+5. LINEグループでbotをメンションして動作確認する。
+
+運用:
+
+- 完全無効化: `line_bug_report`を削除（`null`）してplan → apply。環境変数3つが消え、アプリは起票しないfail closedへ戻る。secret containerは`bootstrap`に残るが、費用も挙動への影響もない。
+- secret rotation: 新versionを標準入力で追加 → `line_bug_report`の該当versionを更新 → plan → apply → 動作確認 → 旧version無効化。GitHub tokenは有効期限（最長1年）があるため、期限前に必ずrotationする。
+- Secret Managerの無料枠（アクティブversion 6件）を超えないよう、rotation後の旧versionはdisable/destroyする。
+
 ## 通常の変更
 
 Terraformの固定構成を変更する場合:

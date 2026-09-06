@@ -47,6 +47,34 @@ locals {
       LINE_WEEKLY_REPORT_JOB_INVOKER  = one(data.google_service_account.scheduler[*].email)
     } : name => value if local.line_weekly_report_enabled
   }
+
+  # LINE不具合報告（INF-023, INF-024）。変数がnullの間は環境変数・secret参照を一切宣言せず、
+  # アプリはfail closed（LBR-010）で起票しない。LINE channelと通知用DB接続は週次レポートと共有する。
+  line_bug_report_enabled = var.line_bug_report != null
+  line_bug_report_settings = var.line_bug_report != null ? var.line_bug_report : {
+    github_repository        = ""
+    github_token_version     = ""
+    allowed_user_ids_version = ""
+  }
+
+  line_bug_report_secret_env = {
+    for name, ref in {
+      LINE_BUG_REPORT_GITHUB_TOKEN = {
+        key     = "github_token"
+        version = local.line_bug_report_settings.github_token_version
+      }
+      LINE_BUG_REPORT_ALLOWED_USER_IDS = {
+        key     = "allowed_user_ids"
+        version = local.line_bug_report_settings.allowed_user_ids_version
+      }
+    } : name => ref if local.line_bug_report_enabled
+  }
+
+  line_bug_report_plain_env = {
+    for name, value in {
+      LINE_BUG_REPORT_GITHUB_REPOSITORY = local.line_bug_report_settings.github_repository
+    } : name => value if local.line_bug_report_enabled
+  }
 }
 
 data "google_service_account" "cloud_run" {
@@ -73,6 +101,13 @@ data "google_service_account" "scheduler" {
 
 data "google_secret_manager_secret" "line_weekly_report" {
   for_each = { for key, id in var.line_weekly_report_secret_ids : key => id if local.line_weekly_report_enabled }
+
+  project   = var.project_id
+  secret_id = each.value
+}
+
+data "google_secret_manager_secret" "line_bug_report" {
+  for_each = { for key, id in var.line_bug_report_secret_ids : key => id if local.line_bug_report_enabled }
 
   project   = var.project_id
   secret_id = each.value
@@ -162,6 +197,31 @@ resource "google_cloud_run_v2_service" "app" {
 
       dynamic "env" {
         for_each = local.line_weekly_report_plain_env
+
+        content {
+          name  = env.key
+          value = env.value
+        }
+      }
+
+      # LINE不具合報告の秘密値。latestではなく指定versionを固定する（INF-023）
+      dynamic "env" {
+        for_each = local.line_bug_report_secret_env
+
+        content {
+          name = env.key
+
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.line_bug_report[env.value.key].secret_id
+              version = env.value.version
+            }
+          }
+        }
+      }
+
+      dynamic "env" {
+        for_each = local.line_bug_report_plain_env
 
         content {
           name  = env.key

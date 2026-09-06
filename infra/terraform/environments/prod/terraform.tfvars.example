@@ -19,3 +19,11 @@ allowed_google_emails_version = "1"
 #   notifier_database_url_version = "1"
 #   paused                        = false
 # }
+
+# LINE不具合報告（段階2）。未設定（null）の間は起票機能が無効のまま。
+# line_weekly_reportが設定済みで、bootstrap applyと2つのsecretへのversion登録が済んでから有効化する。
+# line_bug_report = {
+#   github_repository        = "ttttai/account-book"
+#   github_token_version     = "1"
+#   allowed_user_ids_version = "1"
+# }

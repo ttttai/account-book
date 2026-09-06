@@ -143,6 +143,25 @@ variable "scheduler_service_account_id" {
   }
 }
 
+variable "line_bug_report_secret_ids" {
+  description = "LINE不具合報告用のSecret Manager secret ID（GitHub token、許可LINE userId一覧）。payloadは管理せず、containerだけを作成します"
+  type = object({
+    github_token     = string
+    allowed_user_ids = string
+  })
+  default = {
+    github_token     = "account-book-line-bug-report-github-token"
+    allowed_user_ids = "account-book-line-bug-report-allowed-user-ids"
+  }
+
+  validation {
+    condition = alltrue([
+      for id in values(var.line_bug_report_secret_ids) : can(regex("^[A-Za-z0-9_-]{1,255}$", id))
+    ])
+    error_message = "secret IDには英数字、ハイフン、underscoreだけを指定してください。"
+  }
+}
+
 variable "line_weekly_report_secret_ids" {
   description = "LINE週次レポート用のSecret Manager secret ID。payloadは管理せず、containerだけを作成します"
   type = object({

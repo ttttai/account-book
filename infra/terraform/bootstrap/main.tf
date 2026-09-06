@@ -240,3 +240,28 @@ resource "google_secret_manager_secret_iam_member" "line_weekly_report_cloud_run
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.cloud_run.email}"
 }
+
+# LINE不具合報告（INF-022）。secret containerだけを管理し、payload（GitHub token、
+# 許可LINE userId一覧）は段階3で標準入力から登録する
+resource "google_secret_manager_secret" "line_bug_report" {
+  for_each = tomap(var.line_bug_report_secret_ids)
+
+  project   = var.project_id
+  secret_id = each.value
+  labels    = local.common_labels
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_secret_manager_secret_iam_member" "line_bug_report_cloud_run_accessor" {
+  for_each = google_secret_manager_secret.line_bug_report
+
+  project   = var.project_id
+  secret_id = each.value.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
+}

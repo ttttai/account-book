@@ -158,3 +158,48 @@ variable "line_weekly_report" {
     error_message = "line_weekly_reportの各versionにはlatestではなく1以上のSecret Manager version番号を指定してください。"
   }
 }
+
+variable "line_bug_report_secret_ids" {
+  description = "bootstrapで作成したLINE不具合報告用secret ID"
+  type = object({
+    github_token     = string
+    allowed_user_ids = string
+  })
+  default = {
+    github_token     = "account-book-line-bug-report-github-token"
+    allowed_user_ids = "account-book-line-bug-report-allowed-user-ids"
+  }
+}
+
+variable "line_bug_report" {
+  description = "LINEのメンションからの不具合Issue起票の構成。nullのままなら環境変数・secret参照を作らず、起票機能は無効（fail closed）。LINE channelと通知用DB接続を共有するため、line_weekly_reportを設定した状態でだけ有効化できます"
+  type = object({
+    github_repository        = string
+    github_token_version     = string
+    allowed_user_ids_version = string
+  })
+  default = null
+
+  validation {
+    condition     = var.line_bug_report == null || var.line_weekly_report != null
+    error_message = "line_bug_reportはline_weekly_report（LINE channel secret・access token・通知用DB接続文字列）を設定した状態でだけ有効化できます。"
+  }
+
+  validation {
+    condition = var.line_bug_report == null || can(regex(
+      "^[A-Za-z0-9][A-Za-z0-9-]{0,38}/[A-Za-z0-9_-][A-Za-z0-9_.-]{0,99}$",
+      var.line_bug_report.github_repository,
+    ))
+    error_message = "line_bug_report.github_repositoryにはowner/repo形式のGitHubリポジトリを指定してください。"
+  }
+
+  validation {
+    condition = var.line_bug_report == null || alltrue([
+      for version in [
+        var.line_bug_report.github_token_version,
+        var.line_bug_report.allowed_user_ids_version,
+      ] : can(regex("^[1-9][0-9]*$", version))
+    ])
+    error_message = "line_bug_reportの各versionにはlatestではなく1以上のSecret Manager version番号を指定してください。"
+  }
+}
