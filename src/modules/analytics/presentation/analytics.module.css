@@ -179,11 +179,50 @@
   background: var(--accent-soft);
 }
 
+.analytics-budget-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+/* 状態は色だけでなくラベル文字で伝える (AC-BUD-007-1) */
+.analytics-budget-status {
+  padding: 0.1rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--accent);
+  background: white;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.analytics-budget[data-status="warn"] .analytics-budget-status {
+  color: #8a5a00;
+  background: #fbefd2;
+}
+
+.analytics-budget[data-status="over"] .analytics-budget-status {
+  color: #a33b2d;
+  background: #f9e1dc;
+}
+
 .analytics-budget-limit,
 .analytics-budget-progress {
   margin: 0;
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
+}
+
+.analytics-budget-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .analytics-category {

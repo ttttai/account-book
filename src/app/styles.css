@@ -367,7 +367,8 @@ a:focus-visible {
   max-width: 54rem;
 }
 
-.recurring-page {
+.recurring-page,
+.budget-page {
   max-width: 60rem;
 }
 

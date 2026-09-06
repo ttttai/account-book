@@ -1,0 +1,440 @@
+.budget-layout {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.budget-month-navigation {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.budget-month-navigation > a {
+  display: grid;
+  width: 44px;
+  min-height: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text);
+  background: white;
+  font-size: 1.7rem;
+  text-decoration: none;
+}
+
+.budget-month-navigation h2,
+.budget-month-navigation p {
+  margin: 0;
+}
+
+.budget-month-navigation h2 {
+  font-size: 1.05rem;
+}
+
+.budget-summary,
+.budget-panel,
+.budget-empty,
+.budget-editor {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--surface);
+}
+
+.budget-panel h3,
+.budget-form h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.budget-summary-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.budget-summary-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.budget-summary-limit {
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.budget-summary-note,
+.budget-muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+/* 状態は色だけでなくラベル文字で伝える。色は補助 (AC-BUD-007-1) */
+.budget-status {
+  flex: 0 0 auto;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-size: 0.74rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.budget-status[data-status="warn"] {
+  color: #8a5a00;
+  background: #fbefd2;
+}
+
+.budget-status[data-status="over"] {
+  color: #a33b2d;
+  background: #f9e1dc;
+}
+
+/* 進捗バーは装飾であり、数値とラベルで同じ内容を伝える */
+.budget-bar {
+  display: block;
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--background);
+}
+
+.budget-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.budget-bar[data-status="warn"] > span {
+  background: #d29a35;
+}
+
+.budget-bar[data-status="over"] > span {
+  background: #d8664f;
+}
+
+.budget-metrics,
+.budget-category-metrics {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.budget-category-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.budget-metrics > div,
+.budget-category-metrics > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.budget-metrics dt,
+.budget-category-metrics dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.budget-metrics dd,
+.budget-category-metrics dd {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.budget-category-metrics dd {
+  font-size: 0.88rem;
+}
+
+/* カテゴリ内訳は縦一覧。横スクロールする表を使わない (AC-BUD-010-2) */
+.budget-category-list {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-category-row {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.budget-category-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.budget-category-color {
+  flex: 0 0 auto;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #758178;
+}
+
+.budget-category-color[data-category-color="food"] {
+  background: #d8664f;
+}
+.budget-category-color[data-category-color="daily"] {
+  background: #6582c4;
+}
+.budget-category-color[data-category-color="home"] {
+  background: #a06a45;
+}
+.budget-category-color[data-category-color="utilities"] {
+  background: #d29a35;
+}
+.budget-category-color[data-category-color="transport"] {
+  background: #397f8f;
+}
+.budget-category-color[data-category-color="leisure"] {
+  background: #8a67ae;
+}
+.budget-category-color[data-category-color="salary"] {
+  background: #3d8a5f;
+}
+.budget-category-color[data-category-color="extra"] {
+  background: #b0589a;
+}
+
+.budget-category-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.budget-unallocated {
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-history {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.budget-history li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.budget-history strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-empty-title {
+  margin: 0;
+  font-weight: 750;
+}
+
+.budget-readonly {
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.9rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.budget-form {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
+.budget-field {
+  display: grid;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.budget-field > label {
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+/* 金額欄はOSの数字キーボードで入力する。¥表記は取引入力と揃える (AC-BUD-010-3) */
+.budget-amount-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.4rem;
+  padding-inline: 0.75rem;
+  border: 1px solid #bdc7bd;
+  border-radius: 0.7rem;
+  background: white;
+}
+
+.budget-amount-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(47 111 85 / 18%);
+}
+
+.budget-amount-wrap > span {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.budget-amount-wrap > input {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 入力欄群（枠なしのfieldset）。focusの伝播でテンキーの開閉を判定する境界 (AC-BUD-010-4) */
+.budget-fields {
+  display: grid;
+  min-width: 0;
+  min-inline-size: 0;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* 取引入力と共有するテンキーは選んだ金額欄の直下へ静的に置く。開いたときのscrollIntoViewで
+   下部ナビゲーションぶんの余白を確保し、キーがナビに隠れないようにする */
+.budget-keypad {
+  margin-top: 0.25rem;
+  scroll-margin-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+}
+
+.budget-keypad-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.budget-fieldset {
+  display: grid;
+  min-width: 0;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+}
+
+.budget-fieldset > legend {
+  padding-inline: 0.25rem;
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.budget-category-fields {
+  display: grid;
+  min-width: 0;
+  gap: 0.6rem;
+}
+
+.budget-form-summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-editor :global(.primary-button),
+.budget-editor :global(.secondary-button) {
+  min-height: 44px;
+}
+
+.budget-disable {
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.budget-disable-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* PCでは同じ情報構造のまま、グループ予算・履歴と、カテゴリ内訳・フォームを2カラムへ適応させる (AC-BUD-010-2) */
+@media (min-width: 900px) {
+  .budget-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 0.9rem 1rem;
+  }
+
+  .budget-month-navigation {
+    grid-column: 1 / -1;
+  }
+
+  .budget-readonly {
+    grid-column: 1 / -1;
+  }
+
+  .budget-amount-wrap > input {
+    min-height: 42px;
+    font-size: 1rem;
+  }
+}

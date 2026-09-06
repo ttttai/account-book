@@ -1,3 +1,5 @@
+import type { BudgetStatus } from "@/modules/budgets";
+
 import type { AnalyticsScope } from "../domain/analytics-input";
 import type {
   AnalyticsCategoryBreakdown,
@@ -35,12 +37,16 @@ export type AnalyticsMetrics = Readonly<{
   balance: number;
 }>;
 
-/** 予算機能が有効な月だけ設定する進捗 (ANA-011)。未実装期間は常に未設定 */
+/** グループ対象で予算が有効な月だけ設定する進捗 (ANA-011、BUD-010)。予算moduleの純関数から作る */
 export type AnalyticsBudgetProgress = Readonly<{
   limitMinor: number;
   usedMinor: number;
+  /** `予算額 − 実績`。超過時は負数 */
   remainingMinor: number;
   usedPercent: number;
+  status: BudgetStatus;
+  /** 色に依存せず状態を伝えるラベル（順調・注意・超過） */
+  statusLabel: string;
 }>;
 
 export type AnalyticsOverviewReady = Readonly<{

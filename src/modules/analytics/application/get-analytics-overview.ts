@@ -1,5 +1,11 @@
 import "server-only";
 
+import {
+  BUDGET_STATUS_LABELS,
+  type BudgetProgress,
+  calculateBudgetProgress,
+} from "@/modules/budgets";
+import { loadAppliedBudgetRevision } from "@/modules/budgets/server";
 import { resolveGroupReadContext } from "@/modules/groups/server";
 
 import { parseAnalyticsSelection } from "../domain/analytics-input";
@@ -13,6 +19,7 @@ import {
   resolveAnalyticsTarget,
 } from "./analytics-context";
 import type {
+  AnalyticsBudgetProgress,
   AnalyticsMetrics,
   AnalyticsOverviewData,
   AnalyticsSearchInput,
@@ -30,6 +37,18 @@ function toMetrics(
     expenseTotal: totals.expenseTotal,
     incomeTotal: totals.incomeTotal,
     balance: totals.balance,
+  };
+}
+
+// 予算moduleの進捗を概要DTOの予算カードへ写す。金額を再計算しない (AC-BUD-010-1)
+function toAnalyticsBudget(progress: BudgetProgress): AnalyticsBudgetProgress {
+  return {
+    limitMinor: progress.limitMinor,
+    usedMinor: progress.usedMinor,
+    remainingMinor: progress.remainingMinor,
+    usedPercent: progress.usedPercent,
+    status: progress.status,
+    statusLabel: BUDGET_STATUS_LABELS[progress.status],
   };
 }
 
@@ -65,9 +84,13 @@ export async function getAnalyticsOverview(
   if (!target) return invalid("invalid_member");
 
   const previousMonth = shiftAnalyticsMonth(selection.month, -1);
-  const [monthlyTotals, members] = await Promise.all([
+  // 予算はグループ単位のため、グループ対象のときだけ選択月の適用改定を読む (ANA-011)
+  const [monthlyTotals, members, appliedBudget] = await Promise.all([
     loadAnalyticsMonths(context, [previousMonth, selection.month], target),
     loadAnalyticsMembers(context),
+    target.scope === "group"
+      ? loadAppliedBudgetRevision(context, selection.month)
+      : Promise.resolve(null),
   ]);
   const previous = monthlyTotals[0];
   const current = monthlyTotals[1];
@@ -82,6 +105,8 @@ export async function getAnalyticsOverview(
       ? members.find((member) => member.membershipId === target.memberId)
           ?.displayName
       : undefined;
+  // 予算画面と同じ純関数で進捗を作り、同じ月の予算・実績・残額を一致させる (BUD-010)
+  const budgetProgress = calculateBudgetProgress(appliedBudget, current);
 
   return {
     kind: "ready",
@@ -113,6 +138,7 @@ export async function getAnalyticsOverview(
       totals.expenseTotal > 0 ||
       totals.incomeTotal > 0 ||
       current.expenseByCategory.length > 0,
-    // 予算（BUD-*）は未実装のため、値がない月は予算領域を表示しない (AC-ANA-011-1)
+    // 予算がない月と自分・メンバー対象では予算領域を表示しない (AC-ANA-011-1)
+    ...(budgetProgress ? { budget: toAnalyticsBudget(budgetProgress) } : {}),
   };
 }

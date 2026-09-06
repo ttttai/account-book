@@ -100,6 +100,16 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
               </span>
               <span aria-hidden="true">›</span>
             </Link>
+            <Link
+              className="settings-row-link"
+              href={`/groups/${encodedGroupId}/budgets`}
+            >
+              <span>
+                <strong>予算</strong>
+                <small>月間予算とカテゴリ予算の進捗を確認します</small>
+              </span>
+              <span aria-hidden="true">›</span>
+            </Link>
             <a
               className="settings-row-link"
               href={`/api/v1/groups/${encodedGroupId}/exports/transactions.csv`}

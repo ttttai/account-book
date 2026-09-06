@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.12
+バージョン: 0.2.13
 
 ## 1. 設計目標
 
@@ -26,6 +26,7 @@ groups     1---* transactions
 transactions 1---* transaction_allocations *---1 group_members
 transactions *---1 group_members（支出の支払者または収入の受取者）
 transactions *---1 auth.users（created_by / updated_by）
+groups     1---* budget_revisions 1---* budget_category_limits *---1 categories
 ```
 
 ## 3. テーブル
@@ -219,6 +220,44 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 - 支出では負担額合計が定期取引金額と一致する状態だけをcommitできる。収入には作成しない。
 - 更新はowner/admin検証を含む`security definer`関数に限定し、直接のinsert/update/delete権限を付与しない。
 
+### budget_revisions
+
+適用開始月を持つグループ予算の改定履歴。詳細な列と制約は[`13-budget-management.md`](13-budget-management.md)を正本とする。
+
+| column                      | 型              | 説明                                          |
+| --------------------------- | --------------- | --------------------------------------------- |
+| `id`                        | uuid PK         |                                               |
+| `group_id`                  | uuid FK         | 必須のグループ境界                            |
+| `effective_month`           | date            | 適用開始月。月初日で保持する                  |
+| `status`                    | text            | `active`または`disabled`                      |
+| `total_amount_minor`        | bigint nullable | `active`では正のJPY整数、`disabled`では`null` |
+| `version`                   | integer         | 楽観的ロック                                  |
+| `created_by` / `updated_by` | uuid FK         | 認証ユーザー                                  |
+| `created_at` / `updated_at` | timestamptz     | UTC                                           |
+
+制約:
+
+- `(group_id, effective_month)`と`(id, group_id)`をuniqueにする。
+- `effective_month`は月初日に限る。
+- `status`に応じて`total_amount_minor`の必須・`null`を切り替える。
+- 月ごとの予算行を複製せず、対象月以前で最も新しい開始月の改定を読み取り時に適用する。停止は`disabled`の改定として記録し、削除しない。
+
+### budget_category_limits
+
+| column               | 型               | 説明                       |
+| -------------------- | ---------------- | -------------------------- |
+| `budget_revision_id` | uuid PK/FKの一部 |                            |
+| `category_id`        | uuid PK/FKの一部 | 同じグループの支出カテゴリ |
+| `group_id`           | uuid FK          | 必須のグループ境界         |
+| `amount_minor`       | bigint           | 正のJPY整数                |
+| `created_at`         | timestamptz      | UTC                        |
+
+制約:
+
+- 改定とカテゴリは`group_id`を含む複合外部キーで同じグループへ固定する。
+- 合計が親改定の`total_amount_minor`以下で、支出種別かつ未アーカイブのカテゴリだけを持つ状態だけをDB commandでcommitする。停止改定には内訳を作らない。
+- 更新はowner/admin検証を含む`security definer`関数に限定し、直接のinsert/update/delete権限を付与しない。
+
 ## 4. インデックス
 
 初期必須インデックス:
@@ -236,6 +275,8 @@ transactions(group_id, deleted_at) WHERE deleted_at IS NOT NULL
 transaction_allocations(member_id, transaction_id)
 recurring_transactions(group_id, start_month, day_of_month, id)
 recurring_transaction_allocations(member_id, recurring_transaction_id)
+budget_revisions(group_id, effective_month DESC)
+budget_category_limits(category_id, budget_revision_id)
 categories(group_id, type, archived_at, sort_order)
 user_preferences(default_group_id)
 ```

@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.3
+バージョン: 0.2.4
 
 ## 確定事項
 
@@ -71,7 +71,7 @@ MVPの認証はGoogle OAuthのみとし、アプリでパスワードや認証�
 
 次はMVPへ中途半端な実装を入れない。
 
-- 予算
+- 予算の翌月繰越、メンバー個別予算、日・週・年単位の予算、予算超過による取引停止、予算警告の通知（月間予算・カテゴリ予算と改定履歴は`BUD-*`として実装）
 - 定期取引のjob自動生成、週次・隔週・年次、29〜31日・月末調整、変動金額、過去月の確定値保持（固定額月次の定期取引設定は`REC-*`として実装）
 - 銀行・カード連携
 - レシートOCR
@@ -84,6 +84,6 @@ MVPの認証はGoogle OAuthのみとし、アプリでパスワードや認証�
 - グループ削除
 - Service Workerによるオフラインキャッシュ・プッシュ通知（ホーム画面インストール可能化は`NFR-PWA-*`としてMVPに含む）
 
-MVP後の追加機能は、それぞれ独立した仕様と承認を経て実装する。概要分析・詳細分析と共通集計（`ANA-*`段階1・2）は[`12-analytics-and-reporting.md`](12-analytics-and-reporting.md)、固定額・月次の定期取引（`REC-*`）は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。予算（`BUD-*`）とLINE定期レポートの送信処理は、共通集計境界`getAnalyticsPeriodSummary`を再利用する前提で後続段階として仕様化する。
+MVP後の追加機能は、それぞれ独立した仕様と承認を経て実装する。概要分析・詳細分析と共通集計（`ANA-*`段階1・2）は[`12-analytics-and-reporting.md`](12-analytics-and-reporting.md)、固定額・月次の定期取引（`REC-*`）は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。予算（`BUD-*`）は[`13-budget-management.md`](13-budget-management.md)を正本とし、分析と同じ月次集計純関数を再利用する。LINE定期レポートの送信処理は、共通集計境界`getAnalyticsPeriodSummary`を再利用する前提で後続段階として仕様化する。
 
 延期機能は、初期コード内の未使用flagとして入れず、新しい仕様・レビューを作成してから追加する。
