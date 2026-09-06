@@ -68,9 +68,11 @@ Production CDは**container imageの更新だけ**を行う。次はCDの対象�
 
 ## 許可リスト（AUTH_ALLOWED_GOOGLE_EMAILS）のrotation
 
-1. Secret Managerへ新versionを標準入力から追加する（値をshell historyやlogへ残さない）。
-2. `environments/prod`の`allowed_google_emails_version`を新しいversion番号へ変更し、plan → apply。
-3. 本番DBの`app_private.allowed_google_accounts`も同じ値で手動同期する（[`database-changes.md`](database-changes.md)の「許可リストの同期」を参照）。
+許可Googleアカウントの追加・削除は[`allowed-google-emails.md`](allowed-google-emails.md)を正本とする（`INF-018`）。概要は次のとおりで、値の受け渡しは`scripts/rotate-allowed-google-emails.sh`が行う。
+
+1. `./scripts/rotate-allowed-google-emails.sh add-version`で、全件の許可リストを標準入力から検証してSecret Managerへ新versionを追加し、`environments/prod`の`allowed_google_emails_version`を新番号へ更新する。
+2. `terraform plan` → 人による確認 → `terraform apply`でCloud Runの新revisionを作る。secret参照は`latest`ではなく番号固定のため、version追加だけでは反映されない。
+3. `./scripts/rotate-allowed-google-emails.sh sync-db <version>`で、本番DBの`app_private.allowed_google_accounts`を同じsecret versionから同期する。
 4. Google OAuthのログインをsmoke testし、問題がなければ旧versionを無効化する。即時削除はしない。
 
 ## ロールバック
