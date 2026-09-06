@@ -125,6 +125,8 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 
 初期カテゴリは機能コード上の不変定義とDBのグループ作成関数で同じ順序を維持する。色は`food`、`daily`、`home`、`utilities`、`transport`、`leisure`、`other`、`salary`、`extra`の許可済みdesign tokenを使用し、iconは`utensils`、`basket`、`house`、`bolt`、`train`、`ticket`、`ellipsis`、`wallet`、`sparkles`の許可リストから保存する。
 
+カテゴリの`color`列が受け付けるtokenは、初期カテゴリが使う9色に`orange`、`olive`、`mint`、`sky`、`indigo`、`navy`、`rose`、`wine`、`charcoal`を加えた18色（`AC-CAT-002-7`）である。`categories_color`のcheck制約と`update_group_category`関数は同じ18色を許可リストとして持ち、パレット外をfail closedで拒否する。制約の拡張は既存行を変更しない追加的migrationとして行い、初期カテゴリの色は変更しない。
+
 ### transactions
 
 | column                | 型                   | 説明                               |
