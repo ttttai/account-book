@@ -46,6 +46,7 @@ function createDayTransactionsByDate(
       createdAt: expense.createdAt,
       transaction: {
         id: expense.id,
+        memo: expense.memo ?? null,
         type: "expense",
         amountMinor: expense.amountMinor,
         targetAmountMinor,
@@ -78,6 +79,7 @@ function createDayTransactionsByDate(
       createdAt: income.createdAt,
       transaction: {
         id: income.id,
+        memo: income.memo ?? null,
         type: "income",
         amountMinor: income.amountMinor,
         targetAmountMinor: income.amountMinor,

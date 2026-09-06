@@ -556,3 +556,8 @@
   font-size: 0.68rem;
   font-weight: 750;
 }
+
+.calendar-transaction-memo {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

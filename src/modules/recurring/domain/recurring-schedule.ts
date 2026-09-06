@@ -9,6 +9,7 @@ export type RecurringSchedule = Readonly<{
   id: string;
   type: RecurringTransactionType;
   name: string;
+  memo?: string | null;
   amountMinor: number;
   /** 毎月の日付（1〜28）。29日以降と月末は初回スコープ外 */
   dayOfMonth: number;
@@ -28,6 +29,7 @@ export type RecurringOccurrence = Readonly<{
   recurringTransactionId: string;
   type: RecurringTransactionType;
   name: string;
+  memo?: string | null;
   /** `YYYY-MM-DD` */
   date: string;
   amountMinor: number;
@@ -81,6 +83,7 @@ export function expandRecurringForMonth(
       recurringTransactionId: schedule.id,
       type: schedule.type,
       name: schedule.name,
+      memo: schedule.memo ?? null,
       date: occurrenceDate(month, schedule.dayOfMonth),
       amountMinor: schedule.amountMinor,
       category: schedule.category,

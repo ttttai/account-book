@@ -21,6 +21,7 @@ export type CalendarDayTransaction = Readonly<{
   type: "expense" | "income";
   amountMinor: number;
   targetAmountMinor: number;
+  memo?: string | null;
   categoryName: string;
   /** 許可済みカテゴリ色token。サーバーqueryが正規化し、表示層は`data-category-color`へ渡すだけにする (AC-CAL-001-18) */
   categoryColor: CategoryColor;

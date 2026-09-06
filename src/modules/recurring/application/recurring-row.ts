@@ -42,6 +42,7 @@ export function toRecurringSchedule(row: RecurringRow): RecurringSchedule {
     id: row.id,
     type: row.type,
     name: row.name,
+    memo: row.memo,
     amountMinor: row.amount_minor,
     dayOfMonth: row.day_of_month,
     startMonth: firstDayToMonth(row.start_month),

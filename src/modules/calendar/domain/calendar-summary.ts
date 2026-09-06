@@ -2,6 +2,7 @@ export type CalendarExpense = Readonly<{
   id: string;
   date: string;
   amountMinor: number;
+  memo?: string | null;
   payerMemberId: string;
   createdAt: string;
   category: Readonly<{ name: string; color: string; icon: string }>;
@@ -15,6 +16,7 @@ export type CalendarIncome = Readonly<{
   id: string;
   date: string;
   amountMinor: number;
+  memo?: string | null;
   recipientMemberId: string;
   createdAt: string;
   category: Readonly<{ name: string; color: string; icon: string }>;

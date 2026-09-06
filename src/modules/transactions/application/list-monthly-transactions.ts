@@ -35,6 +35,7 @@ const expenseRowSchema = z.object({
   amount_minor: safeAmountSchema,
   payer_member_id: z.uuid(),
   created_at: z.string(),
+  memo: z.string().nullable().default(null),
   categories: categorySchema,
   transaction_allocations: z.array(
     z.object({ member_id: z.uuid(), amount_minor: safeAmountSchema }),
@@ -46,13 +47,14 @@ const incomeRowSchema = z.object({
   amount_minor: safeAmountSchema,
   recipient_member_id: z.uuid(),
   created_at: z.string(),
+  memo: z.string().nullable().default(null),
   categories: categorySchema,
 });
 
 const CATEGORY_COLUMNS =
   "categories!transactions_category_group_fk(id, name, color, icon)";
-const EXPENSE_COLUMNS = `id, transaction_date, amount_minor, payer_member_id, created_at, ${CATEGORY_COLUMNS}, transaction_allocations!transaction_allocations_transaction_group_fk(member_id, amount_minor)`;
-const INCOME_COLUMNS = `id, transaction_date, amount_minor, recipient_member_id, created_at, ${CATEGORY_COLUMNS}`;
+const EXPENSE_COLUMNS = `id, transaction_date, amount_minor, payer_member_id, created_at, memo, ${CATEGORY_COLUMNS}, transaction_allocations!transaction_allocations_transaction_group_fk(member_id, amount_minor)`;
+const INCOME_COLUMNS = `id, transaction_date, amount_minor, recipient_member_id, created_at, memo, ${CATEGORY_COLUMNS}`;
 
 // 展開結果は登録日時を持たないため、日別表示では単発取引より後ろへ並ぶ固定値を使う
 const RECURRING_SORT_KEY = "0000-01-01T00:00:00.000Z";
@@ -101,6 +103,7 @@ export async function listMonthlyTransactions(
       amountMinor: row.amount_minor,
       payerMemberId: row.payer_member_id,
       createdAt: row.created_at,
+      memo: row.memo,
       category: row.categories,
       allocations: row.transaction_allocations.map((allocation) => ({
         memberId: allocation.member_id,
@@ -117,6 +120,7 @@ export async function listMonthlyTransactions(
       amountMinor: row.amount_minor,
       recipientMemberId: row.recipient_member_id,
       createdAt: row.created_at,
+      memo: row.memo,
       category: row.categories,
       isRecurring: false,
     }));
@@ -131,6 +135,7 @@ export async function listMonthlyTransactions(
           amountMinor: occurrence.amountMinor,
           payerMemberId: occurrence.payerMemberId ?? "",
           createdAt: RECURRING_SORT_KEY,
+          memo: occurrence.memo,
           category: occurrence.category,
           allocations: occurrence.allocations,
           isRecurring: true,
@@ -144,6 +149,7 @@ export async function listMonthlyTransactions(
         amountMinor: occurrence.amountMinor,
         recipientMemberId: occurrence.recipientMemberId ?? "",
         createdAt: RECURRING_SORT_KEY,
+        memo: occurrence.memo,
         category: occurrence.category,
         isRecurring: true,
         recurringName: occurrence.name,
