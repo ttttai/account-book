@@ -231,7 +231,7 @@ beforeEach(() => {
 });
 
 describe("getAnalyticsOverview", () => {
-  it("グループ対象の支出・収入・収支と前月比較を返す (AC-ANA-002-1、AC-ANA-003-2)", async () => {
+  it("グループ対象の支出・収入・収支と前月との差額を返す (AC-ANA-002-1、AC-ANA-003-2)", async () => {
     setupSupabase();
 
     const data = await getAnalyticsOverview(GROUP_ID, { month: "2026-09" });
@@ -252,14 +252,8 @@ describe("getAnalyticsOverview", () => {
       incomeTotal: 200000,
       balance: 190000,
     });
-    expect(data.expenseComparison).toEqual({
-      diffMinor: 1000,
-      changePercent: 10,
-    });
-    expect(data.incomeComparison).toEqual({
-      diffMinor: 100000,
-      changePercent: 50,
-    });
+    expect(data.expenseComparison).toStrictEqual({ diffMinor: 1000 });
+    expect(data.incomeComparison).toStrictEqual({ diffMinor: 100000 });
     expect(data.balanceDiffMinor).toBe(99000);
     expect(data.hasTransactions).toBe(true);
   });
