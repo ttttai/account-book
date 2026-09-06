@@ -1,4 +1,10 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { AnalyticsDetailsReady } from "../application/analytics-types";
@@ -109,6 +115,30 @@ describe("AnalyticsDetails", () => {
     const categories = screen.getByRole("list", { name: "期間の支出カテゴリ" });
     expect(categories.textContent).toContain("食費");
     expect(categories.textContent).toContain("￥13,000");
+    // カテゴリ構成は既定で円グラフ。切替で横棒へ変わり一覧は同じ (AC-ANA-014-1、AC-ANA-014-3)
+    expect(
+      container
+        .querySelector("[data-analytics-pie]")
+        ?.getAttribute("aria-hidden"),
+    ).toBe("true");
+    expect(container.querySelector("[data-analytics-bar]")).toBeNull();
+    const categoryRows = within(categories)
+      .getAllByRole("listitem")
+      .map((row) => row.textContent);
+    fireEvent.click(
+      within(
+        screen.getByRole("group", { name: "支出カテゴリの表示形式" }),
+      ).getByRole("button", { name: "棒グラフ" }),
+    );
+    expect(container.querySelector("[data-analytics-pie]")).toBeNull();
+    expect(container.querySelectorAll("[data-analytics-bar]")).toHaveLength(
+      categoryRows.length,
+    );
+    expect(
+      within(screen.getByRole("list", { name: "期間の支出カテゴリ" }))
+        .getAllByRole("listitem")
+        .map((row) => row.textContent),
+    ).toEqual(categoryRows);
     const members = screen.getByRole("table", { name: "メンバー別の内訳" });
     expect(members.textContent).toContain("負担額");
     expect(members.textContent).toContain("支払額");
