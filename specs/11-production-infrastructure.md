@@ -2,9 +2,9 @@
 
 状態: 実装承認済み
 
-バージョン: 0.3.0
+バージョン: 0.4.0
 
-最終更新日: 2026-08-30
+最終更新日: 2026-09-06
 
 ## 1. 目的
 
@@ -31,6 +31,7 @@
 - `INF-015`: GitHub Actionsはservice account keyを使わず、再利用されないnumeric repository ID・owner IDとmain branchへ制約したWorkload Identity Federationから専用deploy service accountをimpersonateする。deploy identityにはArtifact Registryへのpush、既存Cloud Run serviceのrevision更新、runtime identityの利用に必要な最小権限だけを付与する。
 - `INF-016`: production CDはRepository variable `PRODUCTION_CD_ENABLED=true`を明示した場合だけ起動し、GitHub Environment `production`の接続値・secret・保護規則を使って同時deployを直列化する。実値tfvarsやcredential fileをGitへ追加せず、許可Googleアカウント一覧、Google OAuth client secret、Supabase service role keyをworkflowへ渡さない。
 - `INF-017`: 変更がアプリの挙動に影響しないドキュメント（`docs/**`、root `README.md`、`CLAUDE.md`）のみの場合、CIはformat検証だけを実行して重い検証ジョブをskipし、production CDは実際にdeployへ成功した直近commitとの差分で判定してdeployをskipする。testが内容を検証する`specs/**`と`AGENTS.md`はドキュメント扱いにしない。docsのみ判定は単一のscriptへ集約し、初回・判定不能・手動実行では必ず検証とdeployを実行する側へ倒す。
+- `INF-018`: 許可Googleアカウント一覧の変更（追加・削除）は、Secret Managerへの新version追加、`environments/prod`のversion変数更新、plan確認後のapply、本番DBの`app_private.allowed_google_accounts`同期、smoke test、旧version無効化の順で行う。version追加とDB同期は`scripts/rotate-allowed-google-emails.sh`で行い、値は標準入力またはSecret Managerから取得したものだけを使い、command line引数、shell history、log、標準出力へ出さない。DB同期はSecret Managerの同じversionから値を取得し、手入力の二重化による不一致を作らない。runbookは`docs/operations/allowed-google-emails.md`を正本とする。
 
 ## 3. 対象構成
 
@@ -167,7 +168,7 @@ Cloud Runが予約する`PORT`をTerraformから上書きしない。`SUPABASE_I
 
 - Terraform source、tfvars example、plan artifact、output、logへsecret payloadを書かない。
 - Secret Manager secret versionはTerraform外で安全な標準入力から追加する。command line argumentへpayloadを直接書かない。
-- Cloud Runのsecret環境変数はversion番号を明示し、rotationは「version追加 → Terraform変数更新 → plan → apply → smoke test → 旧version無効化」の順で行う。
+- Cloud Runのsecret環境変数はversion番号を明示し、rotationは「version追加 → Terraform変数更新 → plan → apply → DB同期 → smoke test → 旧version無効化」の順で行う（`INF-018`）。Cloud Runのtrafficは最新revisionへ向くが、secret参照は`latest`にしない。同一revision内でinstanceごとに許可リストが食い違うこと、旧revisionへのrollbackで許可リストが戻らないこと、レビューなしに本番の認可情報が変わることを防ぐためである。
 - runtime service accountへの`roles/secretmanager.secretAccessor`は対象secretだけに付与する。
 - state bucketはpublic access prevention、uniform bucket-level access、versioningを有効にし、`force_destroy = false`と削除防止を設定する。
 - backend credentialはApplication Default Credentialsまたはservice account impersonationを使う。service account key JSONを作成・保存しない。
@@ -250,6 +251,9 @@ apply後は次をsmoke testする。
 - `AC-INF-001-18`: CDはimage以外のCloud Run構成を変更するflagを使わず、実値tfvars、長期credential、許可メール一覧、OAuth client secret、Supabase service role keyをworkflowへ含めない。
 - `AC-INF-001-19`: docsのみ判定は`scripts/docs-only-diff.sh`に集約され、対象を`docs/**`・root `README.md`・`CLAUDE.md`に限定し、`specs/**`と`AGENTS.md`を含まない。CIの重い検証ジョブは、作業ブランチではmainとの分岐点、mainでは直前commitとの差分がdocsのみの場合だけskipされ、format検証は常に実行される。
 - `AC-INF-001-20`: production CDは、`Build and deploy` jobが実際に成功した直近runのcommitとの差分がdocsのみの場合だけdeployをskipする。deployをskipしたrunを基準にせず、基準を特定できない場合と手動実行では必ずdeployする。
+- `AC-INF-001-21`: `scripts/rotate-allowed-google-emails.sh add-version`は、標準入力の許可リストを検証（空値・重複・不正形式で中止）してからSecret Managerへ新versionを追加し、Git管理外の`terraform.tfvars`の`allowed_google_emails_version`を新番号へ更新し、続くplan・apply・DB同期・smoke test・旧version無効化のcommandを表示する。許可リストの値をcommand line引数、標準出力、標準エラー出力へ出さない。
+- `AC-INF-001-22`: `scripts/rotate-allowed-google-emails.sh sync-db <version>`は、Secret Managerの指定versionから値を取得して同じ検証を行い、psqlの標準入力経由で`app_private.sync_allowed_google_accounts`を実行し、同期件数を表示する。値をpsqlのcommand line引数へ渡さない。
+- `AC-INF-001-23`: 上記scriptの検証・tfvars更新・stdin経由の受け渡しは、実credentialと実cloud変更なしにstub commandで構造testできる。runbook `docs/operations/allowed-google-emails.md`が存在し、`deployment.md`、`database-changes.md`、`infra/terraform/README.md`から参照されている。
 
 ## 10. worktree境界
 
@@ -277,3 +281,7 @@ apply後は次をsmoke testする。
 - Claude Code側が実装中の履歴、CSV、メンバー、カテゴリ機能
 
 dependency追加、migration番号、共通UI、routeは本変更で予約しない。
+
+### 10.1 許可リストrotation補助（`INF-018`）
+
+`chore/allowed-google-emails-rotation`ブランチでは、`scripts/rotate-allowed-google-emails.sh`、`docs/operations/allowed-google-emails.md`、関連する運用資料の参照、`tests/architecture/allowed-google-emails-rotation.test.mjs`、本仕様とそのレビューだけを変更する。Terraform source、`src/**`、`supabase/migrations/**`、CI/CD workflowは変更しない。
