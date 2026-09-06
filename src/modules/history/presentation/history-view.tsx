@@ -72,31 +72,14 @@ export function HistoryValidationError({
   );
 }
 
+// shortcut chipは「自分が支払った」だけを表示する。負担額での絞り込みは絞り込みsheetの負担メンバー指定で行う (HIS-003)
 function ShortcutChips({ data }: Readonly<{ data: HistoryReadyData }>) {
   const params = filterToParams(data.filter);
-  const isMyShareActive =
-    data.filter.memberMemberId === data.currentMembershipId;
   const isMyPaymentActive =
     data.filter.payerMemberId === data.currentMembershipId;
 
   return (
     <nav className={styles["history-shortcuts"]} aria-label="よく使う絞り込み">
-      <Link
-        className={
-          isMyShareActive
-            ? `${styles["history-chip"]} is-active`
-            : styles["history-chip"]
-        }
-        aria-current={isMyShareActive ? "true" : undefined}
-        href={createHistoryUrl(
-          data.group.id,
-          isMyShareActive
-            ? withoutParam(params, "member")
-            : { ...params, member: data.currentMembershipId },
-        )}
-      >
-        自分の利用
-      </Link>
       <Link
         className={
           isMyPaymentActive
