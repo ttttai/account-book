@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.3.4
+バージョン: 0.3.5
 
 ## 1. プロダクト概要
 
@@ -210,6 +210,22 @@ MVP制約:
 - `NOTIF-008` 同一の家計グループ・対象週に対する通知は1回だけ送信し、Cloud Schedulerのリトライや多重起動で二重送信しない。
 - `NOTIF-009` LINEのchannel secret、channel access token、通知用DB接続文字列はSecret Managerで管理し、コード、Git、ログ、クライアントへ出さない。LINEのgroupIdもログ・画面へ出さない。
 - `NOTIF-010` 必要な環境変数が未設定の場合、通知機能は安全に無効となり（fail closed）、Webhook・ジョブの各エンドポイントは処理を行わず404を返す。
+
+### LINE不具合報告（MVP後）
+
+詳細は[`17-line-bug-report.md`](17-line-bug-report.md)を正本とする。
+
+- `LBR-001` LINEグループトークで受信した`message` eventのうち、`mode === "active"`、`message.type === "text"`、かつ`message.mention.mentionees`にbot自身（`isSelf: true`）が含まれるものだけを起票要求とする。メンションなし、`@All`のみ、非text、standby modeは処理せず200を返す。本文からメンション部分を除去し、空になった場合は起票せず案内を返信する。
+- `LBR-002` 起票要求は`source.type === "group"`で、かつ`NOTIF-004`で連携済みのLINEグループからのものに限る。1対1トーク、未連携グループ、複数人トークからのメンションは処理しない。
+- `LBR-003` 報告者の`source.userId`がGit管理外のサーバー設定に列挙された許可LINE userIdに含まれる場合だけ起票する。許可外の報告者には起票も返信も行わず、監査用に許可外の起票要求の件数だけをログへ記録する。ログにuserId・本文・LINE groupIdを含めない。
+- `LBR-004` Issue本文は固定テンプレートで組み立てる。「概要」にはメンションを除いた本文をMarkdownとして解釈されないコードブロックで転記し、再現手順・期待する動作・実際の動作・影響範囲・重要度は未記入と明記する。「報告元」にはLINEの`message.id`と受信日時（UTC）だけを記載し、LINE userId・表示名・groupId・家計データを付加しない。
+- `LBR-005` Issueタイトルは本文の最初の空でない行の先頭60文字（コードポイント単位）を使った`bug(line): <本文1行目>`とし、ラベル`bug`と`source:line`を付与する。対象リポジトリはサーバー環境変数で指定し、クライアントや本文から受け取らない。
+- `LBR-006` GitHubへの起票はIssues: Read and write権限のみを持つトークンで行い、トークンはSecret Managerで管理してコード・Git・ログ・クライアント・エラーメッセージへ出さない。Cloud Runは`latest`ではなく指定versionを参照する。GitHub API呼び出しには`User-Agent`・APIバージョンを付け、上限時間を設ける。
+- `LBR-007` 同一`message.id`に対する起票は1回だけ行う。起票前に`message.id`の起票記録をDBで確保し、確保できなければ何もしない。失敗時は未完了の記録を返上し、成功時はIssue番号を記録する。LINEのWebhook再送やCloud Runの多重起動で同じ本文のIssueを複数作らない。
+- `LBR-008` 起票に成功した場合は`replyToken`でIssue番号とURLを返信し、失敗した場合は「起票できませんでした」と返信する。返信にはReply APIだけを使い、Push APIの無料枠を消費しない。返信の失敗はWebhookのエラーにしない。
+- `LBR-009` Webhookは起票要求を同期処理し、GitHub・LINEの各呼び出しに上限時間を設けたうえで、失敗・タイムアウト時もWebhook自体は200を返す。Cloud Runのrequest-based billingでは応答後処理の完了が保証されないため、`after()`は使わない。
+- `LBR-010` 起票用の環境変数（GitHubトークン、対象リポジトリ、許可LINE userId）が1つでも未設定または不正な場合、この機能は安全に無効となり（fail closed）、メンション付きメッセージも処理しない。`NOTIF-*`の週次レポートには影響しない。
+- `LBR-011` botとの1対1トークで本文が`ID`のtextメッセージを受信したときだけ、送信者自身のuserIdをReply APIで返信する。他人のuserIdを返さず、グループトークでは応答せず、userIdをログへ出さない。Webhookが有効なら起票用環境変数の有無にかかわらず行う。
 
 ### エクスポート
 

@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.15
+バージョン: 0.2.16
 
 ## 1. Next.js境界方針
 
@@ -35,12 +35,12 @@ Server Actionへ再利用可能な業務ロジックを書かず、Web要求をc
 - 認証callback
 - OAuth開始
 - CSV download
-- Webhook（LINE Webhookは`/api/v1/line/webhook`）
+- Webhook（LINE Webhookは`/api/v1/line/webhook`。join/leaveによる連携登録と、メンション付きメッセージからのGitHub Issue起票（[`17-line-bug-report.md`](17-line-bug-report.md)）を同じRouteで扱う）
 - Cloud Schedulerが呼ぶ定期ジョブ（週次LINEレポートは`/api/v1/jobs/weekly-line-report`）
 - health check
 - 将来のネイティブアプリ・外部クライアント向けAPI
 
-Route Handlerからも、Server Actionと同じ機能query・commandを呼ぶ。Webhookと定期ジョブは利用者のsessionを持たないため、署名またはOIDCトークンで呼び出し元を検証し、必要な環境変数が揃わない間は404を返して無効にする（[`16-line-weekly-report.md`](16-line-weekly-report.md)）。
+Route Handlerからも、Server Actionと同じ機能query・commandを呼ぶ。Webhookと定期ジョブは利用者のsessionを持たないため、署名またはOIDCトークンで呼び出し元を検証し、必要な環境変数が揃わない間は404を返して無効にする（[`16-line-weekly-report.md`](16-line-weekly-report.md)）。Webhookからの外部API呼び出し（GitHub Issue作成、LINE返信）は上限時間付きで同期実行し、`after()`による応答後処理へ回さない（Cloud Runのrequest-based billingでは完了が保証されないため、`LBR-009`）。
 
 ## 2. 機能モジュールの公開範囲
 

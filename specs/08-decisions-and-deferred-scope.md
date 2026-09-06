@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.5
+バージョン: 0.2.6
 
 ## 確定事項
 
@@ -85,6 +85,6 @@ MVPの認証はGoogle OAuthのみとし、アプリでパスワードや認証�
 - グループ削除
 - Service Workerによるオフラインキャッシュ・プッシュ通知（ホーム画面インストール可能化は`NFR-PWA-*`としてMVPに含む）
 
-MVP後の追加機能は、それぞれ独立した仕様と承認を経て実装する。概要分析・詳細分析と共通集計（`ANA-*`段階1・2）は[`12-analytics-and-reporting.md`](12-analytics-and-reporting.md)、固定額・月次の固定費（`REC-*`）は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。予算（`BUD-*`）は[`13-budget-management.md`](13-budget-management.md)を正本とし、分析と同じ月次集計純関数を再利用する。LINE週次レポート（`NOTIF-*`）は[`16-line-weekly-report.md`](16-line-weekly-report.md)を正本とし、分析・固定費・予算と同じ純関数を再利用して金額を再計算しない。
+MVP後の追加機能は、それぞれ独立した仕様と承認を経て実装する。概要分析・詳細分析と共通集計（`ANA-*`段階1・2）は[`12-analytics-and-reporting.md`](12-analytics-and-reporting.md)、固定額・月次の固定費（`REC-*`）は[`14-recurring-transactions.md`](14-recurring-transactions.md)を正本とする。予算（`BUD-*`）は[`13-budget-management.md`](13-budget-management.md)を正本とし、分析と同じ月次集計純関数を再利用する。LINE週次レポート（`NOTIF-*`）は[`16-line-weekly-report.md`](16-line-weekly-report.md)を正本とし、分析・固定費・予算と同じ純関数を再利用して金額を再計算しない。LINEのメンションからの不具合Issue起票（`LBR-*`）は[`17-line-bug-report.md`](17-line-bug-report.md)を正本とし、週次レポートのWebhook・署名検証・通知専用ロール・LINE clientを再利用する。LLMによる整形と修正PRの自動作成は延期する。
 
 延期機能は、初期コード内の未使用flagとして入れず、新しい仕様・レビューを作成してから追加する。

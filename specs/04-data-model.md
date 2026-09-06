@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.14
+バージョン: 0.2.15
 
 ## 1. 設計目標
 
@@ -292,9 +292,28 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 - 送信前に枠を確保し、送信失敗時は枠を削除して再試行できるようにする。送信内容は保存しない。
 - `app_private`スキーマに置き、通知専用ロールの`security definer`関数だけが更新する。
 
+### line_issue_reports（`app_private`）
+
+LINEのメンションからの不具合Issue起票の記録。詳細は[`17-line-bug-report.md`](17-line-bug-report.md)を正本とする。
+
+| column            | 型          | 説明                                                 |
+| ----------------- | ----------- | ---------------------------------------------------- |
+| `line_message_id` | text PK     | LINEの`message.id`。英数字・`_`・`-`で1〜64文字      |
+| `group_id`        | uuid FK     | 起票要求を受けた家計グループ                         |
+| `issue_number`    | integer     | 作成したGitHub Issue番号。確保直後は`null`（未完了） |
+| `received_at`     | timestamptz | UTC。LINE eventの受信時刻                            |
+| `claimed_at`      | timestamptz | UTC。起票記録を確保した時刻                          |
+| `completed_at`    | timestamptz | UTC。Issue番号を記録した時刻。未完了は`null`         |
+
+制約:
+
+- `line_message_id`を主キーとし、同一メッセージの二重起票を防ぐ（`LBR-007`）。本文・報告者のuserId・Issue URLは保存しない。
+- 確保・完了・返上は通知専用ロール`line_notifier`がEXECUTEできる`security definer`関数だけで行う。返上は`issue_number is null`の未完了行だけを削除する。
+- `app_private`スキーマに置き、`anon`・`authenticated`から参照できない。
+
 ### 通知専用ロール
 
-`line_notifier`は`nologin`で作成し、`app_private`のusageと通知用関数のEXECUTEだけを持つ。テーブルへの直接権限、他機能のDB関数の実行権限、`service_role`相当の権限を持たない。LOGIN権限とpasswordの付与は運用手順で手動で行い、Gitへ含めない。
+`line_notifier`は`nologin`で作成し、`app_private`のusageと通知用関数（週次レポート用6つと不具合報告用3つ）のEXECUTEだけを持つ。テーブルへの直接権限、他機能のDB関数の実行権限、`service_role`相当の権限を持たない。LOGIN権限とpasswordの付与は運用手順で手動で行い、Gitへ含めない。
 
 ## 4. インデックス
 

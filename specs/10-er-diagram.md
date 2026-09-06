@@ -2,15 +2,15 @@
 
 状態: 承認済み
 
-バージョン: 0.3.2
+バージョン: 0.3.3
 
-最終更新日: 2026-09-06
+最終更新日: 2026-09-07
 
 ## 1. 対象と正本
 
-この図は、2026-09-06時点で`supabase/migrations/`に実装済みのテーブルと外部キーを表す。列の制約、RLS、index、将来のデータ設計は`04-data-model.md`、実際のDB構造はmigrationを正本とする。
+この図は、2026-09-07時点で`supabase/migrations/`に実装済みのテーブルと外部キーを表す。列の制約、RLS、index、将来のデータ設計は`04-data-model.md`、実際のDB構造はmigrationを正本とする。
 
-`auth.users`はSupabase Authが管理する外部schemaである。`app_private.allowed_google_accounts`は認証許可リストであり、email照合に利用するが、`auth.users`との外部キーは持たない。`app_private.line_notification_targets`と`app_private.weekly_notification_log`はLINE週次レポート用のテーブルで、通知専用ロールの`security definer`関数だけが更新する。
+`auth.users`はSupabase Authが管理する外部schemaである。`app_private.allowed_google_accounts`は認証許可リストであり、email照合に利用するが、`auth.users`との外部キーは持たない。`app_private.line_notification_targets`と`app_private.weekly_notification_log`はLINE週次レポート用、`app_private.line_issue_reports`はLINEからの不具合Issue起票の冪等化用のテーブルで、いずれも通知専用ロールの`security definer`関数だけが更新する。
 
 ## 2. 実装済みER図
 
@@ -179,6 +179,15 @@ erDiagram
         timestamptz sent_at
     }
 
+    LINE_ISSUE_REPORTS {
+        text line_message_id PK
+        uuid group_id FK
+        integer issue_number
+        timestamptz received_at
+        timestamptz claimed_at
+        timestamptz completed_at
+    }
+
     AUTH_USERS ||--|| PROFILES : "プロフィールを持つ"
     AUTH_USERS ||--o| USER_PREFERENCES : "起動時の設定を持つ"
     GROUPS |o--o{ USER_PREFERENCES : "起動時に開かれる"
@@ -214,6 +223,7 @@ erDiagram
 
     GROUPS ||--o| LINE_NOTIFICATION_TARGETS : "LINEグループと連携する"
     GROUPS ||--o{ WEEKLY_NOTIFICATION_LOG : "週次レポートの送信記録を持つ"
+    GROUPS ||--o{ LINE_ISSUE_REPORTS : "LINEからの起票記録を持つ"
 ```
 
 ## 3. 重要な関係と制約
@@ -229,7 +239,7 @@ erDiagram
 - カレンダー集計は`transactions`と`transaction_allocations`から読み取り時に計算し、現時点で`daily_summaries`テーブルは作成しない。
 - `recurring_transactions`は固定費の設定だけを保持し、月ごとの展開結果（occurrence）は保存しない。カレンダー集計は選択月へ展開した擬似取引を読み取り時に加える。
 - `budget_revisions`は適用開始月ごとの改定だけを保持し、月ごとの予算行を複製しない。`(group_id, effective_month)`をuniqueにし、`budget_category_limits`は`group_id`を含む複合外部キーで同じグループの支出カテゴリへ固定する。実績・残額・消化率は保存せず読み取り時に計算する。
-- `line_notification_targets`は家計グループ1件につきLINEグループ1件の連携だけを保持し、`weekly_notification_log`は`(group_id, week_start_date)`の送信記録だけを保持する。どちらも`app_private`に置き、`authenticated`から参照できない。通知内容は保存しない。
+- `line_notification_targets`は家計グループ1件につきLINEグループ1件の連携だけを保持し、`weekly_notification_log`は`(group_id, week_start_date)`の送信記録だけを保持する。`line_issue_reports`はLINEの`message.id`ごとの起票記録（Issue番号と日時）だけを保持し、本文・報告者を保存しない。いずれも`app_private`に置き、`authenticated`から参照できない。通知内容は保存しない。
 
 ## 4. 更新ルール
 

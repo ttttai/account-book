@@ -2,7 +2,7 @@
 
 状態: 承認済み（review: 2026-09-06-line-weekly-report、2026-09-06-line-weekly-report-pricing、2026-09-07-line-weekly-report-main-sync）
 
-バージョン: 0.2.2
+バージョン: 0.2.3
 
 最終更新日: 2026-09-07
 
@@ -155,7 +155,7 @@ flowchart LR
 
 - Flex Messageによるリッチ表示、メンバー別・収入内訳の通知、通知のオンオフ設定UI、複数家計グループ対応、LINEからの操作（返信コマンド等）、予算警告の即時push、月末の月次まとめ専用文面は延期する。
 - Slack等LINE以外のチャネルは実装しない。
-- Webhookのjoin以外のevent（メッセージ、follow等）は無視し、応答しない。
+- Webhookのjoin・leave以外のeventのうち、message eventは[`17-line-bug-report.md`](17-line-bug-report.md)（`LBR-*`）が処理する。follow等その他のeventは無視し、応答しない。
 
 ## 11. worktree境界
 
