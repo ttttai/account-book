@@ -107,3 +107,54 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "scheduler_service_account_id" {
+  description = "bootstrapで作成したCloud Scheduler専用service account ID"
+  type        = string
+  default     = "account-book-scheduler"
+}
+
+variable "line_weekly_report_secret_ids" {
+  description = "bootstrapで作成したLINE週次レポート用secret ID"
+  type = object({
+    channel_secret        = string
+    channel_access_token  = string
+    notifier_database_url = string
+  })
+  default = {
+    channel_secret        = "account-book-line-channel-secret"
+    channel_access_token  = "account-book-line-channel-access-token"
+    notifier_database_url = "account-book-notifier-database-url"
+  }
+}
+
+variable "line_weekly_report" {
+  description = "LINE週次レポートの構成。nullのままなら環境変数・secret参照・Cloud Scheduler jobを作らず、通知機能は無効（fail closed）。有効化はsecret versionの登録後に行います"
+  type = object({
+    group_id                      = string
+    channel_secret_version        = string
+    channel_access_token_version  = string
+    notifier_database_url_version = string
+    paused                        = optional(bool, false)
+  })
+  default = null
+
+  validation {
+    condition = var.line_weekly_report == null || can(regex(
+      "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      var.line_weekly_report.group_id,
+    ))
+    error_message = "line_weekly_report.group_idには通知対象の家計グループID（小文字UUID）を指定してください。"
+  }
+
+  validation {
+    condition = var.line_weekly_report == null || alltrue([
+      for version in [
+        var.line_weekly_report.channel_secret_version,
+        var.line_weekly_report.channel_access_token_version,
+        var.line_weekly_report.notifier_database_url_version,
+      ] : can(regex("^[1-9][0-9]*$", version))
+    ])
+    error_message = "line_weekly_reportの各versionにはlatestではなく1以上のSecret Manager version番号を指定してください。"
+  }
+}

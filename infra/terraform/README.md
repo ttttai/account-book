@@ -226,6 +226,31 @@ apply後、最低限次を手動確認する。
 - min 0、max 3、1 vCPU、512 MiB、runtime service account、secret versionがplanどおりである。
 - billing budgetが対象projectへ設定されている。
 
+## LINE週次レポートのインフラ（段階2）
+
+`specs/16-line-weekly-report.md`の段階2（`INF-019`〜`INF-021`、review: 2026-09-07-line-weekly-report-infra）。全体の導入手順は[`docs/operations/line-weekly-report.md`](../../docs/operations/line-weekly-report.md)を正本とし、ここではTerraformの操作だけを説明する。
+
+管理する資源:
+
+- `bootstrap`: Cloud Scheduler APIの有効化、keyなしのscheduler service account（`account-book-scheduler`）、payloadを持たない3つのSecret Manager secret container（`account-book-line-channel-secret`、`account-book-line-channel-access-token`、`account-book-notifier-database-url`）とruntime service accountへのsecret単位accessor。
+- `environments/prod`: 変数`line_weekly_report`が設定されたときだけ、Cloud Runの環境変数6つ（secret参照3つはversion固定、平文3つ）とCloud Scheduler job（毎週日曜21:00 `Asia/Tokyo`、OIDC付きPOST）を宣言する。既定は`null`で、何も作らず既存planに差分を出さない。
+
+有効化は必ず次の順で行う。secret versionが存在しない状態で`prod`を有効化すると、Cloud Runの新revisionがsecret解決に失敗して起動しない。
+
+1. `bootstrap`でplan → 人による確認 → apply。追加されるのはAPI 1つ、service account 1つ、secret container 3つ、IAM member 3つで、削除・置換は含まれない。
+2. 段階3の手順で3つのsecretへ値を登録する（`gcloud secrets versions add <secret id> --data-file=-`、標準入力）。返されたversion番号を控える。
+3. `environments/prod`のGit管理外`terraform.tfvars`へ`line_weekly_report`を設定する（`terraform.tfvars.example`のコメント参照）。`group_id`は通知対象の家計グループUUID、各`*_version`は手順2の番号。
+4. `prod`でplan → 人による確認 → apply。追加は環境変数6つを含む新revision、Cloud Scheduler job 1つ、data source参照で、Cloud Run自体の置換や既存環境変数の変更は含まれない。
+5. `terraform output weekly_line_report_job_name`でjob名を確認し、Cloud Schedulerから手動実行して動作確認する。
+
+運用:
+
+- 一時停止: `line_weekly_report.paused = true`にしてplan → apply。Consoleやgcloudでpauseすると次のapplyで再開されるため使わない。
+- 完全無効化: `line_weekly_report`を削除（`null`）してplan → apply。環境変数とjobが消え、アプリは404でfail closedに戻る。secret containerとscheduler SAは`bootstrap`に残るが、費用も挙動への影響もない。
+- secret rotation: 新versionを標準入力で追加 → `line_weekly_report`の該当versionを更新 → plan → apply → 動作確認 → 旧version無効化。
+- jobのURL・OIDC audience・`LINE_WEEKLY_REPORT_JOB_AUDIENCE`は`site_url`から導出した同じ値であり、個別に設定しない。`site_url`を変えると3つが同時に変わる。
+- Cloud Runは公開invokerのため、scheduler SAへ`roles/run.invoker`を付けない。呼び出しの認可はアプリのOIDC検証が行う。
+
 ## 通常の変更
 
 Terraformの固定構成を変更する場合:
