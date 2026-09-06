@@ -231,7 +231,12 @@ export function CalendarHome({ data }: Readonly<{ data: CalendarReadyData }>) {
       }
       footer={
         data.monthlyTotal === 0 && data.monthlyIncomeTotal === 0 ? (
-          <p className={styles["calendar-empty-message"]}>
+          // Server ComponentからClient Componentへpropで渡す要素は、開発時のkey検証で
+          // 未検証扱いになり警告が出るため、明示的にkeyを付ける
+          <p
+            className={styles["calendar-empty-message"]}
+            key="calendar-empty-message"
+          >
             この月の取引はまだありません。
           </p>
         ) : null
