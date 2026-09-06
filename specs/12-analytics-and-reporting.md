@@ -2,7 +2,7 @@
 
 状態: 概要分析・詳細分析（第1・第2段階）承認済み
 
-バージョン: 0.2.2
+バージョン: 0.2.3
 
 対象リリース: MVP後・分析フェーズ
 
@@ -37,7 +37,7 @@
 
 概要分析の集計対象は、ホームカレンダーと同じ`group`・`self`・`member`とし、同じ月・同じ対象ではカレンダーの月間合計と一致させる。メンバー対象の支出は負担額であり、立て替えた支払額を支出として数えない（`CAL-010`と同じ定義）。
 
-定期取引（`REC-*`）は、カレンダーと同じ規則で選択月へ展開した擬似取引として集計へ含める。展開結果はDBへ保存せず、単発取引とは別経路で作るため二重集計は発生しない。取引の読み取りと展開は`transactions`モジュールの`listMonthlyTransactions`（`05-api-and-application-boundaries.md`の共有読み取り境界）を経由し、カレンダーと同じ入力から集計する。
+固定費（`REC-*`）は、カレンダーと同じ規則で選択月へ展開した擬似取引として集計へ含める。展開結果はDBへ保存せず、単発取引とは別経路で作るため二重集計は発生しない。取引の読み取りと展開は`transactions`モジュールの`listMonthlyTransactions`（`05-api-and-application-boundaries.md`の共有読み取り境界）を経由し、カレンダーと同じ入力から集計する。
 
 ## 4. 機能要件
 
@@ -122,7 +122,7 @@
 
 ## 7. データ・サーバー境界
 
-分析専用の永続集計テーブルとmigrationを追加しない。認可済みグループと指定期間の取引・負担行・定期取引設定をサーバーで集計し、表示に必要な最小DTOだけをClient Componentへ渡す。既存の`transactions (group_id, category_id, transaction_date)`索引と月範囲条件を使う。
+分析専用の永続集計テーブルとmigrationを追加しない。認可済みグループと指定期間の取引・負担行・固定費設定をサーバーで集計し、表示に必要な最小DTOだけをClient Componentへ渡す。既存の`transactions (group_id, category_id, transaction_date)`索引と月範囲条件を使う。
 
 サーバー境界は次の2つを公開する。
 
@@ -132,7 +132,7 @@
 | `getAnalyticsPeriodSummary(request)`          | 詳細分析・LINEレポートが再利用する期間サマリー | 1〜24か月 |
 | `getAnalyticsDetails(groupId, searchParams)`  | 詳細分析画面の期間・カテゴリ・メンバーDTO      | 1〜24か月 |
 
-3関数は同じ内部集計処理を共有し、同じ入力に対して同じ金額を返す（`ANA-012`）。認証・所属確認は`groups`モジュールの`resolveGroupReadContext`、取引の読み取りと定期取引の展開は`transactions`モジュールの`listMonthlyTransactions`を使い、分析module内では集計純関数だけを持つ。詳細分析の1要求では月次取引を1回だけ読み、その結果から選択対象・カテゴリ・全アクティブメンバーを集計する。呼び出しごとに認証済みGoogle sessionとアクティブ所属を確認し、`route params`・`search params`をschema検証する。`scope=member`は同一グループのアクティブmembershipだけを許可する。24か月を超える範囲、不正な月、開始月が終了月より後の要求はfail closedで拒否し、取引を読み込まない。
+3関数は同じ内部集計処理を共有し、同じ入力に対して同じ金額を返す（`ANA-012`）。認証・所属確認は`groups`モジュールの`resolveGroupReadContext`、取引の読み取りと固定費の展開は`transactions`モジュールの`listMonthlyTransactions`を使い、分析module内では集計純関数だけを持つ。詳細分析の1要求では月次取引を1回だけ読み、その結果から選択対象・カテゴリ・全アクティブメンバーを集計する。呼び出しごとに認証済みGoogle sessionとアクティブ所属を確認し、`route params`・`search params`をschema検証する。`scope=member`は同一グループのアクティブmembershipだけを許可する。24か月を超える範囲、不正な月、開始月が終了月より後の要求はfail closedで拒否し、取引を読み込まない。
 
 共有cacheは使用しない。性能測定で必要性が確認された場合だけ、グループ・期間・対象を含むkey、取引・予算更新時の無効化、グループ分離テストを先に仕様化する。
 
