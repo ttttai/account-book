@@ -17,7 +17,13 @@ import type {
   ExpenseFormOptions,
 } from "../application/expense-types";
 import {
+  type AmountEvaluationFailure,
   appendAmountDigit,
+  appendAmountOperator,
+  completeAmountExpression,
+  evaluateAmountExpression,
+  normalizeAmountInput,
+  parseAmountExpression,
   removeLastAmountDigit,
 } from "../domain/amount-keypad";
 import { calculateExpenseAllocations } from "../domain/expense-allocation";
@@ -45,6 +51,15 @@ type ExpenseFormProps = Readonly<{
 }>;
 
 const yenFormatter = new Intl.NumberFormat("ja-JP");
+
+// 計算できない式の理由を金額欄の近くへ示す文言 (AC-TXN-017-4)
+const CALCULATION_FAILURE_MESSAGES: Readonly<
+  Record<AmountEvaluationFailure, string>
+> = {
+  negative: "0円未満にはできません",
+  "divide-by-zero": "0で割ることはできません",
+  overflow: "金額が上限を超えます",
+};
 
 // 送信中は無効化して二重送信を防ぐ保存ボタン
 function SaveButton({
@@ -167,9 +182,16 @@ export function ExpenseForm({
     boundAction,
     INITIAL_EXPENSE_ACTION_STATE,
   );
-  const [amountMinor, setAmountMinor] = useState(
+  // 金額欄は電卓の表示部で、式（例: 1200+300）を持つ。送信する金額は計算結果だけをhidden inputへ入れる (TXN-017)
+  const [amountExpression, setAmountExpression] = useState(
     editTransaction ? String(editTransaction.amountMinor) : "",
   );
+  const amountEvaluation = evaluateAmountExpression(amountExpression);
+  const amountMinor = amountEvaluation.ok ? amountEvaluation.value : "";
+  const parsedAmount = parseAmountExpression(amountExpression);
+  // 右辺を入力している間だけ、保存時に使う計算結果か計算できない理由を示す (AC-TXN-017-3, AC-TXN-017-4)
+  const showCalculation =
+    parsedAmount.operator !== null && parsedAmount.right !== "";
   const [payerMemberId, setPayerMemberId] = useState(
     expenseEdit?.payerIsActive
       ? expenseEdit.payerMemberId
@@ -212,6 +234,7 @@ export function ExpenseForm({
   const dockRef = useRef<HTMLDivElement>(null);
   const categoryOptionsRef = useRef<HTMLDivElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const amountFieldRef = useRef<HTMLDivElement>(null);
 
   // 削除済みメンバーが負担へ含まれる場合、そのままでは保存できないことを説明する
   const hasRemovedAllocationMember = Boolean(
@@ -310,24 +333,32 @@ export function ExpenseForm({
     selectedMemberIds,
   ]);
 
-  // テンキーを開くとドックが高くなるため、金額欄がドックへ隠れない位置まで移動する (AC-TXN-014-7)
+  // テンキーを開くとドックが高くなるため、金額欄（計算結果の行を含む）がドックへ隠れない位置まで移動する (AC-TXN-014-7, AC-TXN-017-3)
   // ドックが画面下端へ重なるのは狭い画面だけなので、PC幅では移動しない
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 計算結果の行の表示切替で金額欄の高さが変わるため再計算する
   useEffect(() => {
     if (!showKeypad) return;
     if (window.matchMedia?.("(min-width: 900px)").matches) return;
     // ドックの高さが確定してから、金額欄とドックの重なりぶんだけ動かす
     const frame = requestAnimationFrame(() => {
-      const amount = amountInputRef.current;
+      const field = amountFieldRef.current;
       const dock = dockRef.current;
-      if (!amount || !dock) return;
+      if (!field || !dock) return;
       const overlap =
-        amount.getBoundingClientRect().bottom -
+        field.getBoundingClientRect().bottom -
         dock.getBoundingClientRect().top +
         8;
       if (overlap > 0) window.scrollBy({ top: overlap });
     });
     return () => cancelAnimationFrame(frame);
-  }, [showKeypad]);
+  }, [showKeypad, showCalculation]);
+
+  // 式が金額欄の幅を超えたとき、入力中の末尾が見えるよう表示位置を末尾へ寄せる (TXN-017)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 式が変わるたびに描画後の幅で末尾へ寄せる
+  useEffect(() => {
+    const input = amountInputRef.current;
+    if (input) input.scrollLeft = input.scrollWidth;
+  }, [amountExpression]);
 
   // 金額欄へfocusしたら開き、金額欄以外の入力欄へfocusしたら閉じる。
   // 入力ドック内（カテゴリ・キー・保存）の操作では開閉状態を変えない (AC-TXN-014-5)
@@ -412,29 +443,50 @@ export function ExpenseForm({
 
         {/* 金額はドックのテンキーで入力する。inputmode="none"でOSの仮想キーボードを開かず、
           物理キーボードとスクリーンリーダーからの入力は維持する (TXN-014) */}
-        <div className={`${styles["expense-field"]} ${styles["amount-field"]}`}>
+        <div
+          className={`${styles["expense-field"]} ${styles["amount-field"]}`}
+          ref={amountFieldRef}
+        >
           <label htmlFor="amountMinor">金額</label>
-          <div className={styles["amount-input-wrap"]}>
+          {/* 送信する金額は式の計算結果だけ。表示用の欄はnameを持たせずFormDataへ含めない (AC-TXN-017-3) */}
+          <input name="amountMinor" type="hidden" value={amountMinor} />
+          <div
+            className={styles["amount-input-wrap"]}
+            data-long={amountExpression.length >= 8 ? "true" : undefined}
+          >
             <span aria-hidden="true">¥</span>
             <input
-              aria-describedby={
-                keypadOpen
-                  ? "amountMinor-error"
-                  : "amountMinor-error amountMinor-keypad-hint"
-              }
+              aria-describedby={[
+                "amountMinor-error",
+                showCalculation && "amountMinor-calculation",
+                !keypadOpen && "amountMinor-keypad-hint",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               autoComplete="off"
               id="amountMinor"
               inputMode="none"
-              max="9007199254740991"
-              name="amountMinor"
-              onChange={(event) => setAmountMinor(event.target.value)}
+              onChange={(event) =>
+                setAmountExpression(normalizeAmountInput(event.target.value))
+              }
               onClick={() => setKeypadOpen(true)}
-              pattern="[0-9]*"
               placeholder="0"
               ref={amountInputRef}
-              value={amountMinor}
+              value={amountExpression}
             />
           </div>
+          {showCalculation && (
+            <p
+              aria-live="polite"
+              className={styles["amount-calculation"]}
+              data-invalid={amountEvaluation.ok ? undefined : "true"}
+              id="amountMinor-calculation"
+            >
+              {amountEvaluation.ok
+                ? `= ¥${yenFormatter.format(Number(amountEvaluation.value || 0))}`
+                : CALCULATION_FAILURE_MESSAGES[amountEvaluation.reason]}
+            </p>
+          )}
           {/* 閉じている間の再開手段を画面上へ示す (AC-TXN-014-6) */}
           {!keypadOpen && (
             <p className={styles["keypad-hint"]} id="amountMinor-keypad-hint">
@@ -771,11 +823,18 @@ export function ExpenseForm({
             )}
           </fieldset>
 
-          {/* 保存は常設し、数字キーと1文字削除だけを開閉する (AC-TXN-014-5, AC-TXN-016-1) */}
+          {/* 保存は常設し、数字・演算子キーと1文字削除・=だけを開閉する (AC-TXN-014-5, AC-TXN-016-1, TXN-017) */}
           <AmountKeypad
-            onDelete={() => setAmountMinor(removeLastAmountDigit)}
+            calculator={{
+              onOperator: (operator) =>
+                setAmountExpression((current) =>
+                  appendAmountOperator(current, operator),
+                ),
+              onEquals: () => setAmountExpression(completeAmountExpression),
+            }}
+            onDelete={() => setAmountExpression(removeLastAmountDigit)}
             onKey={(key) =>
-              setAmountMinor((current) => appendAmountDigit(current, key))
+              setAmountExpression((current) => appendAmountDigit(current, key))
             }
             open={showKeypad}
             side={
