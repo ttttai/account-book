@@ -51,7 +51,23 @@ afterEach(() => {
 });
 
 describe("HistoryView のshortcut chip (HIS-003, HIS-004)", () => {
-  it("「自分が支払った」だけを表示し、「自分の利用」chipを表示しない (AC-HIS-003-1)", () => {
+  it("shortcutで条件が変わるとsheetの負担メンバーも同期する", () => {
+    const { rerender } = render(<HistoryView data={createData()} />);
+    rerender(
+      <HistoryView
+        data={createData({ limit: 30, memberMemberId: currentMembershipId })}
+      />,
+    );
+    expect(
+      (screen.getByLabelText("負担メンバー") as HTMLSelectElement).value,
+    ).toBe(currentMembershipId);
+    rerender(<HistoryView data={createData()} />);
+    expect(
+      (screen.getByLabelText("負担メンバー") as HTMLSelectElement).value,
+    ).toBe("");
+  });
+
+  it("「自分が負担」だけを表示し、「自分の利用」chipを表示しない (AC-HIS-003-1)", () => {
     render(<HistoryView data={createData()} />);
 
     const shortcuts = screen.getByRole("navigation", {
@@ -59,17 +75,18 @@ describe("HistoryView のshortcut chip (HIS-003, HIS-004)", () => {
     });
     const links = within(shortcuts).getAllByRole("link");
     expect(links).toHaveLength(1);
-    expect(links[0].textContent).toBe("自分が支払った");
+    expect(links[0].textContent).toBe("自分が負担");
     expect(screen.queryByText("自分の利用")).toBeNull();
+    expect(screen.queryByText("自分が支払った")).toBeNull();
   });
 
-  it("「自分が支払った」は現在メンバーをpayerへ設定し、適用中は解除するhrefを持つ (AC-HIS-003-2)", () => {
+  it("「自分が負担」は現在メンバーをmemberへ設定し、適用中は解除するhrefを持つ (AC-HIS-003-2)", () => {
     const { unmount } = render(
       <HistoryView data={createData({ limit: 30, month: "2026-08" })} />,
     );
-    const inactiveChip = screen.getByRole("link", { name: "自分が支払った" });
+    const inactiveChip = screen.getByRole("link", { name: "自分が負担" });
     expect(inactiveChip.getAttribute("href")).toBe(
-      `/groups/${groupId}/history?month=2026-08&payer=${currentMembershipId}`,
+      `/groups/${groupId}/history?month=2026-08&member=${currentMembershipId}`,
     );
     expect(inactiveChip.getAttribute("aria-current")).toBeNull();
     unmount();
@@ -79,11 +96,11 @@ describe("HistoryView のshortcut chip (HIS-003, HIS-004)", () => {
         data={createData({
           limit: 30,
           month: "2026-08",
-          payerMemberId: currentMembershipId,
+          memberMemberId: currentMembershipId,
         })}
       />,
     );
-    const activeChip = screen.getByRole("link", { name: "自分が支払った" });
+    const activeChip = screen.getByRole("link", { name: "自分が負担" });
     expect(activeChip.getAttribute("href")).toBe(
       `/groups/${groupId}/history?month=2026-08`,
     );
@@ -98,6 +115,7 @@ describe("HistoryView のshortcut chip (HIS-003, HIS-004)", () => {
     );
 
     expect(screen.queryByText("自分の利用")).toBeNull();
+    expect(screen.queryByText("自分が支払った")).toBeNull();
     const applied = screen.getByRole("list", { name: "適用中の絞り込み" });
     expect(within(applied).getByText("負担 山田")).toBeTruthy();
     expect(

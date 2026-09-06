@@ -249,7 +249,11 @@ export async function getGroupHistory(
       color: category.color,
     })),
     rows: page.sources.map((source) =>
-      toHistoryRow(source, context.displayNameByMembershipId),
+      toHistoryRow(
+        source,
+        context.displayNameByMembershipId,
+        filterResult.value.memberMemberId,
+      ),
     ),
     ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
   };
@@ -272,7 +276,11 @@ export async function getGroupHistoryPage(
   return {
     kind: "page",
     rows: page.sources.map((source) =>
-      toHistoryRow(source, context.displayNameByMembershipId),
+      toHistoryRow(
+        source,
+        context.displayNameByMembershipId,
+        filterResult.value.memberMemberId,
+      ),
     ),
     ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}),
   };
