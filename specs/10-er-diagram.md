@@ -2,9 +2,9 @@
 
 状態: 承認済み
 
-バージョン: 0.3.1
+バージョン: 0.3.2
 
-最終更新日: 2026-09-04
+最終更新日: 2026-09-06
 
 ## 1. 対象と正本
 
@@ -187,7 +187,7 @@ erDiagram
     GROUP_MEMBERS ||--o{ TRANSACTION_ALLOCATIONS : "負担する"
 
     AUTH_USERS ||--o{ RECURRING_TRANSACTIONS : "作成・更新する"
-    GROUPS ||--o{ RECURRING_TRANSACTIONS : "定期取引を持つ"
+    GROUPS ||--o{ RECURRING_TRANSACTIONS : "固定費を持つ"
     GROUPS ||--o{ RECURRING_TRANSACTION_ALLOCATIONS : "負担額を分離する"
     CATEGORIES ||--o{ RECURRING_TRANSACTIONS : "分類する"
     GROUP_MEMBERS o|--o{ RECURRING_TRANSACTIONS : "支払者・受取者になる"
@@ -212,7 +212,7 @@ erDiagram
 - `group_invitations.token_hash`にはhashだけを保存し、生の招待tokenは保存しない。
 - `user_preferences.default_group_id`は本人だけが参照する起動時の設定であり、所属の正本ではない。遷移先の判定は常に`group_members`のアクティブ所属と照合する。
 - カレンダー集計は`transactions`と`transaction_allocations`から読み取り時に計算し、現時点で`daily_summaries`テーブルは作成しない。
-- `recurring_transactions`は定期取引の設定だけを保持し、月ごとの展開結果（occurrence）は保存しない。カレンダー集計は選択月へ展開した擬似取引を読み取り時に加える。
+- `recurring_transactions`は固定費の設定だけを保持し、月ごとの展開結果（occurrence）は保存しない。カレンダー集計は選択月へ展開した擬似取引を読み取り時に加える。
 - `budget_revisions`は適用開始月ごとの改定だけを保持し、月ごとの予算行を複製しない。`(group_id, effective_month)`をuniqueにし、`budget_category_limits`は`group_id`を含む複合外部キーで同じグループの支出カテゴリへ固定する。実績・残額・消化率は保存せず読み取り時に計算する。
 
 ## 4. 更新ルール

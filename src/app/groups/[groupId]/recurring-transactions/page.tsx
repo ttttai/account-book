@@ -9,7 +9,7 @@ type RecurringTransactionsPageProps = Readonly<{
   params: Promise<{ groupId: string }>;
 }>;
 
-// 定期取引画面。閲覧はアクティブメンバー、設定はowner/adminに限る（REC-004）
+// 固定費画面。閲覧はアクティブメンバー、設定はowner/adminに限る（REC-004）
 export default async function RecurringTransactionsPage({
   params,
 }: RecurringTransactionsPageProps) {
@@ -28,14 +28,14 @@ export default async function RecurringTransactionsPage({
       <header className="app-header">
         <div>
           <p className="eyebrow">{view.group.name}</p>
-          <h1 className="group-page-title">定期取引</h1>
+          <h1 className="group-page-title">固定費</h1>
         </div>
         <Link className="text-link" href={`/groups/${view.group.id}`}>
           ホームへ戻る
         </Link>
       </header>
       <p className="recurring-page-description">
-        毎月同じ日・同じ金額の取引を登録すると、開始月から終了月までのホームカレンダーへ「定期」として反映されます。過去に登録した通常の取引は変更されません。
+        毎月同じ日・同じ金額の取引を登録すると、開始月から終了月までのホームカレンダーへ「固定費」として反映されます。過去に登録した通常の取引は変更されません。
       </p>
       <RecurringManagement view={view} />
     </main>

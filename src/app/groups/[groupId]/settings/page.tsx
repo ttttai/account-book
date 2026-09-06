@@ -95,7 +95,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
               href={`/groups/${encodedGroupId}/recurring-transactions`}
             >
               <span>
-                <strong>定期取引</strong>
+                <strong>固定費</strong>
                 <small>毎月同じ日・同じ金額の取引を管理します</small>
               </span>
               <span aria-hidden="true">›</span>

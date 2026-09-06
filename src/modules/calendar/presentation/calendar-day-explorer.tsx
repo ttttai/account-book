@@ -206,7 +206,7 @@ function DayPanel({
                 <strong>{transaction.categoryName}</strong>
                 {transaction.isRecurring ? (
                   <span className={styles["calendar-recurring-badge"]}>
-                    定期
+                    固定費
                   </span>
                 ) : null}
                 {transaction.type === "income" ? (
@@ -238,13 +238,18 @@ function DayPanel({
                     .join(" / ")}
                 </p>
               ) : null}
+              {transaction.memo?.trim() ? (
+                <p className={styles["calendar-transaction-memo"]}>
+                  {transaction.memo}
+                </p>
+              ) : null}
               {transaction.isRecurring ? (
                 /* 展開取引は実在の取引ではないため編集導線を出さない (AC-REC-002-3) */
                 <a
                   className={`secondary-link ${styles["calendar-transaction-edit"]}`}
                   href={`/groups/${encodeURIComponent(data.group.id)}/recurring-transactions`}
                 >
-                  定期取引の設定
+                  固定費の設定
                 </a>
               ) : (
                 <a

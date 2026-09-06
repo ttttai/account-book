@@ -9,7 +9,7 @@ export default function RecurringTransactionsError({
         <p aria-hidden="true" className="empty-icon">
           !
         </p>
-        <h1>定期取引を開けませんでした</h1>
+        <h1>固定費を開けませんでした</h1>
         <p>接続状態を確認して、もう一度お試しください。</p>
         <button className="primary-button" onClick={reset} type="button">
           再試行

@@ -13,7 +13,7 @@ begin
 end;
 $$;
 
--- 概要分析の集計元（取引・負担行・定期取引）が、現在のsessionから1件も見えないことを確認する
+-- 概要分析の集計元（取引・負担行・固定費）が、現在のsessionから1件も見えないことを確認する
 create function pg_temp.assert_analytics_sources_hidden(
   target_group_id uuid,
   message text
@@ -166,7 +166,7 @@ select pg_temp.assert_true(
     from public.recurring_transactions
     where group_id = :'analytics_group_id'
   ),
-  'アクティブメンバーは自グループの定期取引を集計へ含められる'
+  'アクティブメンバーは自グループの固定費を集計へ含められる'
 );
 
 -- 非メンバーは別グループの分析値を取得できない (AC-ANA-001-2)

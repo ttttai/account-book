@@ -269,7 +269,7 @@ describe("getRecurringManagement", () => {
     };
 
     await expect(getRecurringManagement(GROUP_ID)).rejects.toThrow(
-      "定期取引を取得できませんでした。",
+      "固定費を取得できませんでした。",
     );
   });
 });

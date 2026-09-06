@@ -8,15 +8,11 @@ import type {
 import type { AnalyticsScope } from "../domain/analytics-input";
 import {
   formatAnalyticsJpy,
-  formatAnalyticsPercent,
   formatAnalyticsSignedJpy,
 } from "../domain/analytics-jpy";
 import { formatAnalyticsMonth } from "../domain/analytics-month";
 import { analyticsPresetStart } from "../domain/analytics-details-input";
-import type {
-  AnalyticsCategoryShare,
-  AnalyticsComparison,
-} from "../domain/analytics-summary";
+import type { AnalyticsCategoryShare } from "../domain/analytics-summary";
 import { AnalyticsMemberPicker } from "./analytics-member-picker";
 
 import styles from "./analytics.module.css";
@@ -36,14 +32,9 @@ function createAnalyticsUrl(
   return `/groups/${encodeURIComponent(groupId)}/analytics?${search.toString()}`;
 }
 
-// 前月との差額と、比較可能な場合だけ前月比を1行のテキストで示す (AC-ANA-003-1、AC-ANA-003-2)
-function comparisonText(comparison: AnalyticsComparison): string {
-  const diff = formatAnalyticsSignedJpy(comparison.diffMinor);
-  const ratio =
-    comparison.changePercent === null
-      ? "比較なし"
-      : formatAnalyticsPercent(comparison.changePercent);
-  return `前月比 ${diff}（${ratio}）`;
+// 前月との差額だけを1行のテキストで示し、比率は表示しない (AC-ANA-003-1、AC-ANA-003-2)
+function comparisonText(diffMinor: number): string {
+  return `前月比 ${formatAnalyticsSignedJpy(diffMinor)}`;
 }
 
 type MetricProps = Readonly<{
@@ -298,18 +289,18 @@ export function AnalyticsOverview({
       >
         <AnalyticsMetric
           amountText={formatAnalyticsJpy(data.totals.expenseTotal)}
-          comparisonText={comparisonText(data.expenseComparison)}
+          comparisonText={comparisonText(data.expenseComparison.diffMinor)}
           isPrimary
           label="支出"
         />
         <AnalyticsMetric
           amountText={formatAnalyticsJpy(data.totals.incomeTotal)}
-          comparisonText={comparisonText(data.incomeComparison)}
+          comparisonText={comparisonText(data.incomeComparison.diffMinor)}
           label="収入"
         />
         <AnalyticsMetric
           amountText={formatAnalyticsSignedJpy(data.totals.balance)}
-          comparisonText={`前月比 ${formatAnalyticsSignedJpy(data.balanceDiffMinor)}`}
+          comparisonText={comparisonText(data.balanceDiffMinor)}
           isNegative={data.totals.balance < 0}
           label="収支"
         />

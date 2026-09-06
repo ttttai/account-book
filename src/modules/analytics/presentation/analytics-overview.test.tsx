@@ -44,8 +44,8 @@ function createData(
       incomeTotal: 200000,
       balance: 190000,
     },
-    expenseComparison: { diffMinor: 1000, changePercent: 10 },
-    incomeComparison: { diffMinor: 100000, changePercent: 50 },
+    expenseComparison: { diffMinor: 1000 },
+    incomeComparison: { diffMinor: 100000 },
     balanceDiffMinor: 99000,
     categoryBreakdown: {
       top: [
@@ -86,23 +86,27 @@ describe("AnalyticsOverview", () => {
     expect(within(balance).getByText("＋￥289,000")).toBeTruthy();
   });
 
-  it("前月との差額と前月比をテキストで併記する (AC-ANA-003-2)", () => {
+  it("前月との差額だけをテキストで示し、比率を表示しない (AC-ANA-003-2)", () => {
     render(<AnalyticsOverview data={createData()} />);
 
     const expense = screen.getByRole("group", { name: "支出" });
+    const income = screen.getByRole("group", { name: "収入" });
+    const balance = screen.getByRole("group", { name: "収支" });
 
-    expect(within(expense).getByText(/前月比/)).toBeTruthy();
-    expect(within(expense).getByText(/＋￥1,000/)).toBeTruthy();
-    expect(within(expense).getByText(/＋10%/)).toBeTruthy();
+    expect(within(expense).getByText("前月比 ＋￥1,000")).toBeTruthy();
+    expect(within(income).getByText("前月比 ＋￥100,000")).toBeTruthy();
+    expect(within(balance).getByText("前月比 ＋￥99,000")).toBeTruthy();
+    expect(within(expense).queryByText(/%/)).toBeNull();
+    expect(within(income).queryByText(/%/)).toBeNull();
   });
 
-  it("前月0円では比率を出さず「比較なし」を表示する (AC-ANA-003-1)", () => {
+  it("前月0円でも差額だけを表示し、「比較なし」を出さない (AC-ANA-003-1)", () => {
     render(
       <AnalyticsOverview
         data={createData({
           previousTotals: { expenseTotal: 0, incomeTotal: 0, balance: 0 },
-          expenseComparison: { diffMinor: 11000, changePercent: null },
-          incomeComparison: { diffMinor: 300000, changePercent: null },
+          expenseComparison: { diffMinor: 11000 },
+          incomeComparison: { diffMinor: 300000 },
           balanceDiffMinor: 289000,
         })}
       />,
@@ -110,7 +114,8 @@ describe("AnalyticsOverview", () => {
 
     const expense = screen.getByRole("group", { name: "支出" });
 
-    expect(within(expense).getByText(/比較なし/)).toBeTruthy();
+    expect(within(expense).getByText("前月比 ＋￥11,000")).toBeTruthy();
+    expect(within(expense).queryByText(/比較なし/)).toBeNull();
     expect(within(expense).queryByText(/%/)).toBeNull();
   });
 
@@ -139,8 +144,8 @@ describe("AnalyticsOverview", () => {
         data={createData({
           totals: { expenseTotal: 0, incomeTotal: 0, balance: 0 },
           previousTotals: { expenseTotal: 0, incomeTotal: 0, balance: 0 },
-          expenseComparison: { diffMinor: 0, changePercent: null },
-          incomeComparison: { diffMinor: 0, changePercent: null },
+          expenseComparison: { diffMinor: 0 },
+          incomeComparison: { diffMinor: 0 },
           balanceDiffMinor: 0,
           categoryBreakdown: { top: [] },
           hasTransactions: false,

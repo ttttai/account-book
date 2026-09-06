@@ -35,6 +35,7 @@ const expenseRowSchema = z.object({
   amount_minor: safeAmountSchema,
   payer_member_id: z.uuid(),
   created_at: z.string(),
+  memo: z.string().nullable().default(null),
   categories: categorySchema,
   transaction_allocations: z.array(
     z.object({ member_id: z.uuid(), amount_minor: safeAmountSchema }),
@@ -46,18 +47,19 @@ const incomeRowSchema = z.object({
   amount_minor: safeAmountSchema,
   recipient_member_id: z.uuid(),
   created_at: z.string(),
+  memo: z.string().nullable().default(null),
   categories: categorySchema,
 });
 
 const CATEGORY_COLUMNS =
   "categories!transactions_category_group_fk(id, name, color, icon)";
-const EXPENSE_COLUMNS = `id, transaction_date, amount_minor, payer_member_id, created_at, ${CATEGORY_COLUMNS}, transaction_allocations!transaction_allocations_transaction_group_fk(member_id, amount_minor)`;
-const INCOME_COLUMNS = `id, transaction_date, amount_minor, recipient_member_id, created_at, ${CATEGORY_COLUMNS}`;
+const EXPENSE_COLUMNS = `id, transaction_date, amount_minor, payer_member_id, created_at, memo, ${CATEGORY_COLUMNS}, transaction_allocations!transaction_allocations_transaction_group_fk(member_id, amount_minor)`;
+const INCOME_COLUMNS = `id, transaction_date, amount_minor, recipient_member_id, created_at, memo, ${CATEGORY_COLUMNS}`;
 
 // 展開結果は登録日時を持たないため、日別表示では単発取引より後ろへ並ぶ固定値を使う
 const RECURRING_SORT_KEY = "0000-01-01T00:00:00.000Z";
 
-// 月次の表示・集計が共有する取引読み取り。指定月の未削除の支出・収入を半開区間で読み、定期取引を同じ月へ展開して合流させる
+// 月次の表示・集計が共有する取引読み取り。指定月の未削除の支出・収入を半開区間で読み、固定費を同じ月へ展開して合流させる
 // 認可は呼び出し側のcontextで確認済みとし、RLS適用のユーザーsession clientで読む。展開結果はDBへ保存せず、単発取引と重複しない (REC-005)
 export async function listMonthlyTransactions(
   supabase: ServerSupabaseClient,
@@ -101,6 +103,7 @@ export async function listMonthlyTransactions(
       amountMinor: row.amount_minor,
       payerMemberId: row.payer_member_id,
       createdAt: row.created_at,
+      memo: row.memo,
       category: row.categories,
       allocations: row.transaction_allocations.map((allocation) => ({
         memberId: allocation.member_id,
@@ -117,11 +120,12 @@ export async function listMonthlyTransactions(
       amountMinor: row.amount_minor,
       recipientMemberId: row.recipient_member_id,
       createdAt: row.created_at,
+      memo: row.memo,
       category: row.categories,
       isRecurring: false,
     }));
 
-  // 定期取引は設定から各月へ展開する。transactionsを読まずに作るため、単発取引との二重集計は構造的に発生しない
+  // 固定費は設定から各月へ展開する。transactionsを読まずに作るため、単発取引との二重集計は構造的に発生しない
   for (const month of months) {
     for (const occurrence of expandRecurringForMonth(schedules, month)) {
       if (occurrence.type === "expense") {
@@ -131,6 +135,7 @@ export async function listMonthlyTransactions(
           amountMinor: occurrence.amountMinor,
           payerMemberId: occurrence.payerMemberId ?? "",
           createdAt: RECURRING_SORT_KEY,
+          memo: occurrence.memo,
           category: occurrence.category,
           allocations: occurrence.allocations,
           isRecurring: true,
@@ -144,6 +149,7 @@ export async function listMonthlyTransactions(
         amountMinor: occurrence.amountMinor,
         recipientMemberId: occurrence.recipientMemberId ?? "",
         createdAt: RECURRING_SORT_KEY,
+        memo: occurrence.memo,
         category: occurrence.category,
         isRecurring: true,
         recurringName: occurrence.name,

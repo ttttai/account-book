@@ -9,6 +9,7 @@ export type RecurringSchedule = Readonly<{
   id: string;
   type: RecurringTransactionType;
   name: string;
+  memo?: string | null;
   amountMinor: number;
   /** 毎月の日付（1〜28）。29日以降と月末は初回スコープ外 */
   dayOfMonth: number;
@@ -23,11 +24,12 @@ export type RecurringSchedule = Readonly<{
 }>;
 
 export type RecurringOccurrence = Readonly<{
-  /** 実在する取引と混同しないよう、定期取引IDと対象月から作る合成ID */
+  /** 実在する取引と混同しないよう、固定費IDと対象月から作る合成ID */
   occurrenceId: string;
   recurringTransactionId: string;
   type: RecurringTransactionType;
   name: string;
+  memo?: string | null;
   /** `YYYY-MM-DD` */
   date: string;
   amountMinor: number;
@@ -69,7 +71,7 @@ export function occurrenceDate(month: string, dayOfMonth: number): string {
   return `${month}-${String(dayOfMonth).padStart(2, "0")}`;
 }
 
-// 対象月へ有効な定期取引を1件ずつ展開する。DBへ保存せず、同じ入力なら常に同じ結果を返す
+// 対象月へ有効な固定費を1件ずつ展開する。DBへ保存せず、同じ入力なら常に同じ結果を返す
 export function expandRecurringForMonth(
   schedules: readonly RecurringSchedule[],
   month: string,
@@ -81,6 +83,7 @@ export function expandRecurringForMonth(
       recurringTransactionId: schedule.id,
       type: schedule.type,
       name: schedule.name,
+      memo: schedule.memo ?? null,
       date: occurrenceDate(month, schedule.dayOfMonth),
       amountMinor: schedule.amountMinor,
       category: schedule.category,

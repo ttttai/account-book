@@ -38,7 +38,7 @@ async function authenticatedClient() {
   return supabase;
 }
 
-// 認証を確認したうえでDB関数により定期取引を作成する（owner/adminはDB側で再確認する）
+// 認証を確認したうえでDB関数により固定費を作成する（owner/adminはDB側で再確認する）
 export async function createRecurringTransaction(
   input: CreateRecurringInput,
   allocations: readonly RecurringAllocation[],
@@ -69,7 +69,7 @@ export async function createRecurringTransaction(
   return { kind: "ok" };
 }
 
-// 認証を確認したうえでDB関数により定期取引を楽観的ロック付きで更新する
+// 認証を確認したうえでDB関数により固定費を楽観的ロック付きで更新する
 export async function updateRecurringTransaction(
   input: UpdateRecurringInput,
   allocations: readonly RecurringAllocation[],
@@ -101,7 +101,7 @@ export async function updateRecurringTransaction(
   return { kind: "ok" };
 }
 
-// 認証を確認したうえでDB関数により定期取引を終了する（翌月以降は展開しない）
+// 認証を確認したうえでDB関数により固定費を終了する（翌月以降は展開しない）
 export async function endRecurringTransaction(
   input: EndRecurringInput,
 ): Promise<RecurringCommandResult> {
