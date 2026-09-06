@@ -266,7 +266,9 @@
 
 .segmented-control {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 選択肢の数だけ等幅の列を作る（種別は2択、負担方法は3択）。空の枠を残さない */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 0.35rem;
   padding: 0.25rem;
   border-radius: 0.8rem;
