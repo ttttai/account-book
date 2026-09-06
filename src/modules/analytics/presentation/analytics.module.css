@@ -238,6 +238,98 @@
   font-size: 0.95rem;
 }
 
+/* カテゴリグラフ部品。「その他のカテゴリ」の中立色はカテゴリ色tokenと区別する (AC-ANA-014-2) */
+.analytics-chart {
+  --analytics-others-color: #b3bab4;
+
+  display: grid;
+  min-width: 0;
+  gap: 0.6rem;
+}
+
+.analytics-chart-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.analytics-chart-header h3 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 表示形式の切替。選択中はaria-pressedで示し、色だけに依存しない (AC-ANA-014-3) */
+.analytics-chart-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.analytics-chart-toggle button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.analytics-chart-toggle button[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.analytics-chart-body {
+  display: grid;
+  min-width: 0;
+  gap: 0.7rem;
+}
+
+.analytics-pie {
+  display: block;
+  width: min(160px, 55vw);
+  height: auto;
+  margin: 0 auto;
+}
+
+.analytics-pie path {
+  fill: var(--analytics-others-color);
+  stroke: var(--surface);
+  stroke-width: 1;
+}
+
+/* 扇形と色の印はstyles.cssのdesign token（--category-color）で塗る */
+.analytics-pie path[data-category-color] {
+  fill: var(--category-color, #758178);
+}
+
+.analytics-category-dot {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--analytics-others-color);
+}
+
+.analytics-category-dot[data-category-color] {
+  background: var(--category-color, #758178);
+}
+
 .analytics-category-list {
   display: grid;
   margin: 0;
@@ -281,7 +373,7 @@
   height: 8px;
   max-width: 100%;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--analytics-others-color, #b3bab4);
 }
 
 /* カテゴリ棒はstyles.cssのdesign token（--category-color）で塗る */
@@ -476,8 +568,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-.details-trend-list,
-.details-category-list {
+.details-trend-list {
   display: grid;
   min-width: 0;
   margin: 0.7rem 0 0;
@@ -486,8 +577,7 @@
   list-style: none;
 }
 
-.details-trend-list li,
-.details-category-list li {
+.details-trend-list li {
   display: grid;
   min-width: 0;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -495,14 +585,12 @@
   font-size: 0.8rem;
 }
 
-.details-trend-list li > span,
-.details-category-list li > span:last-of-type {
+.details-trend-list li > span {
   color: var(--muted);
   text-align: right;
 }
 
-.details-trend-list i,
-.details-category-list i {
+.details-trend-list i {
   display: block;
   min-width: 2px;
   max-width: 100%;
@@ -514,10 +602,6 @@
 
 .details-trend-list i[data-details-bar="income"] {
   background: #3d8a5f;
-}
-
-.details-category-list i {
-  background: var(--accent);
 }
 
 .details-savings-summary {
@@ -703,6 +787,16 @@
   .analytics-category,
   .analytics-empty-message {
     grid-row: span 2;
+  }
+
+  /* PCでは円グラフと一覧を横並びにし、棒グラフでは一覧だけを全幅にする (AC-ANA-014-3) */
+  .analytics-chart[data-analytics-chart="pie"] .analytics-chart-body {
+    grid-template-columns: 180px minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .analytics-pie {
+    width: 180px;
   }
 
   .analytics-links {
