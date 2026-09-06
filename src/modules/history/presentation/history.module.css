@@ -150,39 +150,7 @@
   width: 0.7rem;
   height: 0.7rem;
   border-radius: 50%;
-  background: #758178;
-}
-
-.history-category-dot[data-category-color="food"] {
-  background: #d8664f;
-}
-
-.history-category-dot[data-category-color="daily"] {
-  background: #6582c4;
-}
-
-.history-category-dot[data-category-color="home"] {
-  background: #a06a45;
-}
-
-.history-category-dot[data-category-color="utilities"] {
-  background: #d29a35;
-}
-
-.history-category-dot[data-category-color="transport"] {
-  background: #397f8f;
-}
-
-.history-category-dot[data-category-color="leisure"] {
-  background: #8a67ae;
-}
-
-.history-category-dot[data-category-color="salary"] {
-  background: #3d8a5f;
-}
-
-.history-category-dot[data-category-color="extra"] {
-  background: #b0589a;
+  background: var(--category-color, #758178);
 }
 
 .history-type {

@@ -11,6 +11,66 @@
     Inter, "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", system-ui, sans-serif;
 }
 
+/* カテゴリ色のdesign token (AC-CAT-002-7)。各機能はbackground: var(--category-color)で描画し、
+   tokenごとの色値をここ以外に書かない。未知のtokenは既定色（「その他」と同じ）に留まる */
+[data-category-color] {
+  --category-color: #758178;
+}
+[data-category-color="food"] {
+  --category-color: #d8664f;
+}
+[data-category-color="daily"] {
+  --category-color: #6582c4;
+}
+[data-category-color="home"] {
+  --category-color: #a06a45;
+}
+[data-category-color="utilities"] {
+  --category-color: #d29a35;
+}
+[data-category-color="transport"] {
+  --category-color: #397f8f;
+}
+[data-category-color="leisure"] {
+  --category-color: #8a67ae;
+}
+[data-category-color="other"] {
+  --category-color: #758178;
+}
+[data-category-color="salary"] {
+  --category-color: #3d8a5f;
+}
+[data-category-color="extra"] {
+  --category-color: #b0589a;
+}
+[data-category-color="orange"] {
+  --category-color: #e0812c;
+}
+[data-category-color="olive"] {
+  --category-color: #7f8f2e;
+}
+[data-category-color="mint"] {
+  --category-color: #4fae8d;
+}
+[data-category-color="sky"] {
+  --category-color: #4a9fd6;
+}
+[data-category-color="indigo"] {
+  --category-color: #4d4fb0;
+}
+[data-category-color="navy"] {
+  --category-color: #34507c;
+}
+[data-category-color="rose"] {
+  --category-color: #c43d6b;
+}
+[data-category-color="wine"] {
+  --category-color: #8e3244;
+}
+[data-category-color="charcoal"] {
+  --category-color: #414a52;
+}
+
 * {
   box-sizing: border-box;
 }

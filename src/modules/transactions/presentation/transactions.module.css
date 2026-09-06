@@ -157,31 +157,7 @@
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 50%;
-  background: #758178;
-}
-
-.category-option-dot[data-category-color="food"] {
-  background: #d8664f;
-}
-
-.category-option-dot[data-category-color="daily"] {
-  background: #6582c4;
-}
-
-.category-option-dot[data-category-color="home"] {
-  background: #a06a45;
-}
-
-.category-option-dot[data-category-color="utilities"] {
-  background: #d29a35;
-}
-
-.category-option-dot[data-category-color="transport"] {
-  background: #397f8f;
-}
-
-.category-option-dot[data-category-color="leisure"] {
-  background: #8a67ae;
+  background: var(--category-color, #758178);
 }
 
 .category-option-check {

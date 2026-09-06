@@ -127,7 +127,7 @@
   height: 0.75rem;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: #758178;
+  background: var(--category-color, #758178);
 }
 
 .category-item-name {
@@ -218,7 +218,7 @@
   width: 1.35rem;
   height: 1.35rem;
   border-radius: 50%;
-  background: #758178;
+  background: var(--category-color, #758178);
 }
 
 /* 選択状態は色だけに依存させず、枠と選択記号でも示す */
@@ -262,41 +262,4 @@
   gap: 0.5rem;
   padding-top: 0.6rem;
   border-top: 1px dashed var(--border);
-}
-
-.category-item-dot[data-category-color="food"],
-.category-color-swatch[data-category-color="food"] {
-  background: #d8664f;
-}
-.category-item-dot[data-category-color="daily"],
-.category-color-swatch[data-category-color="daily"] {
-  background: #6582c4;
-}
-.category-item-dot[data-category-color="home"],
-.category-color-swatch[data-category-color="home"] {
-  background: #a06a45;
-}
-.category-item-dot[data-category-color="utilities"],
-.category-color-swatch[data-category-color="utilities"] {
-  background: #d29a35;
-}
-.category-item-dot[data-category-color="transport"],
-.category-color-swatch[data-category-color="transport"] {
-  background: #397f8f;
-}
-.category-item-dot[data-category-color="leisure"],
-.category-color-swatch[data-category-color="leisure"] {
-  background: #8a67ae;
-}
-.category-item-dot[data-category-color="other"],
-.category-color-swatch[data-category-color="other"] {
-  background: #758178;
-}
-.category-item-dot[data-category-color="salary"],
-.category-color-swatch[data-category-color="salary"] {
-  background: #3d8a5f;
-}
-.category-item-dot[data-category-color="extra"],
-.category-color-swatch[data-category-color="extra"] {
-  background: #b0589a;
 }

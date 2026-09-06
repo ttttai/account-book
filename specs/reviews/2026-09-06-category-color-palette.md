@@ -1,6 +1,6 @@
 # カテゴリ色パレットの拡張（9色→18色）と色tokenの共通化
 
-状態: 承認済み
+状態: 実装確認済み
 レビュー日: 2026-09-06
 ブランチ: feat/category-color-palette
 対象仕様: `specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/04-data-model.md`、`specs/07-acceptance-test-plan.md`
@@ -41,3 +41,8 @@
 `AC-CAT-002-7`は`CAT-002`、`AC-CAL-001-18`、`NFR-A11Y-005`、`NFR-MNT-010`と整合し、安全かつ実装可能である。schema単体testとarchitecture test（18色の一致、CSS Modulesでの色値再定義の禁止、swatch label）を先に追加し、幅375pxで編集パネルのswatchが横scrollなしで折り返すこと、1280pxで一覧と編集パネルの表示、カレンダー・履歴・取引入力・予算・分析のドットが同じ色で描画されることを実画面確認する条件で実装開始を承認する。
 
 ## 実装確認
+
+- テスト: architecture test 164件（新規`category-color-palette.test.mjs` 5件を含む）、vitest 759件（`category-input.test.ts`へ追加tokenの受理・18色・`navy`の更新受理を追加）がすべて成功。prettier、警告なしbiome lint、型検査、本番buildが成功。
+- DB: `202609060001_category_color_palette.sql`をローカルのaccount-book stackへ適用し、`categories_color`のcheck制約が18色、`update_group_category`の本文に追加tokenが含まれること、台帳へversionが記録されたことをpsqlで確認した。
+- 実画面（fixtureの一時previewで確認、previewはコミットしない）: 編集パネルのswatchは18個すべて44 x 44px以上で、375 x 812では5列・4行、320 x 812では5行、1280 x 800では9列・2行に折り返し、いずれも横scrollなし。18個の`background-color`は互いに異なり、一覧行のドットと履歴行のドットが同じtokenで同じ色になった。全swatchが色名のaria-labelとtitleを持つ。
+- 6モジュールのCSSクラス（categories・transactions・history・calendar・budgets・analytics）へ`navy`を与えたときの描画色がすべて`rgb(52, 80, 124)`で一致し、分析の棒はtokenなしでaccent色、未知token`bogus`は既定色`rgb(117, 129, 120)`に留まることを確認した。
