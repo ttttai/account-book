@@ -1,8 +1,8 @@
 # LINE週次レポート仕様
 
-状態: 承認済み（review: 2026-09-06-line-weekly-report）
+状態: 承認済み（review: 2026-09-06-line-weekly-report、2026-09-06-line-weekly-report-pricing）
 
-バージョン: 0.2.0
+バージョン: 0.2.1
 
 最終更新日: 2026-09-06
 
@@ -144,8 +144,8 @@ flowchart LR
 
 ## 8. 費用
 
-- LINE Messaging APIのコミュニケーションプラン（無料）は月200通。グループトークへのpushは1回1通として数えるため、週1通×1グループで十分に収まる。
-- Cloud Schedulerは3ジョブまで無料。本件で1ジョブを使用する。
+- LINE Messaging APIのコミュニケーションプラン（日本・無料）は月200通。グループトークへのpushの通数は受信人数で数える。受信者4人に月5回配信する場合は4人×5回＝20通となる。他の配信も含めた月間通数を確認し、無料枠に収まるか判断する（[LINE公式料金・通数計算](https://developers.line.biz/en/docs/messaging-api/pricing/)、2026-09-06確認）。
+- Cloud Schedulerは請求先アカウントあたり月3ジョブまで無料。本件で1ジョブを使用するため、既存ジョブと合わせて無料枠を確認する（[Google Cloud公式料金](https://cloud.google.com/scheduler/pricing)、2026-09-06確認）。
 
 ## 9. 受け入れ条件
 

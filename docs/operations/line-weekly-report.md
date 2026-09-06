@@ -149,7 +149,7 @@ gcloud secrets versions add account-book-notifier-database-url --data-file=-
 - 毎週日曜21:00 JSTに自動送信。同一週の通知は1回だけ（schedulerのリトライでも二重送信しない）。送信失敗時はschedulerが再試行する。
 - 届かない場合の確認順: Cloud Schedulerの実行結果 → Cloud Runのログ（ジョブ応答のstatus） → botがグループに参加しているか → secret versionと環境変数。
 - 手動で送りたい場合はCloud Schedulerの「今すぐ実行」（送信済みの週なら何も送られない）。
-- LINEの無料プラン（コミュニケーションプラン）は月200通。グループへの送信は1回1通として数えるため、週1通なら十分に収まる。
+- LINEの無料プラン（日本のコミュニケーションプラン）は月200通。グループへのpushは受信人数で数えるため、受信者4人に月5回配信すると4人×5回＝20通となる。他の配信も含めて月間通数と無料枠を確認する（[LINE公式料金・通数計算](https://developers.line.biz/en/docs/messaging-api/pricing/)、2026-09-06確認）。
 
 ## 無効化・ロールバック
 
