@@ -15,6 +15,7 @@ import {
   type AnalyticsCumulativeBalance,
   scaleAnalyticsSavingsChart,
 } from "../domain/analytics-savings";
+import { AnalyticsCategoryChart } from "./analytics-category-chart";
 
 import styles from "./analytics.module.css";
 
@@ -279,28 +280,23 @@ export function AnalyticsDetails({
       </section>
 
       <section className={styles["details-panel"]}>
-        <h3>支出カテゴリ構成</h3>
         {data.period.expenseByCategory.length > 0 ? (
-          <ul
-            aria-label="期間の支出カテゴリ"
-            className={styles["details-category-list"]}
-          >
-            {data.period.expenseByCategory.map((category) => (
-              <li key={category.categoryId}>
-                <span>{category.name}</span>
-                <strong>{formatAnalyticsJpy(category.amountMinor)}</strong>
-                <span>{`${category.sharePercent}%`}</span>
-                <i
-                  aria-hidden="true"
-                  data-category-color={category.color}
-                  data-details-bar="category"
-                  style={{ width: `${Math.max(category.sharePercent, 2)}%` }}
-                />
-              </li>
-            ))}
-          </ul>
+          <AnalyticsCategoryChart
+            heading="支出カテゴリ構成"
+            items={data.period.expenseByCategory.map((category) => ({
+              key: category.categoryId,
+              name: category.name,
+              color: category.color,
+              amountMinor: category.amountMinor,
+              sharePercent: category.sharePercent,
+            }))}
+            listLabel="期間の支出カテゴリ"
+          />
         ) : (
-          <p className={styles["details-muted"]}>支出はありません。</p>
+          <>
+            <h3>支出カテゴリ構成</h3>
+            <p className={styles["details-muted"]}>支出はありません。</p>
+          </>
         )}
       </section>
 

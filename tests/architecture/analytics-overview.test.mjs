@@ -255,3 +255,59 @@ test("分析は集計テーブルとRoute Handlerを追加しない", async () =
     false,
   );
 });
+
+test("カテゴリ別支出は円グラフ既定でclient側だけで横棒へ切り替え、角度は純関数で求める (ANA-014, AC-ANA-014-1〜3)", async () => {
+  const requirements = await read("specs/01-product-requirements.md");
+  const useCases = await read("specs/02-use-cases.md");
+  const specification = await read("specs/12-analytics-and-reporting.md");
+  const review = await read(
+    "specs/reviews/2026-09-07-analytics-category-pie-chart.md",
+  );
+  const chart = await read(
+    "src/modules/analytics/presentation/analytics-category-chart.tsx",
+  );
+  const geometry = await read(
+    "src/modules/analytics/domain/analytics-category-chart.ts",
+  );
+  const overview = await read(
+    "src/modules/analytics/presentation/analytics-overview.tsx",
+  );
+  const details = await read(
+    "src/modules/analytics/presentation/analytics-details.tsx",
+  );
+  const moduleCss = await read(
+    "src/modules/analytics/presentation/analytics.module.css",
+  );
+
+  assert.match(requirements, /^- `ANA-014`/m);
+  assert.match(useCases, /^- `AC-ANA-014-3`/m);
+  assert.match(specification, /### 5.3 カテゴリ別支出の表示形式/);
+  assert.match(review, /状態: (承認済み|実装確認済み)/);
+  assert.match(review, /関連ID: 追加: ANA-014/);
+
+  // 切替はClient Componentのローカル状態だけで行い、遷移・再取得を伴わない
+  assert.match(chart, /^"use client";/m);
+  assert.match(chart, /useState<AnalyticsCategoryChartMode>\("pie"\)/);
+  assert.doesNotMatch(chart, /next\/link|next\/form|next\/navigation/);
+  assert.doesNotMatch(chart, /href=|<form|localStorage/);
+  assert.match(chart, /aria-label="支出カテゴリの表示形式"/);
+  assert.match(chart, /aria-pressed=/);
+  assert.match(chart, /aria-hidden="true"/);
+  // 角度と座標はdomainの純関数が返し、描画側は計算しない
+  assert.match(geometry, /export function layoutAnalyticsPie/);
+  assert.match(geometry, /export function describeAnalyticsPieSlice/);
+  assert.match(chart, /layoutAnalyticsPie\(/);
+  assert.match(chart, /describeAnalyticsPieSlice\(/);
+  assert.doesNotMatch(chart, /Math\.(cos|sin|PI)/);
+  // 概要・詳細の両画面が同じ部品を使う
+  assert.match(overview, /<AnalyticsCategoryChart/);
+  assert.match(details, /<AnalyticsCategoryChart/);
+  // 扇形と色の印はstyles.cssのtokenで塗り、切替ボタンは44px以上 (AC-ANA-014-3)
+  assert.match(moduleCss, /fill:\s*var\(--category-color/);
+  const toggleButton = moduleCss.match(
+    /\.analytics-chart-toggle (?:>\s*)?button\s*\{[^}]*\}/,
+  )?.[0];
+  assert.ok(toggleButton, ".analytics-chart-toggle button の規則が必要");
+  assert.match(toggleButton, /min-height:\s*44px;/);
+  assert.match(toggleButton, /min-width:\s*44px;/);
+});
