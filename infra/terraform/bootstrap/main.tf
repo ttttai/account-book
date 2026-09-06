@@ -12,6 +12,7 @@ locals {
     "artifactregistry.googleapis.com",
     "billingbudgets.googleapis.com",
     "cloudresourcemanager.googleapis.com",
+    "cloudscheduler.googleapis.com",
     "iam.googleapis.com",
     "iamcredentials.googleapis.com",
     "run.googleapis.com",
@@ -203,4 +204,39 @@ resource "google_billing_budget" "monthly" {
   }
 
   depends_on = [google_project_service.required]
+}
+
+# LINE週次レポート（INF-019, INF-020）。Cloud Runは公開invokerのため、
+# scheduler SAにはIAM roleを付けず、認可はアプリのOIDC検証に委ねる。
+resource "google_service_account" "scheduler" {
+  project      = var.project_id
+  account_id   = var.scheduler_service_account_id
+  display_name = "Account Book Cloud Scheduler"
+  description  = "Keyless identity Cloud Scheduler uses to call the weekly LINE report job"
+
+  depends_on = [google_project_service.required]
+}
+
+# secret containerだけを管理し、payloadは段階3で標準入力から登録する
+resource "google_secret_manager_secret" "line_weekly_report" {
+  for_each = tomap(var.line_weekly_report_secret_ids)
+
+  project   = var.project_id
+  secret_id = each.value
+  labels    = local.common_labels
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.required]
+}
+
+resource "google_secret_manager_secret_iam_member" "line_weekly_report_cloud_run_accessor" {
+  for_each = google_secret_manager_secret.line_weekly_report
+
+  project   = var.project_id
+  secret_id = each.value.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
 }

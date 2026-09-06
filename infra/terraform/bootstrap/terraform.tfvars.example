@@ -12,3 +12,6 @@ monthly_budget_jpy = 1000
 labels = {
   owner = "household"
 }
+
+# LINE週次レポート用のscheduler SAとsecret containerは既定名で作成されます。
+# 名前を変える場合だけ scheduler_service_account_id / line_weekly_report_secret_ids を指定してください。
