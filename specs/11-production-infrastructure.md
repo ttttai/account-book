@@ -1,8 +1,8 @@
 # 本番インフラストラクチャ仕様
 
-状態: 実装承認済み（LINE週次レポート向け追加分 review: 2026-09-07-line-weekly-report-infra）
+状態: 実装承認済み（LINE週次レポート向け追加分 review: 2026-09-07-line-weekly-report-infra、LINE不具合報告向け追加分 review: 2026-09-07-line-bug-report-infra）
 
-バージョン: 0.5.0
+バージョン: 0.6.0
 
 最終更新日: 2026-09-07
 
@@ -38,6 +38,12 @@ LINE週次レポート（[`16-line-weekly-report.md`](16-line-weekly-report.md)�
 - `INF-019`: LINE週次レポート用の秘密値（LINE channel secret、LINE channel access token、通知専用ロールのDB接続文字列）は、`bootstrap`が管理する3つのSecret Manager secret containerへ格納する。payloadはTerraform管理外とし、runtime service accountへの`roles/secretmanager.secretAccessor`はsecret単位で付与する。
 - `INF-020`: 週次ジョブの起動には、`bootstrap`が作成するCloud Scheduler専用service account（keyなし）を使う。`environments/prod`はCloud Scheduler job（毎週日曜21:00 `Asia/Tokyo`、HTTP POST、OIDC token）を宣言し、audienceと呼び出し先URLを同じ値（`<site_url>/api/v1/jobs/weekly-line-report`）から導出する。Cloud Runは公開invokerのため、scheduler service accountへ`roles/run.invoker`やproject-levelの権限を付与しない。認可はアプリ側のOIDC検証（`NOTIF-006`）が担う。
 - `INF-021`: LINE週次レポートの構成は`environments/prod`の単一変数（既定`null`）で有効・無効を切り替える。無効時は環境変数・secret参照・Cloud Scheduler jobを一切作成せず、既存構成のplanに差分を出さない。有効時は`LINE_CHANNEL_SECRET`・`LINE_CHANNEL_ACCESS_TOKEN`・`NOTIFIER_DATABASE_URL`をSecret Managerの指定version（`latest`不可）で、`LINE_WEEKLY_REPORT_GROUP_ID`・`LINE_WEEKLY_REPORT_JOB_AUDIENCE`・`LINE_WEEKLY_REPORT_JOB_INVOKER`を平文の環境変数としてCloud Runへ渡す。有効化の順序は「bootstrap apply → secret version登録 → prod変数設定 → plan確認 → apply」とし、secret versionが存在しない状態でprodを有効化しない。
+
+LINE不具合報告（[`17-line-bug-report.md`](17-line-bug-report.md)、`LBR-*`）の段階2として、次を追加する。
+
+- `INF-022`: LINE不具合報告用の秘密値（GitHub Issue作成用のFine-grained personal access token、許可LINE userId一覧）は、`bootstrap`が管理する2つのSecret Manager secret containerへ格納する。payloadはTerraform管理外とし、runtime service accountへの`roles/secretmanager.secretAccessor`はsecret単位で付与する。
+- `INF-023`: LINE不具合報告の構成は`environments/prod`の単一変数`line_bug_report`（既定`null`）で有効・無効を切り替える。無効時は環境変数・secret参照を一切作成せず、既存構成のplanに差分を出さない。有効時は`LINE_BUG_REPORT_GITHUB_TOKEN`・`LINE_BUG_REPORT_ALLOWED_USER_IDS`をSecret Managerの指定version（`latest`不可）で、`LINE_BUG_REPORT_GITHUB_REPOSITORY`（`owner/repo`）を平文の環境変数としてCloud Runへ渡す。有効化の順序は`INF-021`と同じ「bootstrap apply → secret version登録 → prod変数設定 → plan確認 → apply」とし、Cloud Run serviceの差分は環境変数3つの追加（update in-place）だけにする。
+- `INF-024`: LINE不具合報告はLINE channel secret・access token・通知用DB接続文字列を`line_weekly_report`と共有する。`line_bug_report`は`line_weekly_report`が設定済みのときだけ設定でき（変数validationで拒否する）、`line_bug_report`を`null`へ戻しても`line_weekly_report`の環境変数6つとCloud Scheduler jobに差分を出さない。Cloud Scheduler job、scheduler service account、CD、IAMは変更しない。
 
 ## 3. 対象構成
 
@@ -84,6 +90,7 @@ flowchart LR
 - deploy identityに対するrepository単位のArtifact Registry Writerとruntime identity単位のService Account User
 - `AUTH_ALLOWED_GOOGLE_EMAILS`用Secret Manager secret containerとsecret単位IAM
 - LINE週次レポート用の3つのSecret Manager secret container（channel secret、channel access token、通知専用DB接続文字列）とsecret単位IAM（`INF-019`）
+- LINE不具合報告用の2つのSecret Manager secret container（GitHub token、許可LINE userId一覧）とsecret単位IAM（`INF-022`）
 - Cloud Scheduler APIの有効化とCloud Scheduler専用service account（`INF-020`）
 - projectを対象にした月額budgetと50%、80%、100%のthreshold
 
@@ -95,6 +102,7 @@ flowchart LR
 - runtime設定とsecret version参照
 - deploy identityに対する対象Cloud Run service単位のCloud Run Developer
 - LINE週次レポートを有効化した場合だけ、通知用の環境変数6つとCloud Scheduler job（`INF-020`、`INF-021`）
+- LINE不具合報告を有効化した場合だけ、起票用の環境変数3つ（`INF-023`、`INF-024`）
 
 ### 3.3 管理対象外
 
@@ -296,6 +304,13 @@ LINE週次レポート向け（`INF-019`〜`INF-021`。`AC-INF-001-21`〜`AC-INF
 - `AC-INF-001-26`: Cloud Scheduler jobが`0 21 * * 0`・`Asia/Tokyo`・HTTP POST・`oidc_token`で宣言され、URLとaudienceが`site_url`から導出した同じlocal値であり、`LINE_WEEKLY_REPORT_JOB_AUDIENCE`もその値、`LINE_WEEKLY_REPORT_JOB_INVOKER`がscheduler service accountのemailである。scheduler service accountへ`roles/run.invoker`やproject-level roleを付与しない。
 - `AC-INF-001-27`: 上記が実credentialなしの構造test、`terraform fmt -check -recursive`、両rootの`terraform init -backend=false`と`terraform validate`で検証でき、`infra/terraform/README.md`と`docs/operations/line-weekly-report.md`が有効化の順序（bootstrap apply → secret version登録 → prod変数設定 → plan → apply）、pauseと無効化、確認手順を説明する。
 
+LINE不具合報告向け（`INF-022`〜`INF-024`）:
+
+- `AC-INF-001-28`: `bootstrap`が、LINE不具合報告用の2つのsecret container（GitHub token、許可LINE userId一覧）とsecret単位の`roles/secretmanager.secretAccessor`（runtime service accountのみ）を宣言する。`google_secret_manager_secret_version`と`secret_data`を含まない。
+- `AC-INF-001-29`: `environments/prod`の`line_bug_report`変数は既定`null`で、`null`のとき`LINE_BUG_REPORT_*`の環境変数とsecret data sourceを1つも宣言しない。有効時はsecret環境変数2つが変数のversion番号（`latest`不可）を参照し、平文環境変数`LINE_BUG_REPORT_GITHUB_REPOSITORY`が宣言される。`github_repository`は`owner/repo`形式、各versionは1以上の番号だけを受け付ける。
+- `AC-INF-001-30`: `line_weekly_report`が`null`の状態で`line_bug_report`を設定すると変数validationで拒否される。`line_bug_report`の有無は、`line_weekly_report`の環境変数6つとCloud Scheduler jobの宣言、`roles/run.invoker`の付与先（allUsersのみ）を変えない。
+- `AC-INF-001-31`: 上記が実credentialなしの構造test、`terraform fmt -check -recursive`、両rootの`terraform init -backend=false`と`terraform validate`で検証でき、`infra/terraform/README.md`と`docs/operations/line-bug-report.md`が有効化の順序（bootstrap apply → secret version登録 → prod変数設定 → plan → apply）、無効化、rotation、確認手順を説明する。
+
 ## 10. worktree境界
 
 本変更は専用worktreeと`feat/terraform-cloud-run`ブランチで行う。競合を避けるため、変更を次へ限定する。
@@ -330,3 +345,7 @@ dependency追加、migration番号、共通UI、routeは本変更で予約しな
 ### 10.2 LINE週次レポートのインフラ（`INF-019`〜`INF-021`）
 
 `feat/line-weekly-report-infra`ブランチ（`feat/line-weekly-report`を基点とする段階2）では、`infra/terraform/**`、`tests/architecture/line-weekly-report-infra.test.mjs`、`infra/terraform/README.md`、`docs/operations/line-weekly-report.md`、本仕様とそのレビューだけを変更する。`src/**`、`supabase/migrations/**`、CI/CD workflow、`package.json`とlockfileは変更しない。実cloud資源のapplyは行わない。
+
+### 10.3 LINE不具合報告のインフラ（`INF-022`〜`INF-024`）
+
+`feat/line-bug-report-infra`ブランチ（`feat/line-bug-report`を基点とする段階2）では、`infra/terraform/**`、`tests/architecture/line-bug-report-infra.test.mjs`、`infra/terraform/README.md`、`docs/operations/line-bug-report.md`、本仕様とそのレビューだけを変更する。`line_weekly_report`変数の構造、Cloud Scheduler job、`src/**`、`supabase/migrations/**`、CI/CD workflow、`package.json`とlockfileは変更しない。実cloud資源のapplyは行わない。
