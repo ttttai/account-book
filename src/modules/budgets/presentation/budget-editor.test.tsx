@@ -99,6 +99,16 @@ describe("BudgetEditor", () => {
     expect(document.querySelector("form")).toBeNull();
   });
 
+  it("予算のテンキーは取引入力向けの閉じるキーを持たない (AC-TXN-014-9)", () => {
+    render(<BudgetEditor view={createView()} />);
+    fireEvent.focus(screen.getByLabelText("グループ予算"));
+
+    expect(keypadIsOpen()).toBe(true);
+    expect(
+      screen.queryByRole("button", { name: "テンキーを閉じる" }),
+    ).toBeNull();
+  });
+
   it("金額欄はOSの仮想キーボードを開かず、選んだ欄の直下のテンキーで入力する (AC-BUD-010-4)", () => {
     render(<BudgetEditor view={createView()} />);
 
