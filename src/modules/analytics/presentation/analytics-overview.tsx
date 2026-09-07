@@ -12,7 +12,7 @@ import {
 } from "../domain/analytics-jpy";
 import { formatAnalyticsMonth } from "../domain/analytics-month";
 import { analyticsPresetStart } from "../domain/analytics-details-input";
-import type { AnalyticsCategoryShare } from "../domain/analytics-summary";
+import { AnalyticsCategoryChart } from "./analytics-category-chart";
 import { AnalyticsMemberPicker } from "./analytics-member-picker";
 
 import styles from "./analytics.module.css";
@@ -114,44 +114,6 @@ function AnalyticsBudget({
         予算の詳細を見る
       </Link>
     </div>
-  );
-}
-
-type BreakdownRowProps = Readonly<{
-  name: string;
-  color?: string;
-  amountMinor: number;
-  sharePercent: number;
-  note?: string;
-}>;
-
-// カテゴリ1件の行。棒は装飾とし、名称・金額・構成比のテキストで同じ値を伝える (AC-ANA-009-1)
-function AnalyticsBreakdownRow({
-  name,
-  color,
-  amountMinor,
-  sharePercent,
-  note,
-}: BreakdownRowProps) {
-  return (
-    <li className={styles["analytics-category-row"]}>
-      <p className={styles["analytics-category-head"]}>
-        <span className={styles["analytics-category-name"]}>{name}</span>
-        <span className={styles["analytics-category-amount"]}>
-          {formatAnalyticsJpy(amountMinor)}
-        </span>
-      </p>
-      <span
-        aria-hidden="true"
-        className={styles["analytics-category-bar"]}
-        data-analytics-bar=""
-        data-category-color={color}
-        style={{ width: `${Math.min(Math.max(sharePercent, 2), 100)}%` }}
-      />
-      <p className={styles["analytics-category-note"]}>
-        {note ? `${sharePercent}% ・ ${note}` : `${sharePercent}%`}
-      </p>
-    </li>
   );
 }
 
@@ -316,31 +278,30 @@ export function AnalyticsOverview({
 
       {data.categoryBreakdown.top.length > 0 ? (
         <section className={styles["analytics-category"]}>
-          <h3>支出カテゴリ</h3>
-          <ul
-            aria-label="支出カテゴリの内訳"
-            className={styles["analytics-category-list"]}
-          >
-            {data.categoryBreakdown.top.map(
-              (category: AnalyticsCategoryShare) => (
-                <AnalyticsBreakdownRow
-                  amountMinor={category.amountMinor}
-                  color={category.color}
-                  key={category.categoryId}
-                  name={category.name}
-                  sharePercent={category.sharePercent}
-                />
-              ),
-            )}
-            {data.categoryBreakdown.others ? (
-              <AnalyticsBreakdownRow
-                amountMinor={data.categoryBreakdown.others.amountMinor}
-                name="その他のカテゴリ"
-                note={`${data.categoryBreakdown.others.categoryCount}件`}
-                sharePercent={data.categoryBreakdown.others.sharePercent}
-              />
-            ) : null}
-          </ul>
+          <AnalyticsCategoryChart
+            heading="支出カテゴリ"
+            items={[
+              ...data.categoryBreakdown.top.map((category) => ({
+                key: category.categoryId,
+                name: category.name,
+                color: category.color,
+                amountMinor: category.amountMinor,
+                sharePercent: category.sharePercent,
+              })),
+              ...(data.categoryBreakdown.others
+                ? [
+                    {
+                      key: "others",
+                      name: "その他のカテゴリ",
+                      amountMinor: data.categoryBreakdown.others.amountMinor,
+                      sharePercent: data.categoryBreakdown.others.sharePercent,
+                      note: `${data.categoryBreakdown.others.categoryCount}件`,
+                    },
+                  ]
+                : []),
+            ]}
+            listLabel="支出カテゴリの内訳"
+          />
         </section>
       ) : (
         <p className={styles["analytics-empty-message"]}>

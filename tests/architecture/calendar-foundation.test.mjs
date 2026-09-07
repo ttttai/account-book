@@ -208,3 +208,17 @@ test("カレンダー本体の横スワイプ・ドラッグによる月移動�
   assert.doesNotMatch(css, /swipe/i);
   assert.doesNotMatch(css, /touch-action/);
 });
+
+test("空月メッセージはServer Componentからpropで渡すためkeyを持ち、開発時のkey警告を出さない (E2E-005)", async () => {
+  const home = await read(
+    "src/modules/calendar/presentation/calendar-home.tsx",
+  );
+  // review: 2026-09-07-calendar-empty-message-key
+  // CalendarHomeがfooter propとして渡す<p>はkeyを持たないと開発時に
+  // 「Each child in a list should have a unique "key" prop」が出て、Next開発オーバーレイの
+  // 文言がE2Eの検証と衝突する。
+  assert.match(
+    home,
+    /<p\s*\n?\s*className=\{styles\["calendar-empty-message"\]\}\s*\n?\s*key="calendar-empty-message"/,
+  );
+});

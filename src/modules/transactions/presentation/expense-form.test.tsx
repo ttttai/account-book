@@ -336,6 +336,78 @@ describe("ExpenseForm のテンキー開閉と保存の常設 (TXN-014, TXN-016)
   });
 });
 
+describe("ExpenseForm のテンキーの閉じるキー (AC-TXN-014-8, AC-TXN-014-9)", () => {
+  const closeKey = () =>
+    screen.getByRole("button", { name: "テンキーを閉じる" });
+
+  it("閉じるキーを押すとテンキーを閉じ、再開の説明を表示する (AC-TXN-014-8)", () => {
+    renderForm();
+
+    expect(closeKey().textContent).toBe("閉じる");
+    fireEvent.click(closeKey());
+
+    expect(screen.queryByRole("button", { name: "1" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "1桁削除" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "テンキーを閉じる" }),
+    ).toBeNull();
+    expect(screen.getByText(/金額欄をタップ/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "支出を保存" })).toBeTruthy();
+  });
+
+  it("閉じるキーはフォームを送信せず、金額と式を失わない (AC-TXN-014-8)", () => {
+    renderForm();
+
+    pressKey("1");
+    pressKey("2");
+    pressKey("00");
+    fireEvent.click(screen.getByRole("button", { name: "足す" }));
+    pressKey("3");
+    expect(closeKey().getAttribute("type")).toBe("button");
+
+    fireEvent.click(closeKey());
+
+    expect(amountInput().value).toBe("1200+3");
+    const hidden = document.querySelector(
+      'input[name="amountMinor"]',
+    ) as HTMLInputElement;
+    expect(hidden.value).toBe("1203");
+  });
+
+  it("閉じた直後のfocusは金額欄へ移り、その移動ではテンキーを開かない (AC-TXN-014-8)", () => {
+    renderForm();
+
+    fireEvent.click(closeKey());
+
+    expect(document.activeElement).toBe(amountInput());
+    expect(screen.queryByRole("button", { name: "1" })).toBeNull();
+  });
+
+  it("閉じたあと金額欄を再びタップまたはfocusすると開く (AC-TXN-014-8)", () => {
+    renderForm();
+
+    fireEvent.click(closeKey());
+    fireEvent.click(amountInput());
+    expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
+
+    fireEvent.click(closeKey());
+    fireEvent.blur(amountInput());
+    fireEvent.focus(amountInput());
+    expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
+  });
+
+  it("閉じるキーは数字の最下行の左端（00の左）に置く (AC-TXN-014-9)", () => {
+    renderForm();
+
+    const digits = closeKey().parentElement;
+    const keys = Array.from(digits?.querySelectorAll("button") ?? []).map(
+      (button) => button.getAttribute("aria-label") ?? button.textContent,
+    );
+    expect(keys.slice(-4)).toEqual(["テンキーを閉じる", "00", "0", "足す"]);
+    expect(digits?.getAttribute("data-closable")).toBe("true");
+  });
+});
+
 describe("ExpenseForm のテンキー開閉時のスクロール (AC-TXN-014-7)", () => {
   it("テンキーを開いたとき、金額欄をドックへ隠れない位置へ移動する", async () => {
     const scrollBy = vi.fn();

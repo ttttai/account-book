@@ -1,4 +1,10 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { AnalyticsOverviewReady } from "../application/analytics-types";
@@ -132,10 +138,43 @@ describe("AnalyticsOverview", () => {
     expect(rows[2]?.textContent).toContain("その他のカテゴリ");
     expect(rows[2]?.textContent).toContain("￥1,000");
     expect(rows[2]?.textContent).toContain("2件");
-    // 棒は装飾であり、値の唯一の伝達手段にしない
-    for (const bar of container.querySelectorAll("[data-analytics-bar]")) {
+    // 既定は円グラフで、扇形は装飾。値の唯一の伝達手段にしない (AC-ANA-014-1)
+    expect(
+      container
+        .querySelector("[data-analytics-pie]")
+        ?.getAttribute("aria-hidden"),
+    ).toBe("true");
+    expect(container.querySelectorAll("[data-analytics-slice]")).toHaveLength(
+      3,
+    );
+    expect(container.querySelector("[data-analytics-bar]")).toBeNull();
+  });
+
+  it("カテゴリ内訳を棒グラフへ切り替えても一覧の値と順序が変わらない (AC-ANA-014-1、AC-ANA-014-3)", () => {
+    const { container } = render(<AnalyticsOverview data={createData()} />);
+    const rowsBefore = within(
+      screen.getByRole("list", { name: "支出カテゴリの内訳" }),
+    )
+      .getAllByRole("listitem")
+      .map((row) => row.textContent);
+
+    fireEvent.click(
+      within(
+        screen.getByRole("group", { name: "支出カテゴリの表示形式" }),
+      ).getByRole("button", { name: "棒グラフ" }),
+    );
+
+    expect(container.querySelector("[data-analytics-pie]")).toBeNull();
+    const bars = container.querySelectorAll("[data-analytics-bar]");
+    expect(bars).toHaveLength(3);
+    for (const bar of bars) {
       expect(bar.getAttribute("aria-hidden")).toBe("true");
     }
+    expect(
+      within(screen.getByRole("list", { name: "支出カテゴリの内訳" }))
+        .getAllByRole("listitem")
+        .map((row) => row.textContent),
+    ).toEqual(rowsBefore);
   });
 
   it("取引が無い月は0円の指標と空状態の説明を表示する", () => {
@@ -159,6 +198,10 @@ describe("AnalyticsOverview", () => {
     ).toBeTruthy();
     expect(
       screen.queryByRole("list", { name: "支出カテゴリの内訳" }),
+    ).toBeNull();
+    // 空状態ではグラフも切替も表示しない
+    expect(
+      screen.queryByRole("group", { name: "支出カテゴリの表示形式" }),
     ).toBeNull();
   });
 

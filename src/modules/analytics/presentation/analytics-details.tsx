@@ -15,6 +15,8 @@ import {
   type AnalyticsCumulativeBalance,
   scaleAnalyticsSavingsChart,
 } from "../domain/analytics-savings";
+import { AnalyticsCategoryChart } from "./analytics-category-chart";
+import { AnalyticsMonthlyTrendChart } from "./analytics-monthly-trend-chart";
 
 import styles from "./analytics.module.css";
 
@@ -120,10 +122,6 @@ export function AnalyticsDetails({
   data,
 }: Readonly<{ data: AnalyticsDetailsReady }>) {
   const route = `/groups/${encodeURIComponent(data.group.id)}/analytics/details`;
-  const maxMonthlyAmount = Math.max(
-    1,
-    ...data.months.flatMap((month) => [month.expenseTotal, month.incomeTotal]),
-  );
   const cumulativeByMonth = new Map(
     data.cumulativeBalances.map((item) => [item.month, item.cumulativeBalance]),
   );
@@ -239,31 +237,14 @@ export function AnalyticsDetails({
         </p>
       ) : null}
 
-      <section className={styles["details-panel"]}>
-        <h3>月別推移</h3>
-        <ul aria-label="月別推移" className={styles["details-trend-list"]}>
-          {data.months.map((month) => (
-            <li key={month.month}>
-              <strong>{formatAnalyticsMonth(month.month)}</strong>
-              <span>{`支出 ${formatAnalyticsJpy(month.expenseTotal)}`}</span>
-              <i
-                aria-hidden="true"
-                data-details-bar="expense"
-                style={{
-                  width: `${(month.expenseTotal / maxMonthlyAmount) * 100}%`,
-                }}
-              />
-              <span>{`収入 ${formatAnalyticsJpy(month.incomeTotal)}`}</span>
-              <i
-                aria-hidden="true"
-                data-details-bar="income"
-                style={{
-                  width: `${(month.incomeTotal / maxMonthlyAmount) * 100}%`,
-                }}
-              />
-            </li>
-          ))}
-        </ul>
+      <section aria-label="月別推移" className={styles["details-panel"]}>
+        <AnalyticsMonthlyTrendChart
+          months={data.months.map((month) => ({
+            month: month.month,
+            expenseTotal: month.expenseTotal,
+            incomeTotal: month.incomeTotal,
+          }))}
+        />
       </section>
 
       <section aria-label="貯金額の推移" className={styles["details-panel"]}>
@@ -279,28 +260,23 @@ export function AnalyticsDetails({
       </section>
 
       <section className={styles["details-panel"]}>
-        <h3>支出カテゴリ構成</h3>
         {data.period.expenseByCategory.length > 0 ? (
-          <ul
-            aria-label="期間の支出カテゴリ"
-            className={styles["details-category-list"]}
-          >
-            {data.period.expenseByCategory.map((category) => (
-              <li key={category.categoryId}>
-                <span>{category.name}</span>
-                <strong>{formatAnalyticsJpy(category.amountMinor)}</strong>
-                <span>{`${category.sharePercent}%`}</span>
-                <i
-                  aria-hidden="true"
-                  data-category-color={category.color}
-                  data-details-bar="category"
-                  style={{ width: `${Math.max(category.sharePercent, 2)}%` }}
-                />
-              </li>
-            ))}
-          </ul>
+          <AnalyticsCategoryChart
+            heading="支出カテゴリ構成"
+            items={data.period.expenseByCategory.map((category) => ({
+              key: category.categoryId,
+              name: category.name,
+              color: category.color,
+              amountMinor: category.amountMinor,
+              sharePercent: category.sharePercent,
+            }))}
+            listLabel="期間の支出カテゴリ"
+          />
         ) : (
-          <p className={styles["details-muted"]}>支出はありません。</p>
+          <>
+            <h3>支出カテゴリ構成</h3>
+            <p className={styles["details-muted"]}>支出はありません。</p>
+          </>
         )}
       </section>
 
