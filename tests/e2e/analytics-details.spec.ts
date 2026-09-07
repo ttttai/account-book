@@ -30,6 +30,50 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
   await expect(
     memberPage.getByRole("table", { name: "メンバー別の内訳" }),
   ).toContainText("負担額");
+  // カテゴリ構成は既定で円グラフ。切替は遷移なしで横棒へ変わり、一覧の値は同じ (AC-ANA-014-1、AC-ANA-014-3)
+  const categories = memberPage.getByRole("list", {
+    name: "期間の支出カテゴリ",
+  });
+  await expect(categories).toContainText("食費");
+  await expect(categories).toContainText("￥6,000");
+  await expect(memberPage.locator("[data-analytics-pie]")).toBeVisible();
+  const chartToggle = memberPage.getByRole("group", {
+    name: "支出カテゴリの表示形式",
+  });
+  await expect(
+    chartToggle.getByRole("button", { name: "円グラフ" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  const urlBeforeToggle = memberPage.url();
+  await chartToggle.getByRole("button", { name: "棒グラフ" }).click();
+  await expect(
+    chartToggle.getByRole("button", { name: "棒グラフ" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(memberPage.locator("[data-analytics-pie]")).toHaveCount(0);
+  await expect(categories.locator("[data-analytics-bar]")).toHaveCount(1);
+  await expect(categories).toContainText("￥6,000");
+  expect(memberPage.url()).toBe(urlBeforeToggle);
+  await chartToggle.getByRole("button", { name: "円グラフ" }).click();
+  await expect(memberPage.locator("[data-analytics-pie]")).toBeVisible();
+  // 月別推移は既定で支出の縦棒。切替は遷移なしで収入の棒へ変わり、数値表の値は同じ (AC-ANA-015-1、AC-ANA-015-3)
+  const trend = memberPage.getByRole("region", { name: "月別推移" });
+  const trendToggle = trend.getByRole("group", { name: "月別推移の系列" });
+  await expect(
+    trendToggle.getByRole("button", { name: "支出" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(trend.locator("[data-trend-bar='expense']")).toHaveCount(6);
+  const urlBeforeTrendToggle = memberPage.url();
+  await trendToggle.getByRole("button", { name: "収入" }).click();
+  await expect(
+    trendToggle.getByRole("button", { name: "収入" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(trend.locator("[data-trend-bar='income']")).toHaveCount(6);
+  await expect(trend.locator("[data-trend-bar='expense']")).toHaveCount(0);
+  expect(memberPage.url()).toBe(urlBeforeTrendToggle);
+  await expect(
+    memberPage.getByRole("table", { name: "月別の正確な数値" }),
+  ).toContainText("￥6,000");
+  await trendToggle.getByRole("button", { name: "支出" }).click();
+  await expect(trend.locator("[data-trend-bar='expense']")).toHaveCount(6);
   // 累積収支は最終月で期間の収支と一致し、注記を表示する (AC-ANA-013-1、3)
   const savings = memberPage.getByRole("region", { name: "貯金額の推移" });
   await expect(savings).toContainText("期間開始時を0円として計算");

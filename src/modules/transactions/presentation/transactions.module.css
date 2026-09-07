@@ -439,8 +439,32 @@
   grid-column: span 2;
 }
 
+/* 閉じるキーを最下行の左端へ置くため、0の2列幅を解除する。行は増やさない (AC-TXN-014-9) */
+[data-closable="true"] .keypad-key[data-key="0"] {
+  grid-column: auto;
+}
+
 .keypad-key[data-key="00"] {
   font-size: 1.1rem;
+}
+
+/* 閉じるキーは数字より控えめな見た目にし、押し間違えにくくする (AC-TXN-014-8) */
+.keypad-key[data-action="close"] {
+  background: #f1f4f0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.keypad-key[data-action="close"]:active {
+  background: #e3e8e1;
+}
+
+/* 320px級では数字キーが約50pxになるため、「閉じる」を1行に収める (AC-TXN-014-9) */
+@media (max-width: 359px) {
+  .keypad-key[data-action="close"] {
+    padding-inline: 0.1rem;
+    font-size: 0.78rem;
+  }
 }
 
 /* 電卓を有効にしたテンキーは数字3列＋演算子1列の右へ、1文字削除・=・保存の列を置く。

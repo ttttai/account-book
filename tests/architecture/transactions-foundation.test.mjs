@@ -209,6 +209,38 @@ test("金額はOSの仮想キーボードを開かず画面内テンキーで入
   );
 });
 
+test("金額テンキーの閉じるキーは取引入力だけが有効化し、行を増やさない (AC-TXN-014-8, AC-TXN-014-9)", async () => {
+  const form = await read(
+    "src/modules/transactions/presentation/expense-form.tsx",
+  );
+  const keypad = await read(
+    "src/modules/transactions/presentation/amount-keypad.tsx",
+  );
+  const styles = await read(
+    "src/modules/transactions/presentation/transactions.module.css",
+  );
+  const recurring = await read(
+    "src/modules/recurring/presentation/recurring-management.tsx",
+  );
+  const budget = await read(
+    "src/modules/budgets/presentation/budget-editor.tsx",
+  );
+
+  // 閉じるキーは任意指定で、取引入力だけが渡す。固定費・予算は変更しない。
+  assert.match(keypad, /onClose\?:/);
+  assert.match(keypad, /aria-label="テンキーを閉じる"/);
+  assert.match(form, /<AmountKeypad(?:(?!\/>)[\s\S])*onClose=\{/);
+  assert.doesNotMatch(recurring, /<AmountKeypad(?:(?!\/>)[\s\S])*onClose=/);
+  assert.doesNotMatch(budget, /<AmountKeypad(?:(?!\/>)[\s\S])*onClose=/);
+  // 閉じるキーは0の2列幅を解除して最下行へ収め、行を追加しない。
+  assert.match(
+    styles,
+    /\[data-closable="true"\] \.keypad-key\[data-key="0"\]\s*\{[^}]*grid-column:\s*auto/s,
+  );
+  // 閉じた直後のfocusは金額欄へ移し、その移動では開かない (AC-TXN-014-8)。
+  assert.match(form, /preventScroll: true/);
+});
+
 test("金額テンキーの電卓は整数計算で、送信値と表示を分離する (TXN-017)", async () => {
   const form = await read(
     "src/modules/transactions/presentation/expense-form.tsx",

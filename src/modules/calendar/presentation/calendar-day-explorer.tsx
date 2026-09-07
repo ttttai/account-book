@@ -217,6 +217,11 @@ function DayPanel({
                   <span>{formatJpy(transaction.amountMinor)}</span>
                 )}
               </div>
+              {transaction.isRecurring && transaction.recurringName?.trim() ? (
+                <p className={styles["calendar-recurring-name"]}>
+                  {transaction.recurringName}
+                </p>
+              ) : null}
               {transaction.type === "expense" && data.scope !== "group" ? (
                 <p>
                   {data.selectedMemberLabel ?? "対象"}の支出{" "}
