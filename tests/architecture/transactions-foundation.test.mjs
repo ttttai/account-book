@@ -209,7 +209,7 @@ test("金額はOSの仮想キーボードを開かず画面内テンキーで入
   );
 });
 
-test("金額テンキーの閉じるキーは取引入力だけが有効化し、行を増やさない (AC-TXN-014-8, AC-TXN-014-9)", async () => {
+test("テンキーの閉じるは入力ドック右上に置き、テンキーの行を増やさない (AC-TXN-014-8, AC-TXN-014-9)", async () => {
   const form = await read(
     "src/modules/transactions/presentation/expense-form.tsx",
   );
@@ -226,16 +226,20 @@ test("金額テンキーの閉じるキーは取引入力だけが有効化し�
     "src/modules/budgets/presentation/budget-editor.tsx",
   );
 
-  // 閉じるキーは任意指定で、取引入力だけが渡す。固定費・予算は変更しない。
-  assert.match(keypad, /onClose\?:/);
-  assert.match(keypad, /aria-label="テンキーを閉じる"/);
-  assert.match(form, /<AmountKeypad(?:(?!\/>)[\s\S])*onClose=\{/);
-  assert.doesNotMatch(recurring, /<AmountKeypad(?:(?!\/>)[\s\S])*onClose=/);
-  assert.doesNotMatch(budget, /<AmountKeypad(?:(?!\/>)[\s\S])*onClose=/);
-  // 閉じるキーは0の2列幅を解除して最下行へ収め、行を追加しない。
+  // 閉じるは取引入力のドック内に置き、共有部品のテンキーには混ぜない。固定費・予算は変更しない。
+  assert.match(form, /aria-label="テンキーを閉じる"/);
+  assert.doesNotMatch(keypad, /テンキーを閉じる/);
+  assert.doesNotMatch(recurring, /keypad-close|テンキーを閉じる/);
+  assert.doesNotMatch(budget, /keypad-close|テンキーを閉じる/);
+  // ドック右上へ絶対配置し、44 x 44 CSS pixel以上のタップ領域を持つ (AC-TXN-014-9)。
   assert.match(
     styles,
-    /\[data-closable="true"\] \.keypad-key\[data-key="0"\]\s*\{[^}]*grid-column:\s*auto/s,
+    /\.keypad-close\s*\{[^}]*position:\s*absolute[^}]*min-height:\s*(?:44|4[5-9]|[5-9]\d)px/s,
+  );
+  // 0の2列幅は変えず、テンキーの配列を維持する。
+  assert.match(
+    styles,
+    /\.keypad-key\[data-key="0"\]\s*\{[^}]*grid-column:\s*span 2/s,
   );
   // 閉じた直後のfocusは金額欄へ移し、その移動では開かない (AC-TXN-014-8)。
   assert.match(form, /preventScroll: true/);

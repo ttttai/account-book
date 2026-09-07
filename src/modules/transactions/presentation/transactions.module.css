@@ -387,6 +387,40 @@
   font-size: 0.78rem;
 }
 
+/* テンキーを開いている間は見出し行を「閉じる」の高さに合わせ、「すべて」と重ねない (AC-TXN-014-9) */
+[data-keypad-open="true"] .category-fieldset > legend {
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
+}
+
+/* 「閉じる」は入力ドックの右上（カテゴリ見出し行の右端、「すべて」の真上）へ置く。
+   OSキーボードの完了ボタンと同じ位置で、テンキーの行は増やさない。見た目はカレンダー日別パネルの
+   「閉じる」と同じ枠なしのテキストにし、「すべて」やキーより控えめにする (AC-TXN-014-8, AC-TXN-014-9) */
+.keypad-close {
+  position: absolute;
+  top: calc(0.6rem + 1.125rem - 22px);
+  right: max(0.75rem, env(safe-area-inset-right));
+  display: grid;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  place-items: center;
+  cursor: pointer;
+}
+
+.keypad-close:active {
+  background: #eef1ed;
+}
+
 .keypad {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
@@ -439,32 +473,8 @@
   grid-column: span 2;
 }
 
-/* 閉じるキーを最下行の左端へ置くため、0の2列幅を解除する。行は増やさない (AC-TXN-014-9) */
-[data-closable="true"] .keypad-key[data-key="0"] {
-  grid-column: auto;
-}
-
 .keypad-key[data-key="00"] {
   font-size: 1.1rem;
-}
-
-/* 閉じるキーは数字より控えめな見た目にし、押し間違えにくくする (AC-TXN-014-8) */
-.keypad-key[data-action="close"] {
-  background: #f1f4f0;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-
-.keypad-key[data-action="close"]:active {
-  background: #e3e8e1;
-}
-
-/* 320px級では数字キーが約50pxになるため、「閉じる」を1行に収める (AC-TXN-014-9) */
-@media (max-width: 359px) {
-  .keypad-key[data-action="close"] {
-    padding-inline: 0.1rem;
-    font-size: 0.78rem;
-  }
 }
 
 /* 電卓を有効にしたテンキーは数字3列＋演算子1列の右へ、1文字削除・=・保存の列を置く。
@@ -646,6 +656,13 @@
   }
   .category-expand-toggle {
     display: none;
+  }
+  /* PCでは入力ドックを固定せずテンキーがフォームを覆わないため、「すべて」と同様に「閉じる」も置かない */
+  .keypad-close {
+    display: none;
+  }
+  [data-keypad-open="true"] .category-fieldset > legend {
+    min-height: 0;
   }
   /* テンキーは左列の下へ静的に置き、幅を広げすぎない。共有部品のため取引入力のフォーム内だけに限定する (REC-010) */
   .expense-form .keypad {

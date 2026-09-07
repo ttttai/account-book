@@ -23,8 +23,6 @@ type AmountKeypadProps = Readonly<{
   onKey: (key: AmountKeypadKey) => void;
   onDelete: () => void;
   calculator?: AmountKeypadCalculator;
-  /** 指定すると数字の最下行の左端へ「閉じる」キーを描画し、押したときに呼ぶ。取引入力だけが渡す (AC-TXN-014-8) */
-  onClose?: () => void;
   /** 1文字削除の下（右列）へ常設する操作。取引入力では保存ボタン (AC-TXN-016-1) */
   side?: ReactNode;
   className?: string;
@@ -46,13 +44,12 @@ const OPERATOR_LABELS: Readonly<Record<AmountOperator, string>> = {
   "+": "足す",
 };
 
-// 取引入力と固定費で共有する金額テンキー。数字・00・1文字削除に加え、任意で四則演算と=、閉じるキーを備える。各キーはフォームを送信しない (TXN-014, REC-010, TXN-017)
+// 取引入力と固定費で共有する金額テンキー。数字・00・1文字削除に加え、任意で四則演算と=を備える。各キーはフォームを送信しない (TXN-014, REC-010, TXN-017)
 export function AmountKeypad({
   open,
   onKey,
   onDelete,
   calculator,
-  onClose,
   side,
   className,
   ref,
@@ -65,26 +62,11 @@ export function AmountKeypad({
       ref={ref}
     >
       {open && (
-        <div
-          className={styles["keypad-digits"]}
-          data-closable={onClose ? "true" : undefined}
-        >
+        <div className={styles["keypad-digits"]}>
           {DIGIT_ROWS.map((row, rowIndex) => {
             const operator = calculator ? AMOUNT_OPERATORS[rowIndex] : null;
-            const isLastRow = rowIndex === DIGIT_ROWS.length - 1;
             return (
               <Fragment key={row.join("-")}>
-                {onClose && isLastRow && (
-                  <button
-                    aria-label="テンキーを閉じる"
-                    className={styles["keypad-key"]}
-                    data-action="close"
-                    onClick={onClose}
-                    type="button"
-                  >
-                    閉じる
-                  </button>
-                )}
                 {row.map((key) => (
                   <button
                     className={styles["keypad-key"]}
