@@ -1,6 +1,6 @@
 # E2E stackを本番buildへ切り替え、CIのE2E所要時間を短縮する
 
-状態: 承認済み
+状態: 実装確認済み
 レビュー日: 2026-09-08
 ブランチ: chore/ci-e2e-production-build
 対象仕様: `specs/15-e2e-testing.md`、`specs/06-non-functional-requirements.md`
@@ -50,3 +50,9 @@
 `NFR-E2E-001`〜`NFR-E2E-005`、`07-acceptance-test-plan.md`のE2E節、`11-production-infrastructure.md`のCI・CD方針と整合し、安全かつ実装可能である。architecture test（`compose.e2e.yaml`が本番`Dockerfile`と`NEXT_PUBLIC_*`のbuild argを持つこと、`compose.yaml`が開発用Dockerfileのままであること、`scripts/e2e-stack.sh`がoverrideと`--build`を使うこと、`playwright.config.ts`のtimeoutが上限内であること、CIのE2E jobがversion keyのbrowser cacheとcache hit時のOS依存package導入を持つこと）を先に更新し、実装後にローカルの分離E2E stackで全シナリオ（mobile・desktopの25件）が通ること、PR上のCIでE2E jobの所要時間が短縮されることを確認する条件で実装開始を承認する。
 
 ## 実装確認
+
+- 状態を`実装確認済み`へ更新（2026-09-08、ブランチ`chore/ci-e2e-production-build`、PR #130）。
+- テスト: `npm test`でarchitecture test 186件（新規`e2e-production-build.test.mjs`の3件を含む）、vitest 884件（97ファイル）が通過。lint（biome）、型検査（tsc）、`prettier --check`が通過。
+- ローカルの分離E2E stack（project `account-book-e2e-prodbuild`、port 3700/54921/54922）で本番`Dockerfile`のimageをbuildして`npm run test:e2e`を実行し、mobile・desktopの25件がすべて通過（1.2分、4 workers、最長はE2E-004 mobileの29.6秒）。実行後にstackとvolumeを破棄した。
+- PR #130のCI run（cache miss、初回）: Quality、Docker integration、E2E、Format checkがすべて成功。E2E jobは4分20秒→3分36秒、テスト本体（`Run E2E tests`）は3分41秒→2分43秒。内訳はstack起動（image pull、本番image build 41秒、container起動）が1分39秒、Playwright本体が1分0秒（変更前2分30秒）。E2E-004は31.5秒→11.3秒（mobile）、30.6秒→10.8秒（desktop）で、60秒のtest timeoutに対して十分な余裕がある。Playwright browser cacheは`playwright-Linux-1.62.1`で保存され、次回runからdownload（約11秒）を省く。
+- 実画面確認: UIの変更は無い。E2Eのmobile（375 x 812）とdesktop（1280 x 800）projectが本番buildのアプリに対して全シナリオを通過し、本番CSP・`upgrade-insecure-requests`下でloopbackのhttpアクセスに問題が無いことを確認した。
