@@ -525,3 +525,10 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.calendar-day-transactions .calendar-recurring-name {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}

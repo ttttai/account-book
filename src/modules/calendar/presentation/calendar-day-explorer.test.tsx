@@ -91,7 +91,8 @@ const data: CalendarReadyData = {
           },
         ],
         isRecurring: true,
-        recurringName: "家賃",
+        recurringName: "自宅の家賃",
+        memo: "毎月の住居費",
       },
     ],
   },
@@ -219,6 +220,50 @@ describe("CalendarDayExplorer", () => {
     expect(screen.getByText("給与")).toBeTruthy();
   });
 
+  it.each(["expense", "income"] as const)(
+    "固定費の%s名称を安全に全文表示する (AC-CAL-005-2)",
+    (type) => {
+      const transaction = data.dayTransactionsByDate["2026-08-16"]?.[0];
+      if (!transaction) throw new Error("missing fixture");
+      const name = "<script>alert(1)</script>";
+      const { container } = render(
+        <CalendarDayExplorer
+          data={{
+            ...data,
+            selectedDay: "2026-08-16",
+            dayTransactionsByDate: {
+              "2026-08-16": [{ ...transaction, type, recurringName: name }],
+            },
+          }}
+        />,
+      );
+      expect(
+        container.querySelector(".calendar-recurring-name")?.textContent,
+      ).toBe(name);
+      expect(container.querySelector("script")).toBeNull();
+    },
+  );
+
+  it.each([undefined, "", "  "])(
+    "固定費の名称%sがない場合は空の行を作らない",
+    (recurringName) => {
+      const transaction = data.dayTransactionsByDate["2026-08-16"]?.[0];
+      if (!transaction) throw new Error("missing fixture");
+      const { container } = render(
+        <CalendarDayExplorer
+          data={{
+            ...data,
+            selectedDay: "2026-08-16",
+            dayTransactionsByDate: {
+              "2026-08-16": [{ ...transaction, recurringName }],
+            },
+          }}
+        />,
+      );
+      expect(container.querySelector(".calendar-recurring-name")).toBeNull();
+    },
+  );
+
   it("固定費の展開行にもカテゴリ名と色tokenを表示する", () => {
     render(<CalendarDayExplorer data={data} />);
     fireEvent.click(
@@ -230,6 +275,8 @@ describe("CalendarDayExplorer", () => {
     expect(dot?.getAttribute("data-category-color")).toBe("home");
     expect(screen.getByText("家賃")).toBeTruthy();
     expect(screen.getByText("固定費")).toBeTruthy();
+    expect(screen.getByText("自宅の家賃")).toBeTruthy();
+    expect(screen.getByText("毎月の住居費")).toBeTruthy();
   });
 
   it("閉じる操作でdayを削除し、選択した日付へfocusを戻す", () => {
