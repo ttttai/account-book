@@ -103,7 +103,7 @@
 
 - `NFR-E2E-001` 主要smoke flowのE2Eを自動実行し、CIの必須checkへ含める。E2Eの成功を、DB・RLS test、HTTP integration test、coverage、実画面確認の代替にしない。
 - `NFR-E2E-002` E2Eは専用compose projectの使い捨てローカルstackだけを対象とし、本番・stagingのSupabase、実Googleアカウント、実家計データへ接続しない。base URLとSupabase URLがloopbackでない場合は実行を中止する。ローカル資格情報と許可アカウントは実行ごとに生成した架空の値だけを使う。
-- `NFR-E2E-003` 差し替えるのはGoogleへの外部往復だけとし、DB、RLS、GoTrue、Next.jsのserver境界は本番と同じ経路で実行する。session seedingのためにproduction codeへtest専用の分岐、bypass route、環境変数を追加しない。
+- `NFR-E2E-003` 差し替えるのはGoogleへの外部往復だけとし、DB、RLS、GoTrue、Next.jsのserver境界は本番と同じ経路で実行する。E2E stackのアプリは本番buildで実行し、`next dev`固有の挙動をテスト対象にしない。session seedingのためにproduction codeへtest専用の分岐、bypass route、環境変数を追加しない。
 - `NFR-E2E-004` E2Eの主要viewportは375 x 812とし、1280 x 800と最小幅320pxの確認も自動化する。
 - `NFR-E2E-005` 失敗時はtrace、screenshot、video、reportを保存し、CIのartifactとして取得できるようにする。家計データ、token、許可リストの値をartifactへ含めない。
 
