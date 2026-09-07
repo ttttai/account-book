@@ -1,10 +1,10 @@
 # 本番インフラストラクチャ仕様
 
-状態: 実装承認済み
+状態: 実装承認済み（LINE週次レポート向け追加分 review: 2026-09-07-line-weekly-report-infra）
 
-バージョン: 0.4.0
+バージョン: 0.5.0
 
-最終更新日: 2026-09-06
+最終更新日: 2026-09-07
 
 ## 1. 目的
 
@@ -33,6 +33,12 @@
 - `INF-017`: 変更がアプリの挙動に影響しないドキュメント（`docs/**`、root `README.md`、`CLAUDE.md`）のみの場合、CIはformat検証だけを実行して重い検証ジョブをskipし、production CDは実際にdeployへ成功した直近commitとの差分で判定してdeployをskipする。testが内容を検証する`specs/**`と`AGENTS.md`はドキュメント扱いにしない。docsのみ判定は単一のscriptへ集約し、初回・判定不能・手動実行では必ず検証とdeployを実行する側へ倒す。
 - `INF-018`: 許可Googleアカウント一覧の変更（追加・削除）は、Secret Managerへの新version追加、`environments/prod`のversion変数更新、plan確認後のapply、本番DBの`app_private.allowed_google_accounts`同期、smoke test、旧version無効化の順で行う。version追加とDB同期は`scripts/rotate-allowed-google-emails.sh`で行い、値は標準入力またはSecret Managerから取得したものだけを使い、command line引数、shell history、log、標準出力へ出さない。DB同期はSecret Managerの同じversionから値を取得し、手入力の二重化による不一致を作らない。runbookは`docs/operations/allowed-google-emails.md`を正本とする。
 
+LINE週次レポート（[`16-line-weekly-report.md`](16-line-weekly-report.md)、`NOTIF-*`）の段階2として、次を追加する。`INF-018`と`AC-INF-001-21`〜`AC-INF-001-23`は許可リストrotation補助（`chore/allowed-google-emails-rotation`）で採番済みのため、本追加分は`INF-019`以降を使う。
+
+- `INF-019`: LINE週次レポート用の秘密値（LINE channel secret、LINE channel access token、通知専用ロールのDB接続文字列）は、`bootstrap`が管理する3つのSecret Manager secret containerへ格納する。payloadはTerraform管理外とし、runtime service accountへの`roles/secretmanager.secretAccessor`はsecret単位で付与する。
+- `INF-020`: 週次ジョブの起動には、`bootstrap`が作成するCloud Scheduler専用service account（keyなし）を使う。`environments/prod`はCloud Scheduler job（毎週日曜21:00 `Asia/Tokyo`、HTTP POST、OIDC token）を宣言し、audienceと呼び出し先URLを同じ値（`<site_url>/api/v1/jobs/weekly-line-report`）から導出する。Cloud Runは公開invokerのため、scheduler service accountへ`roles/run.invoker`やproject-levelの権限を付与しない。認可はアプリ側のOIDC検証（`NOTIF-006`）が担う。
+- `INF-021`: LINE週次レポートの構成は`environments/prod`の単一変数（既定`null`）で有効・無効を切り替える。無効時は環境変数・secret参照・Cloud Scheduler jobを一切作成せず、既存構成のplanに差分を出さない。有効時は`LINE_CHANNEL_SECRET`・`LINE_CHANNEL_ACCESS_TOKEN`・`NOTIFIER_DATABASE_URL`をSecret Managerの指定version（`latest`不可）で、`LINE_WEEKLY_REPORT_GROUP_ID`・`LINE_WEEKLY_REPORT_JOB_AUDIENCE`・`LINE_WEEKLY_REPORT_JOB_INVOKER`を平文の環境変数としてCloud Runへ渡す。有効化の順序は「bootstrap apply → secret version登録 → prod変数設定 → plan確認 → apply」とし、secret versionが存在しない状態でprodを有効化しない。
+
 ## 3. 対象構成
 
 ```mermaid
@@ -49,6 +55,9 @@ flowchart LR
     TF --> SM
     TF --> CR
     TF --> BUDGET[Cloud Billing Budget]
+    TF --> SCH[Cloud Scheduler<br/>日曜21:00 JST]
+    SCH -->|OIDC付きPOST| CR
+    CR -->|push| LINE[LINE Messaging API]
 ```
 
 ### 3.1 Terraform rootの分離
@@ -74,6 +83,8 @@ flowchart LR
 - 対象repository・ownerの不変numeric IDとmain branchだけを信頼するWorkload Identity PoolとGitHub OIDC provider
 - deploy identityに対するrepository単位のArtifact Registry Writerとruntime identity単位のService Account User
 - `AUTH_ALLOWED_GOOGLE_EMAILS`用Secret Manager secret containerとsecret単位IAM
+- LINE週次レポート用の3つのSecret Manager secret container（channel secret、channel access token、通知専用DB接続文字列）とsecret単位IAM（`INF-019`）
+- Cloud Scheduler APIの有効化とCloud Scheduler専用service account（`INF-020`）
 - projectを対象にした月額budgetと50%、80%、100%のthreshold
 
 `environments/prod`は次を管理する。
@@ -83,6 +94,7 @@ flowchart LR
 - 公開invokerのIAM member
 - runtime設定とsecret version参照
 - deploy identityに対する対象Cloud Run service単位のCloud Run Developer
+- LINE週次レポートを有効化した場合だけ、通知用の環境変数6つとCloud Scheduler job（`INF-020`、`INF-021`）
 
 ### 3.3 管理対象外
 
@@ -154,15 +166,37 @@ workflowから`--set-env-vars`、`--update-secrets`、`--service-account`、CPU�
 
 ### 4.4 runtime環境変数
 
-| 変数                               | 供給元                      | 性質                             |
-| ---------------------------------- | --------------------------- | -------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`             | Terraform input             | 公開。build時とruntimeで同一     |
-| `NEXT_PUBLIC_SUPABASE_URL`         | Terraform input             | 公開。managed Supabase HTTPS URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`    | Terraform input             | 公開可能なpublishable/anon key   |
-| `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED` | Terraform固定値`true`       | 公開feature flag                 |
-| `AUTH_ALLOWED_GOOGLE_EMAILS`       | Secret Managerの指定version | server-only secret               |
+| 変数                               | 供給元                      | 性質                                     |
+| ---------------------------------- | --------------------------- | ---------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`             | Terraform input             | 公開。build時とruntimeで同一             |
+| `NEXT_PUBLIC_SUPABASE_URL`         | Terraform input             | 公開。managed Supabase HTTPS URL         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`    | Terraform input             | 公開可能なpublishable/anon key           |
+| `NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED` | Terraform固定値`true`       | 公開feature flag                         |
+| `AUTH_ALLOWED_GOOGLE_EMAILS`       | Secret Managerの指定version | server-only secret                       |
+| `LINE_CHANNEL_SECRET`              | Secret Managerの指定version | server-only secret。有効化時のみ         |
+| `LINE_CHANNEL_ACCESS_TOKEN`        | Secret Managerの指定version | server-only secret。有効化時のみ         |
+| `NOTIFIER_DATABASE_URL`            | Secret Managerの指定version | server-only secret。有効化時のみ         |
+| `LINE_WEEKLY_REPORT_GROUP_ID`      | Terraform input             | 通知対象の家計グループUUID。有効化時のみ |
+| `LINE_WEEKLY_REPORT_JOB_AUDIENCE`  | `site_url`から導出          | ジョブURL。schedulerのaudienceと同一     |
+| `LINE_WEEKLY_REPORT_JOB_INVOKER`   | bootstrapのSA参照           | scheduler service accountのemail         |
 
 Cloud Runが予約する`PORT`をTerraformから上書きしない。`SUPABASE_INTERNAL_URL`は本番では指定せず、公開Supabase URLをserver accessにも利用する。
+
+`LINE_*`と`NOTIFIER_DATABASE_URL`は、`environments/prod`の`line_weekly_report`変数が`null`（既定）の間は宣言されず、アプリは`NOTIF-010`のfail closedで通知機能を無効にする。有効化するとき、`LINE_WEEKLY_REPORT_JOB_AUDIENCE`とCloud Scheduler jobのURL・audienceは同じlocal値から導出し、手入力の不一致で`NOTIF-006`の検証が失敗しないようにする。
+
+### 4.5 Cloud Scheduler job
+
+| 項目             | 値                                                                  |
+| ---------------- | ------------------------------------------------------------------- |
+| schedule         | `0 21 * * 0`（毎週日曜21:00）                                       |
+| time zone        | `Asia/Tokyo`                                                        |
+| target           | HTTP POST `<site_url>/api/v1/jobs/weekly-line-report`               |
+| 認証             | OIDC token。service accountはbootstrapのscheduler SA、audienceはURL |
+| retry            | 3回、初回backoff 5分、最大1時間                                     |
+| attempt deadline | 180秒                                                               |
+| 停止             | `line_weekly_report.paused = true`でjobをpauseする（Terraform管理） |
+
+ジョブは`NOTIF-008`により冪等なため、リトライや手動実行で二重送信しない。jobの作成・変更にはapply実行者がscheduler service accountへの`iam.serviceAccounts.actAs`を持つ必要がある（project ownerは満たす）。
 
 ## 5. secretとstateの安全性
 
@@ -255,6 +289,13 @@ apply後は次をsmoke testする。
 - `AC-INF-001-22`: `scripts/rotate-allowed-google-emails.sh sync-db <version>`は、Secret Managerの指定versionから値を取得して同じ検証を行い、psqlの標準入力経由で`app_private.sync_allowed_google_accounts`を実行し、同期件数を表示する。値をpsqlのcommand line引数へ渡さない。
 - `AC-INF-001-23`: 上記scriptの検証・tfvars更新・stdin経由の受け渡しは、実credentialと実cloud変更なしにstub commandで構造testできる。runbook `docs/operations/allowed-google-emails.md`が存在し、`deployment.md`、`database-changes.md`、`infra/terraform/README.md`から参照されている。
 
+LINE週次レポート向け（`INF-019`〜`INF-021`。`AC-INF-001-21`〜`AC-INF-001-23`は許可リストrotation補助で採番済み）:
+
+- `AC-INF-001-24`: `bootstrap`が、LINE週次レポート用の3つのsecret container、secret単位の`roles/secretmanager.secretAccessor`（runtime service accountのみ）、Cloud Scheduler APIの有効化、keyなしのscheduler service accountを宣言する。`google_secret_manager_secret_version`と`secret_data`を含まない。
+- `AC-INF-001-25`: `environments/prod`の`line_weekly_report`変数は既定`null`で、`null`のとき`LINE_*`・`NOTIFIER_DATABASE_URL`の環境変数、secret data source、Cloud Scheduler jobを1つも宣言しない。有効時はsecret環境変数3つが変数のversion番号（`latest`不可）を参照し、平文環境変数3つが宣言される。
+- `AC-INF-001-26`: Cloud Scheduler jobが`0 21 * * 0`・`Asia/Tokyo`・HTTP POST・`oidc_token`で宣言され、URLとaudienceが`site_url`から導出した同じlocal値であり、`LINE_WEEKLY_REPORT_JOB_AUDIENCE`もその値、`LINE_WEEKLY_REPORT_JOB_INVOKER`がscheduler service accountのemailである。scheduler service accountへ`roles/run.invoker`やproject-level roleを付与しない。
+- `AC-INF-001-27`: 上記が実credentialなしの構造test、`terraform fmt -check -recursive`、両rootの`terraform init -backend=false`と`terraform validate`で検証でき、`infra/terraform/README.md`と`docs/operations/line-weekly-report.md`が有効化の順序（bootstrap apply → secret version登録 → prod変数設定 → plan → apply）、pauseと無効化、確認手順を説明する。
+
 ## 10. worktree境界
 
 本変更は専用worktreeと`feat/terraform-cloud-run`ブランチで行う。競合を避けるため、変更を次へ限定する。
@@ -285,3 +326,7 @@ dependency追加、migration番号、共通UI、routeは本変更で予約しな
 ### 10.1 許可リストrotation補助（`INF-018`）
 
 `chore/allowed-google-emails-rotation`ブランチでは、`scripts/rotate-allowed-google-emails.sh`、`docs/operations/allowed-google-emails.md`、関連する運用資料の参照、`tests/architecture/allowed-google-emails-rotation.test.mjs`、本仕様とそのレビューだけを変更する。Terraform source、`src/**`、`supabase/migrations/**`、CI/CD workflowは変更しない。
+
+### 10.2 LINE週次レポートのインフラ（`INF-019`〜`INF-021`）
+
+`feat/line-weekly-report-infra`ブランチ（`feat/line-weekly-report`を基点とする段階2）では、`infra/terraform/**`、`tests/architecture/line-weekly-report-infra.test.mjs`、`infra/terraform/README.md`、`docs/operations/line-weekly-report.md`、本仕様とそのレビューだけを変更する。`src/**`、`supabase/migrations/**`、CI/CD workflow、`package.json`とlockfileは変更しない。実cloud資源のapplyは行わない。

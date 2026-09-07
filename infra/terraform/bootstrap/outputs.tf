@@ -27,3 +27,13 @@ output "allowed_google_emails_secret_id" {
   description = "payload versionを別途追加するSecret Manager secret ID"
   value       = google_secret_manager_secret.allowed_google_emails.secret_id
 }
+
+output "scheduler_service_account_email" {
+  description = "Cloud Scheduler jobがOIDC tokenの発行に使うservice account。prodはIDで参照するため入力不要"
+  value       = google_service_account.scheduler.email
+}
+
+output "line_weekly_report_secret_ids" {
+  description = "段階3でpayload versionを追加するLINE週次レポート用secret ID"
+  value       = { for key, secret in google_secret_manager_secret.line_weekly_report : key => secret.secret_id }
+}

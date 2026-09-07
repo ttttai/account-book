@@ -9,3 +9,13 @@ supabase_anon_key = "set-with-a-git-ignored-tfvars-or-TF_VAR-variable"
 
 # latestは使わず、登録済みのversion番号を固定します。
 allowed_google_emails_version = "1"
+
+# LINE週次レポート（段階2）。未設定（null）の間は通知機能が無効のまま。
+# bootstrap applyと3つのsecretへのversion登録が済んでから有効化する。
+# line_weekly_report = {
+#   group_id                      = "00000000-0000-0000-0000-000000000000"
+#   channel_secret_version        = "1"
+#   channel_access_token_version  = "1"
+#   notifier_database_url_version = "1"
+#   paused                        = false
+# }

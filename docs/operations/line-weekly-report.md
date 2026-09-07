@@ -6,12 +6,12 @@
 
 ## 全体像と現在地
 
-| 段階  | 内容                                   | 状態     | 主な作業場所          |
-| ----- | -------------------------------------- | -------- | --------------------- |
-| 段階1 | アプリ実装とDB migration               | 実装済み | このリポジトリ        |
-| 段階0 | migrationの本番適用と段階1 PRのmerge   | 未実施   | 本番DB + GitHub       |
-| 段階2 | Terraformでインフラを追加              | 未実施   | `infra/terraform/`    |
-| 段階3 | LINE公式アカウント設定と秘密情報の登録 | 未実施   | LINE + GCP + Supabase |
+| 段階  | 内容                                   | 状態                           | 主な作業場所          |
+| ----- | -------------------------------------- | ------------------------------ | --------------------- |
+| 段階1 | アプリ実装とDB migration               | 実装済み                       | このリポジトリ        |
+| 段階0 | migrationの本番適用と段階1 PRのmerge   | 未実施                         | 本番DB + GitHub       |
+| 段階2 | Terraformでインフラを追加              | Terraform実装済み・apply未実施 | `infra/terraform/`    |
+| 段階3 | LINE公式アカウント設定と秘密情報の登録 | 未実施                         | LINE + GCP + Supabase |
 
 段階0 → 2 → 3 の順に進める。各段階は独立して中断・再開できる。
 
@@ -52,38 +52,102 @@ docker run --rm -i --env-file .env supabase/postgres:17.6.1.136 sh -c 'psql "$PR
 
 ## 段階2: Terraformでインフラを追加
 
-所要: 実装0.5〜1日 + plan確認・apply。専用worktree（例: `feat/line-weekly-report-infra`）で行い、[`specs/11-production-infrastructure.md`](../../specs/11-production-infrastructure.md)へ要件を追加してレビューしてから実装する。
+所要: plan確認とapplyで30分程度。Terraformコードは`feat/line-weekly-report-infra`で実装済み（[`specs/11-production-infrastructure.md`](../../specs/11-production-infrastructure.md) `INF-019`〜`INF-021`、review: 2026-09-07-line-weekly-report-infra）。Terraformの詳細は[`infra/terraform/README.md`](../../infra/terraform/README.md)の「LINE週次レポートのインフラ（段階2）」を参照する。
 
-### 追加する資源
+### 実装済みの構成
 
 **`infra/terraform/bootstrap`**（低頻度変更の基盤側）
 
-1. Secret Manager secret container ×3（payloadはTerraform管理外、値は段階3で登録）
-   - `account-book-line-channel-secret`
-   - `account-book-line-channel-access-token`
-   - `account-book-notifier-database-url`
-2. Cloud Scheduler起動用のservice account（例: `account-book-scheduler`）。keyは作らない
-3. Cloud Scheduler APIの有効化（`cloudscheduler.googleapis.com`）
-4. 3つのsecretへの`roles/secretmanager.secretAccessor`を、既存のCloud Run runtime service accountへ**secret単位**で付与
+- Secret Manager secret container ×3（payloadはTerraform管理外、値は段階3で登録）: `account-book-line-channel-secret`、`account-book-line-channel-access-token`、`account-book-notifier-database-url`
+- Cloud Scheduler起動用のservice account `account-book-scheduler`（keyなし、IAM roleなし）
+- Cloud Scheduler APIの有効化（`cloudscheduler.googleapis.com`）
+- 3つのsecretへの`roles/secretmanager.secretAccessor`を、既存のCloud Run runtime service accountへsecret単位で付与
 
-**`infra/terraform/environments/prod`**（Cloud Run側）
+**`infra/terraform/environments/prod`**（Cloud Run側。変数`line_weekly_report`を設定したときだけ作られる）
 
-5. Cloud Run環境変数の追加
-   - Secret Manager参照（version固定）: `LINE_CHANNEL_SECRET`、`LINE_CHANNEL_ACCESS_TOKEN`、`NOTIFIER_DATABASE_URL`
-   - 平文の変数: `LINE_WEEKLY_REPORT_GROUP_ID`（通知対象の家計グループUUID）、`LINE_WEEKLY_REPORT_JOB_AUDIENCE`（ジョブURL全体）、`LINE_WEEKLY_REPORT_JOB_INVOKER`（scheduler SAのemail）
-6. Cloud Schedulerジョブ
-   - schedule: `0 21 * * 0`、time_zone: `Asia/Tokyo`
-   - HTTP POST → `https://<本番origin>/api/v1/jobs/weekly-line-report`
-   - `oidc_token`にscheduler SAを指定し、audienceはジョブURLと一致させる
-   - retry設定（例: retry_count 3、min_backoff 5m）。エンドポイントは冪等なのでリトライは安全
+- Cloud Run環境変数6つ。Secret Manager参照（version固定）: `LINE_CHANNEL_SECRET`、`LINE_CHANNEL_ACCESS_TOKEN`、`NOTIFIER_DATABASE_URL`。平文: `LINE_WEEKLY_REPORT_GROUP_ID`、`LINE_WEEKLY_REPORT_JOB_AUDIENCE`、`LINE_WEEKLY_REPORT_JOB_INVOKER`
+- Cloud Scheduler job `account-book-weekly-line-report`（`0 21 * * 0`、`Asia/Tokyo`、HTTP POST、OIDC token、retry 3回）。ジョブURL・audience・`LINE_WEEKLY_REPORT_JOB_AUDIENCE`は`site_url`から同じ値を導出する
+
+### 2-1. bootstrapをapplyする（secret containerとscheduler SA）
+
+`infra/terraform/bootstrap`で、Git管理外の`terraform.tfvars`と`backend.hcl`がある状態で実行する。追加する資源名は既定値のままでよく、tfvarsの変更は不要。
+
+```bash
+cd infra/terraform/bootstrap && terraform init -backend-config=backend.hcl && terraform plan -out=bootstrap.tfplan
+```
+
+planで次の追加だけが出ること（削除・置換が0件）を確認してからapplyする。
+
+- `google_project_service.required["cloudscheduler.googleapis.com"]`
+- `google_service_account.scheduler`
+- `google_secret_manager_secret.line_weekly_report["channel_secret"]`、`["channel_access_token"]`、`["notifier_database_url"]`
+- `google_secret_manager_secret_iam_member.line_weekly_report_cloud_run_accessor[...]`（3件）
+
+```bash
+cd infra/terraform/bootstrap && terraform apply bootstrap.tfplan
+```
+
+apply後、Cloud Schedulerのservice agentに`roles/cloudscheduler.serviceAgent`が付いていることを確認する。API有効化時に自動付与されるが、付いていないとjob実行時にOIDC tokenを発行できず`PERMISSION_DENIED`になる。
+
+```bash
+gcloud projects get-iam-policy "$(gcloud config get-value project)" --flatten='bindings[].members' --filter='bindings.role:roles/cloudscheduler.serviceAgent' --format='value(bindings.members)'
+```
+
+出力が空のときだけ手動で付与する。`PROJECT_NUMBER`は`gcloud projects describe <project id> --format='value(projectNumber)'`で得られる。
+
+```bash
+gcloud projects add-iam-policy-binding "$(gcloud config get-value project)" --member="serviceAccount:service-PROJECT_NUMBER@gcp-sa-cloudscheduler.iam.gserviceaccount.com" --role=roles/cloudscheduler.serviceAgent
+```
+
+### 2-2. 段階3のsecret登録を先に済ませる
+
+prodの有効化はsecret versionが存在してから行う。存在しないversionを参照すると、Cloud Runの新revisionが起動に失敗する。段階3の3-1〜3-3（LINE公式アカウント作成、`line_notifier`のLOGIN化、`gcloud secrets versions add`）を先に実施し、3つのversion番号を控える。
+
+### 2-3. prodを有効化してapplyする
+
+`infra/terraform/environments/prod/terraform.tfvars`（Git管理外）へ追記する。家計グループUUIDは、アプリでそのグループを開いたときのURL（`/groups/<UUID>/...`）から取得する。
+
+```hcl
+line_weekly_report = {
+  group_id                      = "<通知対象の家計グループUUID>"
+  channel_secret_version        = "1"
+  channel_access_token_version  = "1"
+  notifier_database_url_version = "1"
+}
+```
+
+```bash
+cd infra/terraform/environments/prod && terraform init -backend-config=backend.hcl && terraform plan -out=prod.tfplan
+```
+
+planで次を確認してからapplyする。
+
+- `google_cloud_run_v2_service.app`が**update in-place**で、差分が環境変数6つの追加だけであること。置換（replace）や既存環境変数の変更が出たらapplyしない。
+- `google_cloud_scheduler_job.weekly_line_report[0]`が追加され、`schedule = "0 21 * * 0"`、`time_zone = "Asia/Tokyo"`、`uri`と`oidc_token.audience`が`https://<本番origin>/api/v1/jobs/weekly-line-report`で一致していること。
+
+```bash
+cd infra/terraform/environments/prod && terraform apply prod.tfplan
+```
+
+### 2-4. 動作確認
+
+Webhook設定（3-4）とbotのグループ参加が済んだ後、jobを手動実行して通知が届くことを確認する。
+
+```bash
+gcloud scheduler jobs run account-book-weekly-line-report --location=asia-northeast1
+```
+
+- Cloud Schedulerの実行結果が成功（HTTP 200）で、LINEグループへ通知が届く。
+- 同じ週にもう一度実行しても通知は届かない（冪等、`NOTIF-008`）。
+- 応答が404なら環境変数が未反映（新revisionへtrafficが向いているか確認）、403ならOIDC検証の不一致（scheduler SA・audience）、500ならCloud Runのログで原因を確認する。
 
 ### 注意点
 
-- Cloud Runは公開invokerのため、schedulerに`roles/run.invoker`は不要（認可はアプリ側のOIDC検証が担う）。
-- `LINE_WEEKLY_REPORT_JOB_AUDIENCE`とschedulerのaudienceを一致させないと、アプリ側の検証で403になる。
-- 環境変数を追加する段階で**secretのversionがまだ存在しない**とapplyが失敗する。推奨順: bootstrap apply → 段階3のsecret登録 → prod apply。
+- Cloud Runは公開invokerのため、scheduler SAへ`roles/run.invoker`は付けない（認可はアプリ側のOIDC検証が担う）。
+- ジョブURL・schedulerのaudience・`LINE_WEEKLY_REPORT_JOB_AUDIENCE`はTerraformが`site_url`から同じ値を導出するため、個別に設定しない。
+- 一時停止は`line_weekly_report`へ`paused = true`を追加してplan → apply。Consoleやgcloudでpauseすると次のTerraform applyで再開されるため使わない。
 - 既存のCD（imageのみ更新）はこの構成を変更しないため、apply後もdeployフローは従来どおり。
-- 完了条件: `terraform fmt/validate`、構造テスト（`tests/architecture/terraform-foundation.test.mjs`への追記）、人によるplan確認、apply後にsecret version・env・schedulerジョブの存在確認。
+- 完了条件: `terraform fmt -check -recursive`、`terraform validate`、構造テスト（`tests/architecture/line-weekly-report-infra.test.mjs`）、人によるplan確認、apply後にsecret version・環境変数・schedulerジョブの存在確認。
 
 ## 段階3: LINE公式アカウントと秘密情報の設定
 
@@ -108,7 +172,19 @@ migrationはロール`line_notifier`を`nologin`で作成している。password
 docker run --rm -it --env-file .env supabase/postgres:17.6.1.136 sh -c 'psql "$PROD_DB_URL" -c "\password line_notifier" -c "alter role line_notifier login"'
 ```
 
-接続文字列は`postgresql://line_notifier:<password>@<SupabaseのSession poolerのhost>:5432/postgres`の形式で作る（Cloud RunはIPv4のためSession poolerを使う）。このロールは通知用関数のEXECUTEしか持たないため、漏洩時の影響は週次集計値の読み取りと連携登録・解除に限られる。
+接続文字列は次の形式で作る。Cloud RunはIPv4のため、Supabase Dashboardの「Connect」で表示される**Session pooler**のhostとport 5432を使う。poolerはuser名でprojectを判別するため、userは`line_notifier.<project-ref>`の形式にする（Dashboardの接続文字列で`postgres.<project-ref>`となっている部分の`postgres`を`line_notifier`へ置き換える）。passwordにURLで意味を持つ記号（`@`、`:`、`/`、`#`、`%`など）を含めた場合はpercent-encodingする。
+
+```text
+postgresql://line_notifier.<project-ref>:<password>@<Session poolerのhost>:5432/postgres
+```
+
+Secret Managerへ登録する前に、手元から接続して通知用関数を呼べることを確かめる（テーブル直接参照はできないのが正常）。
+
+```bash
+docker run --rm -it supabase/postgres:17.6.1.136 psql "postgresql://line_notifier.<project-ref>:<password>@<Session poolerのhost>:5432/postgres" -c "select app_private.get_line_report_target('<通知対象の家計グループUUID>'::uuid)"
+```
+
+このロールは通知用関数のEXECUTEしか持たないため、漏洩時の影響は週次集計値の読み取りと連携登録・解除に限られる。
 
 ### 3-3. Secret Managerへ登録する
 
@@ -126,7 +202,7 @@ gcloud secrets versions add account-book-line-channel-access-token --data-file=-
 gcloud secrets versions add account-book-notifier-database-url --data-file=-
 ```
 
-登録後、段階2のprod root（環境変数のversion指定）をplan → apply する。
+登録後、段階2の2-3（`line_weekly_report`へversion番号を設定してprodをplan → apply）へ進む。
 
 ### 3-4. Webhookを設定してbotをグループへ招待する
 
@@ -138,7 +214,7 @@ gcloud secrets versions add account-book-notifier-database-url --data-file=-
 ## 有効化の最終チェックリスト
 
 - [ ] 段階0: migration適用済み・段階1 PR merge済み
-- [ ] 段階2: bootstrap/prodのapply済み（secret container 3つ・scheduler・環境変数6つ）
+- [ ] 段階2: bootstrap/prodのapply済み（secret container 3つ・scheduler SA・Cloud Scheduler job・環境変数6つ）
 - [ ] 段階3: secret 3つに値のversionがある・`line_notifier`がLOGIN可能・Webhook検証がOK・botがグループに参加
 - [ ] 動作確認: Cloud Schedulerのジョブを「今すぐ実行」し、LINEグループへ通知が届く（同一週の再実行では送られない=冪等の確認）
 - [ ] 通知の金額が、同じ月・グループ対象の概要分析と予算画面の値と一致する
@@ -153,14 +229,14 @@ gcloud secrets versions add account-book-notifier-database-url --data-file=-
 
 ## 無効化・ロールバック
 
-- **一時停止**: Cloud Schedulerのジョブをpauseする（最も簡単・可逆）。
-- **完全無効化**: Cloud Runの通知系環境変数を外す（Terraform）。エンドポイントが404に戻り、機能全体がfail closedになる。
+- **一時停止**: `line_weekly_report.paused = true`にしてplan → apply（Terraform管理、可逆）。
+- **完全無効化**: `line_weekly_report`を`null`（削除）にしてplan → apply。Cloud Runの通知系環境変数とジョブが外れ、エンドポイントが404に戻り、機能全体がfail closedになる。
 - migrationのロール・テーブルは残しても既存機能に影響しない（他機能から参照されない）。
 
 ## secret rotation
 
-- Channel access tokenはLINE Developersで再発行し、Secret Managerへ新version追加 → Terraformでversion更新 → 旧tokenを失効。
-- `line_notifier`のpasswordは`\password line_notifier`で変更し、`account-book-notifier-database-url`のsecretを新versionへ更新する。
+- Channel access tokenはLINE Developersで再発行し、Secret Managerへ新version追加 → `line_weekly_report.channel_access_token_version`を更新してplan → apply → 旧tokenを失効。
+- `line_notifier`のpasswordは`\password line_notifier`で変更し、`account-book-notifier-database-url`へ新versionを追加して`line_weekly_report.notifier_database_url_version`を更新する。
 
 ## 制約
 

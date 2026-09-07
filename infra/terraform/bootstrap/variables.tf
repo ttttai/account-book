@@ -131,3 +131,35 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "scheduler_service_account_id" {
+  description = "LINE週次レポートのCloud Scheduler job専用service account ID"
+  type        = string
+  default     = "account-book-scheduler"
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{4,28}[a-z0-9]$", var.scheduler_service_account_id))
+    error_message = "service account IDには6〜30文字の有効な値を指定してください。"
+  }
+}
+
+variable "line_weekly_report_secret_ids" {
+  description = "LINE週次レポート用のSecret Manager secret ID。payloadは管理せず、containerだけを作成します"
+  type = object({
+    channel_secret        = string
+    channel_access_token  = string
+    notifier_database_url = string
+  })
+  default = {
+    channel_secret        = "account-book-line-channel-secret"
+    channel_access_token  = "account-book-line-channel-access-token"
+    notifier_database_url = "account-book-notifier-database-url"
+  }
+
+  validation {
+    condition = alltrue([
+      for id in values(var.line_weekly_report_secret_ids) : can(regex("^[A-Za-z0-9_-]{1,255}$", id))
+    ])
+    error_message = "secret IDには英数字、ハイフン、underscoreだけを指定してください。"
+  }
+}
