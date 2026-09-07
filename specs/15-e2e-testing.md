@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.1.2
+バージョン: 0.2.0
 
 ## 1. 目的と範囲
 
@@ -41,8 +41,11 @@ E2Eは、専用のDocker Compose projectとして起動する使い捨てのロ�
 | Postgres         | `127.0.0.1:54422`                                    |
 | 許可リスト       | `e2e-a@example.test`、`e2e-b@example.test`のみ       |
 | 資格情報         | 生成ごとにランダムなローカル専用password・JWT secret |
+| アプリの実行形態 | 本番build（`Dockerfile`のstandalone image）          |
 
 開発用stackとport・volumeが衝突しないため、`docker compose up --watch`で開発を続けながらE2Eを実行できる。E2E stackのvolumeは開発用データを含まないため、`npm run test:e2e:down`で破棄してよい。
+
+E2E stackは`compose.yaml`へ`compose.e2e.yaml`を重ねて起動し、`web`だけを開発用imageから本番`Dockerfile`のimageへ差し替える。DB、GoTrue、PostgREST、gateway、migrations、seedは開発用stackと同じ定義を使う。`NEXT_PUBLIC_*`はbuild時にclient bundleへ埋め込まれるため、`.env.e2e`の値をbuild argとして渡し、runtimeの環境変数と一致させる。stackの起動では毎回imageをbuildし、変更前のimageで検証しない。開発用stack（`compose.yaml`単独）の定義と挙動は変えない。
 
 ### 3.2 本番・実データへの接続禁止
 
@@ -88,7 +91,14 @@ GoTrueのGoogle providerを別のOIDC providerへ差し替える方法は採用�
 - 320pxは最小幅の横スクロール確認に使う。
 - 初回スコープのブラウザ engineはChromiumとする。iOS Safari固有の描画は手動確認の担当とし、WebKit projectの追加は後続段階で検討する。
 
-E2E stackのアプリは`next dev`で動くため、routeごとの初回requestでcompileが発生する。test timeoutとnavigation timeoutはこのcompile時間を含めて設定する。本番buildを使うE2E stackへの切り替えは後続段階で検討する。
+E2E stackのアプリは本番build（§3.1）で動かし、`next dev`固有のrouteごとの初回compile、HMR、開発用CSPをテスト対象にしない。timeoutはcompile時間を含めず、本番相当の応答時間を基準に次の上限で設定する。上限を超える待ち時間が必要なシナリオは、timeoutを延ばすのではなく、アプリの応答かテストの待ち方を見直す。
+
+| 項目               | 上限 |
+| ------------------ | ---- |
+| test timeout       | 60秒 |
+| navigation timeout | 30秒 |
+| action timeout     | 15秒 |
+| expect timeout     | 10秒 |
 
 ## 5. シナリオ
 
@@ -189,6 +199,8 @@ E2E stackのアプリは`next dev`で動くため、routeごとの初回request�
 
 - E2Eは既存のNode品質job、Docker統合jobと分離した専用jobで実行する。
 - jobは`.env.e2e`を生成し、E2E stackを起動してから実行し、成否にかかわらずstackとvolumeを破棄する。
+- E2E stackのアプリimageは、jobごとに検証対象commitの本番`Dockerfile`からbuildする（§3.1）。
+- Playwrightのbrowser binaryは`@playwright/test`のversionをkeyにしたcacheで再利用する。cacheにはbrowser binaryだけを入れ、`.env.e2e`、test成果物、家計データを含めない。OS依存packageはrunner imageに含まれないため毎回導入する。
 - 失敗時はtrace、screenshot、video、HTML reportをartifactとして保存する。
 - E2Eの成功を、DB・RLS test、HTTP integration test、coverage、実画面確認の代替にしない。
 
@@ -200,3 +212,4 @@ E2E stackのアプリは`next dev`で動くため、routeごとの初回request�
 - 視覚回帰（screenshot比較）
 - accessibility自動検査
 - session refreshの経過時間シナリオ
+- CIのDocker layer cache（`npm ci`・base image層の再利用）とworker数の見直し（本番build化の安定を確認した後に別途扱う）

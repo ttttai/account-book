@@ -3,6 +3,7 @@
 # E2E専用のDocker Compose stackを操作する（15-e2e-testing.md §3）。
 # 開発用stack（project: account-book）とproject・port・volumeを分離するため、
 # 開発を止めずにE2Eを実行できる。使い捨てのローカルstackだけを対象とする。
+# compose.yamlへcompose.e2e.yamlを重ね、webだけを本番Dockerfileのimageで動かす。
 
 set -eu
 
@@ -16,12 +17,13 @@ database_host_port=${E2E_DATABASE_HOST_PORT:-54422}
 allowed_google_emails="e2e-a@example.test,e2e-b@example.test"
 
 usage() {
-  echo "Usage: $0 up|seed|down" >&2
+  echo "Usage: $0 up|seed|logs|down" >&2
   exit 64
 }
 
 compose() {
-  docker compose --env-file "$environment_file" --project-name "$compose_project" "$@"
+  docker compose --env-file "$environment_file" --project-name "$compose_project" \
+    --file "$project_root/compose.yaml" --file "$project_root/compose.e2e.yaml" "$@"
 }
 
 ensure_environment_file() {
@@ -41,8 +43,8 @@ ensure_environment_file() {
     "$project_root/scripts/setup-local-env.sh"
 }
 
-# webにhealthcheckは無く、Next.jsは初回requestでcompileするため、
-# テスト開始前に応答とcompile完了を待って初回navigationのtimeoutを避ける
+# webにhealthcheckは無いため、テスト開始前に本番serverの応答を待って
+# 初回navigationのtimeoutを避ける
 wait_for_application() {
   site_url=$(grep '^NEXT_PUBLIC_SITE_URL=' "$environment_file" | cut -d= -f2-)
   [ -n "$site_url" ] || {
@@ -70,7 +72,8 @@ wait_for_application() {
 case "$1" in
   up)
     ensure_environment_file
-    compose up --detach --wait --wait-timeout 300
+    # upは既存imageを再buildしないため、変更前のimageで検証しないよう毎回buildする
+    compose up --build --detach --wait --wait-timeout 300
     wait_for_application
     ;;
   seed)
@@ -79,6 +82,10 @@ case "$1" in
       exit 1
     }
     compose --profile test run --rm e2e-seed
+    ;;
+  logs)
+    [ -e "$environment_file" ] || exit 0
+    compose logs --no-color --tail 200
     ;;
   down)
     [ -e "$environment_file" ] || exit 0

@@ -13,16 +13,17 @@ export default defineConfig({
   forbidOnly: isContinuousIntegration,
   retries: isContinuousIntegration ? 1 : 0,
   workers: isContinuousIntegration ? 2 : undefined,
-  // next devは初回requestでrouteをcompileするため、smoke flowへ余裕を持たせる
-  timeout: 120_000,
-  expect: { timeout: 15_000 },
+  // E2E stackは本番buildで動くため、timeoutはcompile時間を含めず
+  // 本番相当の応答時間を基準にした上限とする (15-e2e-testing.md §4)
+  timeout: 60_000,
+  expect: { timeout: 10_000 },
   reporter: isContinuousIntegration
     ? [["list"], ["html", { open: "never" }]]
     : [["list"]],
   use: {
     baseURL: environment.baseUrl,
-    actionTimeout: 20_000,
-    navigationTimeout: 60_000,
+    actionTimeout: 15_000,
+    navigationTimeout: 30_000,
     locale: "ja-JP",
     timezoneId: "Asia/Tokyo",
     trace: "retain-on-failure",

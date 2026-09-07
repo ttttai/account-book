@@ -221,7 +221,7 @@ docker compose --profile test run --rm web-integration-tests
 docker compose run --rm web npm run build
 ```
 
-`integration-tests`はクラウド環境に接続せず、最後にrollbackします。E2Eは開発用stackとは別のcompose projectで起動する使い捨てstackに対して実行するため、開発用stackを止める必要はありません（[`docs/operations/e2e-tests.md`](docs/operations/e2e-tests.md)）。整形はPrettier、lintはBiomeで、Biomeの整形機能は使いません。
+`integration-tests`はクラウド環境に接続せず、最後にrollbackします。E2Eは開発用stackとは別のcompose projectで起動する使い捨てstack（アプリは本番`Dockerfile`のbuild）に対して実行するため、開発用stackを止める必要はありません（[`docs/operations/e2e-tests.md`](docs/operations/e2e-tests.md)）。整形はPrettier、lintはBiomeで、Biomeの整形機能は使いません。
 
 ## CI / CD
 
@@ -229,7 +229,7 @@ GitHub Actionsは`main`へのpushと手動実行で起動します（PRのCIはp
 
 - `Quality`: Node.js 24で依存関係をlockfileどおりに導入し、format、lint、型検査、構造・単体テスト（coverage閾値付き）、本番buildを実行します。
 - `Docker integration`: CI専用のローカル資格情報でDocker Composeを起動し、DB・RLSテスト、OAuth HTTPテスト、本番container buildを実行します。
-- `E2E`: 架空の許可アカウントとランダムな資格情報で使い捨てstackを起動し、主要フローをChromiumで実行して、成否にかかわらずstackを破棄します。
+- `E2E`: 架空の許可アカウントとランダムな資格情報で使い捨てstackを起動し、本番`Dockerfile`でbuildしたアプリに対して主要フローをChromiumで実行して、成否にかかわらずstackを破棄します。Playwrightのbrowserはversionをkeyにcacheします。
 - 変更が`docs/**`、root `README.md`、`CLAUDE.md`のみの場合は重い検証をskipします（format checkは常に実行）。
 
 CIは実Googleアカウント、本番Supabase、本番秘密情報へ接続しません。外部Actionは完全なcommit SHAへ固定し、`GITHUB_TOKEN`はrepositoryの読み取りだけに制限しています。
