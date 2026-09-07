@@ -226,6 +226,8 @@ export function ExpenseForm({
   const [categoryExpanded, setCategoryExpanded] = useState(false);
   // 金額欄を選ぶと開き、他の入力欄を選ぶと閉じる（OSの仮想キーボードに近い挙動）(AC-TXN-014-5)
   const [keypadOpen, setKeypadOpen] = useState(true);
+  // 閉じるキーで金額欄へfocusを戻す間だけ、focusによる再開を抑止する (AC-TXN-014-8)
+  const keepKeypadClosedRef = useRef(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     editTransaction?.categoryId ?? "",
   );
@@ -366,11 +368,25 @@ export function ExpenseForm({
     const target = event.target as HTMLElement | null;
     if (!target) return;
     if (target === amountInputRef.current) {
-      setKeypadOpen(true);
+      if (!keepKeypadClosedRef.current) setKeypadOpen(true);
       return;
     }
     if (dockRef.current?.contains(target)) return;
     setKeypadOpen(false);
+  }
+
+  // 閉じるキーで閉じたあと、消えたキーからfocusを金額欄へ戻す。金額欄の再開案内が読み上げられ、
+  // Tabで次の入力欄へ進める。focusイベントは同期的に届くため、抑止は同じ処理内で解除する (AC-TXN-014-8)
+  function closeKeypad() {
+    setKeypadOpen(false);
+    const input = amountInputRef.current;
+    if (!input) return;
+    keepKeypadClosedRef.current = true;
+    try {
+      input.focus({ preventScroll: true });
+    } finally {
+      keepKeypadClosedRef.current = false;
+    }
   }
 
   // 負担方法の切り替え時に、選択メンバーを方法ごとの妥当な初期値へ整える
@@ -823,7 +839,7 @@ export function ExpenseForm({
             )}
           </fieldset>
 
-          {/* 保存は常設し、数字・演算子キーと1文字削除・=だけを開閉する (AC-TXN-014-5, AC-TXN-016-1, TXN-017) */}
+          {/* 保存は常設し、数字・演算子キーと1文字削除・=・閉じるだけを開閉する (AC-TXN-014-5, AC-TXN-014-8, AC-TXN-016-1, TXN-017) */}
           <AmountKeypad
             calculator={{
               onOperator: (operator) =>
@@ -833,6 +849,7 @@ export function ExpenseForm({
               onEquals: () => setAmountExpression(completeAmountExpression),
             }}
             onDelete={() => setAmountExpression(removeLastAmountDigit)}
+            onClose={closeKeypad}
             onKey={(key) =>
               setAmountExpression((current) => appendAmountDigit(current, key))
             }
