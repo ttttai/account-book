@@ -568,40 +568,79 @@
   font-variant-numeric: tabular-nums;
 }
 
-.details-trend-list {
+/* 月別推移: 左に最大値・0円の目盛り、右に0円基準線から上へ伸びる棒、下に月ラベルを置く (AC-ANA-015-2) */
+.details-trend-chart {
   display: grid;
   min-width: 0;
-  margin: 0.7rem 0 0;
-  padding: 0;
-  gap: 0.75rem;
-  list-style: none;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
 }
 
-.details-trend-list li {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.18rem 0.6rem;
-  font-size: 0.8rem;
-}
-
-.details-trend-list li > span {
+.details-trend-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   color: var(--muted);
   text-align: right;
+  white-space: nowrap;
 }
 
-.details-trend-list i {
+.details-trend-plot {
+  position: relative;
+  min-width: 0;
+  height: 150px;
+}
+
+.details-trend-plot i {
+  position: absolute;
   display: block;
-  min-width: 2px;
-  max-width: 100%;
-  height: 7px;
-  grid-column: 1 / -1;
-  border-radius: 999px;
+}
+
+/* 0円の基準線は棒の下端に重ねる控えめな1pxの実線とする */
+.details-trend-plot i[data-chart-baseline] {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+/* 棒は基準線から上へ伸び、先端側だけ角を丸める。全月0円でも最小高さで月の存在を示す */
+.details-trend-plot i[data-trend-bar] {
+  bottom: 0;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  transform: translateX(-50%);
+}
+
+/* 系列の色は従来の横棒と同じ赤系（支出）・緑系（収入）。系列名はボタンのaria-pressedでも示す */
+.details-trend-plot i[data-trend-bar="expense"] {
   background: #d8664f;
 }
 
-.details-trend-list i[data-details-bar="income"] {
+.details-trend-plot i[data-trend-bar="income"] {
   background: #3d8a5f;
+}
+
+.details-trend-axis {
+  position: relative;
+  display: flex;
+  min-height: 1.2em;
+  grid-column: 2;
+  justify-content: space-between;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* 月ラベルは棒の中心に合わせて絶対配置し、13か月以上では開始月・終了月だけを両端へ置く */
+.details-trend-chart:not([data-trend-labels="edges"])
+  .details-trend-axis
+  > span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
 }
 
 .details-savings-summary {

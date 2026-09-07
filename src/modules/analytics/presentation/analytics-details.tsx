@@ -16,6 +16,7 @@ import {
   scaleAnalyticsSavingsChart,
 } from "../domain/analytics-savings";
 import { AnalyticsCategoryChart } from "./analytics-category-chart";
+import { AnalyticsMonthlyTrendChart } from "./analytics-monthly-trend-chart";
 
 import styles from "./analytics.module.css";
 
@@ -121,10 +122,6 @@ export function AnalyticsDetails({
   data,
 }: Readonly<{ data: AnalyticsDetailsReady }>) {
   const route = `/groups/${encodeURIComponent(data.group.id)}/analytics/details`;
-  const maxMonthlyAmount = Math.max(
-    1,
-    ...data.months.flatMap((month) => [month.expenseTotal, month.incomeTotal]),
-  );
   const cumulativeByMonth = new Map(
     data.cumulativeBalances.map((item) => [item.month, item.cumulativeBalance]),
   );
@@ -240,31 +237,14 @@ export function AnalyticsDetails({
         </p>
       ) : null}
 
-      <section className={styles["details-panel"]}>
-        <h3>月別推移</h3>
-        <ul aria-label="月別推移" className={styles["details-trend-list"]}>
-          {data.months.map((month) => (
-            <li key={month.month}>
-              <strong>{formatAnalyticsMonth(month.month)}</strong>
-              <span>{`支出 ${formatAnalyticsJpy(month.expenseTotal)}`}</span>
-              <i
-                aria-hidden="true"
-                data-details-bar="expense"
-                style={{
-                  width: `${(month.expenseTotal / maxMonthlyAmount) * 100}%`,
-                }}
-              />
-              <span>{`収入 ${formatAnalyticsJpy(month.incomeTotal)}`}</span>
-              <i
-                aria-hidden="true"
-                data-details-bar="income"
-                style={{
-                  width: `${(month.incomeTotal / maxMonthlyAmount) * 100}%`,
-                }}
-              />
-            </li>
-          ))}
-        </ul>
+      <section aria-label="月別推移" className={styles["details-panel"]}>
+        <AnalyticsMonthlyTrendChart
+          months={data.months.map((month) => ({
+            month: month.month,
+            expenseTotal: month.expenseTotal,
+            incomeTotal: month.incomeTotal,
+          }))}
+        />
       </section>
 
       <section aria-label="貯金額の推移" className={styles["details-panel"]}>
