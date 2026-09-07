@@ -6,6 +6,8 @@ const repositoryRoot = process.cwd();
 
 const diagramEntityByTable = {
   "app_private.allowed_google_accounts": "ALLOWED_GOOGLE_ACCOUNTS",
+  "app_private.line_notification_targets": "LINE_NOTIFICATION_TARGETS",
+  "app_private.weekly_notification_log": "WEEKLY_NOTIFICATION_LOG",
   "public.budget_category_limits": "BUDGET_CATEGORY_LIMITS",
   "public.budget_revisions": "BUDGET_REVISIONS",
   "public.categories": "CATEGORIES",
@@ -77,4 +79,8 @@ test("ER図を実装済みmigrationとグループ境界へ同期する", async 
   assert.match(diagram, /BUDGET_REVISIONS \|\|--o\{ BUDGET_CATEGORY_LIMITS/);
   assert.match(diagram, /CATEGORIES \|\|--o\{ BUDGET_CATEGORY_LIMITS/);
   assert.doesNotMatch(diagram, /\n\s{4}BUDGET_MONTHS\s+\{/);
+  // LINE週次レポートは連携1件と送信記録だけを持ち、通知内容を保存しない (NOTIF-004, NOTIF-008)
+  assert.match(diagram, /GROUPS \|\|--o\| LINE_NOTIFICATION_TARGETS/);
+  assert.match(diagram, /GROUPS \|\|--o\{ WEEKLY_NOTIFICATION_LOG/);
+  assert.doesNotMatch(diagram, /\n\s{4}WEEKLY_NOTIFICATION_MESSAGES\s+\{/);
 });

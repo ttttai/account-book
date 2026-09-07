@@ -35,11 +35,12 @@ Server Actionへ再利用可能な業務ロジックを書かず、Web要求をc
 - 認証callback
 - OAuth開始
 - CSV download
-- Webhook
+- Webhook（LINE Webhookは`/api/v1/line/webhook`）
+- Cloud Schedulerが呼ぶ定期ジョブ（週次LINEレポートは`/api/v1/jobs/weekly-line-report`）
 - health check
 - 将来のネイティブアプリ・外部クライアント向けAPI
 
-Route Handlerからも、Server Actionと同じ機能query・commandを呼ぶ。
+Route Handlerからも、Server Actionと同じ機能query・commandを呼ぶ。Webhookと定期ジョブは利用者のsessionを持たないため、署名またはOIDCトークンで呼び出し元を検証し、必要な環境変数が揃わない間は404を返して無効にする（[`16-line-weekly-report.md`](16-line-weekly-report.md)）。
 
 ## 2. 機能モジュールの公開範囲
 
@@ -99,7 +100,7 @@ getGroupBudget(groupId, searchParams)
 loadAppliedBudgetRevision(context, month)
 ```
 
-分析（`ANA-*`）は上の3つのqueryだけを公開する。3つは同じ月次集計純関数と共有読み取り境界を使い、同じグループ・期間・対象に対して同じ金額を返す。`getAnalyticsDetails`は1要求につき`listMonthlyTransactions`を1回だけ呼び、その結果から期間指標、カテゴリ、メンバー比較を作る。定期レポートは`getAnalyticsPeriodSummary`を再利用し、取引行を直接読まず、金額の再計算を別実装で行わない。期間は1〜24か月に制限し、超過・不正な月・開始月が終了月より後の要求は取引を読み込まずに拒否する。分析専用の集計テーブル、Route Handler、内部APIは追加しない。
+分析（`ANA-*`）は上の3つのqueryだけを公開する。3つは同じ月次集計純関数と共有読み取り境界を使い、同じグループ・期間・対象に対して同じ金額を返す。`getAnalyticsDetails`は1要求につき`listMonthlyTransactions`を1回だけ呼び、その結果から期間指標、カテゴリ、メンバー比較を作る。定期レポート（LINE週次レポート）は利用者sessionを持たないため`getAnalyticsPeriodSummary`を呼べないが、同じ分析純関数へ同じ形の入力を渡して集計し、金額の再計算を別実装で行わない（`NOTIF-003`）。期間は1〜24か月に制限し、超過・不正な月・開始月が終了月より後の要求は取引を読み込まずに拒否する。分析専用の集計テーブル、Route Handler、内部APIは追加しない。
 
 ### 共有する認可済み読み取り境界
 
@@ -111,7 +112,9 @@ loadAppliedBudgetRevision(context, month)
 | `loadGroupMembers(context)`                          | `groups`       | membershipの表示名を解決する。プロフィールを読めないアクティブmembershipは「メンバー」、削除済みは「退会メンバー」で補う。取得失敗は例外にする。                                                                                                                                                                                                          |
 | `listMonthlyTransactions(supabase, groupId, months)` | `transactions` | 指定月（1か月以上）の未削除の支出・収入取引を半開区間で読み、固定費を同じ月へ展開して合流させた一覧を返す。展開結果は`isRecurring`で識別でき、DBへ保存しない。                                                                                                                                                                                            |
 
-カレンダー（`getGroupCalendar`）と分析（`getAnalyticsOverview`・`getAnalyticsPeriodSummary`）は`listMonthlyTransactions`の結果へそれぞれの集計純関数を適用し、取引行の読み取りと固定費の展開を独自に実装しない。履歴は絞り込みとcursor paginationのため取引queryを固有に持つが、認証・所属・表示名は共有境界を使う。予算、詳細分析、定期レポートなど月次の支出・収入実績を必要とする機能は、この境界を再利用する。共有境界は呼び出しごとに認可を再確認し、cacheを持たない。
+カレンダー（`getGroupCalendar`）と分析（`getAnalyticsOverview`・`getAnalyticsPeriodSummary`）は`listMonthlyTransactions`の結果へそれぞれの集計純関数を適用し、取引行の読み取りと固定費の展開を独自に実装しない。履歴は絞り込みとcursor paginationのため取引queryを固有に持つが、認証・所属・表示名は共有境界を使う。予算、詳細分析など月次の支出・収入実績を必要とする画面機能は、この境界を再利用する。共有境界は呼び出しごとに認可を再確認し、cacheを持たない。
+
+利用者sessionを持たないLINE週次レポートの定期ジョブは例外とし、通知専用ロール`line_notifier`がEXECUTEできる`security definer`関数（`app_private.get_line_report_source`）が同じ条件（グループ・月範囲・未削除）で集計に必要な最小の列だけを返す。ジョブはその結果を`recurring`の展開純関数、`analytics`の集計純関数、`budgets`の予算進捗純関数へ渡し、金額を再計算しない。この経路は通知に限定し、画面のqueryから使わない（[`16-line-weekly-report.md`](16-line-weekly-report.md)）。
 
 ### Command
 
