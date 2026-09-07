@@ -32,7 +32,6 @@
 
 ## 実装確認
 
-
 既存のrecurringNameを固定費行のカテゴリ・金額の直下へ表示した。名称を強調し、overflow-wrapで長文を折り返す。メモ、金額、カテゴリ、日付選択の処理は維持した。
 
 Docker Composeで単体・component 820件、architecture 167件、DB・RLS統合テスト、lint、型検査、本番buildが成功した。固定費の登録から日付タップ後の名称・メモ表示、再読み込みまでをE2E-009で検証し、mobile・desktopの2件が成功。375 x 812・320 x 812・1280 x 800の実画面で長い名称の折り返し、メモと金額、横overflow 0pxを確認した。E2E全件ではなく対象フローを実行した。
