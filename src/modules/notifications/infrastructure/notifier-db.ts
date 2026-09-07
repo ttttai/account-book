@@ -24,6 +24,11 @@ const targetSchema = z.object({
   timezone: z.string(),
 });
 
+const allocationSchema = z.object({
+  member_id: z.uuid(),
+  amount_minor: safeAmountSchema,
+});
+
 const sourceSchema = z.object({
   expenses: z.array(
     z.object({
@@ -32,6 +37,8 @@ const sourceSchema = z.object({
       category_id: z.uuid(),
       category_name: z.string(),
       category_color: z.string(),
+      payer_member_id: z.uuid().nullable(),
+      allocations: z.array(allocationSchema),
     }),
   ),
   incomes: z.array(
@@ -48,8 +55,11 @@ const sourceSchema = z.object({
       category_id: z.uuid(),
       category_name: z.string(),
       category_color: z.string(),
+      payer_member_id: z.uuid().nullable(),
+      allocations: z.array(allocationSchema),
     }),
   ),
+  members: z.array(z.object({ id: z.uuid(), display_name: z.string() })),
   budget: z
     .object({
       effective_month: monthSchema,
@@ -134,6 +144,11 @@ async function fetchSource(
         categoryId: row.category_id,
         categoryName: row.category_name,
         categoryColor: row.category_color,
+        payerMemberId: row.payer_member_id,
+        allocations: row.allocations.map((allocation) => ({
+          memberId: allocation.member_id,
+          amountMinor: allocation.amount_minor,
+        })),
       })),
       incomes: parsed.incomes.map((row) => ({
         date: row.date,
@@ -149,6 +164,15 @@ async function fetchSource(
         categoryId: row.category_id,
         categoryName: row.category_name,
         categoryColor: row.category_color,
+        payerMemberId: row.payer_member_id,
+        allocations: row.allocations.map((allocation) => ({
+          memberId: allocation.member_id,
+          amountMinor: allocation.amount_minor,
+        })),
+      })),
+      members: parsed.members.map((member) => ({
+        id: member.id,
+        displayName: member.display_name,
       })),
       budget: parsed.budget
         ? {

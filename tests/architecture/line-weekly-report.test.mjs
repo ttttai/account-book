@@ -9,6 +9,8 @@ function read(path) {
 }
 
 const migrationPath = "supabase/migrations/202609060001_line_weekly_report.sql";
+const membersMigrationPath =
+  "supabase/migrations/202609070002_line_weekly_report_members.sql";
 const notificationFiles = [
   "src/modules/notifications/server.ts",
   "src/modules/notifications/application/send-weekly-report.ts",
@@ -75,6 +77,49 @@ test("migrationが通知専用ロールへ関数EXECUTEだけを許可する", a
   assert.match(sourceFunction, /deleted_at is null/);
 });
 
+// NOTIF-007, D-013: 集計元の置き換えは同じ権限を保ち、メンバー表示名・負担額を返してメモ・名称を返さない
+test("文面拡充のmigrationが集計元関数を同じ権限で置き換え、メンバーと負担額を返す", async () => {
+  const migration = await read(membersMigrationPath);
+  const review = await read(
+    "specs/reviews/2026-09-07-line-weekly-report-members.md",
+  );
+  const decisions = await read("specs/08-decisions-and-deferred-scope.md");
+
+  assert.match(
+    migration,
+    /create or replace function app_private\.get_line_report_source\(/,
+  );
+  assert.equal(migration.match(/security definer/g)?.length, 1);
+  assert.equal(migration.match(/set search_path = ''/g)?.length, 1);
+  assert.match(
+    migration,
+    /revoke all on function app_private\.get_line_report_source/,
+  );
+  assert.match(
+    migration,
+    /grant execute on function app_private\.get_line_report_source[^;]*to line_notifier/,
+  );
+  assert.doesNotMatch(migration, /grant .* on table/);
+  for (const column of [
+    "'payer_member_id'",
+    "'allocations'",
+    "'members'",
+    "'display_name'",
+  ]) {
+    assert.match(migration, new RegExp(column), column);
+  }
+  assert.match(migration, /m\.status = 'active'/);
+  for (const forbidden of ["memo", "t.name", "r.name", "service_role"]) {
+    assert.doesNotMatch(
+      migration,
+      new RegExp(forbidden.replace(".", "\\.")),
+      forbidden,
+    );
+  }
+  assert.match(review, /状態: (承認済み|実装確認済み)/);
+  assert.match(decisions, /^### D-013 /m);
+});
+
 // NOTIF-005, NOTIF-006, NOTIF-010: 各endpointが検証境界とfail closedを持つ
 test("Webhookとジョブのendpointが検証とfail closedを実装する", async () => {
   const webhook = await read("src/app/api/v1/line/webhook/route.ts");
@@ -125,6 +170,11 @@ test("通知moduleは分析・固定費・予算を公開エントリーポイ�
   assert.match(weeklyReport, /aggregateAnalyticsMonth/);
   assert.match(weeklyReport, /summarizeCategoryBreakdown/);
   assert.match(weeklyReport, /calculateBudgetProgress/);
+  // メンバーの支出は分析のメンバー対象（負担額）で求め、構成比も分析の純関数を使う (D-013)
+  assert.match(weeklyReport, /scope: "member"/);
+  assert.match(weeklyReport, /sharePercentOf/);
+  // 月末の見込みは整数演算で、浮動小数点の除算結果を金額にしない (AC-NOTIF-003-3)
+  assert.match(weeklyReport, /scaled % input\.elapsedDays/);
 
   const analyticsIndex = await read("src/modules/analytics/index.ts");
   assert.match(analyticsIndex, /aggregateAnalyticsDateRange/);

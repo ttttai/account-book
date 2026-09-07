@@ -8,13 +8,21 @@ import {
   type RecurringSchedule,
 } from "@/modules/recurring";
 
-/** 通知用DB関数が返す支出行。個人名・メモ・支払者・負担額を持たない (NOTIF-007) */
+/** 負担額。メンバー対象の集計に使う (CAL-010) */
+export type ReportAllocationRow = Readonly<{
+  memberId: string;
+  amountMinor: number;
+}>;
+
+/** 通知用DB関数が返す支出行。メモ・取引の名称を持たない (NOTIF-007) */
 export type ReportExpenseRow = Readonly<{
   date: string;
   amountMinor: number;
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  payerMemberId: string | null;
+  allocations: readonly ReportAllocationRow[];
 }>;
 
 export type ReportIncomeRow = Readonly<{
@@ -22,7 +30,7 @@ export type ReportIncomeRow = Readonly<{
   amountMinor: number;
 }>;
 
-/** 固定費の展開に必要な条件だけを持つ行 */
+/** 固定費の展開に必要な条件と負担額だけを持つ行 */
 export type ReportRecurringRow = Readonly<{
   id: string;
   type: "expense" | "income";
@@ -35,6 +43,8 @@ export type ReportRecurringRow = Readonly<{
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  payerMemberId: string | null;
+  allocations: readonly ReportAllocationRow[];
 }>;
 
 export type ReportBudgetRevisionRow = Readonly<{
@@ -51,23 +61,33 @@ export type ReportBudgetRevisionRow = Readonly<{
   }>[];
 }>;
 
+/** アクティブメンバー。表示名はプロフィールの表示名 (D-013) */
+export type ReportMemberRow = Readonly<{
+  id: string;
+  displayName: string;
+}>;
+
 export type WeeklyReportSource = Readonly<{
   expenses: readonly ReportExpenseRow[];
   incomes: readonly ReportIncomeRow[];
   recurring: readonly ReportRecurringRow[];
   /** 対象月の適用改定。適用改定がなければnull */
   budget: ReportBudgetRevisionRow | null;
+  members: readonly ReportMemberRow[];
 }>;
 
 export type ReportAnalyticsInputs = Readonly<{
+  /** 単発取引と固定費の展開結果を合わせた支出 */
   expenses: readonly AnalyticsExpenseInput[];
   incomes: readonly AnalyticsIncomeInput[];
+  /** `expenses`のうち固定費の展開結果。月末の見込みで変動費と区別する (NOTIF-003) */
+  recurringExpenses: readonly AnalyticsExpenseInput[];
 }>;
 
-// グループ対象の集計しか行わないため、支払者・受取者・負担額は空のまま渡す
+// 受取者は通知で使わないため空のまま渡す
 const NO_MEMBER = "";
 
-// 固定費の展開純関数へ渡すため、通知用の行を展開条件だけ持つ設定へ変換する
+// 固定費の展開純関数へ渡すため、通知用の行を展開条件と負担額だけ持つ設定へ変換する
 function toRecurringSchedule(row: ReportRecurringRow): RecurringSchedule {
   return {
     id: row.id,
@@ -83,9 +103,9 @@ function toRecurringSchedule(row: ReportRecurringRow): RecurringSchedule {
       color: row.categoryColor,
       icon: "",
     },
-    payerMemberId: null,
+    payerMemberId: row.payerMemberId,
     recipientMemberId: null,
-    allocations: [],
+    allocations: row.allocations,
   };
 }
 
@@ -98,31 +118,34 @@ export function toAnalyticsInputs(
   const expenses: AnalyticsExpenseInput[] = source.expenses.map((row) => ({
     date: row.date,
     amountMinor: row.amountMinor,
-    payerMemberId: NO_MEMBER,
+    payerMemberId: row.payerMemberId ?? NO_MEMBER,
     categoryId: row.categoryId,
     categoryName: row.categoryName,
     categoryColor: row.categoryColor,
-    allocations: [],
+    allocations: row.allocations,
   }));
   const incomes: AnalyticsIncomeInput[] = source.incomes.map((row) => ({
     date: row.date,
     amountMinor: row.amountMinor,
     recipientMemberId: NO_MEMBER,
   }));
+  const recurringExpenses: AnalyticsExpenseInput[] = [];
 
   const schedules = source.recurring.map(toRecurringSchedule);
   for (const month of months) {
     for (const occurrence of expandRecurringForMonth(schedules, month)) {
       if (occurrence.type === "expense") {
-        expenses.push({
+        const expense: AnalyticsExpenseInput = {
           date: occurrence.date,
           amountMinor: occurrence.amountMinor,
-          payerMemberId: NO_MEMBER,
+          payerMemberId: occurrence.payerMemberId ?? NO_MEMBER,
           categoryId: occurrence.category.id,
           categoryName: occurrence.category.name,
           categoryColor: occurrence.category.color,
-          allocations: [],
-        });
+          allocations: occurrence.allocations,
+        };
+        expenses.push(expense);
+        recurringExpenses.push(expense);
         continue;
       }
       incomes.push({
@@ -133,7 +156,7 @@ export function toAnalyticsInputs(
     }
   }
 
-  return { expenses, incomes };
+  return { expenses, incomes, recurringExpenses };
 }
 
 // 通知用の適用改定を、予算モジュールの進捗計算が受け取る改定型へ変換する (AC-NOTIF-003-2)

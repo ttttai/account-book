@@ -118,6 +118,31 @@ values
    null, :'owner_membership_id', null, gen_random_uuid(),
    '51000000-0000-4000-8000-000000000001', '51000000-0000-4000-8000-000000000001', null);
 
+-- 8/24の食費に負担額を付ける（メンバー別集計の検証用）
+insert into public.transaction_allocations (transaction_id, group_id, member_id, amount_minor)
+select t.id, t.group_id, :'owner_membership_id', 300
+from public.transactions t
+where t.group_id = :'group_id' and t.transaction_date = date '2026-08-24' and t.amount_minor = 300;
+
+-- 削除済みメンバーはmembersへ返さない (D-013)
+insert into auth.users (
+  id, aud, role, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+)
+values
+  (
+    '51000000-0000-4000-8000-000000000002',
+    'authenticated',
+    'authenticated',
+    'line-report-removed@example.test',
+    '{"provider":"google","providers":["google"]}',
+    '{"full_name":"退会者"}',
+    timezone('utc', now()),
+    timezone('utc', now())
+  );
+
+insert into public.group_members (group_id, user_id, role, status, removed_at)
+values (:'group_id', '51000000-0000-4000-8000-000000000002', 'member', 'removed', timezone('utc', now()));
+
 -- 固定費: 範囲に有効な家賃と、範囲より前に終了した設定
 insert into public.recurring_transactions (
   id, group_id, type, name, amount_minor, day_of_month, start_month, end_month,
@@ -235,11 +260,27 @@ select pg_temp.assert_true(
   (
     select bool_and(
       (select array_agg(key order by key) from jsonb_object_keys(item) as key)
-        = array['amount_minor', 'category_color', 'category_id', 'category_name', 'date']
+        = array['allocations', 'amount_minor', 'category_color', 'category_id', 'category_name', 'date', 'payer_member_id']
     )
     from jsonb_array_elements(:'source'::jsonb -> 'expenses') as item
   ),
-  '支出行は日付・金額・カテゴリだけを持ち、メモ・支払者・負担額を含まない'
+  '支出行は日付・金額・カテゴリ・支払者・負担額だけを持ち、メモを含まない (NOTIF-007)'
+);
+
+select pg_temp.assert_true(
+  (:'source'::jsonb -> 'expenses' -> 0 ->> 'payer_member_id') = :'owner_membership_id'
+    and (:'source'::jsonb -> 'expenses' -> 0 -> 'allocations') = jsonb_build_array(
+      jsonb_build_object('member_id', :'owner_membership_id', 'amount_minor', 300)
+    )
+    and (:'source'::jsonb -> 'expenses' -> 1 -> 'allocations') = '[]'::jsonb,
+  '支出行は支払者と負担額を返し、負担行が無い取引は空配列になる (AC-NOTIF-003-1)'
+);
+
+select pg_temp.assert_true(
+  jsonb_array_length(:'source'::jsonb -> 'members') = 1
+    and (:'source'::jsonb -> 'members' -> 0 ->> 'id') = :'owner_membership_id'
+    and (:'source'::jsonb -> 'members' -> 0 ->> 'display_name') = 'レポート利用者',
+  'membersはアクティブメンバーの識別子とプロフィール表示名だけを返し、削除済みメンバーを含まない (D-013)'
 );
 
 select pg_temp.assert_true(
@@ -268,8 +309,12 @@ select pg_temp.assert_true(
     and (
       select array_agg(key order by key)
       from jsonb_object_keys(:'source'::jsonb -> 'recurring' -> 0) as key
-    ) = array['amount_minor', 'category_color', 'category_id', 'category_name', 'day_of_month', 'end_month', 'id', 'start_month', 'type'],
-  '範囲に有効な固定費だけを、名称・メモ・支払者・負担額を除いた展開条件で返す'
+    ) = array['allocations', 'amount_minor', 'category_color', 'category_id', 'category_name', 'day_of_month', 'end_month', 'id', 'payer_member_id', 'start_month', 'type']
+    and (:'source'::jsonb -> 'recurring' -> 0 ->> 'payer_member_id') = :'owner_membership_id'
+    and (:'source'::jsonb -> 'recurring' -> 0 -> 'allocations') = jsonb_build_array(
+      jsonb_build_object('member_id', :'owner_membership_id', 'amount_minor', 80000)
+    ),
+  '範囲に有効な固定費だけを、名称・メモを除いた展開条件と支払者・負担額で返す'
 );
 
 select pg_temp.assert_true(
