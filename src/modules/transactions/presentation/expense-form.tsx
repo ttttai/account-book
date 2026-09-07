@@ -772,6 +772,17 @@ export function ExpenseForm({
           data-keypad-open={showKeypad}
           ref={dockRef}
         >
+          {/* テンキーを開いている間だけ、ドック右上（「すべて」の真上）に閉じる操作を置く (AC-TXN-014-8, AC-TXN-014-9) */}
+          {showKeypad && (
+            <button
+              aria-label="テンキーを閉じる"
+              className={styles["keypad-close"]}
+              onClick={closeKeypad}
+              type="button"
+            >
+              閉じる
+            </button>
+          )}
           <fieldset
             aria-describedby="categoryId-error"
             className={styles["category-fieldset"]}
@@ -839,7 +850,7 @@ export function ExpenseForm({
             )}
           </fieldset>
 
-          {/* 保存は常設し、数字・演算子キーと1文字削除・=・閉じるだけを開閉する (AC-TXN-014-5, AC-TXN-014-8, AC-TXN-016-1, TXN-017) */}
+          {/* 保存は常設し、数字・演算子キーと1文字削除・=だけを開閉する (AC-TXN-014-5, AC-TXN-016-1, TXN-017) */}
           <AmountKeypad
             calculator={{
               onOperator: (operator) =>
@@ -849,7 +860,6 @@ export function ExpenseForm({
               onEquals: () => setAmountExpression(completeAmountExpression),
             }}
             onDelete={() => setAmountExpression(removeLastAmountDigit)}
-            onClose={closeKeypad}
             onKey={(key) =>
               setAmountExpression((current) => appendAmountDigit(current, key))
             }

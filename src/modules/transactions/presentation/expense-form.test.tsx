@@ -396,15 +396,30 @@ describe("ExpenseForm のテンキーの閉じるキー (AC-TXN-014-8, AC-TXN-01
     expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
   });
 
-  it("閉じるキーは数字の最下行の左端（00の左）に置く (AC-TXN-014-9)", () => {
+  it("閉じるは入力ドック直下の先頭に置き、カテゴリのgroup名やテンキーの配列に混ぜない (AC-TXN-014-9)", () => {
     renderForm();
 
-    const digits = closeKey().parentElement;
-    const keys = Array.from(digits?.querySelectorAll("button") ?? []).map(
-      (button) => button.getAttribute("aria-label") ?? button.textContent,
-    );
-    expect(keys.slice(-4)).toEqual(["テンキーを閉じる", "00", "0", "足す"]);
-    expect(digits?.getAttribute("data-closable")).toBe("true");
+    const dock = closeKey().parentElement;
+    expect(dock?.getAttribute("data-keypad-open")).toBe("true");
+    expect(dock?.firstElementChild).toBe(closeKey());
+    expect(closeKey().closest("fieldset")).toBeNull();
+    expect(screen.getByRole("group", { name: "カテゴリ" })).toBeTruthy();
+    // 数字の最下行は従来どおり00・0（2列幅）のまま
+    const zero = screen.getByRole("button", { name: "0" });
+    expect(zero.getAttribute("data-key")).toBe("0");
+    expect(closeKey().closest("[class*='keypad-digits']")).toBeNull();
+  });
+
+  it("カテゴリ展開中はテンキーと一緒に閉じるも隠す (AC-TXN-014-9)", () => {
+    renderForm();
+
+    fireEvent.click(screen.getByRole("button", { name: "すべて" }));
+    expect(
+      screen.queryByRole("button", { name: "テンキーを閉じる" }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
+    expect(closeKey()).toBeTruthy();
   });
 });
 
