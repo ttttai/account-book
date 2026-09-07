@@ -395,21 +395,25 @@
 }
 
 /* 「閉じる」は入力ドックの右上（カテゴリ見出し行の右端、「すべて」の真上）へ置く。
-   OSキーボードの完了ボタンと同じ位置で、テンキーの行は増やさない (AC-TXN-014-8, AC-TXN-014-9) */
+   OSキーボードの完了ボタンと同じ位置で、テンキーの行は増やさない。見た目はカレンダー日別パネルの
+   「閉じる」と同じ枠なしのテキストにし、「すべて」やキーより控えめにする (AC-TXN-014-8, AC-TXN-014-9) */
 .keypad-close {
   position: absolute;
   top: calc(0.6rem + 1.125rem - 22px);
   right: max(0.75rem, env(safe-area-inset-right));
+  display: grid;
+  min-width: 44px;
   min-height: 44px;
-  padding: 0 0.85rem;
-  border: 1px solid #bdc7bd;
-  border-radius: 999px;
-  background: white;
-  color: var(--accent);
+  padding: 0 0.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted);
   font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 600;
   line-height: 1;
+  place-items: center;
   cursor: pointer;
 }
 
