@@ -1,0 +1,21 @@
+# E2E stack専用のoverride（specs/15-e2e-testing.md §3.1・§4）。
+# compose.yamlへ重ねて使い、webだけを開発用imageから本番Dockerfileの
+# standalone imageへ差し替える。next devのroute compileやHMRを含まない
+# 本番相当の応答でsmoke flowを検証するためで、開発用stack（compose.yaml単独）
+# の定義と挙動は変えない。scripts/e2e-stack.shが両fileを指定して起動する。
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_IMAGE_TAG: ${NODE_IMAGE_TAG:-24-bookworm-slim}
+        # NEXT_PUBLIC_*はbuild時にclient bundleへ埋め込まれるため、
+        # .env.e2eの値をbuild argとして渡しruntimeの環境変数と一致させる。
+        # secret（password・JWT secret・OAuth client secret）と許可リストは渡さない。
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://127.0.0.1:3100}
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-http://127.0.0.1:54421}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?scripts/e2e-stack.sh upで.env.e2eを生成してください}
+        NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED: ${NEXT_PUBLIC_GOOGLE_OAUTH_ENABLED:-true}
+    # 本番imageはsrcを持たないため、開発用のfile sync・rebuild定義を無効にする
+    develop: !reset null
