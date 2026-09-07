@@ -70,7 +70,11 @@ export async function registerExpense(
   await chooseInFieldset(page, "カテゴリ", input.categoryName);
 
   // 選択済みカテゴリを選び直した場合は展開が残る。テンキーと保存操作へ戻す
-  const collapseToggle = page.getByRole("button", { name: "閉じる" });
+  // テンキーの「テンキーを閉じる」と区別するため完全一致で取る (AC-TXN-014-8)
+  const collapseToggle = page.getByRole("button", {
+    name: "閉じる",
+    exact: true,
+  });
   if (await collapseToggle.isVisible()) await collapseToggle.click();
 
   if (input.allocation === "equal") {
