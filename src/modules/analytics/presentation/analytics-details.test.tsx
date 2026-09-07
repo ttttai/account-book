@@ -199,6 +199,42 @@ describe("AnalyticsDetails", () => {
     }
   });
 
+  it("月別推移は支出既定の縦棒グラフで、「収入」へ遷移なしに切り替わり、数値表の値は変わらない (AC-ANA-015-1〜3)", () => {
+    const { container } = render(<AnalyticsDetails data={createData()} />);
+
+    const section = screen.getByRole("region", { name: "月別推移" });
+    const chart = section.querySelector("[data-details-chart='trend']");
+    expect(chart?.getAttribute("aria-hidden")).toBe("true");
+    expect(chart?.getAttribute("data-trend-series")).toBe("expense");
+    const expenseBars = section.querySelectorAll("[data-trend-bar='expense']");
+    expect(expenseBars).toHaveLength(2);
+    // 支出は8月10,000・9月11,000なので、9月の棒が最大（100%）になる
+    expect((expenseBars[1] as HTMLElement).style.height).toBe("100%");
+    expect(chart?.textContent).toContain("￥11,000");
+    // 旧来の月ごとの横棒一覧は持たない
+    expect(section.querySelector("[data-details-bar]")).toBeNull();
+    expect(screen.queryByRole("list", { name: "月別推移" })).toBeNull();
+
+    const toggle = within(section).getByRole("group", {
+      name: "月別推移の系列",
+    });
+    fireEvent.click(within(toggle).getByRole("button", { name: "収入" }));
+    expect(chart?.getAttribute("data-trend-series")).toBe("income");
+    expect(section.querySelectorAll("[data-trend-bar='income']")).toHaveLength(
+      2,
+    );
+    expect(chart?.textContent).toContain("￥20,000");
+    expect(section.querySelector("a[href]")).toBeNull();
+    expect(section.querySelector("form")).toBeNull();
+
+    const table = screen.getByRole("table", { name: "月別の正確な数値" });
+    expect(within(table).getByText("￥10,000")).toBeTruthy();
+    expect(within(table).getByText("￥20,000")).toBeTruthy();
+    expect(
+      container.querySelector("[data-details-chart='savings']"),
+    ).toBeTruthy();
+  });
+
   it("貯金額の推移を装飾の棒グラフと数値表の累積収支列で示し、注記を表示する (AC-ANA-013-1〜3)", () => {
     const { container } = render(<AnalyticsDetails data={createData()} />);
 

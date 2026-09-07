@@ -102,6 +102,16 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
     expect(screen.getByText(KEYPAD_HINT)).toBeTruthy();
   });
 
+  it("固定費のテンキーは取引入力向けの閉じるキーを持たない (AC-TXN-014-9)", () => {
+    renderManagement();
+    fireEvent.focus(amountInput());
+
+    expect(keypadIsOpen()).toBe(true);
+    expect(
+      screen.queryByRole("button", { name: "テンキーを閉じる" }),
+    ).toBeNull();
+  });
+
   it("金額欄へfocusするとテンキーが開き、数字・00・1文字削除で値を組み立てる (AC-REC-005-1)", () => {
     renderManagement();
 

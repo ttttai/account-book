@@ -311,3 +311,59 @@ test("カテゴリ別支出は円グラフ既定でclient側だけで横棒へ�
   assert.match(toggleButton, /min-height:\s*44px;/);
   assert.match(toggleButton, /min-width:\s*44px;/);
 });
+
+test("月別推移は支出既定の縦棒グラフをclient側だけで収入へ切り替え、座標は純関数で求める (ANA-015, AC-ANA-015-1〜3)", async () => {
+  const requirements = await read("specs/01-product-requirements.md");
+  const useCases = await read("specs/02-use-cases.md");
+  const specification = await read("specs/12-analytics-and-reporting.md");
+  const review = await read(
+    "specs/reviews/2026-09-07-analytics-monthly-trend-chart.md",
+  );
+  const chart = await read(
+    "src/modules/analytics/presentation/analytics-monthly-trend-chart.tsx",
+  );
+  const layout = await read(
+    "src/modules/analytics/domain/analytics-trend-chart.ts",
+  );
+  const details = await read(
+    "src/modules/analytics/presentation/analytics-details.tsx",
+  );
+  const moduleCss = await read(
+    "src/modules/analytics/presentation/analytics.module.css",
+  );
+
+  assert.match(requirements, /^- `ANA-015`/m);
+  assert.match(useCases, /^- `AC-ANA-015-3`/m);
+  assert.match(specification, /### 5.4 月別推移の表示形式/);
+  assert.match(review, /状態: (承認済み|実装確認済み)/);
+  assert.match(review, /関連ID: 追加: ANA-015/);
+
+  // 切替はClient Componentのローカル状態だけで行い、遷移・再取得・URL変更を伴わない
+  assert.match(chart, /^"use client";/m);
+  assert.match(chart, /useState<AnalyticsTrendSeries>\("expense"\)/);
+  assert.doesNotMatch(chart, /next\/link|next\/form|next\/navigation/);
+  assert.doesNotMatch(chart, /href=|<form|localStorage/);
+  assert.match(chart, /aria-label="月別推移の系列"/);
+  assert.match(chart, /aria-pressed=/);
+  assert.match(chart, /aria-hidden="true"/);
+  assert.match(chart, /data-details-chart="trend"/);
+  // 座標と最大値はdomainの純関数が返し、描画側は金額を計算しない
+  assert.match(layout, /export function layoutAnalyticsTrendChart/);
+  assert.match(chart, /layoutAnalyticsTrendChart\(/);
+  assert.doesNotMatch(chart, /Math\.(max|min|round)|\/ *max|reduce\(/);
+  // 詳細分析のServer Componentは月別DTOを渡すだけで、Client化しない
+  assert.match(details, /<AnalyticsMonthlyTrendChart/);
+  assert.doesNotMatch(details, /^"use client";/m);
+  assert.doesNotMatch(details, /data-details-bar="(expense|income)"/);
+  assert.doesNotMatch(details, /maxMonthlyAmount/);
+  // 支出は赤系、収入は緑系で塗り、切替ボタンは既存の44px以上の規則を共有する (AC-ANA-015-2、3)
+  assert.match(
+    moduleCss,
+    /\[data-trend-bar="expense"\] \{[^}]*background:\s*#d8664f;/,
+  );
+  assert.match(
+    moduleCss,
+    /\[data-trend-bar="income"\] \{[^}]*background:\s*#3d8a5f;/,
+  );
+  assert.match(chart, /analytics-chart-toggle/);
+});

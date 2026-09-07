@@ -6,14 +6,15 @@ import {
 import { E2E_USER_A } from "./support/e2e-users";
 import { expect, test } from "./support/fixtures";
 
-const RECURRING_NAME = "E2E 家賃";
+const RECURRING_NAME =
+  "家賃・共益費・駐車場代をまとめた毎月の固定費（自宅マンション）";
 const RECURRING_AMOUNT = 80000;
 
 // E2E-009 固定費の登録と一覧表示
 // （REC-001〜REC-004、AC-REC-004-1、AC-REC-002-2）
 test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダーへ表示される @desktop", async ({
   memberPage,
-}) => {
+}, testInfo) => {
   const groupId = await createGroup(memberPage, "E2E 固定費");
   const month = currentMonthInGroupTimezone();
 
@@ -24,6 +25,7 @@ test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダ
 
   const form = memberPage.locator("form").filter({ hasText: "固定費を追加" });
   await form.getByLabel("名称").fill(RECURRING_NAME);
+  await form.getByLabel("メモ").fill("共益費込みの住居費");
   await form.getByLabel("金額").fill(String(RECURRING_AMOUNT));
   await form.getByLabel("毎月の日付").selectOption("1");
   await form.getByLabel("開始月").fill(month);
@@ -56,4 +58,27 @@ test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダ
   await expect(
     memberPage.getByRole("region", { name: /月間合計$/ }),
   ).toContainText("￥80,000");
+  await memberPage.getByRole("link", { name: /月1日、支出/ }).click();
+  const panel = memberPage.getByRole("complementary");
+  await expect(panel).toContainText(RECURRING_NAME);
+  await expect(panel).toContainText("共益費込みの住居費");
+  for (const width of testInfo.project.name === "mobile"
+    ? [375, 320]
+    : [1280]) {
+    await memberPage.setViewportSize({
+      width,
+      height: width === 1280 ? 800 : 812,
+    });
+    expect(
+      await memberPage.evaluate(
+        () => document.documentElement.scrollWidth - innerWidth,
+      ),
+    ).toBe(0);
+    await memberPage.screenshot({
+      path: testInfo.outputPath(`fixed-cost-day-${width}.png`),
+      fullPage: true,
+    });
+  }
+  await memberPage.reload();
+  await expect(panel).toContainText(RECURRING_NAME);
 });
