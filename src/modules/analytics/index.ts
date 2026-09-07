@@ -12,6 +12,7 @@ export {
   aggregateAnalyticsDateRange,
   aggregateAnalyticsMonth,
   compareAnalyticsAmount,
+  sharePercentOf,
   summarizeCategoryBreakdown,
 } from "./domain/analytics-summary";
 export type {

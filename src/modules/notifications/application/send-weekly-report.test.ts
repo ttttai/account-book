@@ -21,6 +21,7 @@ const emptySource: WeeklyReportSource = {
   incomes: [],
   recurring: [],
   budget: null,
+  members: [],
 };
 
 function createGateway(
@@ -62,8 +63,9 @@ describe("sendWeeklyReport", () => {
     expect(gateway.pushText).toHaveBeenCalledTimes(1);
     const [lineGroupId, text] = gateway.pushText.mock.calls[0] ?? [];
     expect(lineGroupId).toBe(LINE_GROUP_ID);
-    expect(text).toContain("【わが家】今週のまとめ（8/31〜9/6）");
+    expect(text).toContain("【わが家】週次サマリー\n📅 今週（8/31〜9/6）");
     expect(text).toContain("今週の支出登録はありませんでした。");
+    expect(text).toContain("📆 9月の累計（6日経過）");
     // 送信枠の確保がpushより先に行われる
     expect(gateway.claimWeek.mock.invocationCallOrder[0]).toBeLessThan(
       gateway.pushText.mock.invocationCallOrder[0] ?? 0,

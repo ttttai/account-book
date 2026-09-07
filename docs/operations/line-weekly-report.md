@@ -22,6 +22,8 @@
   - `app_private.line_notification_targets`（家計グループとLINEグループの対応）
   - `app_private.weekly_notification_log`（`(group_id, week_start_date)`一意。二重送信防止）
   - 連携登録/解除、連携先取得、集計元取得（支出・収入の最小列、固定費の展開条件、適用予算改定）、送信枠claim/releaseの`security definer`関数
+- **migration（文面拡充）** [`202609070002_line_weekly_report_members.sql`](../../supabase/migrations/202609070002_line_weekly_report_members.sql)
+  - 集計元関数`app_private.get_line_report_source`を同じ引数・同じ権限で置き換え、支出・固定費の行へ支払者と負担額、トップレベルへアクティブメンバーの表示名を追加（メンバーの支出・累計を通知するため。review: 2026-09-07-line-weekly-report-members）
 - **通知module** `src/modules/notifications/`
   - domain: 週範囲・対象月の計算、集計入力への変換、文面組み立て、LINE署名検証
   - application: 送信フロー（連携先 → 集計元 → 純関数で集計 → 送信枠 → push）、Webhook処理
@@ -49,6 +51,19 @@ docker run --rm -i --env-file .env supabase/postgres:17.6.1.136 sh -c 'psql "$PR
 ```
 
 その後PRをmergeする。CDが自動deployするが、環境変数未設定のため**通知機能は無効のまま**で既存機能に影響しない。
+
+### 文面拡充のmigration（`feat/line-weekly-report-members`）
+
+メンバーの支出・月の累計・月末の見込みを通知へ追加するPRは、集計元関数を置き換えるmigration `202609070002_line_weekly_report_members.sql` を含む。関数の置き換えだけで、テーブル・データ・権限の変更は含まない低risk変更。**merge前に適用する**（旧コードは追加された列を無視するため互換）。適用は段階1と同様に、そのPRのworktreeで`.env`に`PROD_DB_URL`がある状態で実行する。
+
+```bash
+cd /Users/yamamototaishi/Desktop/account-book/.claude/worktrees/feat-line-weekly-report-members && docker run --rm \
+  -v "$PWD/supabase/migrations:/migrations:ro" \
+  -e PROD_DB_URL="$(grep '^PROD_DB_URL=' .env | cut -d= -f2-)" \
+  postgres:17 sh -c "psql \"\$PROD_DB_URL\" --single-transaction --set ON_ERROR_STOP=1 --file=/migrations/202609070002_line_weekly_report_members.sql --command=\"insert into public.schema_migrations (version) values ('202609070002_line_weekly_report_members')\""
+```
+
+適用後は次の週次実行から新しい文面（週次サマリー・メンバーの支出・累計・見込み・予算バー）になる。
 
 ## 段階2: Terraformでインフラを追加
 

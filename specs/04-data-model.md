@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.14
+バージョン: 0.2.15
 
 ## 1. 設計目標
 
@@ -294,7 +294,7 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 
 ### 通知専用ロール
 
-`line_notifier`は`nologin`で作成し、`app_private`のusageと通知用関数のEXECUTEだけを持つ。テーブルへの直接権限、他機能のDB関数の実行権限、`service_role`相当の権限を持たない。LOGIN権限とpasswordの付与は運用手順で手動で行い、Gitへ含めない。
+`line_notifier`は`nologin`で作成し、`app_private`のusageと通知用関数のEXECUTEだけを持つ。集計元の関数は取引・固定費の日付・金額・カテゴリ・支払者・負担額と、アクティブメンバーの識別子・プロフィール表示名を返し、メモ・取引の名称を返さない（`NOTIF-007`）。テーブルへの直接権限、他機能のDB関数の実行権限、`service_role`相当の権限を持たない。LOGIN権限とpasswordの付与は運用手順で手動で行い、Gitへ含めない。
 
 ## 4. インデックス
 
