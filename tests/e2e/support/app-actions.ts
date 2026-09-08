@@ -4,7 +4,7 @@ export type ExpenseInput = Readonly<{
   groupId: string;
   amount: number;
   categoryName: string;
-  /** 負担方法。指定しない場合は画面の初期選択（1人）を使う */
+  /** 分け方（負担方法）。指定しない場合は画面の初期選択（1人）を使う */
   allocation?: "single" | "equal";
   /** 均等負担で選択するメンバー表示名。未指定なら初期選択を維持する */
   equalMemberNames?: readonly string[];
@@ -78,9 +78,9 @@ export async function registerExpense(
   if (await collapseToggle.isVisible()) await collapseToggle.click();
 
   if (input.allocation === "equal") {
-    await chooseInFieldset(page, "負担方法", "均等");
+    await chooseInFieldset(page, "分け方", "均等");
     // 均等はアクティブメンバー全員を負担者に選ぶ (TXN-007)
-    const allocationFieldset = page.getByRole("group", { name: "負担方法" });
+    const allocationFieldset = page.getByRole("group", { name: "分け方" });
     for (const memberName of input.equalMemberNames ?? []) {
       await expect(
         allocationFieldset.getByRole("checkbox", {

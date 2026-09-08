@@ -13,6 +13,8 @@ type HistoryListProps = Readonly<{
   filterParams: Readonly<Record<string, string>>;
   initialRows: readonly HistoryRow[];
   initialNextCursor?: string;
+  /** 支出した人で絞り込んでいるときの表示名。主金額のラベル「〇〇の支出」に使う (HIS-004) */
+  targetMemberName?: string;
 }>;
 
 function formatHistoryDate(date: string): string {
@@ -23,7 +25,12 @@ function formatHistoryDate(date: string): string {
 function HistoryRowItem({
   row,
   editHref,
-}: Readonly<{ row: HistoryRow; editHref?: string }>) {
+  targetMemberName,
+}: Readonly<{
+  row: HistoryRow;
+  editHref?: string;
+  targetMemberName?: string;
+}>) {
   return (
     <li className={styles["history-row"]}>
       <div className={styles["history-row-heading"]}>
@@ -38,7 +45,7 @@ function HistoryRowItem({
           }`}
         >
           {row.targetAmountMinor !== undefined
-            ? "負担額"
+            ? `${targetMemberName ?? "対象"}の支出`
             : row.type === "expense"
               ? "支出"
               : "収入"}
@@ -56,13 +63,14 @@ function HistoryRowItem({
         <time dateTime={row.transactionDate}>
           {formatHistoryDate(row.transactionDate)}
         </time>
-        <span>
-          {row.type === "expense" ? "支払者" : "受取者"} {row.partyDisplayName}
-        </span>
+        {/* 支出の支払者は画面へ出さず、収入の受取者だけ表示する (AC-TXN-018-3) */}
+        {row.type === "income" ? (
+          <span>受取者 {row.partyDisplayName}</span>
+        ) : null}
       </p>
       {row.allocations.length > 0 ? (
         <p className={styles["history-row-allocations"]}>
-          負担{" "}
+          内訳{" "}
           {row.allocations
             .map(
               (allocation) =>
@@ -86,12 +94,13 @@ function HistoryRowItem({
   );
 }
 
-// 取得済み履歴と追加ページを保持し、負担額と取引全体を区別して表示する
+// 取得済み履歴と追加ページを保持し、対象者の支出額と取引全体を区別して表示する
 export function HistoryList({
   groupId,
   filterParams,
   initialRows,
   initialNextCursor,
+  targetMemberName,
 }: HistoryListProps) {
   const [rows, setRows] = useState(initialRows);
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
@@ -142,6 +151,7 @@ export function HistoryList({
               editHref={`/groups/${encodeURIComponent(groupId)}/transactions/${row.id}/edit?from=${encodeURIComponent(historyReturnUrl)}`}
               key={row.id}
               row={row}
+              targetMemberName={targetMemberName}
             />
           ))}
         </ol>

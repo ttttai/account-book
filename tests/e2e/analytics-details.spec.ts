@@ -27,9 +27,13 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
   await expect(
     memberPage.getByRole("table", { name: "月別の正確な数値" }),
   ).toContainText("￥6,000");
+  // メンバー別表は支出額・受取額の2列で、支払額を表示しない (AC-TXN-018-4)
   await expect(
     memberPage.getByRole("table", { name: "メンバー別の内訳" }),
-  ).toContainText("負担額");
+  ).toContainText("支出額");
+  await expect(
+    memberPage.getByRole("table", { name: "メンバー別の内訳" }),
+  ).not.toContainText("支払額");
   // カテゴリ構成は既定で円グラフ。切替は遷移なしで横棒へ変わり、一覧の値は同じ (AC-ANA-014-1、AC-ANA-014-3)
   const categories = memberPage.getByRole("list", {
     name: "期間の支出カテゴリ",
@@ -118,7 +122,7 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
     }
     for (const [name, labels] of [
       ["月別の正確な数値", ["支出", "収入", "収支", "累積収支"]],
-      ["メンバー別の内訳", ["負担額", "支払額", "受取額"]],
+      ["メンバー別の内訳", ["支出額", "受取額"]],
     ] as const) {
       const table = memberPage.getByRole("table", { name });
       const rows = table.locator("tbody tr");

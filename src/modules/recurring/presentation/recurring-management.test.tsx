@@ -186,6 +186,49 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
     expect(amountInput().value).toBe("3000");
   });
 
+  it("支出の固定費では支払者を表示せず現在のメンバーを隠しfieldで送信し、収入では「受け取る人」を選べる (AC-TXN-018-1, AC-TXN-018-3)", () => {
+    const { container } = renderManagement();
+
+    // 一覧のカードにも支払者を出さない
+    const card = screen.getByRole("listitem");
+    expect(card.textContent).not.toContain("支払者");
+    expect(card.textContent).not.toContain("負担");
+    expect(card.textContent).toContain("住居");
+
+    const form = screen
+      .getByRole("heading", { name: "固定費を追加" })
+      .closest("form") as HTMLFormElement;
+    expect(screen.queryByLabelText("支払う人")).toBeNull();
+    const hidden = form.querySelector(
+      'input[name="partyMemberId"]',
+    ) as HTMLInputElement | null;
+    expect(hidden?.type).toBe("hidden");
+    expect(hidden?.value).toBe(currentMembershipId);
+    expect(form.textContent).not.toContain("負担");
+    expect(form.textContent).toContain("分け方");
+
+    fireEvent.click(screen.getByRole("radio", { name: "収入" }));
+    expect(screen.getByLabelText("受け取る人")).toBeTruthy();
+    expect(form.querySelector('input[name="partyMemberId"]')).toBeNull();
+    expect(container.textContent).not.toContain("支払者");
+  });
+
+  it("編集フォームでは保存済みの支払者を隠しfieldで送信する (AC-TXN-018-1)", () => {
+    renderManagement();
+
+    fireEvent.click(screen.getByRole("button", { name: "編集" }));
+
+    const form = screen
+      .getByRole("heading", { name: "家賃を編集" })
+      .closest("form") as HTMLFormElement;
+    const hidden = form.querySelector(
+      'input[name="partyMemberId"]',
+    ) as HTMLInputElement | null;
+    expect(hidden?.type).toBe("hidden");
+    expect(hidden?.value).toBe(currentMembershipId);
+    expect(screen.queryByLabelText("支払う人")).toBeNull();
+  });
+
   it("編集フォームでは保存済みの金額を初期値として表示する (AC-REC-005-3)", () => {
     renderManagement();
 

@@ -143,18 +143,20 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
     });
   }
 
-  // 日別取引に負担内訳を表示する
+  // 日別取引に「内訳」を表示し、支払者を表示しない (AC-TXN-018-3)
   await openCalendar(memberPage, groupId, { month, scope: "group", day });
   const dayPanel = memberPage.getByRole("complementary");
   await expect(dayPanel).toContainText("￥6,000");
-  await expect(dayPanel).toContainText("負担");
+  await expect(dayPanel).toContainText("内訳");
   await expect(dayPanel).toContainText(`${E2E_USER_A.displayName} ￥3,000`);
   await expect(dayPanel).toContainText(`${E2E_USER_B.displayName} ￥3,000`);
+  await expect(dayPanel).not.toContainText("支払者");
+  await expect(dayPanel).not.toContainText("負担");
 
-  // 履歴は自分の負担額を主表示し、取引全体と区別する (HIS-003、HIS-004)
+  // 履歴は自分の支出額を主表示し、取引全体と区別する (HIS-003、HIS-004)
   await memberPage.goto(`/groups/${groupId}/history`);
-  await memberPage.getByRole("link", { name: "自分が負担" }).click();
-  await expect(memberPage.getByLabel("負担メンバー")).toHaveValue(
+  await memberPage.getByRole("link", { name: "自分の支出" }).click();
+  await expect(memberPage.getByLabel("支出した人")).toHaveValue(
     new URL(memberPage.url()).searchParams.get("member") ?? "",
   );
   const historyRows = memberPage.getByRole("region", {
@@ -164,10 +166,16 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
   await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
     "￥3,000",
   );
-  await expect(historyRows).toContainText("負担額");
+  await expect(historyRows).toContainText(`${E2E_USER_A.displayName}の支出`);
   await expect(historyRows).toContainText("食費");
+  await expect(historyRows).not.toContainText("支払者");
+  await expect(historyRows).not.toContainText("負担");
+  await expect(memberPage.getByLabel("支払者")).toHaveCount(0);
   await expect(
     memberPage.getByRole("link", { name: "自分が支払った", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    memberPage.getByRole("link", { name: "自分が負担", exact: true }),
   ).toHaveCount(0);
   for (const width of testInfo.project.name === "mobile"
     ? [375, 320]
@@ -193,7 +201,7 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
   const partnerPage = await openUserPage(E2E_USER_B);
   await partnerPage.goto(`/groups/${groupId}/history`);
   await partnerPage
-    .getByRole("link", { name: "自分が負担", exact: true })
+    .getByRole("link", { name: "自分の支出", exact: true })
     .click();
   await expect(
     partnerPage

@@ -66,7 +66,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("HistoryList", () => {
-  it("負担メンバー指定時は主金額と取引全体を区別し、追加ページも負担額を表示する (AC-HIS-003-3)", async () => {
+  it("支出した人の指定時は主金額を「〇〇の支出」として取引全体と区別し、追加ページも同じ規則で表示する (AC-HIS-003-3)", async () => {
     const shared = { ...rowA, amountMinor: 6000, targetAmountMinor: 3000 };
     vi.mocked(loadMoreHistoryAction).mockResolvedValue({
       status: "ready",
@@ -78,12 +78,14 @@ describe("HistoryList", () => {
         filterParams={{ member: "00000000-0000-4000-8000-000000000021" }}
         initialRows={[shared]}
         initialNextCursor="cursor-1"
+        targetMemberName="山田"
       />,
     );
     expect(container.querySelector(".history-amount")?.textContent).toBe(
       "￥3,000",
     );
-    expect(screen.getByText("負担額")).toBeTruthy();
+    expect(screen.getByText("山田の支出")).toBeTruthy();
+    expect(screen.queryByText("負担額")).toBeNull();
     expect(screen.getByText("取引全体 ￥6,000")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
     await waitFor(() =>
@@ -97,8 +99,8 @@ describe("HistoryList", () => {
     ).toEqual(["￥3,000", "￥2,000"]);
   });
 
-  it("初期ページの行と支払者・受取者・負担内訳を表示する", () => {
-    render(
+  it("初期ページの行に受取者と内訳を表示し、支出の支払者と「負担」の語を表示しない (AC-TXN-018-3)", () => {
+    const { container } = render(
       <HistoryList
         groupId={groupId}
         filterParams={{ month: "2026-08" }}
@@ -108,8 +110,10 @@ describe("HistoryList", () => {
     );
 
     expect(screen.getByText("カテゴリA")).toBeTruthy();
-    expect(screen.getByText(/支払者\s*山田/)).toBeTruthy();
+    expect(screen.queryByText(/支払者/)).toBeNull();
     expect(screen.getByText(/受取者\s*佐藤/)).toBeTruthy();
+    expect(screen.getByText(/内訳\s*山田 ￥1,000/)).toBeTruthy();
+    expect(container.textContent).not.toContain("負担");
     expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
   });
 

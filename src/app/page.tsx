@@ -3,7 +3,7 @@ import Link from "next/link";
 const implementationSteps = [
   "Googleアカウントでの安全なログイン",
   "複数グループとメンバー招待",
-  "支払者と負担額を分けた支出登録",
+  "誰の支出かを分けて記録できる支出登録",
   "次は月間カレンダーとメンバー別集計",
 ];
 

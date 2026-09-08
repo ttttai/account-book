@@ -72,7 +72,7 @@ export function HistoryValidationError({
   );
 }
 
-// 自分へ割り当てられた負担額で絞り込むshortcutを表示する (HIS-003)
+// 自分へ割り当てられた負担額（画面では「自分の支出」）で絞り込むshortcutを表示する (HIS-003, TXN-018)
 function ShortcutChips({ data }: Readonly<{ data: HistoryReadyData }>) {
   const params = filterToParams(data.filter);
   const isMyBurdenActive =
@@ -94,7 +94,7 @@ function ShortcutChips({ data }: Readonly<{ data: HistoryReadyData }>) {
             : { ...params, member: data.currentMembershipId },
         )}
       >
-        自分が負担
+        自分の支出
       </Link>
     </nav>
   );
@@ -185,12 +185,7 @@ function FilterSheet({ data }: Readonly<{ data: HistoryReadyData }>) {
             </optgroup>
           </select>
         </label>
-        <MemberSelect
-          name="payer"
-          label="支払者"
-          members={data.members}
-          selectedMemberId={filter.payerMemberId}
-        />
+        {/* 支払者(payer)の選択肢は画面へ出さない。URLで渡された条件の検証・適用は維持する (AC-HIS-002-1, TXN-018) */}
         <MemberSelect
           name="recipient"
           label="受取者"
@@ -199,7 +194,7 @@ function FilterSheet({ data }: Readonly<{ data: HistoryReadyData }>) {
         />
         <MemberSelect
           name="member"
-          label="負担メンバー"
+          label="支出した人"
           members={data.members}
           selectedMemberId={filter.memberMemberId}
         />
@@ -241,12 +236,7 @@ function AppliedFilters({ data }: Readonly<{ data: HistoryReadyData }>) {
       label: `カテゴリ ${categoryNameById.get(data.filter.categoryId) ?? ""}`,
     });
   }
-  if (data.filter.payerMemberId) {
-    chips.push({
-      key: "payer",
-      label: `支払者 ${memberNameById.get(data.filter.payerMemberId) ?? ""}`,
-    });
-  }
+  // 支払者条件は適用中でも表示しない (TXN-018)
   if (data.filter.recipientMemberId) {
     chips.push({
       key: "recipient",
@@ -256,7 +246,7 @@ function AppliedFilters({ data }: Readonly<{ data: HistoryReadyData }>) {
   if (data.filter.memberMemberId) {
     chips.push({
       key: "member",
-      label: `負担 ${memberNameById.get(data.filter.memberMemberId) ?? ""}`,
+      label: `支出した人 ${memberNameById.get(data.filter.memberMemberId) ?? ""}`,
     });
   }
   if (chips.length === 0) return null;
@@ -305,6 +295,13 @@ export function HistoryView({ data }: Readonly<{ data: HistoryReadyData }>) {
         filterParams={params}
         initialRows={data.rows}
         initialNextCursor={data.nextCursor}
+        targetMemberName={
+          data.filter.memberMemberId
+            ? data.members.find(
+                (member) => member.membershipId === data.filter.memberMemberId,
+              )?.displayName
+            : undefined
+        }
       />
     </div>
   );
