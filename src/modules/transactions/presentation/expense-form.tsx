@@ -207,7 +207,7 @@ export function ExpenseForm({
   // カテゴリ一覧の展開状態。既定は1行表示 (TXN-015)
   const [categoryExpanded, setCategoryExpanded] = useState(false);
   // 金額欄を選ぶと開き、他の入力欄を選ぶと閉じる（OSの仮想キーボードに近い挙動）(AC-TXN-014-5)
-  const [keypadOpen, setKeypadOpen] = useState(true);
+  const [keypadOpen, setKeypadOpen] = useState(!editTransaction);
   // 閉じるキーで金額欄へfocusを戻す間だけ、focusによる再開を抑止する (AC-TXN-014-8)
   const keepKeypadClosedRef = useRef(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState(

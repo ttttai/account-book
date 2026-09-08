@@ -791,3 +791,69 @@ describe("ExpenseForm の外枠と footer (AC-TXN-009-5)", () => {
     );
   });
 });
+
+describe("編集時の初期テンキー (AC-TXN-014-10)", () => {
+  it.each(["expense", "income"] as const)(
+    "%sは閉じて開き、保存値を保って金額欄から再開する",
+    (type) => {
+      const scrollBy = vi.fn();
+      window.scrollBy = scrollBy;
+      const common = {
+        id: "00000000-0000-4000-8000-000000000901",
+        amountMinor: 3200,
+        transactionDate: "2026-09-01",
+        categoryId:
+          type === "expense"
+            ? options.categories[0].id
+            : options.incomeCategories[0].id,
+        memo: "編集前のメモ",
+        version: 3,
+      };
+      const transaction =
+        type === "expense"
+          ? {
+              ...common,
+              type,
+              payerMemberId: currentMembershipId,
+              payerIsActive: true,
+              payerDisplayName: "山田",
+              allocationMethod: "single" as const,
+              allocations: [
+                { memberId: currentMembershipId, amountMinor: 3200 },
+              ],
+            }
+          : {
+              ...common,
+              type,
+              recipientMemberId: currentMembershipId,
+              recipientIsActive: true,
+              recipientDisplayName: "山田",
+            };
+      render(
+        <ExpenseForm
+          options={options}
+          edit={{ transaction, returnTo: "/app" }}
+        />,
+      );
+      expect(screen.queryByRole("button", { name: "1" })).toBeNull();
+      expect(amountInput().value).toBe("3200");
+      expect(
+        (screen.getByLabelText("メモ（任意）") as HTMLTextAreaElement).value,
+      ).toBe("編集前のメモ");
+      expect(
+        document
+          .querySelector('input[name="expectedVersion"]')
+          ?.getAttribute("value"),
+      ).toBe("3");
+      expect(screen.getByRole("button", { name: /保存/ })).toBeTruthy();
+      expect(document.activeElement).not.toBe(amountInput());
+      expect(scrollBy).not.toHaveBeenCalled();
+      fireEvent.click(amountInput());
+      expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
+      fireEvent.focus(screen.getByLabelText("メモ（任意）"));
+      expect(screen.queryByRole("button", { name: "1" })).toBeNull();
+      fireEvent.focus(amountInput());
+      expect(screen.getByRole("button", { name: "1" })).toBeTruthy();
+    },
+  );
+});

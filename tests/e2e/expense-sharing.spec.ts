@@ -211,7 +211,7 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
 });
 
 // E2E-005 支出の編集と削除（TXN-008、TXN-009、TXN-012）
-test("E2E-005 支出を編集・削除するとカレンダー合計が追随する", async ({
+test("E2E-005 支出を編集・削除するとカレンダー合計が追随する @desktop", async ({
   memberPage,
   openUserPage,
 }) => {
@@ -227,6 +227,22 @@ test("E2E-005 支出を編集・削除するとカレンダー合計が追随す
     .getByRole("link", { name: "編集" })
     .click();
   await expect(memberPage).toHaveURL(/\/transactions\/[0-9a-f-]{36}\/edit/);
+
+  // 編集初期はテンキーを閉じ、金額欄の選択で開く (AC-TXN-014-10)
+  await expect(
+    memberPage.getByRole("button", { name: "1", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    memberPage.getByRole("button", { name: "変更を保存" }),
+  ).toBeVisible();
+  await memberPage.screenshot({
+    path: `test-results/edit-initial-${memberPage.viewportSize()?.width}.png`,
+    fullPage: true,
+  });
+  await memberPage.getByLabel("金額").click();
+  await expect(
+    memberPage.getByRole("button", { name: "1", exact: true }),
+  ).toBeVisible();
 
   // 楽観的ロック用のversionを画面が保持している (TXN-012)
   await expect(memberPage.locator('input[name="expectedVersion"]')).toHaveValue(
