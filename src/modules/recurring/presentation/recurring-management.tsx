@@ -92,7 +92,7 @@ type FormFieldsProps = Readonly<{
   state: RecurringActionState;
 }>;
 
-// 作成・編集で共通の入力欄。種別で受取者／支払者と負担方法の表示を切り替える
+// 作成・編集で共通の入力欄。種別で受取者と分け方の表示を切り替える。支出の支払者は表示せず自動設定する (TXN-018)
 function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
   const fieldId = useId();
   const [type, setType] = useState<"expense" | "income">(
@@ -105,6 +105,17 @@ function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
     (category) => category.type === type,
   );
   const fieldErrors = state.fieldErrors ?? {};
+  // 支出の支払者は画面に出さない。保存済みの支払者が候補に無ければ現在のメンバーへ置き換える (AC-TXN-018-1)
+  const currentMembershipId = view.members.find(
+    (member) => member.isCurrentUser,
+  )?.membershipId;
+  const hiddenPayerMemberId =
+    recurring?.type === "expense" &&
+    view.members.some(
+      (member) => member.membershipId === recurring.partyMembershipId,
+    )
+      ? recurring.partyMembershipId
+      : (currentMembershipId ?? "");
 
   // 金額は取引入力と同じ画面内テンキーで入力する。OSの仮想キーボードを開かず、下部ナビゲーションを押し上げない (REC-010)
   const [amountMinor, setAmountMinor] = useState(
@@ -300,35 +311,48 @@ function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
         ) : null}
       </div>
 
-      <div className={styles["recurring-field"]}>
-        <label htmlFor={`${fieldId}-party`}>
-          {type === "income" ? "受け取る人" : "支払う人"}
-        </label>
-        <select
-          defaultValue={
-            recurring?.partyMembershipId ??
-            view.members.find((member) => member.isCurrentUser)?.membershipId ??
-            ""
-          }
-          id={`${fieldId}-party`}
-          name="partyMemberId"
-          required
-        >
-          {view.members.map((member) => (
-            <option key={member.membershipId} value={member.membershipId}>
-              {member.displayName}
-              {member.isCurrentUser ? "（自分）" : ""}
-            </option>
-          ))}
-        </select>
-        {fieldErrors.partyMemberId ? (
-          <p className="field-error">{fieldErrors.partyMemberId.join(" ")}</p>
-        ) : null}
-      </div>
+      {type === "income" ? (
+        <div className={styles["recurring-field"]}>
+          <label htmlFor={`${fieldId}-party`}>受け取る人</label>
+          <select
+            defaultValue={
+              recurring?.partyMembershipId ??
+              view.members.find((member) => member.isCurrentUser)
+                ?.membershipId ??
+              ""
+            }
+            id={`${fieldId}-party`}
+            name="partyMemberId"
+            required
+          >
+            {view.members.map((member) => (
+              <option key={member.membershipId} value={member.membershipId}>
+                {member.displayName}
+                {member.isCurrentUser ? "（自分）" : ""}
+              </option>
+            ))}
+          </select>
+          {fieldErrors.partyMemberId ? (
+            <p className="field-error">{fieldErrors.partyMemberId.join(" ")}</p>
+          ) : null}
+        </div>
+      ) : (
+        <>
+          {/* 支出の支払者は表示せず、保存済みの値（アクティブでなければ現在のメンバー）を送る (AC-TXN-018-1) */}
+          <input
+            name="partyMemberId"
+            type="hidden"
+            value={hiddenPayerMemberId}
+          />
+          {fieldErrors.partyMemberId ? (
+            <p className="field-error">{fieldErrors.partyMemberId.join(" ")}</p>
+          ) : null}
+        </>
+      )}
 
       {type === "expense" ? (
         <fieldset className={styles["recurring-fieldset"]}>
-          <legend>負担方法</legend>
+          <legend>分け方</legend>
           <div className={styles["recurring-segmented"]}>
             {(
               [
@@ -515,10 +539,13 @@ export function RecurringManagement({ view }: RecurringManagementProps) {
                     <dt>カテゴリ</dt>
                     <dd>{recurring.categoryName}</dd>
                   </div>
-                  <div>
-                    <dt>{recurring.type === "income" ? "受取者" : "支払者"}</dt>
-                    <dd>{recurring.partyDisplayName}</dd>
-                  </div>
+                  {/* 支出の支払者は一覧にも出さない (AC-TXN-018-3) */}
+                  {recurring.type === "income" ? (
+                    <div>
+                      <dt>受取者</dt>
+                      <dd>{recurring.partyDisplayName}</dd>
+                    </div>
+                  ) : null}
                   <div>
                     <dt>期間</dt>
                     <dd>

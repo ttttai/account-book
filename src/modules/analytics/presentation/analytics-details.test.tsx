@@ -139,10 +139,14 @@ describe("AnalyticsDetails", () => {
         .getAllByRole("listitem")
         .map((row) => row.textContent),
     ).toEqual(categoryRows);
+    // メンバー別表は支出額・受取額の2列とし、支払額と「負担」の語を表示しない (AC-TXN-018-4)
     const members = screen.getByRole("table", { name: "メンバー別の内訳" });
-    expect(members.textContent).toContain("負担額");
-    expect(members.textContent).toContain("支払額");
+    expect(members.textContent).toContain("支出額");
     expect(members.textContent).toContain("受取額");
+    expect(members.textContent).not.toContain("支払額");
+    expect(members.textContent).not.toContain("負担");
+    expect(members.textContent).not.toContain("￥18,000");
+    expect(within(members).getAllByRole("columnheader")).toHaveLength(3);
     for (const bar of container.querySelectorAll("[data-details-bar]")) {
       expect(bar.getAttribute("aria-hidden")).toBe("true");
     }
@@ -167,11 +171,7 @@ describe("AnalyticsDetails", () => {
     render(<AnalyticsDetails data={createData()} />);
 
     for (const [name, labels, values] of [
-      [
-        "メンバー別の内訳",
-        ["負担額", "支払額", "受取額"],
-        ["￥21,000", "￥18,000", "￥25,000"],
-      ],
+      ["メンバー別の内訳", ["支出額", "受取額"], ["￥21,000", "￥25,000"]],
       [
         "月別の正確な数値",
         ["支出", "収入", "収支", "累積収支"],

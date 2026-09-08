@@ -30,9 +30,12 @@ test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダ
   await form.getByLabel("毎月の日付").selectOption("1");
   await form.getByLabel("開始月").fill(month);
   await form.getByLabel("カテゴリ").selectOption({ label: "住居" });
-  await form
-    .getByLabel("支払う人")
-    .selectOption({ label: `${E2E_USER_A.displayName}（自分）` });
+  // 支払者の入力欄はなく、自分が自動設定される (AC-TXN-018-1)
+  await expect(form.getByLabel("支払う人")).toHaveCount(0);
+  await expect(form.locator('input[name="partyMemberId"]')).toHaveAttribute(
+    "type",
+    "hidden",
+  );
   await form.getByRole("button", { name: "固定費を保存" }).click();
 
   const card = memberPage

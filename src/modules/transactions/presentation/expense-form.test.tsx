@@ -98,12 +98,98 @@ describe("ExpenseForm の種別切替 (TXN-013)", () => {
     expect(slots.every((slot) => slot.textContent?.trim() !== "")).toBe(true);
   });
 
-  it("負担方法の切替は1人・均等・カスタムの3択のまま維持する", () => {
+  it("分け方の切替は1人・均等・カスタムの3択のまま維持する", () => {
     renderForm();
 
-    const fieldset = screen.getByRole("group", { name: "負担方法" });
+    const fieldset = screen.getByRole("group", { name: "分け方" });
     const radios = fieldset.querySelectorAll('input[type="radio"]');
     expect(radios).toHaveLength(3);
+  });
+});
+
+describe("ExpenseForm の支払者非表示と文言 (TXN-018)", () => {
+  it("支払者の入力欄を表示せず、現在のメンバーを隠しfieldで送信する (AC-TXN-018-1)", () => {
+    const { container } = renderForm();
+
+    expect(screen.queryByLabelText("支払った人")).toBeNull();
+    const hidden = container.querySelector(
+      'input[name="payerMemberId"]',
+    ) as HTMLInputElement | null;
+    expect(hidden?.type).toBe("hidden");
+    expect(hidden?.value).toBe(currentMembershipId);
+    // 端末へ最後の支払者を記憶しない
+    expect(
+      window.localStorage.getItem(`account-book:last-payer:${groupId}`),
+    ).toBeNull();
+  });
+
+  it("編集時は保存済みの支払者を送信し、削除済みなら現在のメンバーへ置き換える (AC-TXN-018-1)", () => {
+    const base = {
+      id: "00000000-0000-4000-8000-000000000501",
+      type: "expense" as const,
+      version: 1,
+      amountMinor: 6000,
+      transactionDate: "2026-08-15",
+      categoryId: options.categories[0]?.id ?? "",
+      memo: null,
+      allocationMethod: "single" as const,
+      allocations: [{ memberId: currentMembershipId, amountMinor: 6000 }],
+    };
+    const { container, unmount } = render(
+      <ExpenseForm
+        edit={{
+          returnTo: `/groups/${groupId}/history`,
+          transaction: {
+            ...base,
+            payerMemberId: "00000000-0000-4000-8000-000000000102",
+            payerDisplayName: "佐藤",
+            payerIsActive: true,
+          },
+        }}
+        options={options}
+      />,
+    );
+    expect(
+      (
+        container.querySelector(
+          'input[name="payerMemberId"]',
+        ) as HTMLInputElement
+      ).value,
+    ).toBe("00000000-0000-4000-8000-000000000102");
+    unmount();
+
+    const removed = render(
+      <ExpenseForm
+        edit={{
+          returnTo: `/groups/${groupId}/history`,
+          transaction: {
+            ...base,
+            payerMemberId: "00000000-0000-4000-8000-000000000199",
+            payerDisplayName: "退会者",
+            payerIsActive: false,
+          },
+        }}
+        options={options}
+      />,
+    );
+    expect(
+      (
+        removed.container.querySelector(
+          'input[name="payerMemberId"]',
+        ) as HTMLInputElement
+      ).value,
+    ).toBe(currentMembershipId);
+    expect(screen.queryByText(/これまでの支払者/)).toBeNull();
+  });
+
+  it("支出の文言は「分け方」「支出した人」「内訳の確認」とし、「負担」「支払者」を表示しない (AC-TXN-018-2)", () => {
+    const { container } = renderForm();
+
+    expect(screen.getByRole("group", { name: "分け方" })).toBeTruthy();
+    expect(screen.getByLabelText("支出した人")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "内訳の確認" })).toBeTruthy();
+    expect(container.textContent).not.toContain("負担");
+    expect(container.textContent).not.toContain("支払");
   });
 });
 

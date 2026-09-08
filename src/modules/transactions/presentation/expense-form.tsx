@@ -85,23 +85,6 @@ function safeAmount(value: string): number | null {
   return Number.isSafeInteger(amount) ? amount : null;
 }
 
-// 前回選択した支払者をlocalStorageから読み出す
-function readLastPayer(groupId: string): string | null {
-  try {
-    return window.localStorage.getItem(`account-book:last-payer:${groupId}`);
-  } catch {
-    return null;
-  }
-}
-
-function saveLastPayer(groupId: string, memberId: string): void {
-  try {
-    window.localStorage.setItem(`account-book:last-payer:${groupId}`, memberId);
-  } catch {
-    // 前回値の保存は任意機能なので、利用できない環境でも入力を継続する。
-  }
-}
-
 // 保存済みの選択メンバーから、編集フォームの初期選択を負担方法別に組み立てる
 function initialSelectedMemberIds(
   options: ExpenseFormOptions,
@@ -192,11 +175,10 @@ export function ExpenseForm({
   // 右辺を入力している間だけ、保存時に使う計算結果か計算できない理由を示す (AC-TXN-017-3, AC-TXN-017-4)
   const showCalculation =
     parsedAmount.operator !== null && parsedAmount.right !== "";
-  const [payerMemberId, setPayerMemberId] = useState(
-    expenseEdit?.payerIsActive
-      ? expenseEdit.payerMemberId
-      : options.group.currentMembershipId,
-  );
+  // 支払者は画面で選ばせず、編集時は保存済みの値、登録時・削除済み支払者は現在のメンバーを隠しfieldで送る (AC-TXN-018-1)
+  const payerMemberId = expenseEdit?.payerIsActive
+    ? expenseEdit.payerMemberId
+    : options.group.currentMembershipId;
   const [recipientMemberId, setRecipientMemberId] = useState(
     incomeEdit?.recipientIsActive
       ? incomeEdit.recipientMemberId
@@ -247,18 +229,6 @@ export function ExpenseForm({
         ),
     ),
   );
-
-  // 前回の支払者が現メンバーに含まれていれば初期選択へ反映する（登録時のみ）
-  useEffect(() => {
-    if (editTransaction) return;
-    const storedMemberId = readLastPayer(options.group.id);
-    if (
-      storedMemberId &&
-      options.members.some((member) => member.membershipId === storedMemberId)
-    ) {
-      setPayerMemberId(storedMemberId);
-    }
-  }, [editTransaction, options.group.id, options.members]);
 
   // 固定した入力ドックの見える高さぶんだけ外枠の下端を空け、最後の入力とfooterが隠れないようにする (AC-TXN-009-5)。
   // ドック下端のナビゲーション用paddingは共通layoutが確保済みのため差し引く。
@@ -565,47 +535,24 @@ export function ExpenseForm({
               )}
             </div>
           ) : (
-            <div className={styles["expense-field"]}>
-              <label htmlFor="payerMemberId">支払った人</label>
-              <select
-                aria-describedby="payerMemberId-error"
-                id="payerMemberId"
-                name="payerMemberId"
-                onChange={(event) => {
-                  const memberId = event.target.value;
-                  setPayerMemberId(memberId);
-                  saveLastPayer(options.group.id, memberId);
-                }}
-                value={payerMemberId}
-              >
-                {options.members.map((member) => (
-                  <option key={member.membershipId} value={member.membershipId}>
-                    {member.displayName}
-                    {member.isCurrentUser ? "（自分）" : ""}
-                  </option>
-                ))}
-              </select>
-              {expenseEdit && !expenseEdit.payerIsActive && (
-                <p className={styles["edit-note"]}>
-                  これまでの支払者「{expenseEdit.payerDisplayName}
-                  」はグループから外れています。アクティブメンバーへ変更しないと保存できません。
-                </p>
-              )}
+            <>
+              {/* 支払者は表示せず自動設定する。Server Actionの検証はそのまま通す (TXN-018) */}
+              <input name="payerMemberId" type="hidden" value={payerMemberId} />
               {state.fieldErrors?.payerMemberId?.[0] && (
                 <p className="field-error" id="payerMemberId-error">
                   {state.fieldErrors.payerMemberId[0]}
                 </p>
               )}
-            </div>
+            </>
           )}
         </div>
 
         {!isIncome && (
           <fieldset className={styles["allocation-fieldset"]}>
-            <legend>負担方法</legend>
+            <legend>分け方</legend>
             {hasRemovedAllocationMember && (
               <p className={styles["edit-note"]}>
-                保存済みの負担にグループから外れたメンバーが含まれています。アクティブメンバーだけで負担を設定し直してください。
+                保存済みの内訳にグループから外れたメンバーが含まれています。アクティブメンバーだけで内訳を設定し直してください。
               </p>
             )}
             <div className={styles["segmented-control"]}>
@@ -657,7 +604,7 @@ export function ExpenseForm({
 
             {allocationMethod === "single" && (
               <div className={`${styles["expense-field"]} allocation-single`}>
-                <label htmlFor="singleMemberId">負担する人</label>
+                <label htmlFor="singleMemberId">支出した人</label>
                 <select
                   id="singleMemberId"
                   name="selectedMemberIds"
@@ -720,7 +667,7 @@ export function ExpenseForm({
 
         {!isIncome && (
           <section className={styles["allocation-preview"]} aria-live="polite">
-            <h2>負担額の確認</h2>
+            <h2>内訳の確認</h2>
             {preview ? (
               <dl>
                 {preview.map((allocation) => {
@@ -737,7 +684,7 @@ export function ExpenseForm({
                 })}
               </dl>
             ) : (
-              <p>金額と負担方法を入力すると、ここに内訳を表示します。</p>
+              <p>金額と分け方を入力すると、ここに内訳を表示します。</p>
             )}
           </section>
         )}

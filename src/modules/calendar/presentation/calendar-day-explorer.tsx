@@ -228,13 +228,13 @@ function DayPanel({
                   {formatJpy(transaction.targetAmountMinor)}
                 </p>
               ) : null}
-              <p>
-                {transaction.type === "income" ? "受取者" : "支払者"}{" "}
-                {transaction.partyDisplayName}
-              </p>
+              {/* 支出の支払者は表示せず、収入の受取者だけ示す (AC-TXN-018-3) */}
+              {transaction.type === "income" ? (
+                <p>受取者 {transaction.partyDisplayName}</p>
+              ) : null}
               {transaction.type === "expense" ? (
                 <p>
-                  負担{" "}
+                  内訳{" "}
                   {transaction.allocations
                     .map(
                       (allocation) =>

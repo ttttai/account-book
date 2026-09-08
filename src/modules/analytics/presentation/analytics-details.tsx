@@ -291,9 +291,9 @@ export function AnalyticsDetails({
           >
             <thead>
               <tr>
+                {/* 支払額(paidTotal)はDTOに残るが画面へ出さない (AC-TXN-018-4) */}
                 <th scope="col">メンバー</th>
-                <th scope="col">負担額</th>
-                <th scope="col">支払額</th>
+                <th scope="col">支出額</th>
                 <th scope="col">受取額</th>
               </tr>
             </thead>
@@ -302,12 +302,8 @@ export function AnalyticsDetails({
                 <tr key={member.membershipId}>
                   <th scope="row">{member.displayName}</th>
                   <DetailsAmountCell
-                    label="負担額"
+                    label="支出額"
                     value={formatAnalyticsJpy(member.usageTotal)}
-                  />
-                  <DetailsAmountCell
-                    label="支払額"
-                    value={formatAnalyticsJpy(member.paidTotal)}
                   />
                   <DetailsAmountCell
                     label="受取額"

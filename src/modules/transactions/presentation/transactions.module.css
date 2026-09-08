@@ -622,7 +622,7 @@
     min-height: 3.25rem;
     font-size: 2rem;
   }
-  /* 使った日と支払った人を横に並べる（カテゴリはドック側へ移動済み） */
+  /* 使った日（収入では受け取った人も）を2列に置く（カテゴリはドック側へ移動済み。支出の支払者は表示しない） */
   .expense-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-content: start;

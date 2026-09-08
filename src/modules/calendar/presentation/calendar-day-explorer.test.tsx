@@ -181,6 +181,39 @@ describe("CalendarDayExplorer", () => {
     );
   });
 
+  it("日別取引sheetは支出の支払者を表示せず、内訳を「内訳」、収入の受取者を表示する (AC-TXN-018-3)", () => {
+    const transactions = data.dayTransactionsByDate["2026-08-15"];
+    if (!transactions?.[0] || !transactions[1]) {
+      throw new Error("missing fixture");
+    }
+    render(
+      <CalendarDayExplorer
+        data={{
+          ...data,
+          selectedDay: "2026-08-15",
+          dayTransactionsByDate: {
+            "2026-08-15": [
+              {
+                ...transactions[0],
+                allocations: [
+                  { membershipId: "m-a", displayName: "A", amountMinor: 500 },
+                  { membershipId: "m-b", displayName: "B", amountMinor: 500 },
+                ],
+              },
+              transactions[1],
+            ],
+          },
+        }}
+      />,
+    );
+
+    const panel = screen.getByRole("complementary");
+    expect(panel.textContent).not.toContain("支払者");
+    expect(panel.textContent).not.toContain("負担");
+    expect(panel.textContent).toContain("内訳 A ￥500 / B ￥500");
+    expect(panel.textContent).toContain("受取者 B");
+  });
+
   it("日別取引sheetの追加導線は支出と収入の両方を指す文言にする", () => {
     render(<CalendarDayExplorer data={data} />);
     fireEvent.click(
