@@ -1,7 +1,6 @@
 .history-layout {
   display: grid;
-  gap: 1rem;
-  margin-top: 1.25rem;
+  gap: 0.75rem;
 }
 
 .history-controls {
@@ -116,33 +115,58 @@
   gap: 0.75rem;
 }
 
+.history-date-groups,
 .history-rows {
   display: grid;
-  gap: 0.6rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.history-row {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.85rem 1rem;
+.history-date-groups {
+  gap: 0.6rem;
+}
+
+.history-date-group {
+  overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 1rem;
+  border-radius: 0.9rem;
   background: var(--surface);
 }
 
-.history-row-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.history-date-heading {
+  margin: 0;
+  padding: 0.45rem 0.85rem 0.3rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.history-row-heading strong {
-  min-width: 0;
-  margin-right: auto;
-  overflow-wrap: anywhere;
+.history-rows > li + li {
+  border-top: 1px solid var(--border);
+}
+
+/* 行全体がリンク。44px以上の高さを保ちつつ1〜2行に収める (AC-HIS-006-3) */
+.history-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.55rem 0.85rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.history-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .history-row:hover {
+    background: var(--accent-soft);
+  }
 }
 
 .history-category-dot {
@@ -153,18 +177,65 @@
   background: var(--category-color, #758178);
 }
 
-.history-type {
-  flex: 0 0 auto;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 0.7rem;
+.history-row-main {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0.1rem;
+}
+
+.history-row-title {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.history-row-title strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .history-type-income {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
   background: #e3ecfa;
   color: #2d5da8;
+  font-size: 0.7rem;
+}
+
+.history-row-details {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.history-row-details > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.history-row-details > span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.history-row-details > span:not(:first-child) {
+  flex: 0 0 auto;
+}
+
+.history-row-amounts {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  gap: 0.05rem;
 }
 
 .history-amount {
@@ -172,16 +243,10 @@
   white-space: nowrap;
 }
 
-.history-row-meta,
-.history-row-allocations,
-.history-row-memo {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.6rem;
-  margin: 0;
+.history-row-total {
   color: var(--muted);
-  font-size: 0.85rem;
-  overflow-wrap: anywhere;
+  font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 .history-load-more {
@@ -218,11 +283,4 @@
     width: min(100%, 20rem);
     margin: 0 auto;
   }
-}
-
-.history-row-edit {
-  min-height: 44px;
-  margin-top: 0.5rem;
-  padding: 6px 16px;
-  font-size: 0.82rem;
 }

@@ -1,5 +1,5 @@
 const historySkeletonRowIds = Array.from(
-  { length: 6 },
+  { length: 10 },
   (_, index) => `history-skeleton-row-${index + 1}`,
 );
 

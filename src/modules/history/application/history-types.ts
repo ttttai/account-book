@@ -35,6 +35,8 @@ export type HistoryReadyData = Readonly<{
   kind: "ready";
   group: Readonly<{ id: string; name: string }>;
   currentMembershipId: string;
+  /** グループのタイムゾーン上の今日（`YYYY-MM-DD`）。日付見出しの年の省略判定に使う (AC-HIS-006-1) */
+  todayDate: string;
   filter: HistoryAppliedFilter;
   appliedCursor?: string;
   members: readonly HistoryMemberOption[];

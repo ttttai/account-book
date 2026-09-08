@@ -2,8 +2,17 @@
 
 import { useState } from "react";
 
+import {
+  formatHistoryDateHeading,
+  groupHistoryRowsByDate,
+  type HistoryDateGroup,
+} from "../domain/history-date";
 import { formatHistoryJpy } from "../domain/history-jpy";
 import { appendHistoryRows, type HistoryRow } from "../domain/history-row";
+import {
+  buildHistoryRowAccessibleName,
+  summarizeHistoryAllocations,
+} from "../domain/history-row-label";
 import { loadMoreHistoryAction } from "./actions";
 
 import styles from "./history.module.css";
@@ -13,93 +22,124 @@ type HistoryListProps = Readonly<{
   filterParams: Readonly<Record<string, string>>;
   initialRows: readonly HistoryRow[];
   initialNextCursor?: string;
-  /** 支出した人で絞り込んでいるときの表示名。主金額のラベル「〇〇の支出」に使う (HIS-004) */
+  /** グループのタイムゾーン上の今日。日付見出しで年を省くかの判定に使う (AC-HIS-006-1) */
+  todayDate: string;
+  /** 支出した人で絞り込んでいるときの表示名。アクセシブル名の「〇〇の支出」に使う (HIS-004) */
   targetMemberName?: string;
 }>;
 
-function formatHistoryDate(date: string): string {
-  const [year, month, day] = date.split("-").map(Number);
-  return `${year}年${month}月${day}日`;
-}
-
+// 1取引を1〜2行で表す行リンク。行全体をタップすると編集へ遷移する (AC-HIS-006-2, AC-HIS-006-3)
 function HistoryRowItem({
   row,
+  dateHeading,
   editHref,
   targetMemberName,
 }: Readonly<{
   row: HistoryRow;
-  editHref?: string;
+  dateHeading: string;
+  editHref: string;
   targetMemberName?: string;
 }>) {
+  const allocationSummary = summarizeHistoryAllocations(row);
+  // 収入の受取者だけ表示し、支出の支払者は画面へ出さない (AC-TXN-018-3)
+  const details = [
+    { key: "memo", text: row.memo },
+    { key: "split", text: allocationSummary },
+    {
+      key: "recipient",
+      text:
+        row.type === "income" ? `受取者 ${row.partyDisplayName}` : undefined,
+    },
+  ].filter((detail): detail is { key: string; text: string } =>
+    Boolean(detail.text),
+  );
+
   return (
-    <li className={styles["history-row"]}>
-      <div className={styles["history-row-heading"]}>
+    <li>
+      <a
+        className={styles["history-row"]}
+        href={editHref}
+        aria-label={buildHistoryRowAccessibleName(
+          row,
+          dateHeading,
+          targetMemberName,
+        )}
+      >
         <span
           className={styles["history-category-dot"]}
           data-category-color={row.categoryColor}
+          aria-hidden="true"
         />
-        <strong>{row.categoryName}</strong>
-        <span
-          className={`${styles["history-type"]} ${
-            styles[`history-type-${row.type}`] ?? ""
-          }`}
-        >
-          {row.targetAmountMinor !== undefined
-            ? `${targetMemberName ?? "対象"}の支出`
-            : row.type === "expense"
-              ? "支出"
-              : "収入"}
+        <span className={styles["history-row-main"]}>
+          <span className={styles["history-row-title"]}>
+            <strong>{row.categoryName}</strong>
+            {row.type === "income" ? (
+              <span className={styles["history-type-income"]}>収入</span>
+            ) : null}
+          </span>
+          {details.length > 0 ? (
+            <span className={styles["history-row-details"]}>
+              {details.map((detail) => (
+                <span key={detail.key}>{detail.text}</span>
+              ))}
+            </span>
+          ) : null}
         </span>
-        <span className={styles["history-amount"]}>
-          {formatHistoryJpy(row.targetAmountMinor ?? row.amountMinor)}
+        <span className={styles["history-row-amounts"]}>
+          <span className={styles["history-amount"]}>
+            {formatHistoryJpy(row.targetAmountMinor ?? row.amountMinor)}
+          </span>
+          {row.targetAmountMinor !== undefined ? (
+            <span className={styles["history-row-total"]}>
+              取引全体 {formatHistoryJpy(row.amountMinor)}
+            </span>
+          ) : null}
         </span>
-      </div>
-      {row.targetAmountMinor !== undefined ? (
-        <p className={styles["history-row-meta"]}>
-          取引全体 {formatHistoryJpy(row.amountMinor)}
-        </p>
-      ) : null}
-      <p className={styles["history-row-meta"]}>
-        <time dateTime={row.transactionDate}>
-          {formatHistoryDate(row.transactionDate)}
-        </time>
-        {/* 支出の支払者は画面へ出さず、収入の受取者だけ表示する (AC-TXN-018-3) */}
-        {row.type === "income" ? (
-          <span>受取者 {row.partyDisplayName}</span>
-        ) : null}
-      </p>
-      {row.allocations.length > 0 ? (
-        <p className={styles["history-row-allocations"]}>
-          内訳{" "}
-          {row.allocations
-            .map(
-              (allocation) =>
-                `${allocation.displayName} ${formatHistoryJpy(allocation.amountMinor)}`,
-            )
-            .join(" / ")}
-        </p>
-      ) : null}
-      {row.memo ? (
-        <p className={styles["history-row-memo"]}>{row.memo}</p>
-      ) : null}
-      {editHref ? (
-        <a
-          className={`secondary-link ${styles["history-row-edit"]}`}
-          href={editHref}
-        >
-          編集
-        </a>
-      ) : null}
+      </a>
     </li>
   );
 }
 
-// 取得済み履歴と追加ページを保持し、対象者の支出額と取引全体を区別して表示する
+// 取引日ごとの見出しと、その日の行リストを描く (AC-HIS-006-1)
+function HistoryDateSection({
+  group,
+  heading,
+  buildEditHref,
+  targetMemberName,
+}: Readonly<{
+  group: HistoryDateGroup;
+  heading: string;
+  buildEditHref: (transactionId: string) => string;
+  targetMemberName?: string;
+}>) {
+  const headingId = `history-date-${group.date}`;
+  return (
+    <li className={styles["history-date-group"]}>
+      <h2 className={styles["history-date-heading"]} id={headingId}>
+        <time dateTime={group.date}>{heading}</time>
+      </h2>
+      <ol className={styles["history-rows"]} aria-labelledby={headingId}>
+        {group.rows.map((row) => (
+          <HistoryRowItem
+            dateHeading={heading}
+            editHref={buildEditHref(row.id)}
+            key={row.id}
+            row={row}
+            targetMemberName={targetMemberName}
+          />
+        ))}
+      </ol>
+    </li>
+  );
+}
+
+// 取得済み履歴と追加ページを保持し、日付見出しで束ねた行リンクを表示する
 export function HistoryList({
   groupId,
   filterParams,
   initialRows,
   initialNextCursor,
+  todayDate,
   targetMemberName,
 }: HistoryListProps) {
   const [rows, setRows] = useState(initialRows);
@@ -112,6 +152,8 @@ export function HistoryList({
   const historyReturnUrl = `/groups/${groupId}/history${
     historySearch ? `?${historySearch}` : ""
   }`;
+  const buildEditHref = (transactionId: string): string =>
+    `/groups/${encodeURIComponent(groupId)}/transactions/${transactionId}/edit?from=${encodeURIComponent(historyReturnUrl)}`;
 
   async function handleLoadMore() {
     if (!nextCursor || isLoading) return;
@@ -138,6 +180,9 @@ export function HistoryList({
     setIsLoading(false);
   }
 
+  // 追記後の全行から束ね直すので、同じ日付が次ページへ続いても見出しは重複しない
+  const dateGroups = groupHistoryRowsByDate(rows);
+
   return (
     <section className={styles["history-results"]} aria-label="取引履歴の一覧">
       {rows.length === 0 ? (
@@ -145,12 +190,13 @@ export function HistoryList({
           条件に一致する取引はありません。
         </p>
       ) : (
-        <ol className={styles["history-rows"]}>
-          {rows.map((row) => (
-            <HistoryRowItem
-              editHref={`/groups/${encodeURIComponent(groupId)}/transactions/${row.id}/edit?from=${encodeURIComponent(historyReturnUrl)}`}
-              key={row.id}
-              row={row}
+        <ol className={styles["history-date-groups"]}>
+          {dateGroups.map((group) => (
+            <HistoryDateSection
+              buildEditHref={buildEditHref}
+              group={group}
+              heading={formatHistoryDateHeading(group.date, todayDate)}
+              key={group.date}
               targetMemberName={targetMemberName}
             />
           ))}

@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -16,6 +17,7 @@ vi.mock("./actions", () => ({
 }));
 
 const groupId = "00000000-0000-4000-8000-000000000001";
+const todayDate = "2026-09-09";
 
 function createRow(
   overrides: Partial<HistoryRow> & Pick<HistoryRow, "id" | "categoryName">,
@@ -66,7 +68,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("HistoryList", () => {
-  it("支出した人の指定時は主金額を「〇〇の支出」として取引全体と区別し、追加ページも同じ規則で表示する (AC-HIS-003-3)", async () => {
+  it("支出した人の指定時は主金額を「〇〇の支出」として取引全体と区別し、追加ページも同じ規則で表示する (AC-HIS-003-3, AC-HIS-006-4)", async () => {
     const shared = { ...rowA, amountMinor: 6000, targetAmountMinor: 3000 };
     vi.mocked(loadMoreHistoryAction).mockResolvedValue({
       status: "ready",
@@ -79,12 +81,17 @@ describe("HistoryList", () => {
         initialRows={[shared]}
         initialNextCursor="cursor-1"
         targetMemberName="山田"
+        todayDate={todayDate}
       />,
     );
     expect(container.querySelector(".history-amount")?.textContent).toBe(
       "￥3,000",
     );
-    expect(screen.getByText("山田の支出")).toBeTruthy();
+    expect(
+      screen.getByRole("link", {
+        name: "8月15日（土） カテゴリA 山田の支出 ￥3,000 取引全体 ￥6,000",
+      }),
+    ).toBeTruthy();
     expect(screen.queryByText("負担額")).toBeNull();
     expect(screen.getByText("取引全体 ￥6,000")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "さらに読み込む" }));
@@ -99,28 +106,86 @@ describe("HistoryList", () => {
     ).toEqual(["￥3,000", "￥2,000"]);
   });
 
-  it("初期ページの行に受取者と内訳を表示し、支出の支払者と「負担」の語を表示しない (AC-TXN-018-3)", () => {
+  it("行全体を編集へのリンクにし、全幅の「編集」ボタンや日付の繰り返しを置かない (AC-HIS-006-1, AC-HIS-006-3)", () => {
     const { container } = render(
       <HistoryList
         groupId={groupId}
         filterParams={{ month: "2026-08" }}
-        initialRows={[rowA, rowC]}
+        initialRows={[rowA, rowB, { ...rowC, transactionDate: "2025-12-31" }]}
         initialNextCursor={undefined}
+        todayDate={todayDate}
+      />,
+    );
+
+    // 日付見出しは同じ取引日で1つだけ、別の年は年を含める
+    expect(screen.getAllByText("8月15日（土）")).toHaveLength(1);
+    expect(screen.getByText("2025年12月31日（水）")).toBeTruthy();
+    expect(screen.queryByText("2026年8月15日")).toBeNull();
+
+    const rowLink = screen.getByRole("link", {
+      name: "8月15日（土） カテゴリA ￥1,000",
+    });
+    expect(rowLink.getAttribute("href")).toBe(
+      `/groups/${groupId}/transactions/${rowA.id}/edit?from=${encodeURIComponent(
+        `/groups/${groupId}/history?month=2026-08`,
+      )}`,
+    );
+    expect(screen.queryByRole("link", { name: "編集" })).toBeNull();
+    expect(container.querySelector(".history-row-edit")).toBeNull();
+    // 行はli直下のリンク1つで構成し、行内に別のリンクやボタンを置かない
+    const list = screen.getByRole("list", { name: "8月15日（土）" });
+    expect(within(list).getAllByRole("link")).toHaveLength(2);
+  });
+
+  it("行に受取者と内訳の要約を表示し、支出の支払者・全員分の内訳・「負担」の語を表示しない (AC-TXN-018-3, AC-HIS-006-2)", () => {
+    const shared = createRow({
+      id: "00000000-0000-4000-8000-000000000104",
+      categoryName: "カテゴリD",
+      amountMinor: 6000,
+      memo: "スーパー",
+      allocations: [
+        {
+          membershipId: "00000000-0000-4000-8000-000000000021",
+          displayName: "山田",
+          amountMinor: 3000,
+        },
+        {
+          membershipId: "00000000-0000-4000-8000-000000000022",
+          displayName: "佐藤",
+          amountMinor: 3000,
+        },
+      ],
+    });
+    const { container } = render(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ month: "2026-08" }}
+        initialRows={[rowA, rowC, shared]}
+        initialNextCursor={undefined}
+        todayDate={todayDate}
       />,
     );
 
     expect(screen.getByText("カテゴリA")).toBeTruthy();
     expect(screen.queryByText(/支払者/)).toBeNull();
     expect(screen.getByText(/受取者\s*佐藤/)).toBeTruthy();
-    expect(screen.getByText(/内訳\s*山田 ￥1,000/)).toBeTruthy();
+    expect(screen.getByText("2人で分割")).toBeTruthy();
+    expect(screen.getByText("スーパー")).toBeTruthy();
+    expect(screen.queryByText(/内訳/)).toBeNull();
+    expect(screen.queryByText(/山田 ￥/)).toBeNull();
     expect(container.textContent).not.toContain("負担");
+    expect(
+      screen.getByRole("link", {
+        name: "8月15日（土） カテゴリD ￥6,000 スーパー",
+      }),
+    ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
   });
 
-  it("さらに読み込むは表示済みの行を維持したまま重複なく追記しcursorをURLへ同期する", async () => {
+  it("さらに読み込むは表示済みの行を維持したまま重複なく追記し、同じ日付は見出しを重複させずcursorをURLへ同期する (AC-HIS-005-2, AC-HIS-006-1)", async () => {
     vi.mocked(loadMoreHistoryAction).mockResolvedValue({
       status: "ready",
-      rows: [rowB, rowC],
+      rows: [rowB, { ...rowC, transactionDate: "2026-08-14" }],
       nextCursor: undefined,
     });
     render(
@@ -129,6 +194,7 @@ describe("HistoryList", () => {
         filterParams={{ month: "2026-08" }}
         initialRows={[rowA, rowB]}
         initialNextCursor="cursor-1"
+        todayDate={todayDate}
       />,
     );
 
@@ -141,6 +207,8 @@ describe("HistoryList", () => {
     });
     expect(screen.getByText("カテゴリA")).toBeTruthy();
     expect(screen.getAllByText("カテゴリB")).toHaveLength(1);
+    expect(screen.getAllByText("8月15日（土）")).toHaveLength(1);
+    expect(screen.getByText("8月14日（金）")).toBeTruthy();
     expect(new URLSearchParams(window.location.search).get("cursor")).toBe(
       "cursor-1",
     );
@@ -161,6 +229,7 @@ describe("HistoryList", () => {
         filterParams={{}}
         initialRows={[rowA]}
         initialNextCursor="cursor-1"
+        todayDate={todayDate}
       />,
     );
 
@@ -181,6 +250,7 @@ describe("HistoryList", () => {
         filterParams={{ month: "2026-08" }}
         initialRows={[]}
         initialNextCursor={undefined}
+        todayDate={todayDate}
       />,
     );
 

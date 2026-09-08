@@ -239,6 +239,7 @@ export async function getGroupHistory(
     kind: "ready",
     group: { id: context.read.group.id, name: context.read.group.name },
     currentMembershipId: context.read.currentMembershipId,
+    todayDate: context.read.today,
     filter: appliedFilter,
     ...(cursor ? { appliedCursor: encodeHistoryCursor(cursor) } : {}),
     members: context.members,
