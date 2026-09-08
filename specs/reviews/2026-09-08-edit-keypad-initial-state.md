@@ -35,4 +35,4 @@ Issue #137: 編集時にテンキーが自動で開き、金額以外の編集�
 - 追加テスト2件は修正前に失敗し、修正後はVitest 893件、architecture test、lint、型検査、format検査、本番Docker buildが通過。
 - 専用Docker Compose stackでDB・RLS統合テストとE2E-005を実行し、375 x 812・1280 x 800の編集・保存・削除フローが通過。
 - 実画面でテンキーの初期非表示、分け方・常設保存の表示、金額欄からの再開を確認。仕様と実装の一致を再確認した。
-- 画面記録: [375px](assets/edit-keypad-initial-state/edit-initial-375.png)、[1280px](assets/edit-keypad-initial-state/edit-initial-1280.png)。架空のE2Eデータだけを使用。
+- 画面記録: [375px](../../docs/screenshots/edit-keypad-initial-state/edit-initial-375.png)、[1280px](../../docs/screenshots/edit-keypad-initial-state/edit-initial-1280.png)。架空のE2Eデータだけを使用。
