@@ -155,6 +155,8 @@ Node.jsをホストへ直接入れなくても、アプリの開発と品質ゲ�
 docker compose up --watch
 ```
 
+`web`のbuild contextからは`.dockerignore`により`.claude/`（worktree置き場）と入れ子の`node_modules`を除外しています。worktreeを多数持つ環境でもcontext転送は数MBに収まります。
+
 | サービス     | URL                      |
 | ------------ | ------------------------ |
 | アプリ       | `http://127.0.0.1:3000`  |
