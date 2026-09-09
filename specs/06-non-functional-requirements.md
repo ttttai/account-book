@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.13
+バージョン: 0.2.14
 
 ## セキュリティ
 
@@ -17,6 +17,7 @@
 - `NFR-SEC-009` 一般公開前にGoogle OAuthのrate limit、abuse対策、許可リスト解除条件を再評価する。
 - `NFR-SEC-010` 非公開MVPの許可リスト制限を、Auth登録前フック、callback・DALのサーバー検証、DBのRLS・更新関数で多層防御する。許可リストの入力が重複のない有効なメールアドレス1件以上でない場合は、サーバーとDBの両方で全件を無効としてfail closedにする。
 - `NFR-SEC-011` session更新（refresh tokenのrotate）は、更新結果を同じ応答のcookieへ書き戻せる境界（Proxy、Route Handler、Server Action）だけで行う。cookieへ書き戻せない境界（Server Componentのレンダリング）でrotate結果を破棄したまま認証成功として扱わない。
+- `NFR-SEC-012` 認証状態の判定（Proxy、Server Component、Server Action、Route Handler）では、Supabase Auth・PostgRESTの応答不能（接続失敗、timeout、5xx）を「未認証」と同一視しない。sessionが存在しない、無効、または期限切れで更新できない場合（Auth APIの4xx応答）だけをログイン画面への遷移理由とし（`AUTH-004`）、応答不能の場合は認証状態を「不明」として保護画面へのredirectを行わず、読み取りはserver errorとして各routeのerror境界へ委ねる。応答不能の判定結果をlogへ記録する場合も、token、許可リスト、家計データを含めない。
 
 ## プライバシー
 
@@ -43,6 +44,7 @@
 - `NFR-REC-003` 破壊的または高riskな本番migration前に、手動DB dumpを取得する。
 - `NFR-REC-004` CSV出力はユーザー管理の可搬手段とし、完全な関連DB backupであるとは表現しない。
 - `NFR-REC-005` 一般公開前に自動backupの必要性を再評価する。
+- `NFR-REC-006` バックエンド（Supabase Auth・PostgREST）が応答しない、または5xxを返す間、保護画面はログイン画面へ遷移せず、route-level loadingを維持したうえでerror境界に「読み込めませんでした」と「再試行」を表示する。Proxyの認証確認は総待機時間5秒で打ち切り、超過を応答不能として扱う。Server Component・Server Actionのバックエンド呼び出しは1要求あたり15秒で打ち切り、無応答のまま待ち続けない。error境界と「再試行」は認証・認可の判断を変えず、エラー表示にtoken・内部エラー詳細を含めない。
 
 ## アクセシビリティ
 

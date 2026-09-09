@@ -3,8 +3,12 @@ import "server-only";
 import { z } from "zod";
 
 import {
+  BackendUnavailableError,
+  createQueryFailureError,
   createServerSupabaseClient,
   getAllowedGoogleUserId,
+  isAuthenticationQueryError,
+  isUnavailableAuthError,
 } from "@/modules/auth/server";
 
 import type {
@@ -40,7 +44,7 @@ const invitationRowSchema = z.object({
 });
 
 // グループ情報・メンバー一覧・（管理者向けの）保留招待をまとめて取得する
-// 未認証や非メンバーはnullを返し、閲覧不可として扱う
+// 未認証や非メンバーはnullを返し、閲覧不可として扱う。バックエンドの応答不能はnullへ縮退させず例外にする (AC-AUTH-004-4)
 export async function getGroupMembership(
   unsafeGroupId: string,
 ): Promise<GroupMembershipDetails | null> {
@@ -50,13 +54,13 @@ export async function getGroupMembership(
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
+  if (isUnavailableAuthError(claimsError)) {
+    throw new BackendUnavailableError("groups.membership.getClaims");
+  }
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return null;
 
-  const [
-    { data: groupData, error: groupError },
-    { data: membershipData, error: membershipError },
-  ] = await Promise.all([
+  const [groupResult, membershipResult] = await Promise.all([
     supabase
       .from("groups")
       .select(
@@ -72,10 +76,26 @@ export async function getGroupMembership(
       .order("joined_at", { ascending: true }),
   ]);
 
-  if (groupError || membershipError || !groupData) return null;
+  const failedResult = groupResult.error
+    ? groupResult
+    : membershipResult.error
+      ? membershipResult
+      : null;
+  if (failedResult) {
+    // 失効session等の認証起因の失敗だけを、存在を明かさないnullへ縮退させる (AC-AUTH-001-9)
+    if (isAuthenticationQueryError(failedResult.error)) return null;
+    throw createQueryFailureError(
+      "groups.membership",
+      failedResult,
+      "グループを取得できませんでした。",
+    );
+  }
+  if (!groupResult.data) return null;
 
-  const group = groupRowSchema.parse(groupData);
-  const memberships = z.array(membershipRowSchema).parse(membershipData ?? []);
+  const group = groupRowSchema.parse(groupResult.data);
+  const memberships = z
+    .array(membershipRowSchema)
+    .parse(membershipResult.data ?? []);
   const currentMembership = memberships.find(
     (membership) => membership.user_id === userId,
   );

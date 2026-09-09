@@ -292,5 +292,5 @@ test("ログイン直後の初回表示をserver errorにしない (AC-AUTH-001-
   const listMyGroups = await read(
     "src/modules/groups/application/list-my-groups.ts",
   );
-  assert.match(listMyGroups, /isAuthenticationQueryError\(error\)/);
+  assert.match(listMyGroups, /isAuthenticationQueryError\(result\.error\)/);
 });
