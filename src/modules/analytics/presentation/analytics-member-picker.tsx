@@ -19,6 +19,7 @@ type AnalyticsMemberPickerProps = Readonly<{
 }>;
 
 // 自分以外のメンバーから集計対象を選ぶdropdown。選んだら閉じて候補一覧が指標を覆わないようにする (AC-ANA-005-4)
+// 枠には名前と印を並べ、省略するのは名前だけにして全文をtitleへ残す (AC-CAL-004-3)
 export function AnalyticsMemberPicker({
   summaryLabel,
   isActive,
@@ -34,8 +35,19 @@ export function AnalyticsMemberPicker({
 
   return (
     <details className={styles["analytics-member-picker"]} ref={pickerRef}>
-      <summary className={isActive ? "is-active" : undefined}>
-        {summaryLabel}
+      <summary
+        className={isActive ? "is-active" : undefined}
+        title={summaryLabel}
+      >
+        <span className={styles["analytics-member-picker-label"]}>
+          {summaryLabel}
+        </span>
+        <span
+          className={styles["analytics-member-picker-marker"]}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
       </summary>
       <div className={styles["analytics-member-options"]}>
         {options.map((option) => (

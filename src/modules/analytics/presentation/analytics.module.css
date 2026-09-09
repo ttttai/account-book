@@ -35,21 +35,24 @@
   margin: 0;
 }
 
-/* 2枠・3枠を等幅で1行に並べ、メンバー数が増えても折り返さない (AC-ANA-005-3) */
+/* 2枠を等幅で1行に並べ、メンバー数が増えても折り返さない (AC-ANA-005-3) */
 .analytics-scope-nav {
   display: grid;
   min-width: 0;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.3rem;
   padding: 0.15rem;
   border-radius: 0.9rem;
   background: var(--background);
 }
 
+/* 3枠ではホームと同じく「グループ」「自分」を4.5rem下限の等幅、メンバー名・選択欄に残り幅（余白が許せば2倍、1:1:2）を使う (AC-CAL-004-3) */
+.analytics-scope-nav.has-member {
+  grid-template-columns: repeat(2, minmax(4.5rem, 1fr)) minmax(0, 2fr);
+}
+
 .analytics-scope-nav > a,
 .analytics-member-picker > summary {
-  display: block;
   min-width: 0;
   min-height: 44px;
   padding: 0.5rem;
@@ -61,6 +64,11 @@
   line-height: 28px;
   text-align: center;
   text-decoration: none;
+}
+
+/* 収まらない表示名だけ末尾を省略し、全文はtitleとaccessibility nameに残す */
+.analytics-scope-nav > a {
+  display: block;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -76,13 +84,30 @@
   min-width: 0;
 }
 
+/* 選択欄は名前と印を横に並べ、省略するのは名前部分だけにして印を常に見せる */
 .analytics-member-picker > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
   list-style: none;
   cursor: pointer;
 }
 
 .analytics-member-picker > summary::-webkit-details-marker {
   display: none;
+}
+
+.analytics-member-picker-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.analytics-member-picker-marker {
+  flex: none;
+  font-size: 0.7rem;
 }
 
 /* 候補一覧は選択欄の中だけを縦scrollさせ、pageを横へ広げない (AC-ANA-005-4) */

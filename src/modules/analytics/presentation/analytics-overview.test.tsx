@@ -32,6 +32,11 @@ const OTHERS = [
   },
 ] as const;
 
+// 選択欄の名前部分（印を除く）を返す
+function pickerLabel(root: ParentNode | null): string | undefined {
+  return root?.querySelector("summary > span")?.textContent ?? undefined;
+}
+
 function createData(
   overrides: Partial<AnalyticsOverviewReady> = {},
 ): AnalyticsOverviewReady {
@@ -322,7 +327,7 @@ describe("AnalyticsOverview", () => {
     // 枠は「グループ」「自分」「メンバー」の3つで、メンバー名を直接リンクとして並べない
     const picker = container.querySelector("details");
     expect(picker).not.toBeNull();
-    expect(picker?.querySelector("summary")?.textContent).toBe("メンバー");
+    expect(pickerLabel(picker)).toBe("メンバー");
     expect(picker?.hasAttribute("open")).toBe(false);
     const topLevelLinks = Array.from(nav.children).filter(
       (child) => child.tagName === "A",
@@ -364,7 +369,8 @@ describe("AnalyticsOverview", () => {
 
     const picker = container.querySelector("details");
     const summary = picker?.querySelector("summary");
-    expect(summary?.textContent).toBe("利用者C");
+    expect(pickerLabel(picker)).toBe("利用者C");
+    expect(summary?.getAttribute("title")).toBe("利用者C");
     expect(summary?.classList.contains("is-active")).toBe(true);
     // 選択後も開いたままにせず、候補一覧が指標を覆わない (R-062と同じ規則)
     expect(picker?.hasAttribute("open")).toBe(false);
@@ -404,8 +410,42 @@ describe("AnalyticsOverview", () => {
       screen.getByRole("link", { name: "自分" }).getAttribute("aria-current"),
     ).toBe("page");
     const summary = container.querySelector("details > summary");
-    expect(summary?.textContent).toBe("メンバー");
+    expect(pickerLabel(container)).toBe("メンバー");
     expect(summary?.classList.contains("is-active")).toBe(false);
+  });
+
+  it("3枠ではホームと同じ1:1:2の幅比classを付け、相手名のtitleと選択欄の印をaria-hiddenで示す (AC-CAL-004-3, AC-ANA-005-3)", () => {
+    const { rerender } = render(
+      <AnalyticsOverview data={createData({ members: [SELF] })} />,
+    );
+    const nav = () =>
+      screen.getByRole("navigation", { name: "分析の集計対象" });
+    expect(nav().classList.contains("has-member")).toBe(false);
+
+    rerender(<AnalyticsOverview data={createData()} />);
+    expect(nav().classList.contains("has-member")).toBe(true);
+    expect(
+      within(nav())
+        .getByRole("link", { name: "利用者B" })
+        .getAttribute("title"),
+    ).toBe("利用者B");
+
+    rerender(
+      <AnalyticsOverview data={createData({ members: [SELF, ...OTHERS] })} />,
+    );
+    expect(nav().classList.contains("has-member")).toBe(true);
+    const summary = nav().querySelector("summary");
+    if (!summary) throw new Error("メンバー選択欄が必要です");
+    expect(summary.children).toHaveLength(2);
+    const [label, marker] = Array.from(summary.children);
+    expect(label?.classList.contains("analytics-member-picker-label")).toBe(
+      true,
+    );
+    expect(label?.textContent).toBe("メンバー");
+    expect(marker?.classList.contains("analytics-member-picker-marker")).toBe(
+      true,
+    );
+    expect(marker?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("月移動は選択欄で選んだメンバーをURLへ保持する (AC-ANA-005-1)", () => {

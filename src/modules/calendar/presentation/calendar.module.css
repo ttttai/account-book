@@ -91,10 +91,10 @@
   }
 }
 
+/* 集計対象は1行で折り返さず、2枠のときは等幅に並べる (AC-CAL-004-1) */
 .calendar-scope-nav {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.35rem;
   margin-top: 0.35rem;
   padding: 0.15rem;
@@ -102,9 +102,13 @@
   background: var(--background);
 }
 
+/* 3枠では「グループ」「自分」を語が欠けない4.5remを下限に等幅とし、相手名・選択欄に残り幅（余白が許せば2倍、1:1:2）を使う (AC-CAL-004-3) */
+.calendar-scope-nav.has-member {
+  grid-template-columns: repeat(2, minmax(4.5rem, 1fr)) minmax(0, 2fr);
+}
+
 .calendar-scope-nav > a,
 .calendar-member-picker > summary {
-  display: block;
   min-width: 0;
   min-height: 44px;
   padding: 0.5rem;
@@ -116,6 +120,11 @@
   line-height: 28px;
   text-align: center;
   text-decoration: none;
+}
+
+/* 収まらない表示名だけ末尾を省略し、全文はtitleとaccessibility nameに残す */
+.calendar-scope-nav > a {
+  display: block;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -131,13 +140,30 @@
   min-width: 0;
 }
 
+/* 選択欄は名前と印を横に並べ、省略するのは名前部分だけにして印を常に見せる */
 .calendar-member-picker > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
   list-style: none;
   cursor: pointer;
 }
 
 .calendar-member-picker > summary::-webkit-details-marker {
   display: none;
+}
+
+.calendar-member-picker-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.calendar-member-picker-marker {
+  flex: none;
+  font-size: 0.7rem;
 }
 
 .calendar-member-options {

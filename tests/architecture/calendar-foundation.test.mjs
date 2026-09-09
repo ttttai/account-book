@@ -117,18 +117,32 @@ function readRule(css, selector) {
   return css.slice(start + selector.length + 2, css.indexOf("}", start));
 }
 
-test("集計対象は2枠・3枠とも等幅1行で長い名前を枠内へ収める (AC-CAL-004-1)", async () => {
+test("集計対象は1行で折り返さず、2枠は等幅、3枠は「グループ」「自分」の2倍を3枠目に使う (AC-CAL-004-1, AC-CAL-004-3)", async () => {
   const css = await read(
     "src/modules/calendar/presentation/calendar.module.css",
   );
   const nav = readRule(css, ".calendar-scope-nav");
-  assert.match(nav, /grid-auto-flow: column/);
-  assert.match(nav, /grid-auto-columns: minmax\(0, 1fr\)/);
-  assert.doesNotMatch(nav, /grid-template-columns|flex-wrap/);
+  assert.match(nav, /display: grid/);
+  assert.match(nav, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.doesNotMatch(nav, /flex-wrap/);
+  // 3枠は「グループ」「自分」を語が欠けない4.5rem下限の等幅にし、3枠目へ残り幅（余白が許せば2倍）を使う
+  const threeSlots = readRule(css, ".calendar-scope-nav.has-member");
+  assert.match(
+    threeSlots,
+    /grid-template-columns: repeat\(2, minmax\(4\.5rem, 1fr\)\) minmax\(0, 2fr\)/,
+  );
   const control = readRule(css, ".calendar-member-picker > summary");
   assert.match(control, /min-height: 44px/);
-  assert.match(control, /text-overflow: ellipsis/);
-  assert.match(control, /white-space: nowrap/);
+  // 選択欄は名前部分だけを省略し、印は常に表示する
+  const label = readRule(css, ".calendar-member-picker-label");
+  assert.match(label, /min-width: 0/);
+  assert.match(label, /overflow: hidden/);
+  assert.match(label, /text-overflow: ellipsis/);
+  assert.match(label, /white-space: nowrap/);
+  assert.match(readRule(css, ".calendar-member-picker-marker"), /flex: none/);
+  const link = readRule(css, ".calendar-scope-nav > a");
+  assert.match(link, /text-overflow: ellipsis/);
+  assert.match(link, /white-space: nowrap/);
   assert.match(
     readRule(css, ".calendar-member-options a"),
     /overflow-wrap: anywhere/,

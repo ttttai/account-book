@@ -174,9 +174,7 @@ describe("CalendarHome 集計対象 (AC-CAL-004-1, AC-CAL-004-2)", () => {
     const picker = nav.querySelector("details");
     if (!picker) throw new Error("メンバー選択欄が必要です");
     expect(picker.open).toBe(false);
-    expect(picker.querySelector("summary")?.textContent).toBe(
-      another.displayName,
-    );
+    expect(pickerLabel(picker)).toBe(another.displayName);
     expect(picker.querySelector("summary")?.getAttribute("aria-current")).toBe(
       "page",
     );
@@ -226,13 +224,64 @@ describe("CalendarHome 集計対象 (AC-CAL-004-1, AC-CAL-004-2)", () => {
           .getAttribute("aria-current"),
       ).toBe("page");
       expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
-      expect(nav.querySelector("summary")?.textContent).toBe("メンバー");
+      expect(pickerLabel(nav)).toBe("メンバー");
       expect(
         nav.querySelector("summary")?.getAttribute("aria-current"),
       ).toBeNull();
     },
   );
+
+  it("2枠では等幅、3枠では「グループ」「自分」の2倍を相手名に使い、titleへ全文を残す (AC-CAL-004-3)", () => {
+    const { rerender } = render(
+      <CalendarHome data={createData({ members: [self] })} />,
+    );
+    const nav = () =>
+      screen.getByRole("navigation", { name: "カレンダーの集計対象" });
+    expect(nav().classList.contains("has-member")).toBe(false);
+
+    rerender(<CalendarHome data={createData({ members: [self, partner] })} />);
+    expect(nav().classList.contains("has-member")).toBe(true);
+    expect(
+      within(nav()).getByRole("link", { name: "B" }).getAttribute("title"),
+    ).toBe("B");
+  });
+
+  it("選択欄は名前と印を分け、印を読み上げ対象から外して名前だけを省略できるようにする (AC-CAL-004-3)", () => {
+    render(
+      <CalendarHome
+        data={createData({
+          members: [self, partner, another],
+          scope: "member",
+          selectedMemberId: another.membershipId,
+          selectedMemberLabel: another.displayName,
+        })}
+      />,
+    );
+    const nav = screen.getByRole("navigation", {
+      name: "カレンダーの集計対象",
+    });
+    expect(nav.classList.contains("has-member")).toBe(true);
+    const summary = nav.querySelector("summary");
+    if (!summary) throw new Error("メンバー選択欄が必要です");
+    expect(summary.getAttribute("title")).toBe(another.displayName);
+    expect(summary.children).toHaveLength(2);
+    const [label, marker] = Array.from(summary.children);
+    expect(label?.classList.contains("calendar-member-picker-label")).toBe(
+      true,
+    );
+    expect(label?.textContent).toBe(another.displayName);
+    expect(marker?.classList.contains("calendar-member-picker-marker")).toBe(
+      true,
+    );
+    expect(marker?.getAttribute("aria-hidden")).toBe("true");
+    expect(marker?.textContent).toBe("▾");
+  });
 });
+
+// 選択欄の名前部分（印を除く）を返す
+function pickerLabel(root: ParentNode): string | undefined {
+  return root.querySelector("summary > span")?.textContent ?? undefined;
+}
 
 describe("CalendarHome 今日へ戻る", () => {
   it("年月を左右の操作から独立した中央列に配置する", () => {

@@ -19,6 +19,7 @@ type CalendarMemberPickerProps = Readonly<{
 }>;
 
 // 集計対象のメンバーを選ぶdropdown。選択したら閉じる（開いたままだと一覧がカレンダーを覆う）(R-062)
+// 枠には名前と印を並べ、省略するのは名前だけにして全文をtitleへ残す (AC-CAL-004-3)
 export function CalendarMemberPicker({
   summaryLabel,
   isActive,
@@ -37,8 +38,17 @@ export function CalendarMemberPicker({
       <summary
         className={isActive ? "is-active" : undefined}
         aria-current={isActive ? "page" : undefined}
+        title={summaryLabel}
       >
-        {summaryLabel}
+        <span className={styles["calendar-member-picker-label"]}>
+          {summaryLabel}
+        </span>
+        <span
+          className={styles["calendar-member-picker-marker"]}
+          aria-hidden="true"
+        >
+          ▾
+        </span>
       </summary>
       <div className={styles["calendar-member-options"]}>
         {options.map((option) => (

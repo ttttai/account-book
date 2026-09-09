@@ -62,6 +62,7 @@ export function CalendarValidationError({
 }
 
 // 自分以外のアクティブメンバー数で2枠・直接リンク・選択欄を切り替える (AC-CAL-004-1)
+// 3枠のときは「グループ」「自分」を等幅、3枠目に2倍幅を使う修飾classを付ける (AC-CAL-004-3)
 function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
   const others = data.members.filter((member) => !member.isCurrentUser);
   const currentMember = data.members.find((member) => member.isCurrentUser);
@@ -81,7 +82,11 @@ function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
 
   return (
     <nav
-      className={styles["calendar-scope-nav"]}
+      className={
+        others.length > 0
+          ? `${styles["calendar-scope-nav"]} ${styles["has-member"]}`
+          : styles["calendar-scope-nav"]
+      }
       aria-label="カレンダーの集計対象"
     >
       <Link
@@ -109,6 +114,7 @@ function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
           className={isOtherSelected ? "is-active" : undefined}
           aria-current={isOtherSelected ? "page" : undefined}
           href={memberHref(onlyOther.membershipId)}
+          title={onlyOther.displayName}
         >
           {onlyOther.displayName}
         </Link>

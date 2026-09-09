@@ -122,16 +122,30 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
     const boxes = await scopeNav.getByRole("link").evaluateAll((links) =>
       links.map((link) => {
         const { x, y, width, height } = link.getBoundingClientRect();
-        return { x, y, width, height };
+        return {
+          x,
+          y,
+          width,
+          height,
+          // 表示名が枠内で省略されていないこと (AC-CAL-004-3)
+          isTruncated: link.scrollWidth > link.clientWidth,
+        };
       }),
     );
     expect(boxes).toHaveLength(3);
     for (const box of boxes) {
       expect(box.height).toBeGreaterThanOrEqual(44);
       expect(Math.abs(box.y - boxes[0].y)).toBeLessThan(1);
-      expect(Math.abs(box.width - boxes[0].width)).toBeLessThan(1);
       expect(box.x + box.width).toBeLessThanOrEqual(width);
+      expect(box.isTruncated).toBe(false);
     }
+    // 「グループ」「自分」は等幅、相手の表示名の枠はそれより広く2倍以内（余白が許す幅では2倍） (AC-CAL-004-3)
+    expect(Math.abs(boxes[1].width - boxes[0].width)).toBeLessThan(1);
+    expect(boxes[2].width).toBeGreaterThan(boxes[0].width * 1.4);
+    expect(boxes[2].width).toBeLessThanOrEqual(boxes[0].width * 2 + 2);
+    await expect(
+      scopeNav.getByRole("link", { name: E2E_USER_B.displayName, exact: true }),
+    ).toHaveAttribute("title", E2E_USER_B.displayName);
     expect(
       await memberPage.evaluate(
         () => document.documentElement.scrollWidth - innerWidth,

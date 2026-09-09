@@ -124,6 +124,7 @@ type ScopeNavigationProps = Readonly<{
 
 // 自分以外のアクティブメンバー数で3枠目を切り替える集計対象ナビゲーション (AC-ANA-005-3)
 // 0人は2枠、1人はメンバー名の直接リンク、2人以上はホームカレンダーと同じ選択欄にして枠を折り返さない
+// 3枠のときは「グループ」「自分」を等幅、3枠目に2倍幅を使う修飾classを付ける (AC-CAL-004-3)
 function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
   const others = data.members.filter((member) => !member.isCurrentUser);
   const memberHref = (membershipId: string) =>
@@ -138,7 +139,14 @@ function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
   const onlyOther = others.length === 1 ? others[0] : undefined;
 
   return (
-    <nav aria-label="分析の集計対象" className={styles["analytics-scope-nav"]}>
+    <nav
+      aria-label="分析の集計対象"
+      className={
+        others.length > 0
+          ? `${styles["analytics-scope-nav"]} ${styles["has-member"]}`
+          : styles["analytics-scope-nav"]
+      }
+    >
       <Link
         aria-current={data.scope === "group" ? "page" : undefined}
         className={data.scope === "group" ? "is-active" : undefined}
@@ -172,6 +180,7 @@ function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
               : undefined
           }
           href={memberHref(onlyOther.membershipId)}
+          title={onlyOther.displayName}
         >
           {onlyOther.displayName}
         </Link>

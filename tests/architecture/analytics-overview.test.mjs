@@ -187,11 +187,39 @@ test("分析の集計対象枠は折り返さず、選択欄は選択後に閉�
     "src/modules/analytics/presentation/analytics-member-picker.tsx",
   );
 
-  // 枠を複数行へ折り返さず、等幅gridで2枠・3枠を並べる
+  // 枠を複数行へ折り返さず、2枠は等幅grid、3枠はホームと同じ1:1:2で並べる (AC-CAL-004-3)
   const scopeNav = moduleCss.match(/\.analytics-scope-nav \{[^}]*\}/)?.[0];
   assert.ok(scopeNav);
   assert.doesNotMatch(scopeNav, /flex-wrap/);
   assert.match(scopeNav, /display:\s*grid;/);
+  assert.match(
+    scopeNav,
+    /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/,
+  );
+  const threeSlots = moduleCss.match(
+    /\.analytics-scope-nav\.has-member \{[^}]*\}/,
+  )?.[0];
+  assert.ok(threeSlots);
+  assert.match(
+    threeSlots,
+    /grid-template-columns: repeat\(2, minmax\(4\.5rem, 1fr\)\) minmax\(0, 2fr\)/,
+  );
+  assert.match(overview, /styles\["has-member"\]/);
+  // 選択欄は名前部分だけを省略し、印はaria-hiddenで常に表示する
+  const label = moduleCss.match(
+    /\.analytics-member-picker-label \{[^}]*\}/,
+  )?.[0];
+  assert.ok(label);
+  assert.match(label, /text-overflow:\s*ellipsis;/);
+  assert.match(label, /white-space:\s*nowrap;/);
+  assert.match(
+    moduleCss,
+    /\.analytics-member-picker-marker \{[^}]*flex:\s*none;/,
+  );
+  assert.match(picker, /analytics-member-picker-label/);
+  assert.match(picker, /analytics-member-picker-marker/);
+  assert.match(picker, /aria-hidden="true"/);
+  assert.match(picker, /title=\{summaryLabel\}/);
   // 選択欄はカレンダーと同じdetails/summaryで、moduleを越えてcalendarのpresentationをimportしない
   assert.match(overview, /AnalyticsMemberPicker/);
   assert.doesNotMatch(overview, /modules\/calendar/);
