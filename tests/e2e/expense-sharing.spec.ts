@@ -166,8 +166,13 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
   await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
     "￥3,000",
   );
-  await expect(historyRows).toContainText(`${E2E_USER_A.displayName}の支出`);
+  // 「〇〇の支出」の主金額ラベルは行リンクのアクセシブル名で示す (AC-HIS-006-3, AC-HIS-006-4)
+  await expect(historyRows.getByRole("link")).toHaveAccessibleName(
+    new RegExp(`${E2E_USER_A.displayName}の支出 ￥3,000 取引全体 ￥6,000`),
+  );
   await expect(historyRows).toContainText("食費");
+  await expect(historyRows).toContainText("2人で分割");
+  await expect(historyRows.getByRole("link", { name: "編集" })).toHaveCount(0);
   await expect(historyRows).not.toContainText("支払者");
   await expect(historyRows).not.toContainText("負担");
   await expect(memberPage.getByLabel("支払者")).toHaveCount(0);
@@ -197,6 +202,11 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
   await memberPage.reload();
   await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
     "￥3,000",
+  );
+  // 行全体のタップで取引編集へ遷移し、戻り先に履歴URLを持つ (AC-HIS-006-3)
+  await historyRows.getByRole("link").click();
+  await expect(memberPage).toHaveURL(
+    /\/transactions\/[0-9a-f-]{36}\/edit\?from=.*history/,
   );
   const partnerPage = await openUserPage(E2E_USER_B);
   await partnerPage.goto(`/groups/${groupId}/history`);

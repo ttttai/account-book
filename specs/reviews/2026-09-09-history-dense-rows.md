@@ -3,7 +3,7 @@
 状態: 実装確認済み
 レビュー日: 2026-09-09
 ブランチ: feat/history-dense-rows
-対象仕様: `specs/01-product-requirements.md`、`specs/02-use-cases.md`、`specs/03-screen-specification.md`
+対象仕様: `specs/01-product-requirements.md`、`specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/07-acceptance-test-plan.md`
 関連ID: `HIS-006`、`AC-HIS-006-1`〜`AC-HIS-006-4`を追加。`HIS-001`、`HIS-004`、`AC-HIS-003-3`、`AC-TXN-018-3`を参照（更新なし）。Issue #134。
 
 ## 指摘
@@ -43,7 +43,7 @@ presentationとdomainの純関数だけの変更で、認可、RLS、グルー�
 
 `history-date.ts`（日付見出し・日付グループ）と`history-row-label.ts`（内訳の要約・アクセシブル名）を純関数として追加し、`history-list.tsx`を日付見出しごとの`<ol>`と行全体のリンクへ置き換えた。全幅の「編集」ボタンと全員分の内訳列挙を消し、member指定時は主金額の下に「取引全体」を補足する。DTOへ`todayDate`（`GroupReadContext.today`）を追加し、query・cursor・Server Action・DBは変更していない。ページ見出しは`app-header`のまま内側を1行構成にし、`/app?view=groups`への導線（AC-GRP-011-3）は維持した。
 
-architecture 186件、単体・component 903件（新規: 日付見出し・日付グループ・要約・アクセシブル名の純関数test 11件、履歴一覧component testの更新）、lint、format、型検査、本番buildが成功。E2E（E2E-004の履歴断言は`history-amount`と「取引全体 ￥6,000」のまま）はPRのCIで実行する。
+architecture 186件、単体・component 903件（新規: 日付見出し・日付グループ・要約・アクセシブル名の純関数test 11件、履歴一覧component testの更新）、lint、format、型検査、本番buildが成功。E2E-004は「〇〇の支出」を可視テキストではなく行リンクのアクセシブル名で確認するよう更新し、「2人で分割」の要約、全幅「編集」ボタンの不在、行タップで編集へ遷移することの確認を追加した（`07-acceptance-test-plan.md`の手順9も同じ内容へ更新）。E2EはPRのCIで実行する。
 
 fixtureの一時preview routeで撮影（前後比較。数値はPlaywrightで計測）:
 
