@@ -118,9 +118,30 @@ test("375pxホームでカレンダーを初期viewportへ優先配置する", a
   assert.doesNotMatch(page, /header-links|group-primary-actions/);
   assert.match(page, /calendar-home-header/);
   assert.match(styles, /\.calendar-home-page\s*\{[^}]*min-height:\s*100dvh;/s);
+  // review: 2026-09-09-calendar-readable-height
+  // 残り高さはホーム本文（flex column）→カード→表へ引き継ぎ、tbodyの6行が百分率で均等に分け合う (AC-CAL-001-20)
+  assert.match(
+    styles,
+    /\.calendar-home-page\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;/s,
+  );
+  assert.match(
+    styles,
+    /\.calendar-card\s*\{[^}]*flex:\s*1 1 auto;[^}]*flex-direction:\s*column;/s,
+  );
+  assert.match(calendarStyles, /\.calendar-grid\s*\{[^}]*flex:\s*1 1 auto;/s);
   assert.match(
     calendarStyles,
-    /\.calendar-cell\s*\{[^}]*calc\(\(100dvh[^}]*\/ 6\)/s,
+    /\.calendar-grid tbody tr\s*\{[^}]*height:\s*calc\(100% \/ 6\);/s,
+  );
+  // 行高の上限や機種寸法をセルへ固定しない。下限44pxはリンク側で確保する
+  assert.doesNotMatch(calendarStyles, /\.calendar-cell\s*\{[^}]*height:/s);
+  assert.match(
+    calendarStyles,
+    /\.calendar-cell-link\s*\{[^}]*min-height:\s*44px;/s,
+  );
+  assert.doesNotMatch(
+    styles,
+    /@media \(max-height: 700px\)\s*\{\s*\.calendar-home-page\s*\{[^}]*min-height:\s*auto/s,
   );
   assert.match(calendarStyles, /@media \(max-height: 700px\)/);
 });
