@@ -5,7 +5,16 @@ const authMocks = vi.hoisted(() => ({
   getAllowedGoogleUserId: vi.fn(),
 }));
 
-vi.mock("@/modules/auth/server", () => authMocks);
+// 応答不能・認証起因の判定は純関数の実装をそのまま使い、clientと許可リストだけを差し替える
+vi.mock("@/modules/auth/server", async () => ({
+  ...(await vi.importActual<
+    typeof import("@/modules/auth/domain/backend-availability")
+  >("@/modules/auth/domain/backend-availability")),
+  ...(await vi.importActual<
+    typeof import("@/modules/auth/domain/postgrest-auth-error")
+  >("@/modules/auth/domain/postgrest-auth-error")),
+  ...authMocks,
+}));
 
 import { getGroupCalendar } from "./get-group-calendar";
 
@@ -248,14 +257,14 @@ describe("getGroupCalendar", () => {
 
   it.each([
     [
-      "group error",
-      { data: null, error: { code: "XX000" } },
+      "group auth error",
+      { data: null, error: { code: "PGRST301", message: "JWT expired" } },
       { data: memberships, error: null },
     ],
     [
-      "membership error",
+      "membership auth error",
       { data: groupRow, error: null },
-      { data: null, error: { code: "XX000" } },
+      { data: null, error: { code: "PGRST301", message: "JWT expired" } },
     ],
     [
       "missing group",
@@ -266,6 +275,19 @@ describe("getGroupCalendar", () => {
     setupInitialQueries(groupResult, membershipResult);
 
     await expect(getGroupCalendar(GROUP_ID, {})).resolves.toBeNull();
+  });
+
+  it("認証起因でないgroup queryの失敗はnullへ縮退させず例外にする (AC-AUTH-004-4)", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    setupInitialQueries(
+      { data: null, error: { code: "XX000", message: "internal" } },
+      { data: memberships, error: null },
+    );
+
+    await expect(getGroupCalendar(GROUP_ID, {})).rejects.toThrow(
+      "グループを取得できませんでした。",
+    );
+    vi.restoreAllMocks();
   });
 
   it("activeな自分の所属が無ければ後続queryを行わない", async () => {

@@ -9,7 +9,16 @@ const transactionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/modules/auth/server", () => authMocks);
+// 応答不能・認証起因の判定は純関数の実装をそのまま使い、clientと許可リストだけを差し替える
+vi.mock("@/modules/auth/server", async () => ({
+  ...(await vi.importActual<
+    typeof import("@/modules/auth/domain/backend-availability")
+  >("@/modules/auth/domain/backend-availability")),
+  ...(await vi.importActual<
+    typeof import("@/modules/auth/domain/postgrest-auth-error")
+  >("@/modules/auth/domain/postgrest-auth-error")),
+  ...authMocks,
+}));
 vi.mock("@/modules/transactions/server", () => transactionMocks);
 
 import { getGroupBudget } from "./get-group-budget";

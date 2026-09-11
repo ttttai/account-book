@@ -5,7 +5,18 @@ const authMocks = vi.hoisted(() => ({
   getAllowedGoogleUserId: vi.fn(),
 }));
 
-vi.mock("@/modules/auth/server", () => authMocks);
+// 応答不能・認証起因の判定は純関数の実装をそのまま使い、clientと許可リストだけを差し替える
+vi.mock("@/modules/auth/server", async () => ({
+  ...(await vi.importActual<
+    typeof import("@/modules/auth/domain/backend-availability")
+  >("@/modules/auth/domain/backend-availability")),
+  ...(await vi.importActual<
+    typeof import("@/modules/auth/domain/postgrest-auth-error")
+  >("@/modules/auth/domain/postgrest-auth-error")),
+  ...authMocks,
+}));
+
+import { BackendUnavailableError } from "@/modules/auth/server";
 
 import {
   loadGroupMembers,
@@ -20,7 +31,7 @@ const USER_ID = "30000000-0000-4000-8000-000000000001";
 const SECOND_USER_ID = "30000000-0000-4000-8000-000000000002";
 const REMOVED_USER_ID = "30000000-0000-4000-8000-000000000003";
 
-type QueryResult = Readonly<{ data: unknown; error: unknown }>;
+type QueryResult = Readonly<{ data: unknown; error: unknown; status?: number }>;
 
 function maybeSingleQuery(result: QueryResult) {
   const query = {
@@ -115,10 +126,12 @@ describe("resolveGroupReadContext", () => {
     vi.setSystemTime(new Date("2026-09-30T20:00:00Z"));
     authMocks.createServerSupabaseClient.mockReset();
     authMocks.getAllowedGoogleUserId.mockReset();
+    vi.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("不正なgroup IDでは認証clientを作らない", async () => {
@@ -141,26 +154,89 @@ describe("resolveGroupReadContext", () => {
     expect(from).not.toHaveBeenCalled();
   });
 
-  it.each([
-    [
-      "group error",
-      { data: null, error: { code: "XX000" } },
-      { data: activeMemberships, error: null },
-    ],
-    [
-      "membership error",
-      { data: groupRow, error: null },
-      { data: null, error: { code: "XX000" } },
-    ],
-    [
-      "missing group",
+  it("claims取得が応答不能なら未認証へ縮退させず例外にする (AC-AUTH-004-4)", async () => {
+    const { getClaims, from } = setupClient();
+    getClaims.mockResolvedValue({
+      data: null,
+      error: { name: "AuthRetryableFetchError", status: 0 },
+    });
+
+    await expect(resolveGroupReadContext(GROUP_ID)).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("グループが存在しない場合は存在を明かさずnullを返す", async () => {
+    setupContextQueries(
       { data: null, error: null },
       { data: activeMemberships, error: null },
-    ],
-  ])("%sでは存在を明かさずnullを返す", async (_name, group, membership) => {
-    setupContextQueries(group, membership);
+    );
 
     await expect(resolveGroupReadContext(GROUP_ID)).resolves.toBeNull();
+  });
+
+  const authenticationFailure = {
+    data: null,
+    error: { code: "PGRST301", message: "JWT expired" },
+    status: 401,
+  };
+
+  it.each([
+    ["group", authenticationFailure, { data: activeMemberships, error: null }],
+    ["membership", { data: groupRow, error: null }, authenticationFailure],
+  ])(
+    "%s queryの認証起因の失敗はnullへ縮退させる (AC-AUTH-001-9)",
+    async (_name, group, membership) => {
+      setupContextQueries(group, membership);
+
+      await expect(resolveGroupReadContext(GROUP_ID)).resolves.toBeNull();
+    },
+  );
+
+  it.each([
+    [
+      "group",
+      {
+        data: null,
+        error: { code: "PGRST002", message: "Could not query the database" },
+        status: 503,
+      },
+      { data: activeMemberships, error: null },
+    ],
+    [
+      "membership",
+      { data: groupRow, error: null },
+      {
+        data: null,
+        error: { code: "", message: "TypeError: fetch failed" },
+        status: 0,
+      },
+    ],
+  ])(
+    "%s queryが5xx・接続失敗なら存在しないグループへ縮退させず例外にする (AC-AUTH-004-4)",
+    async (_name, group, membership) => {
+      setupContextQueries(group, membership);
+
+      await expect(resolveGroupReadContext(GROUP_ID)).rejects.toBeInstanceOf(
+        BackendUnavailableError,
+      );
+    },
+  );
+
+  it("認証・応答不能以外のquery失敗は一般化した例外にする", async () => {
+    setupContextQueries(
+      {
+        data: null,
+        error: { code: "XX000", message: "internal" },
+        status: 400,
+      },
+      { data: activeMemberships, error: null },
+    );
+
+    await expect(resolveGroupReadContext(GROUP_ID)).rejects.toThrow(
+      "グループを取得できませんでした。",
+    );
   });
 
   it("操作者のアクティブ所属が無ければnullを返す", async () => {

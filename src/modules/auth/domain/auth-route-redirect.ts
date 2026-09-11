@@ -6,10 +6,13 @@ const HOME_PATH = "/app";
 const LOGIN_PATH = "/login";
 const START_URL = "/";
 
+/** Proxyが判定した認証状態。`unavailable`はAuth APIの応答不能・timeoutで判定できなかった状態 */
+export type AuthState = "authenticated" | "unauthenticated" | "unavailable";
+
 export type AuthRouteRedirectInput = Readonly<{
   pathname: string;
   search: string;
-  isAuthenticated: boolean;
+  authState: AuthState;
 }>;
 
 function matchesPath(pathname: string, roots: readonly string[]): boolean {
@@ -22,9 +25,12 @@ function matchesPath(pathname: string, roots: readonly string[]): boolean {
 export function resolveAuthRouteRedirect({
   pathname,
   search,
-  isAuthenticated,
+  authState,
 }: AuthRouteRedirectInput): string | null {
-  if (!isAuthenticated) {
+  // 応答不能は未認証と同一視せず、redirectせずに要求を通して各routeの境界へ委ねる (AC-AUTH-004-4)
+  if (authState === "unavailable") return null;
+
+  if (authState === "unauthenticated") {
     if (!matchesPath(pathname, PROTECTED_PATHS)) return null;
     // 戻り先は検証済みのアプリ内pathだけを保持する
     const nextPath = resolveSafeNextPath(`${pathname}${search}`);

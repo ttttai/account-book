@@ -3,8 +3,12 @@ import "server-only";
 import { z } from "zod";
 
 import {
+  BackendUnavailableError,
+  createQueryFailureError,
   createServerSupabaseClient,
   getAllowedGoogleUserId,
+  isAuthenticationQueryError,
+  isUnavailableAuthError,
 } from "@/modules/auth/server";
 
 type ServerSupabaseClient = Awaited<
@@ -95,6 +99,10 @@ export async function resolveGroupReadContext(
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
+  // Auth APIの応答不能は未認証へ縮退させず、routeのerror境界へ委ねる (AC-AUTH-004-4)
+  if (isUnavailableAuthError(claimsError)) {
+    throw new BackendUnavailableError("groups.readContext.getClaims");
+  }
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return null;
 
@@ -115,9 +123,21 @@ export async function resolveGroupReadContext(
     groupQuery,
     membershipQuery.order("joined_at", { ascending: true }),
   ]);
-  if (groupResult.error || membershipResult.error || !groupResult.data) {
-    return null;
+  const failedResult = groupResult.error
+    ? groupResult
+    : membershipResult.error
+      ? membershipResult
+      : null;
+  if (failedResult) {
+    // 失効session等の認証起因の失敗だけを、存在を明かさないnullへ縮退させる (AC-AUTH-001-9)
+    if (isAuthenticationQueryError(failedResult.error)) return null;
+    throw createQueryFailureError(
+      "groups.readContext",
+      failedResult,
+      "グループを取得できませんでした。",
+    );
   }
+  if (!groupResult.data) return null;
 
   const group = groupRowSchema.parse(groupResult.data);
   const memberships = z

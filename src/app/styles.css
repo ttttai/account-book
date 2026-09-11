@@ -389,6 +389,34 @@ a:focus-visible {
   font-size: 1.2rem;
 }
 
+/* 保護画面のerror境界。route shellの中で固定文言と再試行だけを示す */
+.load-error-panel {
+  display: grid;
+  width: min(100%, 36rem);
+  margin-top: 2rem;
+  padding: 1.25rem;
+  gap: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+}
+
+.load-error-panel h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.load-error-panel p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.load-error-panel .primary-button {
+  justify-self: start;
+}
+
 .group-page-title {
   margin: 0 0 0.75rem;
   font-size: 1.25rem;
@@ -872,6 +900,10 @@ a:focus-visible {
     width: 100%;
     margin-top: 0;
     grid-column: 1;
+  }
+  .groups-overview .load-error-panel {
+    margin-top: 0;
+    grid-column: 1 / -1;
   }
   .groups-overview .empty-panel {
     margin-top: 0;
