@@ -6,14 +6,22 @@ const authMocks = vi.hoisted(() => ({
   isAuthenticationQueryError: vi.fn(),
 }));
 
-vi.mock("@/modules/auth/server", () => authMocks);
+// 応答不能の判定は純関数の実装をそのまま使い、client・許可リスト・認証起因判定だけを差し替える
+vi.mock("@/modules/auth/server", async () => ({
+  ...(await vi.importActual<
+    typeof import("@/modules/auth/domain/backend-availability")
+  >("@/modules/auth/domain/backend-availability")),
+  ...authMocks,
+}));
+
+import { BackendUnavailableError } from "@/modules/auth/server";
 
 import { getDefaultGroupId, setDefaultGroup } from "./default-group";
 
 const GROUP_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "30000000-0000-4000-8000-000000000001";
 
-type QueryResult = Readonly<{ data: unknown; error: unknown }>;
+type QueryResult = Readonly<{ data: unknown; error: unknown; status?: number }>;
 
 function preferenceQuery(result: QueryResult) {
   const query = {
@@ -81,6 +89,42 @@ describe("getDefaultGroupId", () => {
 
     await expect(getDefaultGroupId()).resolves.toBeNull();
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it("claims取得が応答不能なら未設定へ縮退させず例外にする (AC-AUTH-004-4)", async () => {
+    const client = setupClient();
+    authMocks.createServerSupabaseClient.mockResolvedValue({
+      auth: {
+        getClaims: vi.fn().mockResolvedValue({
+          data: null,
+          error: { name: "AuthRetryableFetchError", status: 0 },
+        }),
+      },
+      from: client.from,
+      rpc: client.rpc,
+    });
+
+    await expect(getDefaultGroupId()).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("PostgRESTが5xx・接続失敗ならBackendUnavailableErrorにする (AC-AUTH-004-4)", async () => {
+    const { from } = setupClient();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    from.mockReturnValueOnce(
+      preferenceQuery({
+        data: null,
+        error: { code: "", message: "TypeError: fetch failed" },
+        status: 0,
+      }),
+    );
+
+    await expect(getDefaultGroupId()).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    vi.restoreAllMocks();
   });
 
   it("認証起因のquery失敗はnullへ縮退し、それ以外は一般化した例外にする", async () => {

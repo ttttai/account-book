@@ -117,14 +117,33 @@ function readRule(css, selector) {
   return css.slice(start + selector.length + 2, css.indexOf("}", start));
 }
 
-test("集計対象は2枠・3枠とも等幅1行で長い名前を枠内へ収める (AC-CAL-004-1)", async () => {
+test("集計対象は1行で折り返さず、3枠では固定語を省略せず3枠目だけを縮める (AC-CAL-004-1, AC-CAL-004-3)", async () => {
   const css = await read(
     "src/modules/calendar/presentation/calendar.module.css",
   );
   const nav = readRule(css, ".calendar-scope-nav");
-  assert.match(nav, /grid-auto-flow: column/);
-  assert.match(nav, /grid-auto-columns: minmax\(0, 1fr\)/);
-  assert.doesNotMatch(nav, /grid-template-columns|flex-wrap/);
+  assert.match(nav, /display: flex/);
+  assert.doesNotMatch(nav, /grid|flex-wrap/);
+  // 2枠は等幅から始め、3枠では「グループ」「自分」を縮めず3枠目へ残り幅を渡す
+  assert.match(readRule(css, ".calendar-scope-nav > a"), /flex: 1 1 0/);
+  assert.match(readRule(css, ".calendar-member-picker"), /flex: 1 1 0/);
+  assert.match(
+    readRule(css, ".calendar-scope-nav.has-member-slot > a:nth-child(-n + 2)"),
+    /flex: 1 0 auto/,
+  );
+  assert.match(
+    readRule(css, ".calendar-scope-nav.has-member-slot > :nth-child(3)"),
+    /flex: 1 1 auto/,
+  );
+  // 開閉の印はCSSの疑似要素で描き、accessibility nameへ文字を足さない
+  assert.match(
+    readRule(css, ".calendar-member-picker > summary::after"),
+    /content: ""/,
+  );
+  const home = await read(
+    "src/modules/calendar/presentation/calendar-home.tsx",
+  );
+  assert.match(home, /has-member-slot/);
   const control = readRule(css, ".calendar-member-picker > summary");
   assert.match(control, /min-height: 44px/);
   assert.match(control, /text-overflow: ellipsis/);
@@ -166,6 +185,43 @@ test("今日の強調は日番号ボックスの寸法を変えず縦位置を�
       `今日の強調で${property}を変えるとレイアウトがずれます`,
     );
   }
+});
+
+test("日別金額は表の幅から算出し、+999,999が320pxでも1行に収まる比率を保つ (AC-CAL-001-20)", async () => {
+  const css = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
+  const styles = await read("src/app/styles.css");
+
+  // review: 2026-09-09-calendar-readable-height
+  // 金額サイズはviewport幅ではなくカード（container）の幅から決め、下限0.5rem・上限1.125remを持つ
+  assert.match(
+    styles,
+    /\.calendar-card\s*\{[^}]*container-type:\s*inline-size;/s,
+  );
+  const amount = readRule(css, ".calendar-cell-amount");
+  assert.match(
+    amount,
+    /font-size: clamp\(0\.5rem, calc\(\(100cqi - 8px\) \/ 27\.8\), 1\.125rem\);/,
+  );
+  assert.match(amount, /letter-spacing: -0\.04em;/);
+  assert.match(amount, /font-variant-numeric: tabular-nums;/);
+  assert.doesNotMatch(amount, /vw/);
+
+  // セル幅を金額へ回すため、セル間は1px、選択枠はborderではなくinset shadowで描く
+  const grid = readRule(css, ".calendar-grid");
+  assert.match(grid, /border-spacing: 1px;/);
+  assert.match(grid, /table-layout: fixed;/);
+  const cell = readRule(css, ".calendar-cell");
+  assert.doesNotMatch(cell, /(^|;|\n)\s*border:/);
+  assert.match(
+    readRule(css, ".calendar-cell.is-selected"),
+    /box-shadow: inset 0 0 0 1px var\(--accent\);/,
+  );
+  // 曜日見出しは固定高さにして、余った高さがtbodyの6行だけへ配分されるようにする
+  const weekday = readRule(css, ".calendar-weekday");
+  assert.match(weekday, /height: 1\.25rem;/);
+  assert.match(weekday, /line-height: 1\.25rem;/);
 });
 
 test("年月を左右対称の中央列へ固定する", async () => {

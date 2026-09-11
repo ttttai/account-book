@@ -2,13 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { resolveAuthRouteRedirect } from "./auth-route-redirect";
 
+const GROUP_PATH = "/groups/11111111-1111-4111-8111-111111111111";
+
 describe("resolveAuthRouteRedirect", () => {
   it("未認証の保護画面要求を戻り先付きでログイン画面へ送る", () => {
     expect(
       resolveAuthRouteRedirect({
-        pathname: "/groups/11111111-1111-4111-8111-111111111111",
+        pathname: GROUP_PATH,
         search: "?month=2026-08",
-        isAuthenticated: false,
+        authState: "unauthenticated",
       }),
     ).toBe(
       "/login?next=%2Fgroups%2F11111111-1111-4111-8111-111111111111%3Fmonth%3D2026-08",
@@ -17,7 +19,7 @@ describe("resolveAuthRouteRedirect", () => {
       resolveAuthRouteRedirect({
         pathname: "/app",
         search: "",
-        isAuthenticated: false,
+        authState: "unauthenticated",
       }),
     ).toBe("/login?next=%2Fapp");
   });
@@ -28,7 +30,7 @@ describe("resolveAuthRouteRedirect", () => {
         resolveAuthRouteRedirect({
           pathname,
           search: "",
-          isAuthenticated: false,
+          authState: "unauthenticated",
         }),
       ).toBeNull();
     }
@@ -39,29 +41,43 @@ describe("resolveAuthRouteRedirect", () => {
       resolveAuthRouteRedirect({
         pathname: "/",
         search: "",
-        isAuthenticated: true,
+        authState: "authenticated",
       }),
     ).toBe("/app");
     expect(
       resolveAuthRouteRedirect({
         pathname: "/login",
         search: "?next=%2Fapp",
-        isAuthenticated: true,
+        authState: "authenticated",
       }),
     ).toBe("/app");
   });
 
   it("認証済みの保護画面と公開のsubpathはredirectしない", () => {
+    for (const pathname of ["/app", GROUP_PATH, "/invitations/accept"]) {
+      expect(
+        resolveAuthRouteRedirect({
+          pathname,
+          search: "",
+          authState: "authenticated",
+        }),
+      ).toBeNull();
+    }
+  });
+
+  it("認証状態が不明（バックエンド応答不能）なら、どのpathもredirectしない (AC-AUTH-004-4)", () => {
     for (const pathname of [
+      "/",
+      "/login",
       "/app",
-      "/groups/11111111-1111-4111-8111-111111111111",
+      GROUP_PATH,
       "/invitations/accept",
     ]) {
       expect(
         resolveAuthRouteRedirect({
           pathname,
-          search: "",
-          isAuthenticated: true,
+          search: "?month=2026-08",
+          authState: "unavailable",
         }),
       ).toBeNull();
     }
@@ -72,14 +88,14 @@ describe("resolveAuthRouteRedirect", () => {
       resolveAuthRouteRedirect({
         pathname: "//attacker.example",
         search: "",
-        isAuthenticated: false,
+        authState: "unauthenticated",
       }),
     ).toBeNull();
     expect(
       resolveAuthRouteRedirect({
         pathname: "/app",
         search: "?next=%2F%2Fattacker.example",
-        isAuthenticated: false,
+        authState: "unauthenticated",
       }),
     ).toBe("/login?next=%2Fapp");
   });

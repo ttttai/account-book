@@ -124,8 +124,13 @@ type ScopeNavigationProps = Readonly<{
 
 // 自分以外のアクティブメンバー数で3枠目を切り替える集計対象ナビゲーション (AC-ANA-005-3)
 // 0人は2枠、1人はメンバー名の直接リンク、2人以上はホームカレンダーと同じ選択欄にして枠を折り返さない
+// 3枠のときだけ固定語の幅を確保して残りを3枠目へ渡す修飾classを付ける (AC-CAL-004-3)
 function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
   const others = data.members.filter((member) => !member.isCurrentUser);
+  const navClassName =
+    others.length > 0
+      ? `${styles["analytics-scope-nav"]} ${styles["has-member-slot"]}`
+      : styles["analytics-scope-nav"];
   const memberHref = (membershipId: string) =>
     createAnalyticsUrl(data.group.id, {
       month: data.month,
@@ -138,7 +143,7 @@ function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
   const onlyOther = others.length === 1 ? others[0] : undefined;
 
   return (
-    <nav aria-label="分析の集計対象" className={styles["analytics-scope-nav"]}>
+    <nav aria-label="分析の集計対象" className={navClassName}>
       <Link
         aria-current={data.scope === "group" ? "page" : undefined}
         className={data.scope === "group" ? "is-active" : undefined}
@@ -276,30 +281,17 @@ export function AnalyticsOverview({
         />
       ) : null}
 
-      {data.categoryBreakdown.top.length > 0 ? (
+      {data.expenseByCategory.length > 0 ? (
         <section className={styles["analytics-category"]}>
           <AnalyticsCategoryChart
             heading="支出カテゴリ"
-            items={[
-              ...data.categoryBreakdown.top.map((category) => ({
-                key: category.categoryId,
-                name: category.name,
-                color: category.color,
-                amountMinor: category.amountMinor,
-                sharePercent: category.sharePercent,
-              })),
-              ...(data.categoryBreakdown.others
-                ? [
-                    {
-                      key: "others",
-                      name: "その他のカテゴリ",
-                      amountMinor: data.categoryBreakdown.others.amountMinor,
-                      sharePercent: data.categoryBreakdown.others.sharePercent,
-                      note: `${data.categoryBreakdown.others.categoryCount}件`,
-                    },
-                  ]
-                : []),
-            ]}
+            items={data.expenseByCategory.map((category) => ({
+              key: category.categoryId,
+              name: category.name,
+              color: category.color,
+              amountMinor: category.amountMinor,
+              sharePercent: category.sharePercent,
+            }))}
             listLabel="支出カテゴリの内訳"
           />
         </section>
