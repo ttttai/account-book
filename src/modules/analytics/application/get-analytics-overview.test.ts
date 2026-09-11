@@ -265,18 +265,20 @@ describe("getAnalyticsOverview", () => {
     if (data?.kind !== "ready") throw new Error("ready DTOが必要です");
 
     expect(
-      data.categoryBreakdown.top.map((category) => [
+      data.expenseByCategory.map((category) => [
         category.name,
         category.amountMinor,
+        category.sharePercent,
       ]),
     ).toEqual([
-      ["食費", 6000],
-      ["住居", 4000],
-      ["旧サブスク", 1000],
+      ["食費", 6000, 55],
+      ["住居", 4000, 36],
+      ["旧サブスク", 1000, 9],
     ]);
-    expect(data.categoryBreakdown.others).toBeUndefined();
+    // 概要は「その他のカテゴリ」へ丸めず全件を返す
+    expect(data).not.toHaveProperty("categoryBreakdown");
     expect(
-      data.categoryBreakdown.top.reduce(
+      data.expenseByCategory.reduce(
         (total, category) => total + category.amountMinor,
         0,
       ),
@@ -392,7 +394,7 @@ describe("getAnalyticsOverview", () => {
     expect(data.totals.expenseTotal).toBe(111000);
     expect(data.previousTotals.expenseTotal).toBe(110000);
     expect(
-      data.categoryBreakdown.top.find((category) => category.name === "住居")
+      data.expenseByCategory.find((category) => category.name === "住居")
         ?.amountMinor,
     ).toBe(104000);
   });
@@ -420,7 +422,7 @@ describe("getAnalyticsOverview", () => {
       balance: 0,
     });
     expect(data.hasTransactions).toBe(false);
-    expect(data.categoryBreakdown.top).toEqual([]);
+    expect(data.expenseByCategory).toEqual([]);
   });
 
   it("予算値を持たない月は予算進捗を返さない (AC-ANA-011-1)", async () => {
