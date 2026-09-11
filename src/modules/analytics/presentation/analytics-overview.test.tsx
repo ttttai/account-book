@@ -459,3 +459,45 @@ describe("AnalyticsValidationError", () => {
     ).toBe(`/groups/${GROUP_ID}/analytics?month=2026-09&scope=group`);
   });
 });
+
+describe("AnalyticsOverview 集計対象の幅配分 (AC-ANA-005-3, AC-CAL-004-3)", () => {
+  const navName = { name: "分析の集計対象" };
+
+  it("2枠では幅配分の修飾classを付けない", () => {
+    render(<AnalyticsOverview data={createData({ members: [SELF] })} />);
+    const nav = screen.getByRole("navigation", navName);
+    expect(nav.classList).toContain("analytics-scope-nav");
+    expect(nav.classList).not.toContain("has-member-slot");
+  });
+
+  it("直接リンクの3枠では修飾classを付け、表示名の全文をリンク名に残す", () => {
+    render(
+      <AnalyticsOverview data={createData({ members: [SELF, OTHERS[2]] })} />,
+    );
+    const nav = screen.getByRole("navigation", navName);
+    expect(nav.classList).toContain("has-member-slot");
+    const link = within(nav).getByRole("link", {
+      name: OTHERS[2].displayName,
+    });
+    expect(link.textContent).toBe(OTHERS[2].displayName);
+    expect(nav.children[2]).toBe(link);
+  });
+
+  it("選択欄の3枠でも修飾classを付け、summaryは文字として表示名だけを持つ", () => {
+    render(
+      <AnalyticsOverview
+        data={createData({
+          members: [SELF, ...OTHERS],
+          scope: "member",
+          selectedMemberId: MEMBER_D,
+          selectedMemberLabel: OTHERS[2].displayName,
+        })}
+      />,
+    );
+    const nav = screen.getByRole("navigation", navName);
+    expect(nav.classList).toContain("has-member-slot");
+    const summary = nav.querySelector("summary");
+    expect(summary?.parentElement).toBe(nav.children[2]);
+    expect(summary?.textContent).toBe(OTHERS[2].displayName);
+  });
+});
