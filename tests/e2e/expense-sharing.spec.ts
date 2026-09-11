@@ -186,9 +186,10 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
   if (testInfo.project.name === "mobile") {
     await memberPage.getByRole("button", { name: /^絞り込み/ }).click();
   }
-  await expect(memberPage.getByLabel("支出した人")).toHaveValue(
-    new URL(memberPage.url()).searchParams.get("member") ?? "",
-  );
+  // 適用中条件の「支出した人 〇〇の絞り込みを解除」linkと区別するため、selectはroleで特定する
+  await expect(
+    memberPage.getByRole("combobox", { name: "支出した人" }),
+  ).toHaveValue(new URL(memberPage.url()).searchParams.get("member") ?? "");
   await expect(
     memberPage.getByRole("button", { name: "絞り込みを適用" }),
   ).toHaveCount(0);
