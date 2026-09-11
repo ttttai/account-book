@@ -5,17 +5,34 @@
 
 .history-controls {
   display: grid;
+  min-width: 0;
   gap: 0.75rem;
+}
+
+/* chip行と「絞り込み」を1行に置く。chipは横scrollで全件へ到達でき、320pxでも欠落しない (AC-HIS-003-1) */
+.history-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .history-shortcuts {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-width: 0;
   gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.history-shortcuts::-webkit-scrollbar {
+  display: none;
 }
 
 .history-chip {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   min-height: 44px;
   padding: 0 1rem;
@@ -25,6 +42,7 @@
   color: var(--text);
   font-size: 0.9rem;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .history-chip:global(.is-active) {
@@ -34,28 +52,100 @@
   font-weight: 600;
 }
 
-.history-filter-sheet {
+.history-filter-open {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 1rem;
+  border-radius: 999px;
   background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.history-filter-sheet > summary {
+.history-filter-open:global(.is-active) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.history-filter-count {
+  display: inline-flex;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+/* 900px未満ではbottom sheetとして画面下部から開き、下部ナビゲーションの上に重ねる (AC-HIS-008-5) */
+.history-filter-sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: min(85dvh, 100%);
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 -8px 28px rgb(36 49 38 / 12%);
+}
+
+.history-filter-sheet::backdrop {
+  background: rgb(36 49 38 / 35%);
+}
+
+.history-filter-sheet-body {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.35rem 1rem max(1rem, env(safe-area-inset-bottom));
+}
+
+.history-filter-sheet-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   min-height: 44px;
-  padding: 0.6rem 1rem;
-  cursor: pointer;
+}
+
+.history-filter-sheet-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* 閉じるは見出し行の右端に置く控えめなテキスト */
+.history-filter-close {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .history-filter-form {
   display: grid;
   gap: 0.9rem;
-  padding: 0 1rem 1rem;
 }
 
-.history-filter-form label {
+.history-filter-form label,
+.history-month-field legend {
   display: grid;
   gap: 0.35rem;
   color: var(--muted);
@@ -63,7 +153,6 @@
   font-weight: 600;
 }
 
-.history-filter-form input,
 .history-filter-form select {
   min-height: 44px;
   padding: 0.5rem 0.75rem;
@@ -74,8 +163,57 @@
   font: inherit;
 }
 
-.history-filter-form :global(.primary-button) {
+.history-month-field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.history-month-field legend {
+  margin-bottom: 0.35rem;
+  padding: 0;
+}
+
+.history-month-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.history-month-step,
+.history-month-clear {
   min-height: 44px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.history-month-step {
+  flex: 0 0 auto;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: #fff;
+  color: var(--text);
+}
+
+.history-month-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text);
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.history-month-clear {
+  flex: 0 0 auto;
+  min-width: 44px;
+  padding: 0 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .history-applied-filters {
@@ -257,6 +395,19 @@
   min-height: 44px;
 }
 
+/* 反映中は表示済みの行を薄く残し、置き換わるまで消さない (AC-HIS-008-1) */
+.history-date-groups:global(.is-stale),
+.history-empty-message:global(.is-stale) {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.history-status-message {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .history-empty-message {
   margin: 0;
   padding: 1.25rem 1rem;
@@ -266,10 +417,21 @@
   text-align: center;
 }
 
+.history-error {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+}
+
 .history-error-message {
   margin: 0;
   color: #a13d2d;
   font-size: 0.9rem;
+}
+
+.history-retry {
+  width: auto;
+  min-height: 44px;
 }
 
 @media (min-width: 900px) {
@@ -281,6 +443,27 @@
   .history-controls {
     position: sticky;
     top: 1.5rem;
+  }
+  /* 900px以上ではsheetを絞り込み列の常設パネルとして常時表示し、開閉操作を出さない (AC-HIS-008-5) */
+  .history-shortcuts {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .history-filter-open,
+  .history-filter-close {
+    display: none;
+  }
+  .history-filter-sheet {
+    position: static;
+    display: grid;
+    width: auto;
+    max-height: none;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: none;
+  }
+  .history-filter-sheet-body {
+    padding: 0.25rem 1rem 1rem;
   }
   .history-load-more {
     width: min(100%, 20rem);

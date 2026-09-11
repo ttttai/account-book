@@ -34,6 +34,7 @@
 - `NFR-PERF-004` 履歴はcursor paginationを使い、標準30件、最大100件とする。
 - `NFR-PERF-005` Cloud Runはrequest-based billing、min instances 0、初期限度付きmax instancesとする。
 - `NFR-PERF-006` 同じ月・集計対象内の日付選択では、認可済みの月間DTOを再利用し、認証、所属、プロフィール、月間取引を再取得しない。選択状態と日別パネルへ即時feedbackを返す。
+- `NFR-PERF-007` 履歴の絞り込み条件の変更では、ページ全体の再読み込みやServer Componentの再取得を行わず、認可を毎回確認する薄いServer Actionで一覧ページだけを取得する。chip・適用中条件・下部ナビゲーションは同じ要素を維持し、一覧領域だけを待機表示にする。
 
 非公開MVPでは、費用とのtrade-offとしてcold startを許容する。
 

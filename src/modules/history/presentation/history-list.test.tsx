@@ -9,11 +9,12 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { HistoryRow } from "../domain/history-row";
-import { loadMoreHistoryAction } from "./actions";
+import { applyHistoryFilterAction, loadMoreHistoryAction } from "./actions";
 import { HistoryList } from "./history-list";
 
 vi.mock("./actions", () => ({
   loadMoreHistoryAction: vi.fn(),
+  applyHistoryFilterAction: vi.fn(),
 }));
 
 const groupId = "00000000-0000-4000-8000-000000000001";
@@ -58,6 +59,7 @@ const rowC = createRow({
 
 beforeEach(() => {
   vi.mocked(loadMoreHistoryAction).mockReset();
+  vi.mocked(applyHistoryFilterAction).mockReset();
   window.history.replaceState(
     null,
     "",
@@ -260,6 +262,110 @@ describe("HistoryList", () => {
     expect(new URLSearchParams(window.location.search).has("cursor")).toBe(
       false,
     );
+  });
+
+  it("絞り込み条件が変わると一覧だけを待機表示にして1ページ目を置き換え、cursorとエラーを条件ごとに持ち直す (AC-HIS-008-1)", async () => {
+    let resolveApply: (value: {
+      status: "ready";
+      rows: readonly HistoryRow[];
+      nextCursor?: string;
+    }) => void = () => {};
+    vi.mocked(applyHistoryFilterAction).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveApply = resolve;
+        }),
+    );
+    const { rerender, container } = render(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ month: "2026-08" }}
+        initialRows={[rowA]}
+        initialNextCursor="cursor-1"
+        todayDate={todayDate}
+      />,
+    );
+    // 初期表示では取得しない
+    expect(applyHistoryFilterAction).not.toHaveBeenCalled();
+    const region = screen.getByRole("region", { name: "取引履歴の一覧" });
+
+    rerender(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ month: "2026-08", type: "income" }}
+        initialRows={[rowA]}
+        initialNextCursor="cursor-1"
+        todayDate={todayDate}
+      />,
+    );
+    await waitFor(() =>
+      expect(applyHistoryFilterAction).toHaveBeenCalledWith(groupId, {
+        month: "2026-08",
+        type: "income",
+      }),
+    );
+    // 反映中は表示済みの行を薄く残し、領域をaria-busyにする。さらに読み込むは押せない
+    expect(region.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByText("カテゴリA")).toBeTruthy();
+    expect(
+      container.querySelector(".history-date-groups.is-stale"),
+    ).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("絞り込みを反映中…");
+    expect(
+      (
+        screen.getByRole("button", {
+          name: "さらに読み込む",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+
+    resolveApply({ status: "ready", rows: [rowC] });
+    await waitFor(() => expect(screen.getByText("カテゴリC")).toBeTruthy());
+    expect(screen.queryByText("カテゴリA")).toBeNull();
+    expect(region.getAttribute("aria-busy")).toBeNull();
+    expect(container.querySelector(".is-stale")).toBeNull();
+    // 新しい条件の1ページ目に続きが無ければ、前の条件のcursorを引き継がない
+    expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
+    // 編集リンクの戻り先も新しい条件になる
+    expect(
+      screen.getByRole("link", { name: /カテゴリC/ }).getAttribute("href"),
+    ).toContain(encodeURIComponent("?month=2026-08&type=income"));
+  });
+
+  it("絞り込みの取得に失敗すると行を残してエラーと再試行を表示する (AC-HIS-008-3)", async () => {
+    vi.mocked(applyHistoryFilterAction)
+      .mockResolvedValueOnce({
+        status: "error",
+        message: "絞り込みを反映できませんでした。",
+      })
+      .mockResolvedValueOnce({ status: "ready", rows: [rowB] });
+    const { rerender } = render(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{}}
+        initialRows={[rowA]}
+        initialNextCursor={undefined}
+        todayDate={todayDate}
+      />,
+    );
+    rerender(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ type: "expense" }}
+        initialRows={[rowA]}
+        initialNextCursor={undefined}
+        todayDate={todayDate}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+    expect(screen.getByText("カテゴリA")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "再試行" }));
+    await waitFor(() => expect(screen.getByText("カテゴリB")).toBeTruthy());
+    expect(applyHistoryFilterAction).toHaveBeenLastCalledWith(groupId, {
+      type: "expense",
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("行が0件でも絞り込みを消さず空状態を表示する", () => {

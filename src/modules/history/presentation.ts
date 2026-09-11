@@ -1,4 +1,2 @@
-export {
-  HistoryValidationError,
-  HistoryView,
-} from "./presentation/history-view";
+export { HistoryValidationError } from "./presentation/history-validation-error";
+export { HistoryView } from "./presentation/history-view";
