@@ -22,6 +22,7 @@ import {
   appendAmountOperator,
   completeAmountExpression,
   evaluateAmountExpression,
+  formatAmountExpression,
   normalizeAmountInput,
   parseAmountExpression,
   removeLastAmountDigit,
@@ -49,8 +50,6 @@ type ExpenseFormProps = Readonly<{
   /** フォーム直後へ描画する補助操作（削除など）。固定ドックの余白の内側へ含める (AC-TXN-009-5) */
   footer?: ReactNode;
 }>;
-
-const yenFormatter = new Intl.NumberFormat("ja-JP");
 
 // 計算できない式の理由を金額欄の近くへ示す文言 (AC-TXN-017-4)
 const CALCULATION_FAILURE_MESSAGES: Readonly<
@@ -172,6 +171,8 @@ export function ExpenseForm({
   const amountEvaluation = evaluateAmountExpression(amountExpression);
   const amountMinor = amountEvaluation.ok ? amountEvaluation.value : "";
   const parsedAmount = parseAmountExpression(amountExpression);
+  // 金額欄の表示だけを3桁区切りにする。式の状態と送信値は区切りなしのまま (AC-TXN-014-10)
+  const amountDisplay = formatAmountExpression(amountExpression);
   // 右辺を入力している間だけ、保存時に使う計算結果か計算できない理由を示す (AC-TXN-017-3, AC-TXN-017-4)
   const showCalculation =
     parsedAmount.operator !== null && parsedAmount.right !== "";
@@ -436,9 +437,10 @@ export function ExpenseForm({
           <label htmlFor="amountMinor">金額</label>
           {/* 送信する金額は式の計算結果だけ。表示用の欄はnameを持たせずFormDataへ含めない (AC-TXN-017-3) */}
           <input name="amountMinor" type="hidden" value={amountMinor} />
+          {/* 文字を小さくする8文字以上の判定は、桁区切りを含めた表示文字数で行う (TXN-017, AC-TXN-014-10) */}
           <div
             className={styles["amount-input-wrap"]}
-            data-long={amountExpression.length >= 8 ? "true" : undefined}
+            data-long={amountDisplay.length >= 8 ? "true" : undefined}
           >
             <span aria-hidden="true">¥</span>
             <input
@@ -458,7 +460,7 @@ export function ExpenseForm({
               onClick={() => setKeypadOpen(true)}
               placeholder="0"
               ref={amountInputRef}
-              value={amountExpression}
+              value={amountDisplay}
             />
           </div>
           {showCalculation && (
@@ -469,7 +471,7 @@ export function ExpenseForm({
               id="amountMinor-calculation"
             >
               {amountEvaluation.ok
-                ? `= ¥${yenFormatter.format(Number(amountEvaluation.value || 0))}`
+                ? `= ¥${formatAmountExpression(amountEvaluation.value || "0")}`
                 : CALCULATION_FAILURE_MESSAGES[amountEvaluation.reason]}
             </p>
           )}
@@ -678,7 +680,10 @@ export function ExpenseForm({
                   return (
                     <div key={allocation.memberId}>
                       <dt>{member?.displayName ?? "メンバー"}</dt>
-                      <dd>¥{yenFormatter.format(allocation.amountMinor)}</dd>
+                      <dd>
+                        ¥
+                        {formatAmountExpression(String(allocation.amountMinor))}
+                      </dd>
                     </div>
                   );
                 })}

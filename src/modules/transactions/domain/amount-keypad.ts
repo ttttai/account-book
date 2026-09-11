@@ -142,7 +142,20 @@ export function completeAmountExpression(current: string): string {
   return evaluation.ok ? evaluation.value : current;
 }
 
-// 物理キーボードや貼り付けで入った文字列を、テンキーと同じ規則で1文字ずつ適用して式へ正規化する (AC-TXN-017-1, AC-TXN-014-2)
+// 数字列を3桁区切りにする。locale実装に依存しない決定的な整形で、server renderとhydrationで同じ文字列になる
+function groupDigits(operand: string): string {
+  return operand.replace(/\B(?=(\d{3})+$)/g, ",");
+}
+
+/** 金額欄の表示用に式の左辺・右辺をそれぞれ3桁区切りにする。式の状態と送信値は区切りなしのまま保つ (AC-TXN-014-10) */
+export function formatAmountExpression(current: string): string {
+  const { left, operator, right } = parseAmountExpression(current);
+  if (!operator) return groupDigits(left);
+  return `${groupDigits(left)}${operator}${groupDigits(right)}`;
+}
+
+// 物理キーボードや貼り付けで入った文字列を、テンキーと同じ規則で1文字ずつ適用して式へ正規化する。
+// 桁区切り表示の`,`は数字でも演算子でもないため捨てられる (AC-TXN-017-1, AC-TXN-014-2, AC-TXN-014-10)
 export function normalizeAmountInput(raw: string): string {
   let result = "";
   for (const character of raw) {

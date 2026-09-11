@@ -222,7 +222,7 @@ describe("ExpenseForm の金額テンキー (TXN-014)", () => {
 
     fireEvent.change(amountInput(), { target: { value: "2480" } });
 
-    expect(amountInput().value).toBe("2480");
+    expect(amountInput().value).toBe("2,480");
   });
 
   it("先頭に0を作らず、安全な整数の上限を超える桁を無視する (AC-TXN-014-4)", () => {
@@ -240,7 +240,7 @@ describe("ExpenseForm の金額テンキー (TXN-014)", () => {
     pressKey("1");
 
     // 上限を超える桁は追加せず、入力済みの値を壊さない
-    expect(amountInput().value).toBe("9007199254740991");
+    expect(amountInput().value).toBe("9,007,199,254,740,991");
   });
 
   it("テンキーのキーはフォームを送信しない (AC-TXN-014-1)", () => {
@@ -372,7 +372,7 @@ describe("ExpenseForm のテンキー開閉と保存の常設 (TXN-014, TXN-016)
     fireEvent.focus(screen.getByLabelText("メモ（任意）"));
     fireEvent.focus(amountInput());
 
-    expect(amountInput().value).toBe("2500");
+    expect(amountInput().value).toBe("2,500");
   });
 
   it("閉じている間も金額欄から再び開けることを画面上で示す (AC-TXN-014-6)", () => {
@@ -392,7 +392,7 @@ describe("ExpenseForm のテンキー開閉と保存の常設 (TXN-014, TXN-016)
     fireEvent.focus(screen.getByLabelText("メモ（任意）"));
     fireEvent.change(amountInput(), { target: { value: "3400" } });
 
-    expect(amountInput().value).toBe("3400");
+    expect(amountInput().value).toBe("3,400");
   });
 
   it("テンキーの開閉とカテゴリ展開のどの状態でも保存操作が消えない (AC-TXN-016-1)", () => {
@@ -600,7 +600,7 @@ describe("ExpenseForm の電卓 (TXN-017)", () => {
     pressKey("3");
     pressKey("00");
     pressKey("計算する");
-    expect(amountInput().value).toBe("1500");
+    expect(amountInput().value).toBe("1,500");
     expect(screen.queryByText(/^= ¥/)).toBeNull();
 
     pressKey("引く");
@@ -676,7 +676,7 @@ describe("ExpenseForm の電卓 (TXN-017)", () => {
     renderForm();
 
     fireEvent.change(amountInput(), { target: { value: "1000*3" } });
-    expect(amountInput().value).toBe("1000×3");
+    expect(amountInput().value).toBe("1,000×3");
     expect(submittedAmount().value).toBe("3000");
 
     fireEvent.change(amountInput(), { target: { value: "50/2" } });
