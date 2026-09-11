@@ -215,6 +215,12 @@ test("予算スタイルを機能のCSS Modulesへ置き、横scrollと44px未�
   assert.match(editor, /appendAmountDigit/);
   assert.match(editor, /removeLastAmountDigit/);
   assert.match(moduleCss, /scroll-margin-bottom/);
+  // 金額欄は表示だけを3桁区切りにし、区切りなしの整数をhidden inputで送る。表示用inputはnameを持たない (AC-BUD-010-5)
+  assert.match(editor, /value=\{formatAmountExpression\(value\)\}/);
+  assert.match(editor, /stripAmountGrouping\(/);
+  assert.match(editor, /name=\{name\}[\s\S]{0,40}type="hidden"/);
+  assert.doesNotMatch(editor, /inputMode="none"(?:(?!\/>)[\s\S])*name=/);
+  assert.doesNotMatch(editor, /Intl\./);
 });
 
 test("予算はRoute Handlerと内部APIを追加しない", async () => {

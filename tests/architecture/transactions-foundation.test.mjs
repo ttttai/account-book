@@ -279,9 +279,9 @@ test("金額テンキーの電卓は整数計算で、送信値と表示を分�
   assert.match(form, /formatAmountExpression\(amountExpression\)/);
   assert.doesNotMatch(form, /value=\{amountExpression\}/);
   assert.doesNotMatch(form, /Intl\.NumberFormat/);
-  // 固定費・予算の金額欄は変更しない (AC-TXN-014-10)。
-  assert.doesNotMatch(recurring, /formatAmountExpression/);
-  assert.doesNotMatch(budget, /formatAmountExpression/);
+  // 固定費・予算の金額欄も同じ整形関数を再利用し、表示だけを区切る (AC-REC-005-5, AC-BUD-010-5)。
+  assert.match(recurring, /formatAmountExpression\(/);
+  assert.match(budget, /formatAmountExpression\(/);
   // 演算子列と=は任意指定で、取引入力だけが有効化する (AC-TXN-017-6)。
   assert.match(keypad, /calculator/);
   assert.match(form, /calculator=\{/);

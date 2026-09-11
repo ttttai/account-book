@@ -5,9 +5,11 @@ export {
   appendAmountOperator,
   completeAmountExpression,
   evaluateAmountExpression,
+  formatAmountExpression,
   normalizeAmountInput,
   parseAmountExpression,
   removeLastAmountDigit,
+  stripAmountGrouping,
 } from "./domain/amount-keypad";
 export type {
   AmountEvaluation,

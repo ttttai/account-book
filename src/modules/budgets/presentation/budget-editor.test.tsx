@@ -116,7 +116,18 @@ describe("BudgetEditor", () => {
     const food = screen.getByLabelText("食費") as HTMLInputElement;
     expect(total.getAttribute("inputmode")).toBe("none");
     expect(food.getAttribute("inputmode")).toBe("none");
-    expect(food.getAttribute("name")).toBe(`categoryLimit:${FOOD}`);
+    // 表示用の金額欄はnameを持たず、送信名はhidden inputで維持する (AC-BUD-010-5)
+    expect(food.getAttribute("name")).toBeNull();
+    expect(total.getAttribute("name")).toBeNull();
+    expect(
+      document.querySelector<HTMLInputElement>(
+        `input[name="categoryLimit:${FOOD}"]`,
+      )?.type,
+    ).toBe("hidden");
+    expect(
+      document.querySelector<HTMLInputElement>('input[name="totalAmountMinor"]')
+        ?.type,
+    ).toBe("hidden");
     expect(keypadIsOpen()).toBe(false);
     expect(screen.getByText(KEYPAD_HINT)).toBeTruthy();
 
@@ -128,11 +139,14 @@ describe("BudgetEditor", () => {
     pressKey("0");
     pressKey("00");
     pressKey("00");
-    expect(total.value).toBe("300000");
+    // 表示は3桁区切り、送信値は区切りなしの整数 (AC-BUD-010-5)
+    expect(total.value).toBe("300,000");
+    expect(hiddenValue("totalAmountMinor")).toBe("300000");
     pressKey("1桁削除");
-    expect(total.value).toBe("30000");
+    expect(total.value).toBe("30,000");
+    expect(hiddenValue("totalAmountMinor")).toBe("30000");
     pressKey("0");
-    expect(total.value).toBe("300000");
+    expect(total.value).toBe("300,000");
     expect(
       total
         .closest("[data-budget-field]")
@@ -144,8 +158,9 @@ describe("BudgetEditor", () => {
     pressKey("6");
     pressKey("00");
     pressKey("00");
-    expect(food.value).toBe("60000");
-    expect(total.value).toBe("300000");
+    expect(food.value).toBe("60,000");
+    expect(hiddenValue(`categoryLimit:${FOOD}`)).toBe("60000");
+    expect(total.value).toBe("300,000");
     expect(
       food
         .closest("[data-budget-field]")
@@ -172,7 +187,13 @@ describe("BudgetEditor", () => {
     expect(screen.getByText(KEYPAD_HINT)).toBeTruthy();
 
     fireEvent.change(total, { target: { value: "12345" } });
-    expect(total.value).toBe("12345");
+    expect(total.value).toBe("12,345");
+    expect(hiddenValue("totalAmountMinor")).toBe("12345");
+
+    // 桁区切り表示を含む入力は,を無視して数字だけを状態へ反映する (AC-BUD-010-5)
+    fireEvent.change(total, { target: { value: "1,2,34,567" } });
+    expect(total.value).toBe("1,234,567");
+    expect(hiddenValue("totalAmountMinor")).toBe("1234567");
   });
 
   it("入力中に合計と未配分額を表示する (AC-BUD-010-3)", () => {
@@ -241,12 +262,15 @@ describe("BudgetEditor", () => {
 
     expect(screen.getByRole("button", { name: "この月から変更" })).toBeTruthy();
     expect(hiddenValue("expectedVersion")).toBe("");
+    // 適用改定からの初期値も区切って表示し、送信値は整数のまま (AC-BUD-010-5)
     expect(
       (screen.getByLabelText("グループ予算") as HTMLInputElement).value,
-    ).toBe("300000");
+    ).toBe("300,000");
+    expect(hiddenValue("totalAmountMinor")).toBe("300000");
     expect((screen.getByLabelText("食費") as HTMLInputElement).value).toBe(
-      "60000",
+      "60,000",
     );
+    expect(hiddenValue(`categoryLimit:${FOOD}`)).toBe("60000");
     expect((screen.getByLabelText("住居") as HTMLInputElement).value).toBe("");
   });
 
@@ -299,7 +323,7 @@ describe("BudgetEditor", () => {
 
     expect(
       (screen.getByLabelText("グループ予算") as HTMLInputElement).value,
-    ).toBe("400000");
+    ).toBe("400,000");
     expect((screen.getByLabelText("食費") as HTMLInputElement).value).toBe("");
     expect(hiddenValue("effectiveMonth")).toBe("2026-10");
     expect(hiddenValue("expectedVersion")).toBe("1");
@@ -308,9 +332,9 @@ describe("BudgetEditor", () => {
     rerender(<BudgetEditor view={view} />);
     expect(
       (screen.getByLabelText("グループ予算") as HTMLInputElement).value,
-    ).toBe("300000");
+    ).toBe("300,000");
     expect((screen.getByLabelText("食費") as HTMLInputElement).value).toBe(
-      "60000",
+      "60,000",
     );
   });
 
@@ -337,7 +361,7 @@ describe("BudgetEditor", () => {
         }}
       />,
     );
-    expect(input.value).toBe("450000");
+    expect(input.value).toBe("450,000");
     expect((screen.getByLabelText("食費") as HTMLInputElement).value).toBe("");
     expect(hiddenValue("expectedVersion")).toBe("3");
     expect(document.activeElement).toBe(input);
@@ -360,7 +384,8 @@ describe("BudgetEditor", () => {
         }}
       />,
     );
-    expect(input.value).toBe("350000");
+    expect(input.value).toBe("350,000");
+    expect(hiddenValue("totalAmountMinor")).toBe("350000");
     expect(document.activeElement).toBe(input);
   });
 
@@ -381,7 +406,7 @@ describe("BudgetEditor", () => {
     );
     expect(
       (screen.getByLabelText("グループ予算") as HTMLInputElement).value,
-    ).toBe("500000");
+    ).toBe("500,000");
   });
 
   it("停止後の同月再表示では停止前の金額を新規設定へ持ち越さない (AC-BUD-006-1)", () => {

@@ -27,6 +27,8 @@ test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダ
   await form.getByLabel("名称").fill(RECURRING_NAME);
   await form.getByLabel("メモ").fill("共益費込みの住居費");
   await form.getByLabel("金額").fill(String(RECURRING_AMOUNT));
+  // 金額欄は入力中も3桁区切りで表示し、送信値は整数のまま (AC-REC-005-5)
+  await expect(form.getByLabel("金額")).toHaveValue("80,000");
   await form.getByLabel("毎月の日付").selectOption("1");
   await form.getByLabel("開始月").fill(month);
   await form.getByLabel("カテゴリ").selectOption({ label: "住居" });

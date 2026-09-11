@@ -12,7 +12,9 @@ import { useFormStatus } from "react-dom";
 
 import {
   appendAmountDigit,
+  formatAmountExpression,
   removeLastAmountDigit,
+  stripAmountGrouping,
 } from "@/modules/transactions";
 import { AmountKeypad } from "@/modules/transactions/presentation";
 
@@ -196,6 +198,8 @@ function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
       {/* inputmode="none"でOSの仮想キーボードを開かず、物理キーボードとスクリーンリーダーからの入力は維持する (AC-REC-005-1, AC-REC-005-3) */}
       <div className={styles["recurring-field"]}>
         <label htmlFor={`${fieldId}-amount`}>金額</label>
+        {/* 送信値は区切りなしの整数のままhidden inputで送り、表示用の金額欄だけを3桁区切りにする (AC-REC-005-5) */}
+        <input name="amountMinor" type="hidden" value={amountMinor} />
         <div className={styles["recurring-amount-wrap"]}>
           <span aria-hidden="true">¥</span>
           <input
@@ -205,15 +209,16 @@ function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
             autoComplete="off"
             id={`${fieldId}-amount`}
             inputMode="none"
-            name="amountMinor"
-            onChange={(event) => setAmountMinor(event.target.value)}
+            onChange={(event) =>
+              setAmountMinor(stripAmountGrouping(event.target.value))
+            }
             onClick={() => setKeypadOpen(true)}
-            pattern="[0-9]*"
+            pattern="[0-9,]*"
             placeholder="0"
             ref={amountInputRef}
             required
             type="text"
-            value={amountMinor}
+            value={formatAmountExpression(amountMinor)}
           />
         </div>
         {keypadOpen ? (

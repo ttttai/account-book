@@ -154,6 +154,11 @@ export function formatAmountExpression(current: string): string {
   return `${groupDigits(left)}${operator}${groupDigits(right)}`;
 }
 
+/** 桁区切り表示の`,`だけを除き、金額欄の状態へ戻す。電卓を持たない固定費・予算の金額欄が物理キーボードの入力を受けるときに使い、演算子の正規化は行わない (AC-REC-005-5, AC-BUD-010-5) */
+export function stripAmountGrouping(raw: string): string {
+  return raw.replace(/,/g, "");
+}
+
 // 物理キーボードや貼り付けで入った文字列を、テンキーと同じ規則で1文字ずつ適用して式へ正規化する。
 // 桁区切り表示の`,`は数字でも演算子でもないため捨てられる (AC-TXN-017-1, AC-TXN-014-2, AC-TXN-014-10)
 export function normalizeAmountInput(raw: string): string {
