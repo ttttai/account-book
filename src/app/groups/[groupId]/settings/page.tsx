@@ -3,7 +3,12 @@ import { notFound, redirect } from "next/navigation";
 
 import { LogoutForm, ProfileForm } from "@/modules/auth/presentation";
 import { getCurrentProfile } from "@/modules/auth/server";
-import { DefaultGroupForm } from "@/modules/groups/presentation";
+import {
+  DefaultGroupForm,
+  GroupSettingsForm,
+  GroupSettingsSummary,
+  type GroupSettingsView,
+} from "@/modules/groups/presentation";
 import { getDefaultGroupId, getGroupMembership } from "@/modules/groups/server";
 
 type SettingsPageProps = Readonly<{
@@ -33,6 +38,16 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   const canManageCategories = ["owner", "admin"].includes(
     membership.currentRole,
   );
+  // グループ設定の編集はowner/adminだけに提供し、memberには読み取り専用で表示する (AC-GRP-013-1)
+  const canEditGroupSettings = canManageCategories;
+  const groupSettings: GroupSettingsView = {
+    name: membership.group.name,
+    currency: membership.group.currency,
+    timezone: membership.group.timezone,
+    weekStartsOn: membership.group.weekStartsOn,
+    defaultAllocation: membership.group.defaultAllocation,
+    version: membership.group.version,
+  };
 
   return (
     <main className="protected-shell settings-page">
@@ -124,32 +139,18 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
         </section>
 
         <section className="settings-panel settings-summary-panel">
-          <p className="eyebrow">現在の設定</p>
-          <h2>{membership.group.name}</h2>
-          <dl className="settings-summary">
-            <div>
-              <dt>通貨</dt>
-              <dd>{membership.group.currency}</dd>
-            </div>
-            <div>
-              <dt>タイムゾーン</dt>
-              <dd>{membership.group.timezone}</dd>
-            </div>
-            <div>
-              <dt>週の開始</dt>
-              <dd>
-                {membership.group.weekStartsOn === 0 ? "日曜日" : "月曜日"}
-              </dd>
-            </div>
-            <div>
-              <dt>標準の負担</dt>
-              <dd>
-                {membership.group.defaultAllocation === "equal"
-                  ? "均等割り"
-                  : "自分"}
-              </dd>
-            </div>
-          </dl>
+          <p className="eyebrow">グループ設定</p>
+          <h2 id="group-settings-title">
+            {canEditGroupSettings ? "名前と標準の設定" : membership.group.name}
+          </h2>
+          {canEditGroupSettings ? (
+            <GroupSettingsForm
+              groupId={membership.group.id}
+              settings={groupSettings}
+            />
+          ) : (
+            <GroupSettingsSummary settings={groupSettings} />
+          )}
         </section>
 
         <section className="settings-panel settings-session-panel">
