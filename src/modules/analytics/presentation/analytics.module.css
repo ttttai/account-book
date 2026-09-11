@@ -35,16 +35,18 @@
   margin: 0;
 }
 
-/* 2枠・3枠を等幅で1行に並べ、メンバー数が増えても折り返さない (AC-ANA-005-3) */
+/* 枠は1行で折り返さない。2枠は等幅、3枠は固定語の幅を確保して残りを3枠目へ渡す (AC-ANA-005-3, AC-CAL-004-3) */
 .analytics-scope-nav {
-  display: grid;
+  display: flex;
   min-width: 0;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
   gap: 0.3rem;
   padding: 0.15rem;
   border-radius: 0.9rem;
   background: var(--background);
+}
+
+.analytics-scope-nav > a {
+  flex: 1 1 0;
 }
 
 .analytics-scope-nav > a,
@@ -73,12 +75,33 @@
 
 .analytics-member-picker {
   position: relative;
+  flex: 1 1 0;
   min-width: 0;
 }
 
+/* 選択欄であることを示す開閉の印の分だけ左右を空け、文字は中央に保つ */
 .analytics-member-picker > summary {
+  position: relative;
+  padding-inline: 1.25rem;
   list-style: none;
   cursor: pointer;
+}
+
+/* 開閉の印はCSSで描き、accessibility nameへ文字を足さない (AC-CAL-004-3) */
+.analytics-member-picker > summary::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.analytics-member-picker[open] > summary::after {
+  transform: translateY(-30%) rotate(-135deg);
 }
 
 .analytics-member-picker > summary::-webkit-details-marker {
@@ -117,6 +140,15 @@
   color: var(--accent);
   background: var(--accent-soft);
   font-weight: 700;
+}
+
+/* 3枠では「グループ」「自分」を省略せず、幅が足りないときは3枠目だけを縮めて省略する (AC-CAL-004-3) */
+.analytics-scope-nav.has-member-slot > a:nth-child(-n + 2) {
+  flex: 1 0 auto;
+}
+
+.analytics-scope-nav.has-member-slot > :nth-child(3) {
+  flex: 1 1 auto;
 }
 
 .analytics-metrics {

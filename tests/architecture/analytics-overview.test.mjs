@@ -228,11 +228,25 @@ test("分析の集計対象枠は折り返さず、選択欄は選択後に閉�
     "src/modules/analytics/presentation/analytics-member-picker.tsx",
   );
 
-  // 枠を複数行へ折り返さず、等幅gridで2枠・3枠を並べる
+  // 枠を複数行へ折り返さず、flexで2枠・3枠を1行に並べる
   const scopeNav = moduleCss.match(/\.analytics-scope-nav \{[^}]*\}/)?.[0];
   assert.ok(scopeNav);
-  assert.doesNotMatch(scopeNav, /flex-wrap/);
-  assert.match(scopeNav, /display:\s*grid;/);
+  assert.doesNotMatch(scopeNav, /flex-wrap|grid/);
+  assert.match(scopeNav, /display:\s*flex;/);
+  // 3枠では「グループ」「自分」を省略せず、3枠目だけを縮める（AC-CAL-004-3と同じ規則）
+  assert.match(
+    moduleCss,
+    /\.analytics-scope-nav\.has-member-slot > a:nth-child\(-n \+ 2\) \{[^}]*flex: 1 0 auto;/,
+  );
+  assert.match(
+    moduleCss,
+    /\.analytics-scope-nav\.has-member-slot > :nth-child\(3\) \{[^}]*flex: 1 1 auto;/,
+  );
+  assert.match(
+    moduleCss,
+    /\.analytics-member-picker > summary::after \{[^}]*content: "";/,
+  );
+  assert.match(overview, /has-member-slot/);
   // 選択欄はカレンダーと同じdetails/summaryで、moduleを越えてcalendarのpresentationをimportしない
   assert.match(overview, /AnalyticsMemberPicker/);
   assert.doesNotMatch(overview, /modules\/calendar/);
