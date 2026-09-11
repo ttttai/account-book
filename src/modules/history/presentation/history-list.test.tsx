@@ -89,7 +89,7 @@ describe("HistoryList", () => {
     );
     expect(
       screen.getByRole("link", {
-        name: "8月15日（土） カテゴリA 山田の支出 ￥3,000 取引全体 ￥6,000",
+        name: "8月15日（土） カテゴリA 山田の支出 ￥3,000 取引全体 ￥6,000 山田",
       }),
     ).toBeTruthy();
     expect(screen.queryByText("負担額")).toBeNull();
@@ -123,7 +123,7 @@ describe("HistoryList", () => {
     expect(screen.queryByText("2026年8月15日")).toBeNull();
 
     const rowLink = screen.getByRole("link", {
-      name: "8月15日（土） カテゴリA ￥1,000",
+      name: "8月15日（土） カテゴリA ￥1,000 山田",
     });
     expect(rowLink.getAttribute("href")).toBe(
       `/groups/${groupId}/transactions/${rowA.id}/edit?from=${encodeURIComponent(
@@ -137,7 +137,7 @@ describe("HistoryList", () => {
     expect(within(list).getAllByRole("link")).toHaveLength(2);
   });
 
-  it("行に受取者と内訳の要約を表示し、支出の支払者・全員分の内訳・「負担」の語を表示しない (AC-TXN-018-3, AC-HIS-006-2)", () => {
+  it("行に支出した人と受取者を表示し、支出の支払者・各人の金額・人数の要約・「負担」の語を表示しない (AC-TXN-018-3, AC-HIS-006-2, AC-HIS-007-1, AC-HIS-007-2)", () => {
     const shared = createRow({
       id: "00000000-0000-4000-8000-000000000104",
       categoryName: "カテゴリD",
@@ -169,16 +169,35 @@ describe("HistoryList", () => {
     expect(screen.getByText("カテゴリA")).toBeTruthy();
     expect(screen.queryByText(/支払者/)).toBeNull();
     expect(screen.getByText(/受取者\s*佐藤/)).toBeTruthy();
-    expect(screen.getByText("2人で分割")).toBeTruthy();
+    // 1人の支出は表示名だけ「山田」、2人へ配分した支出は「・」で連結し、「支出した人」の見出し語は付けない
+    expect(screen.getByText("山田")).toBeTruthy();
+    expect(screen.getByText("山田・佐藤")).toBeTruthy();
+    expect(screen.queryByText(/支出した人/)).toBeNull();
+    expect(screen.queryByText(/人で分割/)).toBeNull();
     expect(screen.getByText("スーパー")).toBeTruthy();
     expect(screen.queryByText(/内訳/)).toBeNull();
     expect(screen.queryByText(/山田 ￥/)).toBeNull();
     expect(container.textContent).not.toContain("負担");
+    // アクセシブル名にも支出した人・受取者を金額の後、メモの前で含める
     expect(
       screen.getByRole("link", {
-        name: "8月15日（土） カテゴリD ￥6,000 スーパー",
+        name: "8月15日（土） カテゴリD ￥6,000 山田・佐藤 スーパー",
       }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole("link", {
+        name: "8月15日（土） カテゴリA ￥1,000 山田",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("link", {
+        name: "8月15日（土） カテゴリC 収入 ￥1,000 受取者 佐藤",
+      }),
+    ).toBeTruthy();
+    // 収入行の2行目は受取者だけで、支出した人の表示名を並べない
+    expect(
+      screen.getByRole("link", { name: /カテゴリC/ }).textContent,
+    ).not.toContain("山田");
     expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
   });
 
