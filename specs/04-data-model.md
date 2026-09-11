@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.15
+バージョン: 0.2.16
 
 ## 1. 設計目標
 
@@ -61,17 +61,18 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 
 ### groups
 
-| column               | 型          | 説明                                  |
-| -------------------- | ----------- | ------------------------------------- |
-| `id`                 | uuid PK     | サーバー側で生成                      |
-| `name`               | text        | 1〜50文字                             |
-| `currency`           | char(3)     | MVPは`JPY`                            |
-| `timezone`           | text        | 有効なIANA timezone、標準`Asia/Tokyo` |
-| `week_starts_on`     | smallint    | 0は日曜、1は月曜                      |
-| `default_allocation` | text        | `equal`または`self`                   |
-| `created_by`         | uuid FK     | 認証ユーザー                          |
-| `created_at`         | timestamptz | UTC                                   |
-| `updated_at`         | timestamptz | UTC                                   |
+| column               | 型          | 説明                                          |
+| -------------------- | ----------- | --------------------------------------------- |
+| `id`                 | uuid PK     | サーバー側で生成                              |
+| `name`               | text        | 1〜50文字                                     |
+| `currency`           | char(3)     | MVPは`JPY`                                    |
+| `timezone`           | text        | 有効なIANA timezone、標準`Asia/Tokyo`         |
+| `week_starts_on`     | smallint    | 0は日曜、1は月曜                              |
+| `default_allocation` | text        | `equal`または`self`                           |
+| `version`            | integer     | 1から開始し設定更新ごとに加算（楽観的ロック） |
+| `created_by`         | uuid FK     | 認証ユーザー                                  |
+| `created_at`         | timestamptz | UTC                                           |
+| `updated_at`         | timestamptz | UTC                                           |
 
 ### group_members
 
@@ -342,6 +343,8 @@ exists (
 `profiles`は許可された本人、または同じグループにアクティブ所属する許可済みユーザーからselectできる。insertは`auth.users`作成時のDB triggerに限定し、updateは許可された本人だけに許可する。triggerは`security definer`を使う場合も`search_path`を空文字へ固定し、`new.id`と検証済みmetadataだけから行を作成する。表示名metadataが制約違反の場合、認証ユーザーを不完全な状態で残さず登録全体を失敗させる。
 
 `user_preferences`は許可された本人だけがselectでき、insert・update・deleteは`authenticated`へ許可せず`security definer`の`set_default_group`関数だけで更新する。関数は`search_path`を空文字へ固定し、非メンバー・存在しないグループを同じ権限エラーで拒否する。
+
+`groups`の名称・週の開始曜日・標準負担方法の更新は、`authenticated`へ直接update権限を与えず、`security definer`の`update_group_settings`関数だけで行う（`GRP-013`）。関数は`search_path`を空文字へ固定し、許可リストと対象グループのowner/admin所属を再確認して、member・非メンバー・存在しないグループを同じ権限エラーで拒否する。グループ行を`for update`でlockしたうえで`version`を比較し、不一致は`serialization_failure`として返す。値が変わらない場合は更新せず現在の`version`を返す。通貨とタイムゾーンは更新しない。
 
 Authの登録前フックは`app_metadata.provider = 'google'`と許可リストを照合し、不一致をユーザー行作成前に拒否する。RLSと`security definer`関数でも、検証済みJWTのGoogle providerと許可リストを再確認する。
 
