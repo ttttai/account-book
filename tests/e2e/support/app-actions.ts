@@ -25,8 +25,13 @@ async function chooseInFieldset(
   ).toBeChecked();
 }
 
-// テンキーで金額を入力する。利用者と同じ操作でTXN-014の入力経路を通す
-async function enterAmountWithKeypad(
+// 金額欄の表示は入力中も3桁区切り。locale実装に依存しない整形で期待値を作る (AC-TXN-014-10)
+function groupedAmount(amount: number): string {
+  return String(amount).replace(/\B(?=(\d{3})+$)/g, ",");
+}
+
+/** テンキーで金額を入力し、3桁区切りの表示を確認する。利用者と同じ操作でTXN-014の入力経路を通す (AC-TXN-014-10) */
+export async function enterAmountWithKeypad(
   page: Page,
   amount: number,
 ): Promise<void> {
@@ -35,7 +40,7 @@ async function enterAmountWithKeypad(
   for (const digit of String(amount)) {
     await page.getByRole("button", { name: digit, exact: true }).click();
   }
-  await expect(page.getByLabel("金額")).toHaveValue(String(amount));
+  await expect(page.getByLabel("金額")).toHaveValue(groupedAmount(amount));
 }
 
 // グループを作成し、作成されたグループIDを返す

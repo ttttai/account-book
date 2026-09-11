@@ -272,6 +272,16 @@ test("金額テンキーの電卓は整数計算で、送信値と表示を分�
   // 表示用の金額欄はnameを持たず、計算結果だけをhidden inputで送信する (AC-TXN-017-3)。
   assert.match(form, /name="amountMinor"[\s\S]{0,120}type="hidden"/);
   assert.doesNotMatch(form, /id="amountMinor"(?:(?!\/>)[\s\S])*name=/);
+  // 金額欄の表示は式の状態を区切りなしで保ったまま、ドメインの整形関数で3桁区切りにする (AC-TXN-014-10)。
+  // 整形はlocale実装に依存しない決定的な処理とし、Intlを使わない。
+  assert.match(keypadRules, /export function formatAmountExpression\(/);
+  assert.doesNotMatch(keypadRules, /Intl\./);
+  assert.match(form, /formatAmountExpression\(amountExpression\)/);
+  assert.doesNotMatch(form, /value=\{amountExpression\}/);
+  assert.doesNotMatch(form, /Intl\.NumberFormat/);
+  // 固定費・予算の金額欄は変更しない (AC-TXN-014-10)。
+  assert.doesNotMatch(recurring, /formatAmountExpression/);
+  assert.doesNotMatch(budget, /formatAmountExpression/);
   // 演算子列と=は任意指定で、取引入力だけが有効化する (AC-TXN-017-6)。
   assert.match(keypad, /calculator/);
   assert.match(form, /calculator=\{/);
