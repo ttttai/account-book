@@ -57,7 +57,7 @@ export type AnalyticsComparison = Readonly<{
   diffMinor: number;
 }>;
 
-/** 概要分析で表示するカテゴリ件数 (ANA-004) */
+/** LINE週次レポートの通知文で表示するカテゴリ件数。画面は丸めずに全件表示する (NOTIF-002、ANA-004) */
 export const ANALYTICS_CATEGORY_LIMIT = 5;
 
 // 加算のたびに安全な整数範囲を検証し、金額の桁あふれを例外にする
@@ -220,17 +220,25 @@ export function sharePercentOf(
   return Math.round((amountMinor / expenseTotal) * 100);
 }
 
-// カテゴリ別支出を上位N件と「その他のカテゴリ」へ分ける
-// 上位と残りの合計は常に期間支出と一致する (AC-ANA-004-1)
+// 支出のあるカテゴリ全件へ構成比を付ける。丸めないので合計は常に期間支出と一致する (AC-ANA-004-1)
+export function summarizeCategoryShares(
+  categories: readonly AnalyticsCategoryTotal[],
+  expenseTotal: number,
+): readonly AnalyticsCategoryShare[] {
+  return categories.map((category) => ({
+    ...category,
+    sharePercent: sharePercentOf(category.amountMinor, expenseTotal),
+  }));
+}
+
+// カテゴリ別支出を上位N件と「その他のカテゴリ」へ分ける（LINE週次レポートの通知文用）
+// 上位と残りの合計は常に期間支出と一致する (AC-NOTIF-002-1)
 export function summarizeCategoryBreakdown(
   categories: readonly AnalyticsCategoryTotal[],
   expenseTotal: number,
   limit: number = ANALYTICS_CATEGORY_LIMIT,
 ): AnalyticsCategoryBreakdown {
-  const top = categories.slice(0, limit).map((category) => ({
-    ...category,
-    sharePercent: sharePercentOf(category.amountMinor, expenseTotal),
-  }));
+  const top = summarizeCategoryShares(categories.slice(0, limit), expenseTotal);
   const rest = categories.slice(limit);
   if (rest.length === 0) return { top };
 

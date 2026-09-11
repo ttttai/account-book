@@ -12,7 +12,7 @@ import { parseAnalyticsSelection } from "../domain/analytics-input";
 import { shiftAnalyticsMonth } from "../domain/analytics-month";
 import {
   compareAnalyticsAmount,
-  summarizeCategoryBreakdown,
+  summarizeCategoryShares,
 } from "../domain/analytics-summary";
 import {
   loadAnalyticsMembers,
@@ -130,7 +130,7 @@ export async function getAnalyticsOverview(
       previousTotals.incomeTotal,
     ),
     balanceDiffMinor: totals.balance - previousTotals.balance,
-    categoryBreakdown: summarizeCategoryBreakdown(
+    expenseByCategory: summarizeCategoryShares(
       current.expenseByCategory,
       current.expenseTotal,
     ),

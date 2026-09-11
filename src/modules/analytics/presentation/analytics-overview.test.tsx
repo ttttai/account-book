@@ -53,25 +53,22 @@ function createData(
     expenseComparison: { diffMinor: 1000 },
     incomeComparison: { diffMinor: 100000 },
     balanceDiffMinor: 99000,
-    categoryBreakdown: {
-      top: [
-        {
-          categoryId: "30000000-0000-4000-8000-000000000001",
-          name: "食費",
-          color: "food",
-          amountMinor: 6000,
-          sharePercent: 55,
-        },
-        {
-          categoryId: "30000000-0000-4000-8000-000000000002",
-          name: "住居",
-          color: "home",
-          amountMinor: 4000,
-          sharePercent: 36,
-        },
-      ],
-      others: { amountMinor: 1000, categoryCount: 2, sharePercent: 9 },
-    },
+    // 7カテゴリ全件（合計は期間支出11,000円）。上位5件へ丸めない (AC-ANA-004-1)
+    expenseByCategory: [
+      ["食費", "food", 4000, 36],
+      ["住居", "home", 3000, 27],
+      ["交通", "transport", 1500, 14],
+      ["光熱費", "utility", 1000, 9],
+      ["通信", "communication", 700, 6],
+      ["娯楽", "hobby", 500, 5],
+      ["医療", "medical", 300, 3],
+    ].map(([name, color, amountMinor, sharePercent], index) => ({
+      categoryId: `30000000-0000-4000-8000-00000000000${index + 1}`,
+      name: String(name),
+      color: String(color),
+      amountMinor: Number(amountMinor),
+      sharePercent: Number(sharePercent),
+    })),
     hasTransactions: true,
     ...overrides,
   };
@@ -125,19 +122,27 @@ describe("AnalyticsOverview", () => {
     expect(within(expense).queryByText(/%/)).toBeNull();
   });
 
-  it("カテゴリ内訳をグラフなしでも読める名称・金額・構成比で表示する (AC-ANA-009-1)", () => {
+  it("カテゴリ内訳を全件、1カテゴリ1行の名称・金額・構成比で表示する (AC-ANA-004-1、AC-ANA-009-1、AC-ANA-014-4)", () => {
     const { container } = render(<AnalyticsOverview data={createData()} />);
 
     const breakdown = screen.getByRole("list", { name: "支出カテゴリの内訳" });
     const rows = within(breakdown).getAllByRole("listitem");
 
-    expect(rows).toHaveLength(3);
+    // 7カテゴリを丸めずに全件表示し、「その他のカテゴリ」を作らない
+    expect(rows).toHaveLength(7);
     expect(rows[0]?.textContent).toContain("食費");
-    expect(rows[0]?.textContent).toContain("￥6,000");
-    expect(rows[0]?.textContent).toContain("55%");
-    expect(rows[2]?.textContent).toContain("その他のカテゴリ");
-    expect(rows[2]?.textContent).toContain("￥1,000");
-    expect(rows[2]?.textContent).toContain("2件");
+    expect(rows[0]?.textContent).toContain("￥4,000");
+    expect(rows[0]?.textContent).toContain("36%");
+    expect(rows[6]?.textContent).toContain("医療");
+    expect(rows[6]?.textContent).toContain("￥300");
+    expect(rows[6]?.textContent).toContain("3%");
+    expect(breakdown.textContent).not.toContain("その他のカテゴリ");
+    // 名称・金額・構成比は同じ1行（1つの段落）に置き、構成比だけの行を作らない
+    for (const row of rows) {
+      const paragraphs = row.querySelectorAll("p");
+      expect(paragraphs).toHaveLength(1);
+      expect(paragraphs[0]?.textContent).toMatch(/￥[\d,]+\d+%$/);
+    }
     // 既定は円グラフで、扇形は装飾。値の唯一の伝達手段にしない (AC-ANA-014-1)
     expect(
       container
@@ -145,7 +150,7 @@ describe("AnalyticsOverview", () => {
         ?.getAttribute("aria-hidden"),
     ).toBe("true");
     expect(container.querySelectorAll("[data-analytics-slice]")).toHaveLength(
-      3,
+      7,
     );
     expect(container.querySelector("[data-analytics-bar]")).toBeNull();
   });
@@ -166,7 +171,7 @@ describe("AnalyticsOverview", () => {
 
     expect(container.querySelector("[data-analytics-pie]")).toBeNull();
     const bars = container.querySelectorAll("[data-analytics-bar]");
-    expect(bars).toHaveLength(3);
+    expect(bars).toHaveLength(7);
     for (const bar of bars) {
       expect(bar.getAttribute("aria-hidden")).toBe("true");
     }
@@ -186,7 +191,7 @@ describe("AnalyticsOverview", () => {
           expenseComparison: { diffMinor: 0 },
           incomeComparison: { diffMinor: 0 },
           balanceDiffMinor: 0,
-          categoryBreakdown: { top: [] },
+          expenseByCategory: [],
           hasTransactions: false,
         })}
       />,

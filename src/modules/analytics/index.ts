@@ -14,9 +14,11 @@ export {
   compareAnalyticsAmount,
   sharePercentOf,
   summarizeCategoryBreakdown,
+  summarizeCategoryShares,
 } from "./domain/analytics-summary";
 export type {
   AnalyticsCategoryBreakdown,
+  AnalyticsCategoryShare,
   AnalyticsCategoryTotal,
   AnalyticsComparison,
   AnalyticsDateRange,

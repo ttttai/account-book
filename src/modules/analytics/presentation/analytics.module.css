@@ -238,10 +238,8 @@
   font-size: 0.95rem;
 }
 
-/* カテゴリグラフ部品。「その他のカテゴリ」の中立色はカテゴリ色tokenと区別する (AC-ANA-014-2) */
+/* カテゴリグラフ部品。扇形・色の印・横棒はstyles.cssのカテゴリ色tokenで塗る (AC-ANA-014-2) */
 .analytics-chart {
-  --analytics-others-color: #b3bab4;
-
   display: grid;
   min-width: 0;
   gap: 0.6rem;
@@ -306,15 +304,11 @@
   margin: 0 auto;
 }
 
+/* 扇形はstyles.cssのdesign token（--category-color）で塗る */
 .analytics-pie path {
-  fill: var(--analytics-others-color);
+  fill: var(--category-color, #758178);
   stroke: var(--surface);
   stroke-width: 1;
-}
-
-/* 扇形と色の印はstyles.cssのdesign token（--category-color）で塗る */
-.analytics-pie path[data-category-color] {
-  fill: var(--category-color, #758178);
 }
 
 .analytics-category-dot {
@@ -323,10 +317,6 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--analytics-others-color);
-}
-
-.analytics-category-dot[data-category-color] {
   background: var(--category-color, #758178);
 }
 
@@ -334,16 +324,17 @@
   display: grid;
   margin: 0;
   padding: 0;
-  gap: 0.7rem;
+  gap: 0.6rem;
   list-style: none;
 }
 
 .analytics-category-row {
   display: grid;
   min-width: 0;
-  gap: 0.2rem;
+  gap: 0.25rem;
 }
 
+/* 1カテゴリ1行。名称だけを省略し、金額と構成比は折り返さない (AC-ANA-014-4) */
 .analytics-category-head {
   display: flex;
   min-width: 0;
@@ -362,29 +353,31 @@
   white-space: nowrap;
 }
 
-.analytics-category-amount {
+.analytics-category-amount,
+.analytics-category-share {
   flex: 0 0 auto;
-  font-size: 0.88rem;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
+.analytics-category-amount {
+  font-size: 0.88rem;
+}
+
+.analytics-category-share {
+  min-width: 2.6rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+/* カテゴリ棒はstyles.cssのdesign token（--category-color）で塗る */
 .analytics-category-bar {
   display: block;
   height: 8px;
   max-width: 100%;
   border-radius: 999px;
-  background: var(--analytics-others-color, #b3bab4);
-}
-
-/* カテゴリ棒はstyles.cssのdesign token（--category-color）で塗る */
-.analytics-category-bar[data-category-color] {
   background: var(--category-color, #758178);
-}
-
-.analytics-category-note {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.74rem;
 }
 
 .analytics-empty-message {

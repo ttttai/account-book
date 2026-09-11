@@ -2,7 +2,7 @@ import type { BudgetStatus } from "@/modules/budgets";
 
 import type { AnalyticsScope } from "../domain/analytics-input";
 import type {
-  AnalyticsCategoryBreakdown,
+  AnalyticsCategoryShare,
   AnalyticsComparison,
   AnalyticsMonthTotals,
 } from "../domain/analytics-summary";
@@ -66,7 +66,8 @@ export type AnalyticsOverviewReady = Readonly<{
   incomeComparison: AnalyticsComparison;
   /** 収支の差額。符号が変わるため比率は表示しない */
   balanceDiffMinor: number;
-  categoryBreakdown: AnalyticsCategoryBreakdown;
+  /** 支出のあるカテゴリ全件（金額の降順）。上位5件へ丸めない (ANA-004) */
+  expenseByCategory: readonly AnalyticsCategoryShare[];
   hasTransactions: boolean;
   budget?: AnalyticsBudgetProgress;
 }>;

@@ -276,30 +276,17 @@ export function AnalyticsOverview({
         />
       ) : null}
 
-      {data.categoryBreakdown.top.length > 0 ? (
+      {data.expenseByCategory.length > 0 ? (
         <section className={styles["analytics-category"]}>
           <AnalyticsCategoryChart
             heading="支出カテゴリ"
-            items={[
-              ...data.categoryBreakdown.top.map((category) => ({
-                key: category.categoryId,
-                name: category.name,
-                color: category.color,
-                amountMinor: category.amountMinor,
-                sharePercent: category.sharePercent,
-              })),
-              ...(data.categoryBreakdown.others
-                ? [
-                    {
-                      key: "others",
-                      name: "その他のカテゴリ",
-                      amountMinor: data.categoryBreakdown.others.amountMinor,
-                      sharePercent: data.categoryBreakdown.others.sharePercent,
-                      note: `${data.categoryBreakdown.others.categoryCount}件`,
-                    },
-                  ]
-                : []),
-            ]}
+            items={data.expenseByCategory.map((category) => ({
+              key: category.categoryId,
+              name: category.name,
+              color: category.color,
+              amountMinor: category.amountMinor,
+              sharePercent: category.sharePercent,
+            }))}
             listLabel="支出カテゴリの内訳"
           />
         </section>
