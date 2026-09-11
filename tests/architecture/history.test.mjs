@@ -102,6 +102,36 @@ test("さらに読み込むは薄いServer Action経由でDTOをClient追記す�
   assert.doesNotMatch(list, /router\.(?:push|replace|refresh)/);
 });
 
+test("絞り込みの変更はページ全体を再読み込みせず、Client側でURL同期と一覧の置き換えを行う (HIS-008)", async () => {
+  const view = await read("src/modules/history/presentation/history-view.tsx");
+  const list = await read("src/modules/history/presentation/history-list.tsx");
+  const actions = await read("src/modules/history/presentation/actions.ts");
+  const page = await read("src/app/groups/[groupId]/history/page.tsx");
+  const validationError = await read(
+    "src/modules/history/presentation/history-validation-error.tsx",
+  );
+
+  // chip・sheetはClient Componentで、GET formの送信やrouterによる全画面遷移を使わない
+  assert.match(view, /^"use client";/m);
+  assert.doesNotMatch(view, /next\/form/);
+  assert.doesNotMatch(view, /router\.(?:push|replace|refresh)/);
+  assert.match(view, /window\.history\.pushState/);
+  assert.match(view, /popstate/);
+  // 月はOS依存のネイティブ入力ではなく前後移動で指定し、sheetはdialogで開く
+  assert.doesNotMatch(view, /type="month"/);
+  assert.match(view, /<dialog/);
+  assert.match(view, /showModal\(\)/);
+  assert.doesNotMatch(view, /絞り込みを適用/);
+  // 一覧は条件変更時も同じ薄いServer Actionで1ページ目を取り直し、待機中はaria-busyで示す
+  assert.match(actions, /export async function applyHistoryFilterAction/);
+  assert.match(list, /applyHistoryFilterAction/);
+  assert.match(list, /aria-busy/);
+  // 検証エラー表示はServer Componentのまま分離し、pageのheaderもServer Componentに残す
+  assert.doesNotMatch(validationError, /"use client"/);
+  assert.doesNotMatch(page, /"use client"/);
+  assert.match(page, /<header className="app-header history-page-header">/);
+});
+
 test("historyモジュールは他機能の内部実装へ依存しない", async () => {
   const entries = await readdir(new URL("src/modules/history/", root), {
     recursive: true,

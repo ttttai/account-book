@@ -164,14 +164,38 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
 
   // 履歴は自分の支出額を主表示し、取引全体と区別する (HIS-003、HIS-004)
   await memberPage.goto(`/groups/${groupId}/history`);
+  // chipのタップはページ全体を再読み込みしない。タップ前に置いた印が残ることで確認する (AC-HIS-008-1)
+  await memberPage.evaluate(() => {
+    (window as Window & { __e2eHistoryMarker?: boolean }).__e2eHistoryMarker =
+      true;
+  });
   await memberPage.getByRole("link", { name: "自分の支出" }).click();
-  await expect(memberPage.getByLabel("支出した人")).toHaveValue(
-    new URL(memberPage.url()).searchParams.get("member") ?? "",
-  );
   const historyRows = memberPage.getByRole("region", {
     name: "取引履歴の一覧",
   });
   await expect(historyRows).toContainText("取引全体 ￥6,000");
+  await expect(memberPage).toHaveURL(/[?&]member=[0-9a-f-]{36}/);
+  expect(
+    await memberPage.evaluate(
+      () =>
+        (window as Window & { __e2eHistoryMarker?: boolean })
+          .__e2eHistoryMarker,
+    ),
+  ).toBe(true);
+  // sheetの「支出した人」はchipの切り替えへ同期する。375pxではbottom sheetを開いて確認する (AC-HIS-003-3, AC-HIS-008-5)
+  if (testInfo.project.name === "mobile") {
+    await memberPage.getByRole("button", { name: /^絞り込み/ }).click();
+  }
+  // 適用中条件の「支出した人 〇〇の絞り込みを解除」linkと区別するため、selectはroleで特定する
+  await expect(
+    memberPage.getByRole("combobox", { name: "支出した人" }),
+  ).toHaveValue(new URL(memberPage.url()).searchParams.get("member") ?? "");
+  await expect(
+    memberPage.getByRole("button", { name: "絞り込みを適用" }),
+  ).toHaveCount(0);
+  if (testInfo.project.name === "mobile") {
+    await memberPage.getByRole("button", { name: "絞り込みを閉じる" }).click();
+  }
   await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
     "￥3,000",
   );
