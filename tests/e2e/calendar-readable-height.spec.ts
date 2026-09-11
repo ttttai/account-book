@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import {
   createGroup,
+  enterAmountWithKeypad,
   registerExpense,
   todayInGroupTimezone,
 } from "./support/app-actions";
@@ -34,11 +35,8 @@ async function registerIncome(
     typeFieldset.getByRole("radio", { name: "収入", exact: true }),
   ).toBeChecked();
 
-  await page.getByLabel("金額").click();
-  for (const digit of String(amount)) {
-    await page.getByRole("button", { name: digit, exact: true }).click();
-  }
-  await expect(page.getByLabel("金額")).toHaveValue(String(amount));
+  // 金額欄は入力中も3桁区切りで表示されるため、共通helperで区切り込みの値を確認する (AC-TXN-014-10)
+  await enterAmountWithKeypad(page, amount);
 
   const expandToggle = page.getByRole("button", { name: "すべて" });
   if (await expandToggle.isVisible()) await expandToggle.click();

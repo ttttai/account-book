@@ -30,8 +30,8 @@ function groupedAmount(amount: number): string {
   return String(amount).replace(/\B(?=(\d{3})+$)/g, ",");
 }
 
-// テンキーで金額を入力する。利用者と同じ操作でTXN-014の入力経路を通す
-async function enterAmountWithKeypad(
+/** テンキーで金額を入力し、3桁区切りの表示を確認する。利用者と同じ操作でTXN-014の入力経路を通す (AC-TXN-014-10) */
+export async function enterAmountWithKeypad(
   page: Page,
   amount: number,
 ): Promise<void> {
