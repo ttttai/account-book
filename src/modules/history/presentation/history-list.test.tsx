@@ -89,7 +89,7 @@ describe("HistoryList", () => {
     );
     expect(
       screen.getByRole("link", {
-        name: "8月15日（土） カテゴリA 山田の支出 ￥3,000 取引全体 ￥6,000 支出した人 山田",
+        name: "8月15日（土） カテゴリA 山田の支出 ￥3,000 取引全体 ￥6,000 山田",
       }),
     ).toBeTruthy();
     expect(screen.queryByText("負担額")).toBeNull();
@@ -123,7 +123,7 @@ describe("HistoryList", () => {
     expect(screen.queryByText("2026年8月15日")).toBeNull();
 
     const rowLink = screen.getByRole("link", {
-      name: "8月15日（土） カテゴリA ￥1,000 支出した人 山田",
+      name: "8月15日（土） カテゴリA ￥1,000 山田",
     });
     expect(rowLink.getAttribute("href")).toBe(
       `/groups/${groupId}/transactions/${rowA.id}/edit?from=${encodeURIComponent(
@@ -169,9 +169,10 @@ describe("HistoryList", () => {
     expect(screen.getByText("カテゴリA")).toBeTruthy();
     expect(screen.queryByText(/支払者/)).toBeNull();
     expect(screen.getByText(/受取者\s*佐藤/)).toBeTruthy();
-    // 1人の支出は「支出した人 山田」、2人へ配分した支出は表示名を「・」で連結する
-    expect(screen.getByText("支出した人 山田")).toBeTruthy();
-    expect(screen.getByText("支出した人 山田・佐藤")).toBeTruthy();
+    // 1人の支出は表示名だけ「山田」、2人へ配分した支出は「・」で連結し、「支出した人」の見出し語は付けない
+    expect(screen.getByText("山田")).toBeTruthy();
+    expect(screen.getByText("山田・佐藤")).toBeTruthy();
+    expect(screen.queryByText(/支出した人/)).toBeNull();
     expect(screen.queryByText(/人で分割/)).toBeNull();
     expect(screen.getByText("スーパー")).toBeTruthy();
     expect(screen.queryByText(/内訳/)).toBeNull();
@@ -180,12 +181,12 @@ describe("HistoryList", () => {
     // アクセシブル名にも支出した人・受取者を金額の後、メモの前で含める
     expect(
       screen.getByRole("link", {
-        name: "8月15日（土） カテゴリD ￥6,000 支出した人 山田・佐藤 スーパー",
+        name: "8月15日（土） カテゴリD ￥6,000 山田・佐藤 スーパー",
       }),
     ).toBeTruthy();
     expect(
       screen.getByRole("link", {
-        name: "8月15日（土） カテゴリA ￥1,000 支出した人 山田",
+        name: "8月15日（土） カテゴリA ￥1,000 山田",
       }),
     ).toBeTruthy();
     expect(
@@ -193,12 +194,10 @@ describe("HistoryList", () => {
         name: "8月15日（土） カテゴリC 収入 ￥1,000 受取者 佐藤",
       }),
     ).toBeTruthy();
-    // 収入行には支出した人を出さない
+    // 収入行の2行目は受取者だけで、支出した人の表示名を並べない
     expect(
-      Array.from(container.querySelectorAll(".history-row")).filter((row) =>
-        row.textContent?.includes("支出した人"),
-      ),
-    ).toHaveLength(2);
+      screen.getByRole("link", { name: /カテゴリC/ }).textContent,
+    ).not.toContain("山田");
     expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
   });
 

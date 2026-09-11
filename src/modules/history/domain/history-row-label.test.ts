@@ -23,8 +23,8 @@ const base: HistoryRow = {
 };
 
 describe("describeHistorySpenders (AC-HIS-007-1)", () => {
-  it("2人以上へ配分された支出は表示名を「・」で連結し、人数と金額を出さない", () => {
-    expect(describeHistorySpenders(base)).toBe("支出した人 山田・佐藤");
+  it("2人以上へ配分された支出は表示名を「・」で連結し、見出し語・人数・金額を出さない", () => {
+    expect(describeHistorySpenders(base)).toBe("山田・佐藤");
     const three = describeHistorySpenders({
       ...base,
       allocations: [
@@ -32,14 +32,14 @@ describe("describeHistorySpenders (AC-HIS-007-1)", () => {
         { membershipId: "m3", displayName: "鈴木", amountMinor: 0 },
       ],
     });
-    expect(three).toBe("支出した人 山田・佐藤・鈴木");
-    expect(three).not.toMatch(/人で分割|￥/);
+    expect(three).toBe("山田・佐藤・鈴木");
+    expect(three).not.toMatch(/支出した人|人で分割|￥/);
   });
 
-  it("1人の支出は「支出した人 〇〇」とし、収入と内訳なしには返さない", () => {
+  it("1人の支出は表示名だけとし、収入と内訳なしには返さない", () => {
     expect(
       describeHistorySpenders({ ...base, allocations: [base.allocations[0]] }),
-    ).toBe("支出した人 山田");
+    ).toBe("山田");
     expect(
       describeHistorySpenders({ ...base, type: "income", allocations: [] }),
     ).toBeUndefined();
@@ -50,8 +50,8 @@ describe("describeHistorySpenders (AC-HIS-007-1)", () => {
 });
 
 describe("describeHistoryParty (AC-HIS-007-2)", () => {
-  it("支出は支出した人、収入は受取者を返す", () => {
-    expect(describeHistoryParty(base)).toBe("支出した人 山田・佐藤");
+  it("支出は支出した人の表示名、収入は受取者を返す", () => {
+    expect(describeHistoryParty(base)).toBe("山田・佐藤");
     expect(
       describeHistoryParty({
         ...base,
@@ -66,14 +66,14 @@ describe("describeHistoryParty (AC-HIS-007-2)", () => {
 describe("buildHistoryRowAccessibleName (AC-HIS-006-3)", () => {
   it("日付・カテゴリ・金額・支出した人を含め、メモがあれば末尾に付ける (AC-HIS-007-2)", () => {
     expect(buildHistoryRowAccessibleName(base, "9月8日（火）")).toBe(
-      "9月8日（火） 食費 ￥6,000 支出した人 山田・佐藤",
+      "9月8日（火） 食費 ￥6,000 山田・佐藤",
     );
     expect(
       buildHistoryRowAccessibleName(
         { ...base, memo: "スーパー" },
         "9月8日（火）",
       ),
-    ).toBe("9月8日（火） 食費 ￥6,000 支出した人 山田・佐藤 スーパー");
+    ).toBe("9月8日（火） 食費 ￥6,000 山田・佐藤 スーパー");
   });
 
   it("member指定時は対象者の支出額を主金額にし取引全体を補足する (AC-HIS-006-4)", () => {
@@ -83,9 +83,7 @@ describe("buildHistoryRowAccessibleName (AC-HIS-006-3)", () => {
         "9月8日（火）",
         "山田",
       ),
-    ).toBe(
-      "9月8日（火） 食費 山田の支出 ￥3,000 取引全体 ￥6,000 支出した人 山田・佐藤",
-    );
+    ).toBe("9月8日（火） 食費 山田の支出 ￥3,000 取引全体 ￥6,000 山田・佐藤");
   });
 
   it("収入は受取者を含める", () => {
