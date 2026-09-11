@@ -1,6 +1,11 @@
 import "server-only";
 
 export { getCurrentProfile } from "./application/get-current-profile";
+export {
+  BackendUnavailableError,
+  createQueryFailureError,
+  isUnavailableAuthError,
+} from "./domain/backend-availability";
 export { isAuthenticationQueryError } from "./domain/postgrest-auth-error";
 export { resolveSafeNextPath } from "./domain/safe-next-path";
 export {

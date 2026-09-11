@@ -389,6 +389,34 @@ a:focus-visible {
   font-size: 1.2rem;
 }
 
+/* 保護画面のerror境界。route shellの中で固定文言と再試行だけを示す */
+.load-error-panel {
+  display: grid;
+  width: min(100%, 36rem);
+  margin-top: 2rem;
+  padding: 1.25rem;
+  gap: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+}
+
+.load-error-panel h1 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.load-error-panel p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.load-error-panel .primary-button {
+  justify-self: start;
+}
+
 .group-page-title {
   margin: 0 0 0.75rem;
   font-size: 1.25rem;
@@ -661,13 +689,22 @@ a:focus-visible {
   font-weight: 800;
 }
 
+/* ホーム本文はflex columnにし、header以外の残り高さをカレンダーへ引き継ぐ (AC-CAL-001-20) */
 .calendar-home-page {
+  display: flex;
+  flex-direction: column;
   min-height: 100dvh;
   padding-top: max(0.5rem, env(safe-area-inset-top));
 }
 
+/* 下部ナビ（約56px）の直上に小さな余白だけ残し、表の下に空白を溜めない */
+.group-route-content > .calendar-home-page {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
 .calendar-home-header {
   display: flex;
+  flex: 0 0 auto;
   min-height: 2rem;
   align-items: baseline;
   gap: 0.55rem;
@@ -685,6 +722,14 @@ a:focus-visible {
 .calendar-card,
 .calendar-validation-error {
   min-width: 0;
+}
+
+/* カードは残り高さを受け取って表へ渡し、金額サイズの基準となる幅のcontainerになる (AC-CAL-001-20) */
+.calendar-card {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  container-type: inline-size;
 }
 
 .calendar-card,
@@ -742,12 +787,15 @@ a:focus-visible {
   height: 86px;
 }
 
+/* skeletonも確定後の表と同じく残り高さを6行で分け、切り替え時の高さの跳ねを抑える */
 .calendar-skeleton-grid {
+  flex: 1 1 auto;
+  grid-template-rows: repeat(6, minmax(44px, 1fr));
   gap: 0.2rem;
 }
 
 .calendar-skeleton-grid span {
-  min-height: 52px;
+  min-height: 44px;
   border-radius: 0.5rem;
   background: rgb(255 255 255 / 56%);
 }
@@ -812,12 +860,6 @@ a:focus-visible {
   }
 }
 
-@media (max-height: 700px) {
-  .calendar-home-page {
-    min-height: auto;
-  }
-}
-
 @media (min-width: 900px) {
   .group-route-layout {
     display: grid;
@@ -858,6 +900,10 @@ a:focus-visible {
     width: 100%;
     margin-top: 0;
     grid-column: 1;
+  }
+  .groups-overview .load-error-panel {
+    margin-top: 0;
+    grid-column: 1 / -1;
   }
   .groups-overview .empty-panel {
     margin-top: 0;

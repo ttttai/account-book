@@ -7,6 +7,7 @@ import {
   type AnalyticsIncomeInput,
   compareAnalyticsAmount,
   summarizeCategoryBreakdown,
+  summarizeCategoryShares,
 } from "./analytics-summary";
 
 const MEMBER_A = "40000000-0000-4000-8000-00000000000a";
@@ -190,8 +191,46 @@ function categoryTotal(
   };
 }
 
+describe("summarizeCategoryShares", () => {
+  it("支出のあるカテゴリを丸めずに全件へ構成比を付け、合計が期間支出と一致する (AC-ANA-004-1)", () => {
+    const categories = [
+      categoryTotal(1, 5000),
+      categoryTotal(2, 4000),
+      categoryTotal(3, 3000),
+      categoryTotal(4, 2000),
+      categoryTotal(5, 1000),
+      categoryTotal(6, 800),
+      categoryTotal(7, 200),
+    ];
+
+    const shares = summarizeCategoryShares(categories, 16000);
+
+    expect(shares).toHaveLength(7);
+    expect(shares.map((category) => category.name)).toEqual(
+      categories.map((category) => category.name),
+    );
+    expect(shares.map((category) => category.sharePercent)).toEqual([
+      31, 25, 19, 13, 6, 5, 1,
+    ]);
+    expect(
+      shares.reduce((total, category) => total + category.amountMinor, 0),
+    ).toBe(16000);
+    expect(shares.some((category) => "categoryCount" in category)).toBe(false);
+  });
+
+  it("期間支出0円では全件を0%にし、空の入力では空配列を返す", () => {
+    expect(
+      summarizeCategoryShares([categoryTotal(1, 0)], 0).map(
+        (category) => category.sharePercent,
+      ),
+    ).toEqual([0]);
+    expect(summarizeCategoryShares([], 0)).toEqual([]);
+  });
+});
+
+// LINE週次レポートの通知文だけが上位5件へ丸める (AC-NOTIF-002-1)
 describe("summarizeCategoryBreakdown", () => {
-  it("上位5件と残りの合計で期間支出を再構成できる (AC-ANA-004-1)", () => {
+  it("上位5件と残りの合計で期間支出を再構成できる (AC-NOTIF-002-1)", () => {
     const categories = [
       categoryTotal(1, 5000),
       categoryTotal(2, 4000),

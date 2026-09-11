@@ -6,7 +6,15 @@ const authMocks = vi.hoisted(() => ({
   isAuthenticationQueryError: vi.fn(),
 }));
 
-vi.mock("@/modules/auth/server", () => authMocks);
+// 応答不能の判定は純関数の実装をそのまま使い、client・許可リスト・認証起因判定だけを差し替える
+vi.mock("@/modules/auth/server", async () => ({
+  ...(await vi.importActual<
+    typeof import("@/modules/auth/domain/backend-availability")
+  >("@/modules/auth/domain/backend-availability")),
+  ...authMocks,
+}));
+
+import { BackendUnavailableError } from "@/modules/auth/server";
 
 import { getGroupMembership } from "./get-group-membership";
 import { listMyGroups } from "./list-my-groups";
@@ -18,7 +26,7 @@ const USER_ID = "30000000-0000-4000-8000-000000000001";
 const SECOND_USER_ID = "30000000-0000-4000-8000-000000000002";
 const INVITATION_ID = "40000000-0000-4000-8000-000000000001";
 
-type QueryResult = Readonly<{ data: unknown; error: unknown }>;
+type QueryResult = Readonly<{ data: unknown; error: unknown; status?: number }>;
 
 function maybeSingleQuery(result: QueryResult) {
   const query = {
@@ -150,6 +158,36 @@ describe("listMyGroups", () => {
     expect(from).not.toHaveBeenCalled();
   });
 
+  it("claims取得が応答不能なら空配列へ縮退させず例外にする (AC-AUTH-004-4)", async () => {
+    const { getClaims, from } = setupClient();
+    getClaims.mockResolvedValue({
+      data: null,
+      error: { name: "AuthRetryableFetchError", status: 503 },
+    });
+
+    await expect(listMyGroups()).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("PostgRESTが5xx・接続失敗ならBackendUnavailableErrorにする (AC-AUTH-004-4)", async () => {
+    const { from } = setupClient();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    from.mockReturnValue(
+      orderedQuery({
+        data: null,
+        error: { code: "PGRST002", message: "Could not query the database" },
+        status: 503,
+      }),
+    );
+
+    await expect(listMyGroups()).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    vi.restoreAllMocks();
+  });
+
   it("許可されたGoogle userが無ければqueryしない", async () => {
     const { from } = setupClient();
     authMocks.getAllowedGoogleUserId.mockReturnValue(null);
@@ -200,25 +238,90 @@ describe("getGroupMembership", () => {
     expect(from).not.toHaveBeenCalled();
   });
 
+  it("claims取得が応答不能ならnullへ縮退させず例外にする (AC-AUTH-004-4)", async () => {
+    const { getClaims, from } = setupClient();
+    getClaims.mockResolvedValue({
+      data: null,
+      error: { name: "AuthApiError", status: 500, code: "unexpected_failure" },
+    });
+
+    await expect(getGroupMembership(GROUP_ID)).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("グループが存在しない場合はデータを返さない", async () => {
+    const { from } = setupClient();
+    from
+      .mockReturnValueOnce(maybeSingleQuery({ data: null, error: null }))
+      .mockReturnValueOnce(orderedQuery({ data: [], error: null }));
+
+    await expect(getGroupMembership(GROUP_ID)).resolves.toBeNull();
+  });
+
+  it("認証起因のquery失敗はnullへ縮退させる (AC-AUTH-001-9)", async () => {
+    const { from } = setupClient();
+    const error = { code: "PGRST301", message: "JWT expired" };
+    authMocks.isAuthenticationQueryError.mockReturnValue(true);
+    from
+      .mockReturnValueOnce(maybeSingleQuery({ data: null, error, status: 401 }))
+      .mockReturnValueOnce(orderedQuery({ data: [], error: null }));
+
+    await expect(getGroupMembership(GROUP_ID)).resolves.toBeNull();
+    expect(authMocks.isAuthenticationQueryError).toHaveBeenCalledWith(error);
+  });
+
   it.each([
     [
-      "group error",
-      { data: null, error: { code: "XX000" } },
+      "group",
+      {
+        data: null,
+        error: { code: "PGRST002", message: "Could not query the database" },
+        status: 503,
+      },
       { data: [], error: null },
     ],
     [
-      "membership error",
+      "membership",
       { data: groupRow, error: null },
-      { data: null, error: { code: "XX000" } },
+      {
+        data: null,
+        error: { code: "", message: "TypeError: fetch failed" },
+        status: 0,
+      },
     ],
-    ["missing group", { data: null, error: null }, { data: [], error: null }],
-  ])("%sではデータを返さない", async (_name, groupResult, memberResult) => {
+  ])(
+    "%s queryが5xx・接続失敗ならnullへ縮退させず例外にする (AC-AUTH-004-4)",
+    async (_name, groupResult, memberResult) => {
+      const { from } = setupClient();
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      from
+        .mockReturnValueOnce(maybeSingleQuery(groupResult))
+        .mockReturnValueOnce(orderedQuery(memberResult));
+
+      await expect(getGroupMembership(GROUP_ID)).rejects.toBeInstanceOf(
+        BackendUnavailableError,
+      );
+      vi.restoreAllMocks();
+    },
+  );
+
+  it("認証・応答不能以外のquery失敗は一般化した例外にする", async () => {
     const { from } = setupClient();
     from
-      .mockReturnValueOnce(maybeSingleQuery(groupResult))
-      .mockReturnValueOnce(orderedQuery(memberResult));
+      .mockReturnValueOnce(maybeSingleQuery({ data: groupRow, error: null }))
+      .mockReturnValueOnce(
+        orderedQuery({
+          data: null,
+          error: { code: "XX000", message: "internal" },
+          status: 400,
+        }),
+      );
 
-    await expect(getGroupMembership(GROUP_ID)).resolves.toBeNull();
+    await expect(getGroupMembership(GROUP_ID)).rejects.toThrow(
+      "グループを取得できませんでした。",
+    );
   });
 
   it("activeな自分の所属が無ければプロフィールを取得しない", async () => {

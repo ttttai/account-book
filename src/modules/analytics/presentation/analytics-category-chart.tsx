@@ -10,14 +10,13 @@ import { formatAnalyticsJpy } from "../domain/analytics-jpy";
 
 import styles from "./analytics.module.css";
 
-/** 一覧と円グラフの1項目。colorが無い項目（その他のカテゴリ）は中立色で描く */
+/** 一覧と円グラフの1項目。colorはstyles.cssのカテゴリ色token */
 export type AnalyticsCategoryChartItem = Readonly<{
   key: string;
   name: string;
-  color?: string;
+  color: string;
   amountMinor: number;
   sharePercent: number;
-  note?: string;
 }>;
 
 export type AnalyticsCategoryChartMode = "pie" | "bar";
@@ -87,17 +86,14 @@ export function AnalyticsCategoryChart({
             data-analytics-pie=""
             viewBox="0 0 100 100"
           >
-            {slices.map((slice) => {
-              const color = itemByKey.get(slice.key)?.color;
-              return (
-                <path
-                  d={describeAnalyticsPieSlice(slice, PIE_GEOMETRY)}
-                  data-analytics-slice={color ? "category" : "others"}
-                  data-category-color={color}
-                  key={slice.key}
-                />
-              );
-            })}
+            {slices.map((slice) => (
+              <path
+                d={describeAnalyticsPieSlice(slice, PIE_GEOMETRY)}
+                data-analytics-slice=""
+                data-category-color={itemByKey.get(slice.key)?.color}
+                key={slice.key}
+              />
+            ))}
           </svg>
         ) : null}
         <ul
@@ -106,18 +102,25 @@ export function AnalyticsCategoryChart({
         >
           {items.map((item) => (
             <li className={styles["analytics-category-row"]} key={item.key}>
+              {/* 1カテゴリ1行: 色の印・名称・金額・構成比を同じ段落に並べ、名称だけを省略する (AC-ANA-014-4) */}
               <p className={styles["analytics-category-head"]}>
                 <i
                   aria-hidden="true"
                   className={styles["analytics-category-dot"]}
                   data-category-color={item.color}
-                  data-category-dot={item.color ? "category" : "others"}
+                  data-category-dot=""
                 />
                 <span className={styles["analytics-category-name"]}>
                   {item.name}
                 </span>
                 <span className={styles["analytics-category-amount"]}>
                   {formatAnalyticsJpy(item.amountMinor)}
+                </span>
+                <span
+                  className={styles["analytics-category-share"]}
+                  data-analytics-share=""
+                >
+                  {item.sharePercent}%
                 </span>
               </p>
               {mode === "bar" ? (
@@ -131,11 +134,6 @@ export function AnalyticsCategoryChart({
                   }}
                 />
               ) : null}
-              <p className={styles["analytics-category-note"]}>
-                {item.note
-                  ? `${item.sharePercent}% ・ ${item.note}`
-                  : `${item.sharePercent}%`}
-              </p>
             </li>
           ))}
         </ul>

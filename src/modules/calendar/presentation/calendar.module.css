@@ -1,8 +1,9 @@
+/* ホーム本文の残り高さをカードへ引き継ぐ。日別パネル併記時は広い画面でgridへ切り替わる (AC-CAL-001-20) */
 .calendar-layout {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
-}
-
-.calendar-layout {
   margin-top: 0.35rem;
 }
 
@@ -91,15 +92,18 @@
   }
 }
 
+/* 枠は1行で折り返さない。2枠は等幅、3枠は固定語の幅を確保して残りを3枠目へ渡す (AC-CAL-004-1, AC-CAL-004-3) */
 .calendar-scope-nav {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  display: flex;
   gap: 0.35rem;
   margin-top: 0.35rem;
   padding: 0.15rem;
   border-radius: 0.9rem;
   background: var(--background);
+}
+
+.calendar-scope-nav > a {
+  flex: 1 1 0;
 }
 
 .calendar-scope-nav > a,
@@ -128,12 +132,33 @@
 
 .calendar-member-picker {
   position: relative;
+  flex: 1 1 0;
   min-width: 0;
 }
 
+/* 選択欄であることを示す開閉の印の分だけ左右を空け、文字は中央に保つ */
 .calendar-member-picker > summary {
+  position: relative;
+  padding-inline: 1.25rem;
   list-style: none;
   cursor: pointer;
+}
+
+/* 開閉の印はCSSで描き、accessibility nameへ文字を足さない (AC-CAL-004-3) */
+.calendar-member-picker > summary::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.calendar-member-picker[open] > summary::after {
+  transform: translateY(-30%) rotate(-135deg);
 }
 
 .calendar-member-picker > summary::-webkit-details-marker {
@@ -173,6 +198,15 @@
   font-weight: 700;
 }
 
+/* 3枠では「グループ」「自分」を省略せず、幅が足りないときは3枠目だけを縮めて省略する (AC-CAL-004-3) */
+.calendar-scope-nav.has-member-slot > a:nth-child(-n + 2) {
+  flex: 1 0 auto;
+}
+
+.calendar-scope-nav.has-member-slot > :nth-child(3) {
+  flex: 1 1 auto;
+}
+
 .calendar-total {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -207,33 +241,43 @@
   line-height: 1.05;
 }
 
+/* 表はカードの残り高さを受け取り、セル間を1pxに絞って金額の幅を確保する (AC-CAL-001-20) */
 .calendar-grid {
+  flex: 1 1 auto;
   width: 100%;
   border-collapse: separate;
-  border-spacing: 2px;
+  border-spacing: 1px;
   table-layout: fixed;
 }
 
+/* 余った高さは百分率行のtbody 6行だけが均等に分け合い、曜日見出しへは配分されない。
+   下限44pxを超える内容の行だけが広がり、収まらない高さは縦scrollへ逃がす */
+.calendar-grid tbody tr {
+  height: calc(100% / 6);
+}
+
+/* 曜日見出しは固定高さにして、配分の対象から外す */
 .calendar-weekday {
-  padding: 0.15rem 0;
+  height: 1.25rem;
+  padding: 0;
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 700;
+  line-height: 1.25rem;
   text-align: center;
 }
 
 .calendar-cell {
   min-width: 0;
-  height: clamp(44px, calc((100dvh - 30rem) / 6), 56px);
   padding: 0;
   vertical-align: top;
-  border: 1px solid transparent;
   border-radius: 0.65rem;
 }
 
 .calendar-cell-link {
   display: grid;
   height: 100%;
+  min-height: 44px;
   align-content: start;
   justify-items: center;
   gap: 0.1rem;
@@ -290,8 +334,9 @@
   background: var(--accent);
 }
 
+/* 選択枠はborderではなく内側のshadowで描き、セル幅を金額へ回す */
 .calendar-cell.is-selected {
-  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
   background: var(--accent-soft);
 }
 
@@ -301,9 +346,11 @@
   /* 日本語UIフォントの広い数字幅を避け、320pxでも+999,999を1行で収める */
   font-family: Arial, Helvetica, sans-serif;
   font-variant-numeric: tabular-nums;
-  font-size: clamp(0.5rem, 2.4vw, 0.72rem);
+  /* 表（カード）の幅から算出する。除数27.8は「+999,999」8文字（約3.88em）× 7列に約2%の余裕を足した値で、
+     320pxでも1行に収まり、375pxで約11.3px、1280pxでは上限1.125remに達する (AC-CAL-001-20) */
+  font-size: clamp(0.5rem, calc((100cqi - 8px) / 27.8), 1.125rem);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.04em;
   line-height: 1.05;
   word-break: keep-all;
   text-align: center;
@@ -414,9 +461,6 @@
 }
 
 @media (max-height: 700px) {
-  .calendar-cell {
-    height: 44px;
-  }
   .calendar-cell-link {
     padding-block: 0.1rem;
   }
@@ -429,15 +473,13 @@
   .calendar-layout.has-day-panel {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr);
-    align-items: start;
+    align-items: stretch;
     gap: 1.5rem;
     padding-bottom: 0;
   }
-  .calendar-cell {
-    height: 78px;
-  }
   .calendar-day-panel {
     position: sticky;
+    align-self: start;
     top: 1.5rem;
     z-index: auto;
     max-height: calc(100vh - 3rem);

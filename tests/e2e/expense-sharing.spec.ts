@@ -122,16 +122,25 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
     const boxes = await scopeNav.getByRole("link").evaluateAll((links) =>
       links.map((link) => {
         const { x, y, width, height } = link.getBoundingClientRect();
-        return { x, y, width, height };
+        return {
+          x,
+          y,
+          width,
+          height,
+          isClipped: link.scrollWidth > link.clientWidth,
+        };
       }),
     );
     expect(boxes).toHaveLength(3);
     for (const box of boxes) {
       expect(box.height).toBeGreaterThanOrEqual(44);
       expect(Math.abs(box.y - boxes[0].y)).toBeLessThan(1);
-      expect(Math.abs(box.width - boxes[0].width)).toBeLessThan(1);
       expect(box.x + box.width).toBeLessThanOrEqual(width);
+      // 「グループ」「自分」と相手の表示名のいずれも省略されない (AC-CAL-004-3)
+      expect(box.isClipped).toBe(false);
     }
+    // 3枠目は320pxでも「グループ」枠以上の幅を持つ (AC-CAL-004-3)
+    expect(boxes[2].width).toBeGreaterThanOrEqual(boxes[0].width);
     expect(
       await memberPage.evaluate(
         () => document.documentElement.scrollWidth - innerWidth,

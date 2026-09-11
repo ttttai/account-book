@@ -176,6 +176,47 @@ test("分析スタイルを機能のCSS Modulesへ置く (NFR-MNT-010)", async (
   assert.match(moduleCss, /@media \(min-width: 900px\)/);
 });
 
+test("カテゴリ一覧は1カテゴリ1行で、概要分析は全件を丸めずに渡す (AC-ANA-004-1, AC-ANA-014-4)", async () => {
+  const moduleCss = await read(
+    "src/modules/analytics/presentation/analytics.module.css",
+  );
+  const chart = await read(
+    "src/modules/analytics/presentation/analytics-category-chart.tsx",
+  );
+  const overview = await read(
+    "src/modules/analytics/presentation/analytics-overview.tsx",
+  );
+  const query = await read(
+    "src/modules/analytics/application/get-analytics-overview.ts",
+  );
+  const specification = await read("specs/12-analytics-and-reporting.md");
+  const useCases = await read("specs/02-use-cases.md");
+
+  assert.match(specification, /全件表示/);
+  assert.match(useCases, /^- `AC-ANA-014-4`/m);
+  // 構成比だけの行（note）を作らず、名称・金額・構成比を同じ段落に置く
+  assert.doesNotMatch(chart, /analytics-category-note/);
+  assert.match(chart, /analytics-category-share/);
+  assert.doesNotMatch(chart, /note\?:/);
+  // 名称だけを省略し、金額と構成比は折り返さない
+  const name = moduleCss.match(/\.analytics-category-name\s*\{([^}]*)\}/s)?.[1];
+  const amount = moduleCss.match(
+    /\.analytics-category-amount,\s*\.analytics-category-share\s*\{([^}]*)\}/s,
+  )?.[1];
+  assert.ok(name, ".analytics-category-nameの規則が必要です");
+  assert.ok(amount, "金額・構成比の共通規則が必要です");
+  assert.match(name, /min-width:\s*0;/);
+  assert.match(name, /text-overflow:\s*ellipsis;/);
+  assert.match(name, /white-space:\s*nowrap;/);
+  assert.match(amount, /flex:\s*0 0 auto;/);
+  assert.match(amount, /white-space:\s*nowrap;/);
+  // 概要分析は上位5件へ丸めず、詳細分析と同じ全件DTOを描く
+  assert.doesNotMatch(query, /summarizeCategoryBreakdown/);
+  assert.match(query, /summarizeCategoryShares/);
+  assert.match(overview, /data\.expenseByCategory/);
+  assert.doesNotMatch(overview, /その他のカテゴリ|categoryBreakdown/);
+});
+
 test("分析の集計対象枠は折り返さず、選択欄は選択後に閉じる (AC-ANA-005-3, AC-ANA-005-4)", async () => {
   const moduleCss = await read(
     "src/modules/analytics/presentation/analytics.module.css",
@@ -187,11 +228,25 @@ test("分析の集計対象枠は折り返さず、選択欄は選択後に閉�
     "src/modules/analytics/presentation/analytics-member-picker.tsx",
   );
 
-  // 枠を複数行へ折り返さず、等幅gridで2枠・3枠を並べる
+  // 枠を複数行へ折り返さず、flexで2枠・3枠を1行に並べる
   const scopeNav = moduleCss.match(/\.analytics-scope-nav \{[^}]*\}/)?.[0];
   assert.ok(scopeNav);
-  assert.doesNotMatch(scopeNav, /flex-wrap/);
-  assert.match(scopeNav, /display:\s*grid;/);
+  assert.doesNotMatch(scopeNav, /flex-wrap|grid/);
+  assert.match(scopeNav, /display:\s*flex;/);
+  // 3枠では「グループ」「自分」を省略せず、3枠目だけを縮める（AC-CAL-004-3と同じ規則）
+  assert.match(
+    moduleCss,
+    /\.analytics-scope-nav\.has-member-slot > a:nth-child\(-n \+ 2\) \{[^}]*flex: 1 0 auto;/,
+  );
+  assert.match(
+    moduleCss,
+    /\.analytics-scope-nav\.has-member-slot > :nth-child\(3\) \{[^}]*flex: 1 1 auto;/,
+  );
+  assert.match(
+    moduleCss,
+    /\.analytics-member-picker > summary::after \{[^}]*content: "";/,
+  );
+  assert.match(overview, /has-member-slot/);
   // 選択欄はカレンダーと同じdetails/summaryで、moduleを越えてcalendarのpresentationをimportしない
   assert.match(overview, /AnalyticsMemberPicker/);
   assert.doesNotMatch(overview, /modules\/calendar/);

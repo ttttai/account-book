@@ -234,6 +234,45 @@ describe("CalendarHome 集計対象 (AC-CAL-004-1, AC-CAL-004-2)", () => {
   );
 });
 
+describe("CalendarHome 集計対象の幅配分 (AC-CAL-004-3)", () => {
+  const navName = { name: "カレンダーの集計対象" };
+
+  it("2枠では幅配分の修飾classを付けず、等幅のままにする", () => {
+    render(<CalendarHome data={createData({ members: [self] })} />);
+    const nav = screen.getByRole("navigation", navName);
+    expect(nav.classList).toContain("calendar-scope-nav");
+    expect(nav.classList).not.toContain("has-member-slot");
+  });
+
+  it("相手の直接リンクが3枠目のとき修飾classを付け、長い表示名もaccessibility nameに全文を残す", () => {
+    render(<CalendarHome data={createData({ members: [self, another] })} />);
+    const nav = screen.getByRole("navigation", navName);
+    expect(nav.classList).toContain("has-member-slot");
+    const link = within(nav).getByRole("link", { name: another.displayName });
+    expect(link.textContent).toBe(another.displayName);
+    expect(nav.children[2]).toBe(link);
+  });
+
+  it("選択欄が3枠目のときも修飾classを付け、summaryの文字は表示名だけにする", () => {
+    render(
+      <CalendarHome
+        data={createData({
+          members: [self, partner, another],
+          scope: "member",
+          selectedMemberId: another.membershipId,
+          selectedMemberLabel: another.displayName,
+        })}
+      />,
+    );
+    const nav = screen.getByRole("navigation", navName);
+    expect(nav.classList).toContain("has-member-slot");
+    const summary = nav.querySelector("summary");
+    expect(summary?.parentElement).toBe(nav.children[2]);
+    // 開閉の印はCSSで描くため、文字としては表示名だけを持つ
+    expect(summary?.textContent).toBe(another.displayName);
+  });
+});
+
 describe("CalendarHome 今日へ戻る", () => {
   it("年月を左右の操作から独立した中央列に配置する", () => {
     const { container } = render(<CalendarHome data={createData()} />);

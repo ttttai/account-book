@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { updateProfileSchema } from "../domain/auth-input";
+import { isUnavailableAuthError } from "../domain/backend-availability";
 import { getAllowedGoogleUserId } from "../infrastructure/google-auth-access";
 import { createServerSupabaseClient } from "../infrastructure/supabase-server";
 import type { AuthActionState, AuthFieldName } from "./action-state";
@@ -37,6 +38,14 @@ export async function updateProfileAction(
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
+  // Auth APIの応答不能は未認証と区別し、ログインへ送らず再試行を促す (NFR-SEC-012)
+  if (isUnavailableAuthError(claimsError)) {
+    return {
+      status: "error",
+      message:
+        "サーバーに接続できませんでした。しばらく待ってからもう一度お試しください。",
+    };
+  }
   // クレームを再検証し、許可ユーザー以外には更新させない
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) redirect("/login");

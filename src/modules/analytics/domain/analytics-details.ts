@@ -4,7 +4,7 @@ import type {
   AnalyticsIncomeInput,
   AnalyticsMonthTotals,
 } from "./analytics-summary";
-import { safeAdd, sharePercentOf } from "./analytics-summary";
+import { safeAdd, summarizeCategoryShares } from "./analytics-summary";
 
 export type AnalyticsPeriodTotals = Readonly<{
   expenseTotal: number;
@@ -54,16 +54,14 @@ export function summarizeAnalyticsPeriod(
     }
   }
 
-  const expenseByCategory = [...categories.values()]
-    .sort(
+  const expenseByCategory = summarizeCategoryShares(
+    [...categories.values()].sort(
       (left, right) =>
         right.amountMinor - left.amountMinor ||
         left.categoryId.localeCompare(right.categoryId),
-    )
-    .map((category) => ({
-      ...category,
-      sharePercent: sharePercentOf(category.amountMinor, expenseTotal),
-    }));
+    ),
+    expenseTotal,
+  );
 
   return {
     expenseTotal,
