@@ -1,6 +1,6 @@
 # 取引入力の金額欄を入力中も3桁区切りで表示する
 
-状態: 承認済み
+状態: 実装確認済み
 レビュー日: 2026-09-11
 ブランチ: fix/amount-digit-grouping
 対象仕様: `specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/07-acceptance-test-plan.md`
@@ -45,3 +45,10 @@
 `AC-TXN-014-10`は`TXN-014`、`TXN-017`、`AC-TXN-014-2`、`AC-TXN-014-4`、`AC-TXN-017-1`〜`AC-TXN-017-5`、§1の金額表記、`NFR-A11Y-*`と整合し、安全かつ実装可能である。ドメインの単体テスト（整形関数、`,`を含む入力の正規化）、component test（テンキー入力の表示と送信値の分離、式の各項の区切り、区切り込み文字数での`data-long`）、architecture test（整形関数の利用と`Intl`不使用）、E2Eの金額欄アサーションを先に更新し、実装後に320px・375 x 812で`¥128,000`と`1,200+300`が金額欄からはみ出さず末尾が見えること、1280 x 800で同じ表示になることを実画面確認する条件で実装開始を承認する。
 
 ## 実装確認
+
+- 状態を`実装確認済み`へ更新（2026-09-11、ブランチ`fix/amount-digit-grouping`）。
+- テスト: `npm test`で architecture test 186件、vitest 909件（99ファイル）が通過。`amount-keypad.test.ts`へ`formatAmountExpression`の3件（3桁区切り、式の各項、上限の決定性）と`,`を含む入力の正規化1件、`expense-form.test.tsx`へテンキー入力の表示と送信値の分離・式の各項の区切り、物理キーボードの`,`込み入力、区切り込み文字数での`data-long`の3件を追加し、既存の金額欄アサーション12件を区切り表示へ更新。`transactions-foundation.test.mjs`へ整形関数の利用・`Intl`不使用・固定費・予算の不変を追加。E2Eの`enterAmountWithKeypad`（`tests/e2e/support/app-actions.ts`）は区切り込みの期待値へ更新。
+- lint（biome）、型検査（tsc）、`prettier --check`、本番build（`next build`）が通過。
+- 実画面確認（Playwright、fixtureの一時preview route。コミット前に削除）: 375 x 812で`1` `2` `8` `0` `00`を押すと金額欄は`128,000`（7文字、通常サイズ45px、幅252pxに収まる）、送信値`128000`。`+` `1` `5` `00`で`128,000+1,500`（13文字、縮小31.9px）と`= ¥129,500`、送信値`129500`、内訳の確認も`¥129,500`。幅を超えた20pxは末尾へ寄せて末尾が見える。上限桁`9,007,199,254,740,991`も末尾が見える。320 x 700でも同じ表示（縮小27.2px）で横scrollなし。
+- 1280 x 800では`128,000`が32px、`128,000+1,500`は追加したPC幅の縮小ルールで25.6px（変更前はdata-longの優先度で38.4pxへ拡大していた）。桁区切りの表示・送信値は375pxと同一。
+- 固定費・予算の金額欄は変更せず、続きはIssue #156で扱う。
