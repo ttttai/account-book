@@ -37,11 +37,12 @@ export default async function GroupHistoryPage({
 
   return (
     <main className="protected-shell group-home history-page">
-      <header className="app-header">
+      <header className="app-header history-page-header">
         <div>
           <p className="eyebrow">取引履歴</p>
           <h1 className="group-page-title">{groupName}</h1>
         </div>
+        {/* 共通ナビゲーションと重複するため group layout では非表示。一覧への明示的な導線として残す (AC-GRP-011-3) */}
         <nav className="header-links" aria-label="履歴画面の操作">
           <Link
             className="text-link"

@@ -19,6 +19,7 @@ function createData(
     kind: "ready",
     group: { id: groupId, name: "テスト家計" },
     currentMembershipId,
+    todayDate: "2026-09-09",
     filter,
     members: [
       {

@@ -295,6 +295,7 @@ export function HistoryView({ data }: Readonly<{ data: HistoryReadyData }>) {
         filterParams={params}
         initialRows={data.rows}
         initialNextCursor={data.nextCursor}
+        todayDate={data.todayDate}
         targetMemberName={
           data.filter.memberMemberId
             ? data.members.find(
