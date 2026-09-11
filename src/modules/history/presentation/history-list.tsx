@@ -11,7 +11,7 @@ import { formatHistoryJpy } from "../domain/history-jpy";
 import { appendHistoryRows, type HistoryRow } from "../domain/history-row";
 import {
   buildHistoryRowAccessibleName,
-  summarizeHistoryAllocations,
+  describeHistoryParty,
 } from "../domain/history-row-label";
 import { loadMoreHistoryAction } from "./actions";
 
@@ -40,16 +40,10 @@ function HistoryRowItem({
   editHref: string;
   targetMemberName?: string;
 }>) {
-  const allocationSummary = summarizeHistoryAllocations(row);
-  // 収入の受取者だけ表示し、支出の支払者は画面へ出さない (AC-TXN-018-3)
+  // 支出は支出した人、収入は受取者を出し、支出の支払者は画面へ出さない (AC-TXN-018-3, AC-HIS-007-1)
   const details = [
     { key: "memo", text: row.memo },
-    { key: "split", text: allocationSummary },
-    {
-      key: "recipient",
-      text:
-        row.type === "income" ? `受取者 ${row.partyDisplayName}` : undefined,
-    },
+    { key: "party", text: describeHistoryParty(row) },
   ].filter((detail): detail is { key: string; text: string } =>
     Boolean(detail.text),
   );

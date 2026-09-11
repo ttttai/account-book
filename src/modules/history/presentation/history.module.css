@@ -222,6 +222,7 @@
   text-overflow: ellipsis;
 }
 
+/* メモは残り幅で縮め、支出した人・受取者は行幅の7割を上限に省略記号で切る (AC-HIS-007-3) */
 .history-row-details > span:first-child {
   flex: 1 1 auto;
   min-width: 0;
@@ -229,6 +230,8 @@
 
 .history-row-details > span:not(:first-child) {
   flex: 0 0 auto;
+  min-width: 0;
+  max-width: 70%;
 }
 
 .history-row-amounts {

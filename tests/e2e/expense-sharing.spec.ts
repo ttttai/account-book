@@ -171,7 +171,11 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
     new RegExp(`${E2E_USER_A.displayName}の支出 ￥3,000 取引全体 ￥6,000`),
   );
   await expect(historyRows).toContainText("食費");
-  await expect(historyRows).toContainText("2人で分割");
+  // 支出した人を表示名の列挙で示し、人数の要約は出さない。並び順はDBの返却順に依存するため両名の存在で確認する (AC-HIS-007-1)
+  await expect(historyRows).toContainText("支出した人");
+  await expect(historyRows).toContainText(E2E_USER_A.displayName);
+  await expect(historyRows).toContainText(E2E_USER_B.displayName);
+  await expect(historyRows).not.toContainText("人で分割");
   await expect(historyRows.getByRole("link", { name: "編集" })).toHaveCount(0);
   await expect(historyRows).not.toContainText("支払者");
   await expect(historyRows).not.toContainText("負担");

@@ -1,15 +1,20 @@
 import { formatHistoryJpy } from "./history-jpy";
 import type { HistoryRow } from "./history-row";
 
-// 内訳の要約。2人以上へ配分された支出だけ「2人で分割」とし、1人と収入は表示しない (AC-HIS-006-2)
-export function summarizeHistoryAllocations(
-  row: HistoryRow,
-): string | undefined {
-  if (row.type !== "expense" || row.allocations.length < 2) return undefined;
-  return `${row.allocations.length}人で分割`;
+// 支出した人（負担メンバー）の表示名を「・」で連結する。各人の金額は出さず、収入には返さない (AC-HIS-007-1)
+export function describeHistorySpenders(row: HistoryRow): string | undefined {
+  if (row.type !== "expense" || row.allocations.length === 0) return undefined;
+  const names = row.allocations.map((allocation) => allocation.displayName);
+  return `支出した人 ${names.join("・")}`;
 }
 
-// 行リンクのアクセシブル名。日付・カテゴリ・金額を基本に、対象者の支出額・受取者・メモを補う (AC-HIS-006-3)
+// 支出なら支出した人、収入なら受取者。2行目とアクセシブル名で同じ文言を使う (AC-HIS-007-2)
+export function describeHistoryParty(row: HistoryRow): string | undefined {
+  if (row.type === "income") return `受取者 ${row.partyDisplayName}`;
+  return describeHistorySpenders(row);
+}
+
+// 行リンクのアクセシブル名。日付・カテゴリ・金額を基本に、対象者の支出額・支出した人または受取者・メモを補う (AC-HIS-006-3)
 export function buildHistoryRowAccessibleName(
   row: HistoryRow,
   dateHeading: string,
@@ -28,7 +33,8 @@ export function buildHistoryRowAccessibleName(
   } else {
     parts.push(formatHistoryJpy(row.amountMinor));
   }
-  if (row.type === "income") parts.push(`受取者 ${row.partyDisplayName}`);
+  const party = describeHistoryParty(row);
+  if (party) parts.push(party);
   if (row.memo) parts.push(row.memo);
   return parts.join(" ");
 }
