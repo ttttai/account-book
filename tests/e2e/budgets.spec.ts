@@ -102,8 +102,8 @@ test("E2E-010 月を往復しても各月の予算だけを保存する @desktop
   await navigation.getByRole("link").first().click();
   await expect(
     memberPage.getByRole("textbox", { name: "グループ予算" }),
-  ).toHaveValue("50000");
-  await expect(memberPage.getByLabel("食費")).toHaveValue("20000");
+  ).toHaveValue("50,000");
+  await expect(memberPage.getByLabel("食費")).toHaveValue("20,000");
   await memberPage.getByRole("textbox", { name: "グループ予算" }).fill("55000");
   await memberPage.getByRole("button", { name: "予算を保存" }).click();
   await expect(
@@ -112,8 +112,8 @@ test("E2E-010 月を往復しても各月の予算だけを保存する @desktop
   await navigation.getByRole("link").last().click();
   await expect(
     memberPage.getByRole("textbox", { name: "グループ予算" }),
-  ).toHaveValue("80000");
-  await expect(memberPage.getByLabel("食費")).toHaveValue("30000");
+  ).toHaveValue("80,000");
+  await expect(memberPage.getByLabel("食費")).toHaveValue("30,000");
   for (const width of [375, 1280, 320]) {
     await memberPage.setViewportSize({
       width,

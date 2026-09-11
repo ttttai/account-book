@@ -212,6 +212,14 @@ test("固定費の金額欄は取引入力と共有する画面内テンキー�
   // テンキー部品と桁追加の規則はtransactionsの公開エントリーポイント経由で共有し、内部ファイルを直接importしない
   assert.match(transactionsPresentation, /export \{ AmountKeypad \}/);
   assert.match(transactionsIndex, /appendAmountDigit/);
+  assert.match(transactionsIndex, /formatAmountExpression/);
+  assert.match(transactionsIndex, /stripAmountGrouping/);
+  // 金額欄は表示だけを3桁区切りにし、区切りなしのamountMinorをhidden inputで送る。表示用inputはnameを持たない (AC-REC-005-5)
+  assert.match(management, /name="amountMinor"[\s\S]{0,80}type="hidden"/);
+  assert.doesNotMatch(management, /inputMode="none"(?:(?!\/>)[\s\S])*name=/);
+  assert.match(management, /value=\{formatAmountExpression\(amountMinor\)\}/);
+  assert.match(management, /stripAmountGrouping\(/);
+  assert.doesNotMatch(management, /Intl\./);
   assert.match(management, /from "@\/modules\/transactions\/presentation"/);
   assert.match(management, /from "@\/modules\/transactions"/);
   assert.doesNotMatch(

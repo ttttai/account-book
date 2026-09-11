@@ -14,7 +14,9 @@ import { formatAnalyticsJpy, formatAnalyticsMonth } from "@/modules/analytics";
 import {
   type AmountKeypadKey,
   appendAmountDigit,
+  formatAmountExpression,
   removeLastAmountDigit,
+  stripAmountGrouping,
 } from "@/modules/transactions";
 import { AmountKeypad } from "@/modules/transactions/presentation";
 
@@ -115,7 +117,8 @@ type AmountFieldProps = Readonly<{
 }>;
 
 // 金額欄1つ。inputmode="none"でOSの仮想キーボードを開かず、選択中はその直下に共有テンキーを開く (AC-BUD-010-4)
-// 物理キーボードとスクリーンリーダーからの入力はonChangeで維持する
+// 物理キーボードとスクリーンリーダーからの入力はonChangeで維持する。
+// 送信値は区切りなしの整数のままhidden inputで送り、表示用の金額欄だけを3桁区切りにする (AC-BUD-010-5)
 function AmountField({
   id,
   field,
@@ -136,6 +139,7 @@ function AmountField({
   return (
     <div className={styles["budget-field"]} data-budget-field={field}>
       <label htmlFor={id}>{label}</label>
+      <input name={name} type="hidden" value={value} />
       <div className={styles["budget-amount-wrap"]}>
         <span aria-hidden="true">¥</span>
         <input
@@ -144,14 +148,15 @@ function AmountField({
           data-amount-field={field}
           id={id}
           inputMode="none"
-          name={name}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) =>
+            onChange(stripAmountGrouping(event.target.value))
+          }
           onClick={onActivate}
-          pattern="[0-9]*"
+          pattern="[0-9,]*"
           placeholder={placeholder}
           required={required}
           type="text"
-          value={value}
+          value={formatAmountExpression(value)}
         />
       </div>
       {isActive ? (

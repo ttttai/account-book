@@ -9,6 +9,7 @@ import {
   normalizeAmountInput,
   parseAmountExpression,
   removeLastAmountDigit,
+  stripAmountGrouping,
 } from "./amount-keypad";
 
 describe("appendAmountDigit (AC-TXN-014-4, AC-REC-005-1)", () => {
@@ -258,5 +259,22 @@ describe("formatAmountExpression (AC-TXN-014-10)", () => {
     expect(normalizeAmountInput(formatAmountExpression("1200+300"))).toBe(
       "1200+300",
     );
+  });
+});
+
+describe("stripAmountGrouping (AC-REC-005-5, AC-BUD-010-5)", () => {
+  it("桁区切りの,だけを除き、表示値を区切りなしの状態へ戻す", () => {
+    expect(stripAmountGrouping("128,000")).toBe("128000");
+    expect(
+      stripAmountGrouping(formatAmountExpression("9007199254740991")),
+    ).toBe("9007199254740991");
+    expect(stripAmountGrouping("")).toBe("");
+    expect(stripAmountGrouping("1200")).toBe("1200");
+  });
+
+  it("演算子や他の文字は正規化せず残し、電卓を持たない欄では式を作らない", () => {
+    expect(stripAmountGrouping("1,200+300")).toBe("1200+300");
+    expect(stripAmountGrouping("12a")).toBe("12a");
+    expect(stripAmountGrouping(",,1,,")).toBe("1");
   });
 });

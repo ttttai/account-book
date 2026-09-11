@@ -79,6 +79,11 @@ function amountInput(): HTMLInputElement {
   return screen.getByLabelText("金額") as HTMLInputElement;
 }
 
+// Server Actionが読む送信値。表示用の金額欄とは別のhidden inputで送る (AC-REC-005-5)
+function submittedAmount(): HTMLInputElement | null {
+  return document.querySelector<HTMLInputElement>('input[name="amountMinor"]');
+}
+
 function pressKey(name: string) {
   fireEvent.click(screen.getByRole("button", { name }));
 }
@@ -96,8 +101,10 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
     renderManagement();
 
     expect(amountInput().getAttribute("inputmode")).toBe("none");
-    // Server Actionが読む送信名は従来のまま維持する
-    expect(amountInput().getAttribute("name")).toBe("amountMinor");
+    // Server Actionが読む送信名は従来のままhidden inputで維持し、表示用の金額欄はnameを持たない (AC-REC-005-5)
+    expect(amountInput().getAttribute("name")).toBeNull();
+    expect(submittedAmount()?.type).toBe("hidden");
+    expect(submittedAmount()?.value).toBe("");
     expect(keypadIsOpen()).toBe(false);
     expect(screen.getByText(KEYPAD_HINT)).toBeTruthy();
   });
@@ -122,10 +129,26 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
     pressKey("1");
     pressKey("2");
     pressKey("00");
-    expect(amountInput().value).toBe("1200");
+    expect(amountInput().value).toBe("1,200");
+    expect(submittedAmount()?.value).toBe("1200");
 
     pressKey("1桁削除");
     expect(amountInput().value).toBe("120");
+    expect(submittedAmount()?.value).toBe("120");
+  });
+
+  it("入力中は3桁区切りで表示し、送信値は区切りなしの整数のまま保つ (AC-REC-005-5)", () => {
+    renderManagement();
+    fireEvent.focus(amountInput());
+
+    for (const key of ["1", "2", "8", "0", "00"]) pressKey(key);
+    expect(amountInput().value).toBe("128,000");
+    expect(submittedAmount()?.value).toBe("128000");
+
+    // 物理キーボードや貼り付けで入った,は無視し、区切りの位置に関係なく数字だけを状態へ反映する
+    fireEvent.change(amountInput(), { target: { value: "1,2,34,567" } });
+    expect(amountInput().value).toBe("1,234,567");
+    expect(submittedAmount()?.value).toBe("1234567");
   });
 
   it("先頭に0を作らず、安全な整数の上限を超える桁を無視する (AC-REC-005-1)", () => {
@@ -138,7 +161,8 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
 
     fireEvent.change(amountInput(), { target: { value: "9007199254740991" } });
     pressKey("1");
-    expect(amountInput().value).toBe("9007199254740991");
+    expect(amountInput().value).toBe("9,007,199,254,740,991");
+    expect(submittedAmount()?.value).toBe("9007199254740991");
   });
 
   it("金額欄以外の入力欄へfocusするとテンキーを閉じ、金額を保持する (AC-REC-005-2)", () => {
@@ -179,11 +203,13 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
     renderManagement();
 
     fireEvent.change(amountInput(), { target: { value: "2480" } });
-    expect(amountInput().value).toBe("2480");
+    expect(amountInput().value).toBe("2,480");
+    expect(submittedAmount()?.value).toBe("2480");
 
     fireEvent.focus(amountInput());
     fireEvent.change(amountInput(), { target: { value: "3000" } });
-    expect(amountInput().value).toBe("3000");
+    expect(amountInput().value).toBe("3,000");
+    expect(submittedAmount()?.value).toBe("3000");
   });
 
   it("支出の固定費では支払者を表示せず現在のメンバーを隠しfieldで送信し、収入では「受け取る人」を選べる (AC-TXN-018-1, AC-TXN-018-3)", () => {
@@ -235,7 +261,9 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
     fireEvent.click(screen.getByRole("button", { name: "編集" }));
 
     expect(screen.getByRole("heading", { name: "家賃を編集" })).toBeTruthy();
-    expect(amountInput().value).toBe("120000");
+    // 初期値も区切って表示し、送信値は保存済みの整数のまま (AC-REC-005-5)
+    expect(amountInput().value).toBe("120,000");
+    expect(submittedAmount()?.value).toBe("120000");
     expect(amountInput().getAttribute("inputmode")).toBe("none");
     expect(keypadIsOpen()).toBe(false);
   });
