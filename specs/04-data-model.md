@@ -344,7 +344,7 @@ exists (
 
 `user_preferences`は許可された本人だけがselectでき、insert・update・deleteは`authenticated`へ許可せず`security definer`の`set_default_group`関数だけで更新する。関数は`search_path`を空文字へ固定し、非メンバー・存在しないグループを同じ権限エラーで拒否する。
 
-`groups`の名称・週の開始曜日・標準負担方法の更新は、`authenticated`へ直接update権限を与えず、`security definer`の`update_group_settings`関数だけで行う（`GRP-013`）。関数は`search_path`を空文字へ固定し、許可リストと対象グループのowner/admin所属を再確認して、member・非メンバー・存在しないグループを同じ権限エラーで拒否する。グループ行を`for update`でlockしたうえで`version`を比較し、不一致は`serialization_failure`として返す。値が変わらない場合は更新せず現在の`version`を返す。通貨とタイムゾーンは更新しない。
+`groups`の名称・週の開始曜日・標準負担方法の更新は、`authenticated`へ直接update権限を与えず、`security definer`の`update_group_settings`関数だけで行う（`GRP-013`）。関数は`search_path`を空文字へ固定し、許可リストと対象グループのowner/admin所属を再確認して、member・非メンバー・存在しないグループを同じ権限エラーで拒否する。グループ行を`for update`でlockしたうえで`version`を比較し、結果種別（`updated`・`unchanged`・`conflict`）と現在の`version`を1行で返す。不一致は`conflict`として上書きせず、値が変わらない場合は`unchanged`として更新も加算も行わない。競合を`serialization_failure`（40001）で返すとPostgRESTが自動再試行して応答が遅れSQLSTATEも失われるため、例外ではなく結果行で返す。通貨とタイムゾーンは更新しない。
 
 Authの登録前フックは`app_metadata.provider = 'google'`と許可リストを照合し、不一致をユーザー行作成前に拒否する。RLSと`security definer`関数でも、検証済みJWTのGoogle providerと許可リストを再確認する。
 

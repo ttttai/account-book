@@ -140,9 +140,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
 
         <section className="settings-panel settings-summary-panel">
           <p className="eyebrow">グループ設定</p>
-          <h2 id="group-settings-title">
-            {canEditGroupSettings ? "名前と標準の設定" : membership.group.name}
-          </h2>
+          <h2>名前と標準の設定</h2>
           {canEditGroupSettings ? (
             <GroupSettingsForm
               groupId={membership.group.id}

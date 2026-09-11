@@ -20,14 +20,21 @@ export type UpdateGroupSettingsResult =
   | Readonly<{ kind: "invalid" }>
   | Readonly<{ kind: "error" }>;
 
-const versionSchema = z.number().int().min(1);
+// DB関数は結果種別と現在のversionを1行で返す
+const outcomeRowSchema = z
+  .array(
+    z.object({
+      outcome: z.enum(["updated", "unchanged", "conflict"]),
+      group_version: z.number().int().min(1),
+    }),
+  )
+  .length(1);
 
 // DB関数が返すSQLSTATEを、画面が区別して扱う結果種別へ変換する
-// 40001: version競合、42501: 権限不足（member・非メンバー・存在しないグループ）、22023: 入力不正
+// 42501: 権限不足（member・非メンバー・存在しないグループ）、22023: 入力不正。競合は結果行で返るためここには来ない
 function mapUpdateError(
   code: unknown,
 ): Exclude<UpdateGroupSettingsResult, Readonly<{ kind: "ok" }>> {
-  if (code === "40001") return { kind: "conflict" };
   if (code === "42501") return { kind: "forbidden" };
   if (code === "22023") return { kind: "invalid" };
   return { kind: "error" };
@@ -60,7 +67,10 @@ export async function updateGroupSettings(
     return mapUpdateError(error.code);
   }
 
-  const version = versionSchema.safeParse(data);
-  if (!version.success) return { kind: "error" };
-  return { kind: "ok", version: version.data };
+  const rows = outcomeRowSchema.safeParse(data);
+  if (!rows.success) return { kind: "error" };
+  const [row] = rows.data;
+  // 競合は上書きせず画面へ再読み込みを促す。同じ値の再送は成功として扱う (AC-GRP-013-5)
+  if (row.outcome === "conflict") return { kind: "conflict" };
+  return { kind: "ok", version: row.group_version };
 }

@@ -7,7 +7,10 @@ alter table public.groups
   add column version integer not null default 1
   constraint groups_version_positive check (version >= 1);
 
--- グループの名称・週の開始曜日・標準負担方法を楽観的ロック付きで更新し、新しいversionを返す。
+-- グループの名称・週の開始曜日・標準負担方法を楽観的ロック付きで更新し、結果種別と現在のversionを返す。
+-- outcome: 'updated'（更新しversion加算）、'unchanged'（同じ値の再送。加算なし）、'conflict'（versionが古い。上書きしない）。
+-- 競合はserialization_failure（40001）で返さない。PostgRESTが40001を自動で再試行し、応答が遅延したうえ
+-- SQLSTATEが失われるため、結果行として返してアプリ層で区別する。
 -- 通貨とタイムゾーンはMVPで固定のため更新対象にしない。
 -- member・非メンバー・存在しないグループ・許可リスト外は同じ権限エラーで拒否し、存在を明かさない。
 create or replace function public.update_group_settings(
@@ -17,7 +20,7 @@ create or replace function public.update_group_settings(
   p_default_allocation text,
   p_expected_version integer
 )
-returns integer
+returns table (outcome text, group_version integer)
 language plpgsql
 security definer
 set search_path = ''
@@ -64,14 +67,16 @@ begin
 
   -- 古いversionからの更新は競合として返し、新しい設定を上書きしない
   if target.version <> p_expected_version then
-    raise serialization_failure using message = 'group version conflict';
+    return query select 'conflict'::text, target.version;
+    return;
   end if;
 
   -- 値が変わらない再送は更新もversion加算も行わず、現在のversionを返す（冪等）
   if target.name = normalized_name
     and target.week_starts_on = p_week_starts_on
     and target.default_allocation = p_default_allocation then
-    return target.version;
+    return query select 'unchanged'::text, target.version;
+    return;
   end if;
 
   update public.groups
@@ -82,7 +87,7 @@ begin
     version = version + 1
   where id = target.id;
 
-  return target.version + 1;
+  return query select 'updated'::text, target.version + 1;
 end;
 $$;
 

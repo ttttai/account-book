@@ -31,7 +31,14 @@ test("グループ設定migrationはversion列を追加し、security definer関
   assert.match(migration, /array\['owner', 'admin'\]::text\[\]/i);
   assert.match(migration, /insufficient_privilege/i);
   assert.match(migration, /for update/i);
-  assert.match(migration, /serialization_failure/i);
+  // 競合はPostgRESTが再試行する40001ではなく結果行で返す (AC-GRP-013-5)
+  assert.match(
+    migration,
+    /returns table \(outcome text, group_version integer\)/i,
+  );
+  assert.match(migration, /'conflict'/);
+  assert.match(migration, /'unchanged'/);
+  assert.doesNotMatch(migration, /raise serialization_failure/i);
   assert.match(migration, /invalid_parameter_value/i);
   assert.match(migration, /version = version \+ 1/i);
   assert.match(
@@ -65,8 +72,8 @@ test("グループ設定commandはserver-only境界で認証を確認しSQLSTATE
   assert.match(command, /import "server-only"/);
   assert.match(command, /auth\.getClaims\(\)/);
   assert.match(command, /rpc\("update_group_settings"/);
-  assert.match(command, /"40001"/);
   assert.match(command, /"42501"/);
+  assert.match(command, /outcome === "conflict"/);
   assert.doesNotMatch(command, /SERVICE_ROLE/);
 
   // 楽観的ロックに使うversionを読み取りDTOへ含める
@@ -125,7 +132,7 @@ test("グループ設定のDB/RLS統合テストをlocal runへ登録する", as
 
   assert.match(runner, /\\ir group-settings-local\.sql/);
   assert.match(integration, /update_group_settings/);
-  assert.match(integration, /serialization_failure/);
+  assert.match(integration, /'conflict'/);
   assert.match(integration, /insufficient_privilege/);
   assert.match(integration, /invalid_parameter_value/);
   assert.match(integration, /update public\.groups/i);

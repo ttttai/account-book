@@ -37,7 +37,7 @@ exception
 end;
 $$;
 
--- 古いversionからの更新は競合として拒否する (AC-GRP-013-5)
+-- 古いversionからの更新は'conflict'を返して上書きしない (AC-GRP-013-5)
 create function pg_temp.assert_update_conflict(
   target_group_id uuid,
   stale_version integer,
@@ -46,19 +46,42 @@ create function pg_temp.assert_update_conflict(
 returns void
 language plpgsql
 as $$
+declare
+  returned record;
 begin
-  perform public.update_group_settings(
+  select * into returned
+  from public.update_group_settings(
     target_group_id,
     '競合する更新',
     0::smallint,
     'equal',
     stale_version
   );
-  raise exception 'integration assertion failed: %', message;
-exception
-  when serialization_failure then
-    null;
+  if returned.outcome is distinct from 'conflict' then
+    raise exception 'integration assertion failed: %', message;
+  end if;
 end;
+$$;
+
+-- 更新関数の結果を「outcome:version」の1文字列にして比較しやすくする
+create function pg_temp.update_outcome(
+  target_group_id uuid,
+  new_name text,
+  new_week_starts_on smallint,
+  new_default_allocation text,
+  expected_version integer
+)
+returns text
+language sql
+as $$
+  select outcome || ':' || group_version
+  from public.update_group_settings(
+    target_group_id,
+    new_name,
+    new_week_starts_on,
+    new_default_allocation,
+    expected_version
+  );
 $$;
 
 -- 不正な入力値はDB関数でも拒否する (AC-GRP-013-3)
@@ -162,14 +185,9 @@ select pg_temp.assert_true(
 
 -- ownerは名称・週の開始曜日・標準負担方法を更新でき、versionが加算される (AC-GRP-013-5, AC-GRP-013-6)
 select pg_temp.assert_true(
-  public.update_group_settings(
-    :'group_id',
-    '  設定変更後の家計  ',
-    1::smallint,
-    'self',
-    1
-  ) = 2,
-  'ownerの更新は新しいversion 2を返す'
+  pg_temp.update_outcome(:'group_id', '  設定変更後の家計  ', 1::smallint, 'self', 1)
+    = 'updated:2',
+  'ownerの更新はupdatedと新しいversion 2を返す'
 );
 select pg_temp.assert_true(
   (
@@ -187,14 +205,9 @@ select pg_temp.assert_true(
 
 -- 値が変わらない再送は更新もversion加算も行わない (AC-GRP-013-5)
 select pg_temp.assert_true(
-  public.update_group_settings(
-    :'group_id',
-    '設定変更後の家計',
-    1::smallint,
-    'self',
-    2
-  ) = 2,
-  '同じ値の再送はversionを加算せず現在のversionを返す'
+  pg_temp.update_outcome(:'group_id', '設定変更後の家計', 1::smallint, 'self', 2)
+    = 'unchanged:2',
+  '同じ値の再送はunchangedと現在のversionを返し加算しない'
 );
 select pg_temp.assert_true(
   (select version from public.groups where id = :'group_id') = 2,
@@ -250,7 +263,8 @@ select set_config(
 select public.create_group('Bの家計', 0::smallint, 'equal') as b_group_id \gset
 
 select pg_temp.assert_true(
-  public.update_group_settings(:'b_group_id', 'Bの家計（改）', 0::smallint, 'equal', 1) = 2,
+  pg_temp.update_outcome(:'b_group_id', 'Bの家計（改）', 0::smallint, 'equal', 1)
+    = 'updated:2',
   'Bは自分がownerのグループを更新できる'
 );
 select pg_temp.assert_update_denied(
@@ -317,7 +331,8 @@ select set_config(
   true
 );
 select pg_temp.assert_true(
-  public.update_group_settings(:'group_id', 'adminが変更した家計', 0::smallint, 'equal', 2) = 3,
+  pg_temp.update_outcome(:'group_id', 'adminが変更した家計', 0::smallint, 'equal', 2)
+    = 'updated:3',
   'adminはグループ設定を更新できる'
 );
 select pg_temp.assert_true(
