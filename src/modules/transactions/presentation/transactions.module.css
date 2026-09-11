@@ -622,6 +622,10 @@
     min-height: 3.25rem;
     font-size: 2rem;
   }
+  /* 桁区切り込みで8文字以上の式・金額はPC幅でも通常より小さくする (TXN-017, AC-TXN-014-10) */
+  .amount-input-wrap[data-long="true"] input {
+    font-size: 1.6rem;
+  }
   /* 使った日（収入では受け取った人も）を2列に置く（カテゴリはドック側へ移動済み。支出の支払者は表示しない） */
   .expense-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
