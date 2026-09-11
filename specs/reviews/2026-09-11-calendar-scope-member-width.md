@@ -1,6 +1,6 @@
 # 集計対象切替の3枠目にメンバー名の幅を確保する
 
-状態: 承認済み
+状態: 実装確認済み
 レビュー日: 2026-09-11
 ブランチ: fix/calendar-scope-member-width
 対象仕様: `specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/07-acceptance-test-plan.md`、`specs/15-e2e-testing.md`
@@ -43,3 +43,9 @@ architecture testの`grid-auto-columns`断言と、E2E-004の「3枠の幅が一
 整合性、安全性、実装可能性とMVP範囲を確認し承認する。先にcomponent test（修飾classの有無、3枠目のaccessibility name全文）、architecture test（CSS規則）、E2E-004（3枠目が「グループ」枠以上の幅・省略なし）を更新し、320px・375px・1280pxのホームと概要分析で2人グループ（長い表示名）と3人以上のグループの実画面を確認する。
 
 ## 実装確認
+
+ホームと概要分析の集計対象をgridからflexへ変え、3枠のときだけ「グループ」「自分」に`flex: 1 0 auto`、3枠目に`flex: 1 1 auto`を与える修飾class`has-member-slot`をServer Componentで付けた。選択欄のsummaryには`::after`で開閉の印を描き、文字・accessibility nameは変えていない。枠数、候補、URL、`aria-current`、DTO、query、認可は変更していない。
+
+architecture 187件、単体・component 909件（新規6件を含む）、lint、format、型検査、本番buildが成功。E2E-004は3枠の幅一致の断言を「省略なし・3枠目が『グループ』枠以上」へ更新し、実行はPRのCIで行う。
+
+fixtureの一時preview routeで320 x 568、375 x 812、1280 x 800のホームと概要分析を撮影し、2人グループ（表示名「E2E利用者B」）では3幅とも省略なし、長い表示名（全角14文字）では3枠目だけが末尾省略され「グループ」「自分」は省略されないこと、3人以上では選択欄の選択中表示名も同じ規則で表示され、横overflowが0pxであることを確認した。実測の枠幅（横幅320px）はホームで「グループ」83px・「自分」59px・「E2E利用者B」109px、長い表示名では67px・42px・142pxだった。

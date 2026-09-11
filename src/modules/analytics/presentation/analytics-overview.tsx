@@ -124,8 +124,13 @@ type ScopeNavigationProps = Readonly<{
 
 // 自分以外のアクティブメンバー数で3枠目を切り替える集計対象ナビゲーション (AC-ANA-005-3)
 // 0人は2枠、1人はメンバー名の直接リンク、2人以上はホームカレンダーと同じ選択欄にして枠を折り返さない
+// 3枠のときだけ固定語の幅を確保して残りを3枠目へ渡す修飾classを付ける (AC-CAL-004-3)
 function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
   const others = data.members.filter((member) => !member.isCurrentUser);
+  const navClassName =
+    others.length > 0
+      ? `${styles["analytics-scope-nav"]} ${styles["has-member-slot"]}`
+      : styles["analytics-scope-nav"];
   const memberHref = (membershipId: string) =>
     createAnalyticsUrl(data.group.id, {
       month: data.month,
@@ -138,7 +143,7 @@ function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
   const onlyOther = others.length === 1 ? others[0] : undefined;
 
   return (
-    <nav aria-label="分析の集計対象" className={styles["analytics-scope-nav"]}>
+    <nav aria-label="分析の集計対象" className={navClassName}>
       <Link
         aria-current={data.scope === "group" ? "page" : undefined}
         className={data.scope === "group" ? "is-active" : undefined}
