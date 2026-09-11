@@ -204,7 +204,7 @@ describe("ExpenseForm の金額テンキー (TXN-014)", () => {
     pressKey("2");
     pressKey("00");
 
-    expect(amountInput().value).toBe("1200");
+    expect(amountInput().value).toBe("1,200");
   });
 
   it("1文字削除で末尾の桁だけを取り消す (AC-TXN-014-1)", () => {
@@ -310,7 +310,7 @@ describe("ExpenseForm のカテゴリ展開 (TXN-015)", () => {
     fireEvent.click(screen.getByRole("button", { name: "すべて" }));
     fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
 
-    expect(amountInput().value).toBe("1200");
+    expect(amountInput().value).toBe("1,200");
     expect(
       (screen.getByLabelText("メモ（任意）") as HTMLTextAreaElement).value,
     ).toBe("ランチ");
@@ -453,7 +453,7 @@ describe("ExpenseForm のテンキーの閉じるキー (AC-TXN-014-8, AC-TXN-01
 
     fireEvent.click(closeKey());
 
-    expect(amountInput().value).toBe("1200+3");
+    expect(amountInput().value).toBe("1,200+3");
     const hidden = document.querySelector(
       'input[name="amountMinor"]',
     ) as HTMLInputElement;
@@ -553,7 +553,7 @@ describe("ExpenseForm の電卓 (TXN-017)", () => {
     pressKey("3");
     pressKey("00");
 
-    expect(amountInput().value).toBe("1200+300");
+    expect(amountInput().value).toBe("1,200+300");
     const result = screen.getByText("= ¥1,500");
     expect(amountInput().getAttribute("aria-describedby")).toContain(result.id);
     // 表示用の金額欄はFormDataへ含めず、hidden inputだけが計算結果を送信する
@@ -701,14 +701,58 @@ describe("ExpenseForm の電卓 (TXN-017)", () => {
     expect(screen.getByRole("button", { name: "支出を保存" })).toBeTruthy();
   });
 
-  it("8文字以上の式では金額欄の文字を小さくする指標を付ける (TXN-017)", () => {
+  it("桁区切りを含めて8文字以上の式では金額欄の文字を小さくする指標を付ける (TXN-017, AC-TXN-014-10)", () => {
     renderForm();
 
-    fireEvent.change(amountInput(), { target: { value: "1200+30" } });
+    // 「1,200+3」は7文字なので縮小しない
+    fireEvent.change(amountInput(), { target: { value: "1200+3" } });
+    expect(amountInput().value).toBe("1,200+3");
     expect(amountInput().parentElement?.getAttribute("data-long")).toBeNull();
 
-    fireEvent.change(amountInput(), { target: { value: "1200+300" } });
+    // 「1,200+30」は区切り込みで8文字になるため縮小する
+    fireEvent.change(amountInput(), { target: { value: "1200+30" } });
+    expect(amountInput().value).toBe("1,200+30");
     expect(amountInput().parentElement?.getAttribute("data-long")).toBe("true");
+
+    // 区切りなしでは7桁でも、「1,234,567」は9文字になるため縮小する
+    fireEvent.change(amountInput(), { target: { value: "1234567" } });
+    expect(amountInput().value).toBe("1,234,567");
+    expect(amountInput().parentElement?.getAttribute("data-long")).toBe("true");
+  });
+
+  it("入力中の金額を3桁区切りで表示し、送信する金額は区切りなしの整数にする (AC-TXN-014-10)", () => {
+    renderForm();
+
+    for (const key of ["1", "2", "8", "0", "00"]) pressKey(key);
+
+    expect(amountInput().value).toBe("128,000");
+    expect(submittedAmount().value).toBe("128000");
+    // 式の各項も区切り、結果表示「= ¥」と表記をそろえる
+    pressKey("足す");
+    pressKey("1");
+    pressKey("5");
+    pressKey("00");
+    expect(amountInput().value).toBe("128,000+1,500");
+    expect(screen.getByText("= ¥129,500")).toBeTruthy();
+    expect(submittedAmount().value).toBe("129500");
+  });
+
+  it("物理キーボードから区切り記号を含む値が入っても式を壊さない (AC-TXN-014-2, AC-TXN-014-10)", () => {
+    renderForm();
+
+    fireEvent.change(amountInput(), { target: { value: "1,280" } });
+    expect(amountInput().value).toBe("1,280");
+    expect(submittedAmount().value).toBe("1280");
+
+    // 表示中の値の末尾へ1桁打つと、区切りを無視して桁が増える
+    fireEvent.change(amountInput(), { target: { value: "1,2805" } });
+    expect(amountInput().value).toBe("12,805");
+    expect(submittedAmount().value).toBe("12805");
+
+    // 1桁削除は表示ではなく式の末尾1文字を取り消す
+    pressKey("1桁削除");
+    expect(amountInput().value).toBe("1,280");
+    expect(submittedAmount().value).toBe("1280");
   });
 
   it("編集時は保存済みの金額を式なしで表示し、送信値も一致する (AC-TXN-017-3)", () => {
@@ -736,7 +780,7 @@ describe("ExpenseForm の電卓 (TXN-017)", () => {
       />,
     );
 
-    expect(amountInput().value).toBe("3200");
+    expect(amountInput().value).toBe("3,200");
     expect(submittedAmount().value).toBe("3200");
   });
 });

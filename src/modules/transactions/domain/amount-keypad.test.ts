@@ -5,6 +5,7 @@ import {
   appendAmountOperator,
   completeAmountExpression,
   evaluateAmountExpression,
+  formatAmountExpression,
   normalizeAmountInput,
   parseAmountExpression,
   removeLastAmountDigit,
@@ -218,5 +219,44 @@ describe("normalizeAmountInput (AC-TXN-017-1, AC-TXN-014-2)", () => {
     expect(normalizeAmountInput("+5")).toBe("5");
     expect(normalizeAmountInput("1+2+3")).toBe("3+3");
     expect(normalizeAmountInput("1,200円")).toBe("1200");
+  });
+
+  it("桁区切り表示を含む入力は区切りを無視して式へ戻す (AC-TXN-014-10)", () => {
+    expect(normalizeAmountInput("128,000")).toBe("128000");
+    expect(normalizeAmountInput("1,200+300")).toBe("1200+300");
+    expect(normalizeAmountInput("1,2005")).toBe("12005");
+    expect(normalizeAmountInput("9,007,199,254,740,991")).toBe(
+      "9007199254740991",
+    );
+  });
+});
+
+describe("formatAmountExpression (AC-TXN-014-10)", () => {
+  it("金額を3桁区切りで表示し、空欄と3桁以下は変えない", () => {
+    expect(formatAmountExpression("")).toBe("");
+    expect(formatAmountExpression("0")).toBe("0");
+    expect(formatAmountExpression("999")).toBe("999");
+    expect(formatAmountExpression("1000")).toBe("1,000");
+    expect(formatAmountExpression("1280")).toBe("1,280");
+    expect(formatAmountExpression("128000")).toBe("128,000");
+    expect(formatAmountExpression("1234567")).toBe("1,234,567");
+  });
+
+  it("式では左辺・右辺の各項を区切り、演算子と末尾の空の右辺を保つ", () => {
+    expect(formatAmountExpression("1200+")).toBe("1,200+");
+    expect(formatAmountExpression("1200+300")).toBe("1,200+300");
+    expect(formatAmountExpression("1200+3000")).toBe("1,200+3,000");
+    expect(formatAmountExpression("50÷2")).toBe("50÷2");
+    expect(formatAmountExpression("10000×12")).toBe("10,000×12");
+    expect(formatAmountExpression("5000−1200")).toBe("5,000−1,200");
+  });
+
+  it("安全な整数の上限も決定的に区切り、状態の値は変えない", () => {
+    const upper = "9007199254740991";
+    expect(formatAmountExpression(upper)).toBe("9,007,199,254,740,991");
+    expect(normalizeAmountInput(formatAmountExpression(upper))).toBe(upper);
+    expect(normalizeAmountInput(formatAmountExpression("1200+300"))).toBe(
+      "1200+300",
+    );
   });
 });
