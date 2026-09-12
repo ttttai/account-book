@@ -117,6 +117,7 @@ E2E stackのアプリは本番build（§3.1）で動かし、`next dev`固有の
 | `E2E-011` | 起動時に開くグループの設定・直行・解除     | `GRP-012`、`AC-GRP-012-1`、`AC-GRP-012-3`〜`AC-GRP-012-5`  |
 | `E2E-012` | ホームカレンダーの行高配分と金額サイズ     | `NAV-002`、`CAL-002`、`CAL-012`、`AC-CAL-001-20`           |
 | `E2E-013` | グループ設定の変更と読み取り専用表示       | `GRP-013`、`AC-GRP-013-1`、`AC-GRP-013-2`、`AC-GRP-013-6`  |
+| `E2E-014` | reduced motionでのmotion無効化             | `NFR-A11Y-007`、`NFR-UI-009`                               |
 
 ### E2E-001 未認証の保護画面アクセスとログイン導線
 
@@ -211,6 +212,11 @@ E2E stackのアプリは本番build（§3.1）で動かし、`next dev`固有の
 - 再読み込み後もグループ名の入力欄と週の開始曜日の選択が変更後の値になり、通貨とタイムゾーンは固定表示のままである（`AC-GRP-013-2`）。
 - 招待でmemberとして参加したE2E利用者Bが同じ設定画面を開くと、変更後のグループ名が読み取り専用で表示され、「保存する」が表示されない（`AC-GRP-013-1`）。
 - 競合、権限不足、RLSはDB・RLS testと単体testで確認し、E2Eでは扱わない。
+
+### E2E-014 reduced motionでのmotion無効化
+
+- E2E利用者Aが新しいグループのホームを`emulateMedia({ reducedMotion: "reduce" })`で開いて日付を選び、日別取引sheetの`animation-name`が`none`、取引入力の入力ドックと下部ナビゲーションの現在地リンクの`transition-duration`が`0s`であることを確認する。「閉じる」を押すとsheetが即時に取り除かれる（`NFR-A11Y-007`）。
+- 同じ画面を`reducedMotion: "no-preference"`で開き直し、sheetにスライドのanimationが付き、入力ドックの`transition-duration`が0sを超え200ms以下であることを確認する（`NFR-UI-009`）。mobile projectだけで実行する。
 
 ## 6. CI
 

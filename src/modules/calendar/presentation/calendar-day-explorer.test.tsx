@@ -1,10 +1,28 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CalendarReadyData } from "../application/calendar-types";
 import { CalendarDayExplorer } from "./calendar-day-explorer";
 
 const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
+// jsdomにはAnimationEventが無く、無いままだとReactはwebkitAnimationEndだけを購読して
+// fireEvent.animationEndがonAnimationEndへ届かない。react-domの読み込み前に定義する
+vi.hoisted(() => {
+  if (!("AnimationEvent" in globalThis)) {
+    Object.defineProperty(globalThis, "AnimationEvent", {
+      value: class AnimationEvent extends Event {},
+      configurable: true,
+      writable: true,
+    });
+  }
+});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPush }),
@@ -321,9 +339,101 @@ describe("CalendarDayExplorer", () => {
 
     fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }));
 
-    expect(screen.queryByRole("heading", { name: "2026年8月15日" })).toBeNull();
+    // URLとfocusは退場のmotionを待たず、閉じた時点で確定する (CAL-011)
     expect(new URLSearchParams(window.location.search).has("day")).toBe(false);
     expect(document.activeElement).toBe(dayLink);
+    // 退場中のsheetは操作対象から外し、読み上げからも除く
+    const closingPanel = screen.getByRole("complementary", { hidden: true });
+    expect(closingPanel.getAttribute("aria-hidden")).toBe("true");
+    expect(closingPanel.getAttribute("data-closing")).toBe("true");
+    expect(screen.queryByRole("complementary")).toBeNull();
+
+    fireEvent.animationEnd(closingPanel);
+    expect(screen.queryByRole("heading", { name: "2026年8月15日" })).toBeNull();
+    expect(screen.queryByRole("complementary", { hidden: true })).toBeNull();
+  });
+
+  it("開いている間のanimation終了ではsheetを取り除かない (NFR-UI-009)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      }),
+    );
+
+    const panel = screen.getByRole("complementary");
+    expect(panel.getAttribute("data-closing")).toBeNull();
+    expect(panel.getAttribute("aria-hidden")).toBeNull();
+    fireEvent.animationEnd(panel);
+
+    expect(screen.getByRole("heading", { name: "2026年8月15日" })).toBeTruthy();
+  });
+
+  it("スライドアウト中に別の日付を選ぶと退場を中断して新しい日付を表示する", () => {
+    render(<CalendarDayExplorer data={data} />);
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      }),
+    );
+    fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }));
+    fireEvent.click(
+      screen.getByRole("link", { name: "2026年8月16日、支出￥2,000" }),
+    );
+
+    const panel = screen.getByRole("complementary");
+    expect(panel.getAttribute("data-closing")).toBeNull();
+    expect(screen.getByRole("heading", { name: "2026年8月16日" })).toBeTruthy();
+    expect(new URLSearchParams(window.location.search).get("day")).toBe(
+      "2026-08-16",
+    );
+    // 中断した退場のanimationend が届いても、開いているsheetは消えない
+    fireEvent.animationEnd(panel);
+    expect(screen.getByRole("heading", { name: "2026年8月16日" })).toBeTruthy();
+  });
+
+  it("animationendが届かない環境でも退場中の表示を残し続けない", () => {
+    vi.useFakeTimers();
+    try {
+      render(<CalendarDayExplorer data={data} />);
+      fireEvent.click(
+        screen.getByRole("link", {
+          name: "2026年8月15日、支出￥1,000、収入￥300,000",
+        }),
+      );
+      fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }));
+      expect(screen.getByRole("complementary", { hidden: true })).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(screen.queryByRole("complementary", { hidden: true })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reduced motion設定では閉じた時点でsheetを取り除く (NFR-A11Y-007)", () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query.includes("prefers-reduced-motion"),
+      media: query,
+    }));
+    try {
+      render(<CalendarDayExplorer data={data} />);
+      const dayLink = screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      });
+      fireEvent.click(dayLink);
+      fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }));
+
+      expect(screen.queryByRole("complementary", { hidden: true })).toBeNull();
+      expect(new URLSearchParams(window.location.search).has("day")).toBe(
+        false,
+      );
+      expect(document.activeElement).toBe(dayLink);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("5桁以下のセル金額は折り返し機会を与えず1行で表示する", () => {

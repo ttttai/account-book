@@ -122,6 +122,10 @@
   text-decoration: none;
   white-space: nowrap;
   text-overflow: ellipsis;
+  /* 集計対象の切替は色と影の短いtransitionで選択状態の移動を示す (NFR-UI-009) */
+  transition-property: color, background-color, box-shadow;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 .calendar-scope-nav :global(.is-active) {
@@ -272,6 +276,10 @@
   padding: 0;
   vertical-align: top;
   border-radius: 0.65rem;
+  /* 選択日の背景・枠は短いtransitionで移す。選択状態そのものはタップ時点で確定する (CAL-011, NFR-UI-009) */
+  transition-property: background-color, box-shadow;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 .calendar-cell-link {
@@ -381,6 +389,57 @@
   border-radius: 1.25rem 1.25rem 0 0;
   background: white;
   box-shadow: 0 -18px 60px rgb(36 49 38 / 20%);
+  /* 開くときは画面下端からスライドインする。時間・easingはglobalのtoken (CAL-005, NFR-UI-009) */
+  animation: calendar-sheet-in var(--motion-duration-medium)
+    var(--motion-ease-out) both;
+}
+
+/* 閉じるときは同じ長さでスライドアウトし、終了位置に留めたまま除去を待つ。退場中は操作対象から外す */
+.calendar-day-panel[data-closing="true"] {
+  animation-name: calendar-sheet-out;
+  pointer-events: none;
+}
+
+@keyframes calendar-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+@keyframes calendar-sheet-out {
+  from {
+    transform: none;
+  }
+
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes calendar-panel-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes calendar-panel-fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 .calendar-day-panel > header,
@@ -487,6 +546,11 @@
     border: 1px solid var(--border);
     border-radius: 1.25rem;
     box-shadow: 0 18px 48px rgb(30 45 38 / 12%);
+    /* side panelはスライドせず短いfadeで表示・非表示を切り替える */
+    animation-name: calendar-panel-fade-in;
+  }
+  .calendar-day-panel[data-closing="true"] {
+    animation-name: calendar-panel-fade-out;
   }
 }
 

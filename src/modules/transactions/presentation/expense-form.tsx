@@ -77,6 +77,23 @@ function SaveButton({
   );
 }
 
+// 入力ドックの中身とドック自身のpadding・borderから、高さのtransitionが落ち着いたときの全高と
+// 下端のナビゲーション用paddingを求める。ドック自身の実高はtransition中の途中値なので使わない (NFR-UI-009)
+function measureInputDock(
+  dock: HTMLElement,
+  content: HTMLElement,
+): Readonly<{ totalHeight: number; navReserve: number }> {
+  const style = window.getComputedStyle(dock);
+  const navReserve = Number.parseFloat(style.paddingBottom) || 0;
+  // 小数点以下を切り捨てると上端で1px欠けるため、中身の高さは丸めない値で取る
+  const totalHeight =
+    content.getBoundingClientRect().height +
+    (Number.parseFloat(style.paddingTop) || 0) +
+    (Number.parseFloat(style.borderTopWidth) || 0) +
+    navReserve;
+  return { totalHeight, navReserve };
+}
+
 // 入力文字列を1以上の安全な整数として解釈する（不正な間はnull）
 function safeAmount(value: string): number | null {
   if (!/^[1-9]\d*$/.test(value)) return null;
@@ -217,6 +234,7 @@ export function ExpenseForm({
   const formRef = useRef<HTMLFormElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
+  const dockContentRef = useRef<HTMLDivElement>(null);
   const categoryOptionsRef = useRef<HTMLDivElement>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
   const amountFieldRef = useRef<HTMLDivElement>(null);
@@ -231,24 +249,26 @@ export function ExpenseForm({
     ),
   );
 
-  // 固定した入力ドックの見える高さぶんだけ外枠の下端を空け、最後の入力とfooterが隠れないようにする (AC-TXN-009-5)。
+  // 入力ドックの高さは中身から求めてCSS変数へ渡し、ドック自身はその値へtransitionする (NFR-UI-009)。
+  // 外枠の下端は見える高さぶんだけ空け、最後の入力とfooterが隠れないようにする (AC-TXN-009-5)。
   // ドック下端のナビゲーション用paddingは共通layoutが確保済みのため差し引く。
   useEffect(() => {
     const dock = dockRef.current;
+    const content = dockContentRef.current;
     const shell = shellRef.current;
-    if (!dock || !shell || typeof ResizeObserver === "undefined") return;
+    if (!dock || !content || !shell) return;
+    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(() => {
-      const navReserve = Number.parseFloat(
-        window.getComputedStyle(dock).paddingBottom,
-      );
-      const visibleHeight = dock.offsetHeight - (navReserve || 0);
-      shell.style.setProperty("--input-dock-height", `${visibleHeight}px`);
-      // footer側がドック上端を求めるため、ナビゲーション用paddingを含む全高も渡す
+      const { totalHeight, navReserve } = measureInputDock(dock, content);
+      dock.style.setProperty("--input-dock-target-height", `${totalHeight}px`);
       shell.style.setProperty(
-        "--input-dock-total-height",
-        `${dock.offsetHeight}px`,
+        "--input-dock-height",
+        `${totalHeight - navReserve}px`,
       );
+      // footer側がドック上端を求めるため、ナビゲーション用paddingを含む全高も渡す
+      shell.style.setProperty("--input-dock-total-height", `${totalHeight}px`);
     });
+    observer.observe(content);
     observer.observe(dock);
     return () => observer.disconnect();
   }, []);
@@ -312,14 +332,18 @@ export function ExpenseForm({
   useEffect(() => {
     if (!showKeypad) return;
     if (window.matchMedia?.("(min-width: 900px)").matches) return;
-    // ドックの高さが確定してから、金額欄とドックの重なりぶんだけ動かす
+    // ドックの中身が確定してから、transition後のドック上端と金額欄の重なりぶんだけ動かす
     const frame = requestAnimationFrame(() => {
       const field = amountFieldRef.current;
       const dock = dockRef.current;
-      if (!field || !dock) return;
+      const content = dockContentRef.current;
+      if (!field || !dock || !content) return;
+      const dockRect = dock.getBoundingClientRect();
+      const settledDockTop =
+        dockRect.bottom - measureInputDock(dock, content).totalHeight;
       const overlap =
         field.getBoundingClientRect().bottom -
-        dock.getBoundingClientRect().top +
+        Math.min(dockRect.top, settledDockTop) +
         8;
       if (overlap > 0) window.scrollBy({ top: overlap });
     });
@@ -735,102 +759,107 @@ export function ExpenseForm({
               閉じる
             </button>
           )}
-          <fieldset
-            aria-describedby="categoryId-error"
-            className={styles["category-fieldset"]}
-          >
-            <legend>カテゴリ</legend>
-            {hasNoIncomeCategory ? (
-              <p className={styles["edit-note"]}>
-                アクティブな収入カテゴリがありません。カテゴリ管理で追加してから収入を登録してください。
-              </p>
-            ) : (
-              <div className={styles["category-select"]}>
-                <div
-                  className={styles["category-options"]}
-                  ref={categoryOptionsRef}
-                >
-                  {categoryChoices.map((category) => (
-                    <label
-                      className={styles["category-option"]}
-                      key={category.id}
-                    >
-                      <input
-                        checked={category.id === effectiveCategoryId}
-                        name="categoryId"
-                        onChange={() => {
-                          setSelectedCategoryId(category.id);
-                          setCategoryExpanded(false);
-                        }}
-                        required
-                        type="radio"
-                        value={category.id}
-                      />
-                      <span className={styles["category-option-content"]}>
-                        <span
-                          aria-hidden="true"
-                          className={styles["category-option-dot"]}
-                          data-category-color={category.color}
+          {/* 高さの測定対象。ドックはこの高さへtransitionし、中身は即時に切り替える (NFR-UI-009) */}
+          <div className={styles["input-dock-content"]} ref={dockContentRef}>
+            <fieldset
+              aria-describedby="categoryId-error"
+              className={styles["category-fieldset"]}
+            >
+              <legend>カテゴリ</legend>
+              {hasNoIncomeCategory ? (
+                <p className={styles["edit-note"]}>
+                  アクティブな収入カテゴリがありません。カテゴリ管理で追加してから収入を登録してください。
+                </p>
+              ) : (
+                <div className={styles["category-select"]}>
+                  <div
+                    className={styles["category-options"]}
+                    ref={categoryOptionsRef}
+                  >
+                    {categoryChoices.map((category) => (
+                      <label
+                        className={styles["category-option"]}
+                        key={category.id}
+                      >
+                        <input
+                          checked={category.id === effectiveCategoryId}
+                          name="categoryId"
+                          onChange={() => {
+                            setSelectedCategoryId(category.id);
+                            setCategoryExpanded(false);
+                          }}
+                          required
+                          type="radio"
+                          value={category.id}
                         />
-                        <span className="category-option-name">
-                          {category.name}
+                        <span className={styles["category-option-content"]}>
+                          <span
+                            aria-hidden="true"
+                            className={styles["category-option-dot"]}
+                            data-category-color={category.color}
+                          />
+                          <span className="category-option-name">
+                            {category.name}
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            className={styles["category-option-check"]}
+                          >
+                            ✓
+                          </span>
                         </span>
-                        <span
-                          aria-hidden="true"
-                          className={styles["category-option-check"]}
-                        >
-                          ✓
-                        </span>
-                      </span>
-                    </label>
-                  ))}
+                      </label>
+                    ))}
+                  </div>
+                  <button
+                    aria-expanded={categoryExpanded}
+                    className={styles["category-expand-toggle"]}
+                    onClick={() => setCategoryExpanded((current) => !current)}
+                    type="button"
+                  >
+                    {categoryExpanded ? "閉じる" : "すべて"}
+                  </button>
                 </div>
-                <button
-                  aria-expanded={categoryExpanded}
-                  className={styles["category-expand-toggle"]}
-                  onClick={() => setCategoryExpanded((current) => !current)}
-                  type="button"
-                >
-                  {categoryExpanded ? "閉じる" : "すべて"}
-                </button>
-              </div>
-            )}
-            {state.fieldErrors?.categoryId?.[0] && (
-              <p className="field-error" id="categoryId-error">
-                {state.fieldErrors.categoryId[0]}
-              </p>
-            )}
-          </fieldset>
+              )}
+              {state.fieldErrors?.categoryId?.[0] && (
+                <p className="field-error" id="categoryId-error">
+                  {state.fieldErrors.categoryId[0]}
+                </p>
+              )}
+            </fieldset>
 
-          {/* 保存は常設し、数字・演算子キーと1文字削除・=だけを開閉する (AC-TXN-014-5, AC-TXN-016-1, TXN-017) */}
-          <AmountKeypad
-            calculator={{
-              onOperator: (operator) =>
+            {/* 保存は常設し、数字・演算子キーと1文字削除・=だけを開閉する (AC-TXN-014-5, AC-TXN-016-1, TXN-017) */}
+            <AmountKeypad
+              calculator={{
+                onOperator: (operator) =>
+                  setAmountExpression((current) =>
+                    appendAmountOperator(current, operator),
+                  ),
+                onEquals: () => setAmountExpression(completeAmountExpression),
+              }}
+              onDelete={() => setAmountExpression(removeLastAmountDigit)}
+              onKey={(key) =>
                 setAmountExpression((current) =>
-                  appendAmountOperator(current, operator),
-                ),
-              onEquals: () => setAmountExpression(completeAmountExpression),
-            }}
-            onDelete={() => setAmountExpression(removeLastAmountDigit)}
-            onKey={(key) =>
-              setAmountExpression((current) => appendAmountDigit(current, key))
-            }
-            open={showKeypad}
-            side={
-              <div className={styles["input-dock-save"]}>
-                <SaveButton
-                  disabled={hasNoIncomeCategory}
-                  label={
-                    editTransaction
-                      ? "変更を保存"
-                      : isIncome
-                        ? "収入を保存"
-                        : "支出を保存"
-                  }
-                />
-              </div>
-            }
-          />
+                  appendAmountDigit(current, key),
+                )
+              }
+              open={showKeypad}
+              side={
+                <div className={styles["input-dock-save"]}>
+                  <SaveButton
+                    disabled={hasNoIncomeCategory}
+                    label={
+                      editTransaction
+                        ? "変更を保存"
+                        : isIncome
+                          ? "収入を保存"
+                          : "支出を保存"
+                    }
+                  />
+                </div>
+              }
+            />
+          </div>
         </div>
       </form>
       {footer}
