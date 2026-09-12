@@ -181,7 +181,10 @@ describe("CalendarDayExplorer", () => {
     );
   });
 
-  it("日別取引sheetは支出の支払者を表示せず、内訳を「内訳」、収入の受取者を表示する (AC-TXN-018-3)", () => {
+  // 2人で分けた支出と収入を同じ日に置いたsheetを描く
+  function renderSharedDay(
+    overrides: Partial<CalendarReadyData> = {},
+  ): HTMLElement {
     const transactions = data.dayTransactionsByDate["2026-08-15"];
     if (!transactions?.[0] || !transactions[1]) {
       throw new Error("missing fixture");
@@ -195,6 +198,8 @@ describe("CalendarDayExplorer", () => {
             "2026-08-15": [
               {
                 ...transactions[0],
+                targetAmountMinor: 500,
+                memo: "夕食",
                 allocations: [
                   { membershipId: "m-a", displayName: "A", amountMinor: 500 },
                   { membershipId: "m-b", displayName: "B", amountMinor: 500 },
@@ -203,15 +208,126 @@ describe("CalendarDayExplorer", () => {
               transactions[1],
             ],
           },
+          ...overrides,
+        }}
+      />,
+    );
+    return screen.getByRole("complementary");
+  }
+
+  it("日別取引sheetは支払者・「内訳」・各人の金額を表示せず、支出した人の表示名と収入の受取者を表示する (AC-TXN-018-3, AC-CAL-017-1)", () => {
+    const panel = renderSharedDay();
+
+    expect(panel.textContent).not.toContain("支払者");
+    expect(panel.textContent).not.toContain("負担");
+    expect(panel.textContent).not.toContain("内訳");
+    expect(panel.textContent).not.toContain("￥500");
+    expect(screen.getByText("A・B")).toBeTruthy();
+    expect(screen.getByText("受取者 B")).toBeTruthy();
+  });
+
+  it("行全体が編集へのリンクで、アクセシブル名にカテゴリ・金額・表示名・メモを含み、「編集」リンクを別に置かない (AC-CAL-017-2)", () => {
+    const panel = renderSharedDay();
+
+    const expenseRow = screen.getByRole("link", {
+      name: "食費 ￥1,000 A・B 夕食",
+    });
+    expect(expenseRow.getAttribute("href")).toBe(
+      "/groups/00000000-0000-4000-8000-000000000001/transactions/00000000-0000-4000-8000-000000000101/edit?from=%2Fgroups%2F00000000-0000-4000-8000-000000000001%3Fmonth%3D2026-08%26scope%3Dgroup%26day%3D2026-08-15",
+    );
+    expect(
+      screen
+        .getByRole("link", { name: "給与 収入 ￥300,000 受取者 B" })
+        .getAttribute("href"),
+    ).toContain("/transactions/00000000-0000-4000-8000-000000000102/edit");
+    expect(screen.queryByRole("link", { name: "編集" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "固定費の設定" })).toBeNull();
+    expect(panel.querySelectorAll(".calendar-transaction-row")).toHaveLength(2);
+  });
+
+  it("収入行は「収入」の印と＋つきの金額を表示し、対象者の支出額と内訳を出さない (AC-CAL-012-4, AC-CAL-017-1)", () => {
+    renderSharedDay({ scope: "self", selectedMemberLabel: "自分" });
+
+    const incomeRow = screen.getByRole("link", {
+      name: "給与 収入 ￥300,000 受取者 B",
+    });
+    expect(incomeRow.textContent).toContain("収入");
+    expect(incomeRow.textContent).toContain("＋￥300,000");
+    expect(incomeRow.textContent).not.toContain("取引全体");
+    expect(incomeRow.textContent).not.toContain("の支出");
+    expect(
+      incomeRow.querySelector(".calendar-income-amount")?.textContent,
+    ).toBe("＋￥300,000");
+  });
+
+  it("scope=self|memberの支出行は対象者の負担額を主金額にし「取引全体」を補足、「〇〇の支出」はアクセシブル名だけに含める (AC-CAL-017-3)", () => {
+    renderSharedDay({
+      scope: "member",
+      selectedMemberId: "00000000-0000-4000-8000-000000000301",
+      selectedMemberLabel: "A",
+    });
+
+    const expenseRow = screen.getByRole("link", {
+      name: "食費 Aの支出 ￥500 取引全体 ￥1,000 A・B 夕食",
+    });
+    expect(
+      expenseRow.querySelector(".calendar-transaction-amount")?.textContent,
+    ).toBe("￥500");
+    expect(expenseRow.textContent).toContain("取引全体 ￥1,000");
+    expect(expenseRow.textContent).not.toContain("Aの支出");
+    // memberを保った選択日つきURLへ戻る
+    expect(expenseRow.getAttribute("href")).toContain(
+      encodeURIComponent(
+        "member=00000000-0000-4000-8000-000000000301&day=2026-08-15",
+      ),
+    );
+  });
+
+  it("グループ集計では主金額を取引金額にし「取引全体」を補足しない (AC-CAL-017-3)", () => {
+    renderSharedDay();
+
+    const expenseRow = screen.getByRole("link", {
+      name: "食費 ￥1,000 A・B 夕食",
+    });
+    expect(
+      expenseRow.querySelector(".calendar-transaction-amount")?.textContent,
+    ).toBe("￥1,000");
+    expect(expenseRow.textContent).not.toContain("取引全体");
+  });
+
+  it("メモも表示名も無い行は2行目を省く (AC-CAL-017-1)", () => {
+    const transaction = data.dayTransactionsByDate["2026-08-15"]?.[0];
+    if (!transaction) throw new Error("missing fixture");
+    render(
+      <CalendarDayExplorer
+        data={{
+          ...data,
+          selectedDay: "2026-08-15",
+          dayTransactionsByDate: {
+            "2026-08-15": [{ ...transaction, memo: null, allocations: [] }],
+          },
         }}
       />,
     );
 
-    const panel = screen.getByRole("complementary");
-    expect(panel.textContent).not.toContain("支払者");
-    expect(panel.textContent).not.toContain("負担");
-    expect(panel.textContent).toContain("内訳 A ￥500 / B ￥500");
-    expect(panel.textContent).toContain("受取者 B");
+    const row = screen.getByRole("link", { name: "食費 ￥1,000" });
+    expect(row.querySelector(".calendar-transaction-details")).toBeNull();
+  });
+
+  it("固定費の展開行は行全体が固定費画面へのリンクで、編集URLを持たない (AC-REC-002-3, AC-CAL-017-2)", () => {
+    render(
+      <CalendarDayExplorer data={{ ...data, selectedDay: "2026-08-16" }} />,
+    );
+
+    const row = screen.getByRole("link", {
+      name: "家賃 固定費 自宅の家賃 ￥2,000 A 毎月の住居費",
+    });
+    expect(row.getAttribute("href")).toBe(
+      "/groups/00000000-0000-4000-8000-000000000001/recurring-transactions",
+    );
+    expect(row.getAttribute("href")).not.toContain("/edit");
+    expect(screen.queryByRole("link", { name: "編集" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "固定費の設定" })).toBeNull();
   });
 
   it("日別取引sheetの追加導線は支出と収入の両方を指す文言にする", () => {

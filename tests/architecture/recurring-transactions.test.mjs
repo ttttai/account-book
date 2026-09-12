@@ -180,7 +180,7 @@ test("固定費画面と設定ハブ導線を用意し、展開取引を識別�
   assert.match(explorer, /固定費/);
   assert.match(
     explorer,
-    /isRecurring \?[\s\S]{0,400}recurring-transactions[\s\S]{0,400}transactions\/\$\{transaction\.id\}\/edit/,
+    /isRecurring\s*\?[\s\S]{0,400}recurring-transactions[\s\S]{0,400}transactions\/\$\{transaction\.id\}\/edit/,
   );
 
   // memberには設定操作を出さない
