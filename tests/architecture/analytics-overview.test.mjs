@@ -171,7 +171,11 @@ test("分析スタイルを機能のCSS Modulesへ置く (NFR-MNT-010)", async (
   // 320px幅で横scrollを出さず、44px以上のタップ領域を保つ (AC-ANA-009-2)
   assert.match(moduleCss, /min-width:\s*0;/);
   assert.match(moduleCss, /min-height:\s*44px;/);
-  assert.doesNotMatch(moduleCss, /overflow-x:\s*(?:auto|scroll)/);
+  // 横scrollは月別数値表を包む領域の内側だけに限り、カード列やページ全体には使わない (AC-ANA-009-2, AC-ANA-009-6)
+  assert.doesNotMatch(
+    moduleCss.replace(/\.details-table-scroll \{[^}]*\}/, ""),
+    /overflow-x:\s*(?:auto|scroll)/,
+  );
   // 1280pxでは同じ情報構造を複数カラムへ適応させる (AC-ANA-009-3)
   assert.match(moduleCss, /@media \(min-width: 900px\)/);
 });
@@ -421,4 +425,67 @@ test("月別推移は支出既定の縦棒グラフをclient側だけで収入�
     /\[data-trend-bar="income"\] \{[^}]*background:\s*#3d8a5f;/,
   );
   assert.match(chart, /analytics-chart-toggle/);
+});
+
+test("詳細分析の表示条件は選択と同時に反映し、pushStateでURLへ保存し、薄いServer Actionで結果だけを取り直す (ANA-016, AC-ANA-008-5, AC-ANA-016-1〜4)", async () => {
+  const view = await read(
+    "src/modules/analytics/presentation/analytics-details-view.tsx",
+  );
+  const actions = await read("src/modules/analytics/presentation/actions.ts");
+  const details = await read(
+    "src/modules/analytics/presentation/analytics-details.tsx",
+  );
+  const entry = await read("src/modules/analytics/presentation.ts");
+  const moduleCss = await read(
+    "src/modules/analytics/presentation/analytics.module.css",
+  );
+  const review = await read(
+    "specs/reviews/2026-09-12-analytics-details-instant-filters.md",
+  );
+  const requirements = await read("specs/01-product-requirements.md");
+  const useCases = await read("specs/02-use-cases.md");
+  const nfr = await read("specs/06-non-functional-requirements.md");
+
+  assert.match(review, /状態: (承認済み|実装確認済み)/);
+  assert.match(requirements, /^- `ANA-016`/m);
+  assert.match(useCases, /^- `AC-ANA-008-5`/m);
+  assert.match(useCases, /^- `AC-ANA-016-4`/m);
+  assert.match(nfr, /^- `NFR-PERF-008`/m);
+
+  // 表示条件はClient Componentで、GET form送信・routerによる全画面遷移を使わずpushStateでURLへ保存する
+  assert.match(view, /^"use client";/m);
+  assert.match(view, /window\.history\.pushState/);
+  assert.match(view, /addEventListener\("popstate"/);
+  assert.doesNotMatch(
+    view,
+    /router\.(?:push|replace|refresh)|next\/form|next\/navigation/,
+  );
+  assert.doesNotMatch(view, />\s*表示する\s*<|選択しない/);
+  assert.match(view, /aria-busy=/);
+  assert.match(view, /aria-current=/);
+  assert.match(view, /aria-expanded=/);
+  assert.match(view, /applyAnalyticsDetailsFilterAction\(/);
+  assert.match(entry, /analytics-details-view/);
+
+  // Server Actionは既存の認可済み集計サービスをそのまま呼び、金額を再計算しない
+  assert.match(actions, /^"use server";/m);
+  assert.match(actions, /getAnalyticsDetails\(/);
+  assert.doesNotMatch(actions, /\.from\(|fetch\(|reduce\(/);
+
+  // 集計結果の描画はClient化せずに残し、見出しの月数は月別行数から取る。月別表はカード化せず内側scrollで包む
+  assert.doesNotMatch(details, /^"use client";/m);
+  assert.doesNotMatch(
+    details,
+    /next\/form|>\s*表示する\s*<|期間の(?:支出|収入|収支)"/,
+  );
+  assert.match(details, /data\.months\.length\}か月/);
+  assert.match(details, /details-table-scroll/);
+  assert.doesNotMatch(details, /details-table-quad/);
+  assert.match(moduleCss, /\.details-table-scroll \{[^}]*overflow-x:\s*auto;/);
+  assert.match(
+    moduleCss,
+    /\.details-table-months th:first-child \{[^}]*position:\s*sticky;/,
+  );
+  assert.match(moduleCss, /\.details-table-cards thead \{/);
+  assert.doesNotMatch(moduleCss, /\.details-table thead \{|details-table-quad/);
 });

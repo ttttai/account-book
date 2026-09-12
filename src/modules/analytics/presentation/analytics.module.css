@@ -491,17 +491,72 @@
   background: var(--surface);
 }
 
+/* 1行目はpreset3つと「期間を指定」、2行目は集計対象（とメンバー）。選ぶと同時に反映し、適用ボタンは置かない (AC-ANA-016-4) */
+.details-filter-row {
+  display: flex;
+  min-width: 0;
+  align-items: end;
+  gap: 0.4rem;
+}
+
+.details-filter-row > label {
+  flex: 1 1 0;
+}
+
 .details-presets {
   display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
+}
+
+/* 3つのpresetが「期間を指定」と同じ1行に収まるよう左右の余白を詰め、「12か月」を折り返さない */
+.details-presets > a {
+  padding-right: 0.35rem;
+  padding-left: 0.35rem;
+  white-space: nowrap;
+}
+
+/* 選択中のpresetは塗りで示し、aria-currentでも伝える */
+.details-presets > a[aria-current="true"] {
+  border-color: var(--accent);
+  color: white;
+  background: var(--accent);
+}
+
+.details-range-toggle {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  color: var(--accent);
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.details-range-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.details-range {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.details-range[hidden] {
+  display: none;
 }
 
 .details-filter-form {
   display: grid;
   min-width: 0;
-  margin-top: 0.75rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.65rem;
 }
 
@@ -542,12 +597,47 @@
   text-align: left;
 }
 
-.details-filter-form button {
-  min-height: 44px;
-  grid-column: 1 / -1;
+/* 範囲外・拒否・失敗の説明は表示条件の直下に出し、結果は消さない (AC-ANA-016-3) */
+.details-filter-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0.6rem 0 0;
+  gap: 0.5rem;
+  color: #a3372a;
+  font-size: 0.78rem;
 }
 
-.details-filter-hint,
+.details-retry-button {
+  min-height: 44px;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--accent);
+  border-radius: 0.65rem;
+  color: var(--accent);
+  background: var(--surface);
+  font: inherit;
+  font-weight: 700;
+}
+
+/* 反映中は結果領域だけを薄くし、見出し・表示条件は同じ要素のまま残す (AC-ANA-016-1) */
+.details-results {
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+}
+
+.details-results[aria-busy="true"] > :not(.details-applying) {
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.details-applying {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .details-muted {
   margin: 0.5rem 0 0;
   color: var(--muted);
@@ -775,6 +865,33 @@
   text-align: left;
 }
 
+/* 月別表は列見出しを隠さず、幅を超える場合はこの領域の内側だけを横scrollにする (AC-ANA-009-6) */
+.details-table-scroll {
+  min-width: 0;
+  margin-top: 0.6rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.details-table-months {
+  min-width: 100%;
+  margin-top: 0;
+  table-layout: auto;
+}
+
+.details-table-months th,
+.details-table-months td {
+  white-space: nowrap;
+}
+
+/* 横scroll中も月が分かるよう、行見出しの列を左端に固定する */
+.details-table-months th:first-child {
+  position: sticky;
+  z-index: 1;
+  left: 0;
+  background: var(--surface);
+}
+
 .details-cell-label {
   display: none;
 }
@@ -788,7 +905,7 @@
     font-weight: 600;
   }
 
-  .details-table thead {
+  .details-table-cards thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -796,17 +913,17 @@
     clip: rect(0 0 0 0);
   }
 
-  .details-table,
-  .details-table tbody,
-  .details-table tr,
-  .details-table th,
-  .details-table td {
+  .details-table-cards,
+  .details-table-cards tbody,
+  .details-table-cards tr,
+  .details-table-cards th,
+  .details-table-cards td {
     display: block;
     width: 100%;
   }
 
-  /* メンバー別表は支出額・受取額の2値なので2列のカード行にする (AC-TXN-018-4) */
-  .details-table tr {
+  /* メンバー別表は支出額・受取額の2値なので2列のカード行にする (AC-TXN-018-4)。月別表はカード化しない */
+  .details-table-cards tr {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 0.55rem 0;
@@ -814,18 +931,13 @@
     gap: 0.3rem;
   }
 
-  /* 4値の月別表は2列2行のカード行にし、長い金額でも欄が潰れないようにする */
-  .details-table-quad tr {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .details-table tr > th {
+  .details-table-cards tr > th {
     grid-column: 1 / -1;
     border: 0;
     text-align: left;
   }
 
-  .details-table tr > td {
+  .details-table-cards tr > td {
     padding: 0.25rem 0;
     border: 0;
     text-align: left;
@@ -869,16 +981,25 @@
     grid-auto-flow: column;
   }
 
-  .details-layout {
+  /* PCでは結果領域だけを2カラムにし、メンバー別・数値表は全幅を使う */
+  .details-results {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
   }
 
-  .details-heading,
-  .details-wide {
+  .details-applying,
+  .details-wide,
+  .details-results > .analytics-empty-message {
     grid-column: 1 / -1;
   }
 
   .details-filter-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    grid-auto-flow: dense;
+  }
+
+  .details-range {
+    grid-column: 1 / -1;
   }
 }
