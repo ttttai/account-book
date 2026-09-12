@@ -274,6 +274,6 @@ test("仕様にmotionのtoken・reduced motion・E2Eシナリオを定義して�
   const nonFunctional = await read("specs/06-non-functional-requirements.md");
   assert.match(nonFunctional, /`NFR-UI-009`/);
   assert.match(nonFunctional, /`NFR-A11Y-007`/);
-  assert.match(await read("specs/15-e2e-testing.md"), /`E2E-013`/);
-  assert.match(await read("tests/e2e/reduced-motion.spec.ts"), /E2E-013/);
+  assert.match(await read("specs/15-e2e-testing.md"), /`E2E-014`/);
+  assert.match(await read("tests/e2e/reduced-motion.spec.ts"), /E2E-014/);
 });

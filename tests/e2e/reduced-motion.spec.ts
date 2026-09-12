@@ -42,8 +42,8 @@ function inputDock(page: Page): Locator {
   return page.locator("[data-keypad-open]");
 }
 
-// E2E-013 reduced motionでのmotion無効化（NFR-A11Y-007、NFR-UI-009）
-test("E2E-013 reduced motionではsheet・入力ドック・下部ナビのmotionが無効になり、通常設定では200ms以下のmotionが付く", async ({
+// E2E-014 reduced motionでのmotion無効化（NFR-A11Y-007、NFR-UI-009）
+test("E2E-014 reduced motionではsheet・入力ドック・下部ナビのmotionが無効になり、通常設定では200ms以下のmotionが付く", async ({
   memberPage,
 }) => {
   const groupId = await createGroup(memberPage, "E2E reduced motion");
