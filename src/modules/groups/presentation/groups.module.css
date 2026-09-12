@@ -153,6 +153,60 @@
   text-align: left;
 }
 
+.group-settings-form,
+.group-settings-readonly {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 0.85rem;
+}
+
+.group-settings-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.group-settings-field > label {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.group-settings-field > input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #bdc7bd;
+  border-radius: 10px;
+  color: var(--text);
+  background: white;
+  font: inherit;
+}
+
+.group-settings-field > input[aria-invalid="true"] {
+  border-color: #a3342f;
+}
+
+.group-settings-fieldset {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.group-settings-fieldset legend {
+  padding: 0 0.25rem;
+  font-weight: 700;
+}
+
+.group-settings-form :global(.settings-summary).group-settings-fixed {
+  margin-top: 0;
+}
+
+.group-settings-form :global(.primary-button) {
+  min-height: 48px;
+}
+
 .group-form fieldset {
   display: grid;
   gap: 0.45rem;

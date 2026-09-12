@@ -10,8 +10,10 @@ import { createGroup } from "../application/create-group";
 import { setDefaultGroup } from "../application/default-group";
 import { removeMember } from "../application/remove-member";
 import { revokeInvitation } from "../application/revoke-invitation";
+import { updateGroupSettings } from "../application/update-group-settings";
 import { setDefaultGroupSchema } from "../domain/default-group-input";
 import { createGroupSchema } from "../domain/group-input";
+import { updateGroupSettingsSchema } from "../domain/group-settings-input";
 import {
   acceptInvitationSchema,
   createInvitationSchema,
@@ -23,6 +25,7 @@ import {
 } from "../domain/member-administration-input";
 import type { GroupActionState } from "./action-state";
 import type { DefaultGroupActionState } from "./default-group-action-state";
+import type { GroupSettingsActionState } from "./group-settings-action-state";
 import type {
   AcceptInvitationActionState,
   CreateInvitationActionState,
@@ -317,5 +320,65 @@ export async function setDefaultGroupAction(
       result.data.mode === "set"
         ? "このグループを起動時に開くように設定しました。"
         : "起動時に開くグループの設定を解除しました。",
+  };
+}
+
+// グループ設定の保存結果を利用者向けメッセージへ変換する
+const groupSettingsErrorMessages = {
+  conflict:
+    "他のメンバーが先にグループ設定を変更しました。画面を再読み込みして最新の内容を確認してください。",
+  forbidden: "グループ設定を変更する権限がありません。",
+  invalid: "入力内容を確認してください。",
+  error:
+    "グループ設定を保存できませんでした。接続状態を確認して、もう一度お試しください。",
+} as const;
+
+// グループ名・週の開始曜日・標準の分け方を保存するServer Action。groupIdはbindで受け取り再検証し、成功時はグループ配下と一覧を更新する (AC-GRP-013-3, AC-GRP-013-6)
+export async function updateGroupSettingsAction(
+  groupId: string,
+  _previousState: GroupSettingsActionState,
+  formData: FormData,
+): Promise<GroupSettingsActionState> {
+  const result = updateGroupSettingsSchema.safeParse({
+    groupId,
+    name: value(formData, "name"),
+    weekStartsOn: value(formData, "weekStartsOn"),
+    defaultAllocation: value(formData, "defaultAllocation"),
+    expectedVersion: value(formData, "expectedVersion"),
+  });
+  if (!result.success) {
+    const { fieldErrors } = result.error.flatten();
+    return {
+      status: "error",
+      message: "入力内容を確認してください。",
+      fieldErrors: {
+        name: fieldErrors.name,
+        weekStartsOn: fieldErrors.weekStartsOn,
+        defaultAllocation: fieldErrors.defaultAllocation,
+      },
+    };
+  }
+
+  let outcome: Awaited<ReturnType<typeof updateGroupSettings>>;
+  try {
+    outcome = await updateGroupSettings(result.data);
+  } catch {
+    return { status: "error", message: groupSettingsErrorMessages.error };
+  }
+
+  if (outcome.kind !== "ok") {
+    return {
+      status: "error",
+      message: groupSettingsErrorMessages[outcome.kind],
+    };
+  }
+
+  // グループ名は見出し・ナビ・一覧に表示されるため、グループ配下のlayout全体と一覧を再検証する
+  revalidatePath(`/groups/${result.data.groupId}`, "layout");
+  revalidatePath("/app");
+  return {
+    status: "success",
+    message: "グループ設定を保存しました。",
+    version: outcome.version,
   };
 }

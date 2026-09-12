@@ -82,6 +82,7 @@ const groupRow = {
   timezone: "Asia/Tokyo",
   week_starts_on: 1,
   default_allocation: "equal",
+  version: 1,
 };
 
 const ownerMembership = {
@@ -143,6 +144,7 @@ describe("listMyGroups", () => {
         timezone: "Asia/Tokyo",
         weekStartsOn: 1,
         defaultAllocation: "equal",
+        version: 1,
         role: "owner",
       },
     ]);
