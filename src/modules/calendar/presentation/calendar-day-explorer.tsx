@@ -10,7 +10,14 @@ import {
   type ReactNode,
 } from "react";
 
-import type { CalendarReadyData } from "../application/calendar-types";
+import type {
+  CalendarDayTransaction,
+  CalendarReadyData,
+} from "../application/calendar-types";
+import {
+  buildCalendarDayRowAccessibleName,
+  describeCalendarDayParty,
+} from "../domain/calendar-day-row";
 import type { Weekday } from "../domain/calendar-grid";
 import { formatCalendarCellJpy, formatJpy } from "../domain/calendar-summary";
 
@@ -150,6 +157,106 @@ function selectedDayFromLocation(selectableDates: ReadonlySet<string>) {
   return unsafeDay && selectableDates.has(unsafeDay) ? unsafeDay : undefined;
 }
 
+// 1取引を1〜2行（固定費の展開行は名称を挟んで最大3行）で表す行リンク。行全体のタップで編集へ遷移する (AC-CAL-017-1, AC-CAL-017-2)
+function DayTransactionRow({
+  data,
+  selectedDay,
+  transaction,
+}: Readonly<{
+  data: CalendarDayExplorerData;
+  selectedDay: string;
+  transaction: CalendarDayTransaction;
+}>) {
+  const groupPath = `/groups/${encodeURIComponent(data.group.id)}`;
+  // 展開取引は実在の取引ではないため編集ではなく固定費画面へ向ける (AC-REC-002-3)
+  const href = transaction.isRecurring
+    ? `${groupPath}/recurring-transactions`
+    : `${groupPath}/transactions/${transaction.id}/edit?from=${encodeURIComponent(createCalendarDayUrl(data, selectedDay))}`;
+  // scope=self|memberの支出だけ対象者の負担額を主金額にし、取引全体を補足する (AC-CAL-017-3)
+  const target =
+    transaction.type === "expense" && data.scope !== "group"
+      ? { label: data.selectedMemberLabel ?? "対象" }
+      : undefined;
+  const recurringName = transaction.isRecurring
+    ? transaction.recurringName?.trim()
+    : undefined;
+  // 支出は支出した人、収入は受取者を出し、支出の支払者は画面へ出さない (AC-TXN-018-3)
+  const details = [
+    { key: "memo", text: transaction.memo?.trim(), isMemo: true },
+    {
+      key: "party",
+      text: describeCalendarDayParty(transaction),
+      isMemo: false,
+    },
+  ].filter((detail): detail is { key: string; text: string; isMemo: boolean } =>
+    Boolean(detail.text),
+  );
+
+  return (
+    <a
+      className={styles["calendar-transaction-row"]}
+      href={href}
+      aria-label={buildCalendarDayRowAccessibleName(transaction, target)}
+    >
+      <span
+        className={styles["category-dot"]}
+        data-category-color={transaction.categoryColor}
+        aria-hidden="true"
+      />
+      <span className={styles["calendar-transaction-main"]}>
+        <span className={styles["calendar-transaction-title"]}>
+          <strong>{transaction.categoryName}</strong>
+          {transaction.isRecurring ? (
+            <span className={styles["calendar-recurring-badge"]}>固定費</span>
+          ) : null}
+          {transaction.type === "income" ? (
+            <span className={styles["calendar-type-income"]}>収入</span>
+          ) : null}
+        </span>
+        {recurringName ? (
+          <span className={styles["calendar-recurring-name"]}>
+            {transaction.recurringName}
+          </span>
+        ) : null}
+        {details.length > 0 ? (
+          <span className={styles["calendar-transaction-details"]}>
+            {details.map((detail) => (
+              <span
+                key={detail.key}
+                className={
+                  detail.isMemo
+                    ? styles["calendar-transaction-memo"]
+                    : undefined
+                }
+              >
+                {detail.text}
+              </span>
+            ))}
+          </span>
+        ) : null}
+      </span>
+      <span className={styles["calendar-transaction-amounts"]}>
+        {transaction.type === "income" ? (
+          <span className={styles["calendar-income-amount"]}>
+            ＋{formatJpy(transaction.amountMinor)}
+          </span>
+        ) : (
+          <span className={styles["calendar-transaction-amount"]}>
+            {formatJpy(
+              target ? transaction.targetAmountMinor : transaction.amountMinor,
+            )}
+          </span>
+        )}
+        {target ? (
+          <span className={styles["calendar-transaction-total"]}>
+            取引全体 {formatJpy(transaction.amountMinor)}
+          </span>
+        ) : null}
+      </span>
+    </a>
+  );
+}
+
 // 選択日の合計と取引一覧を表示するパネル
 function DayPanel({
   data,
@@ -170,8 +277,7 @@ function DayPanel({
       aria-labelledby="selected-day-title"
     >
       <header>
-        <div>
-          <p className="eyebrow">選択日</p>
+        <div className={styles["calendar-day-summary"]}>
           <h2 id="selected-day-title">{formatDay(selectedDay)}</h2>
           <p className={styles["calendar-day-total"]}>{formatJpy(dayTotal)}</p>
           {dayIncomeTotal > 0 ? (
@@ -197,73 +303,11 @@ function DayPanel({
         <ul className={styles["calendar-day-transactions"]}>
           {dayTransactions.map((transaction) => (
             <li key={transaction.id}>
-              <div className={styles["calendar-transaction-heading"]}>
-                <span
-                  className={styles["category-dot"]}
-                  data-category-color={transaction.categoryColor}
-                  aria-hidden="true"
-                />
-                <strong>{transaction.categoryName}</strong>
-                {transaction.isRecurring ? (
-                  <span className={styles["calendar-recurring-badge"]}>
-                    固定費
-                  </span>
-                ) : null}
-                {transaction.type === "income" ? (
-                  <span className={styles["calendar-income-amount"]}>
-                    ＋{formatJpy(transaction.amountMinor)}
-                  </span>
-                ) : (
-                  <span>{formatJpy(transaction.amountMinor)}</span>
-                )}
-              </div>
-              {transaction.isRecurring && transaction.recurringName?.trim() ? (
-                <p className={styles["calendar-recurring-name"]}>
-                  {transaction.recurringName}
-                </p>
-              ) : null}
-              {transaction.type === "expense" && data.scope !== "group" ? (
-                <p>
-                  {data.selectedMemberLabel ?? "対象"}の支出{" "}
-                  {formatJpy(transaction.targetAmountMinor)}
-                </p>
-              ) : null}
-              {/* 支出の支払者は表示せず、収入の受取者だけ示す (AC-TXN-018-3) */}
-              {transaction.type === "income" ? (
-                <p>受取者 {transaction.partyDisplayName}</p>
-              ) : null}
-              {transaction.type === "expense" ? (
-                <p>
-                  内訳{" "}
-                  {transaction.allocations
-                    .map(
-                      (allocation) =>
-                        `${allocation.displayName} ${formatJpy(allocation.amountMinor)}`,
-                    )
-                    .join(" / ")}
-                </p>
-              ) : null}
-              {transaction.memo?.trim() ? (
-                <p className={styles["calendar-transaction-memo"]}>
-                  {transaction.memo}
-                </p>
-              ) : null}
-              {transaction.isRecurring ? (
-                /* 展開取引は実在の取引ではないため編集導線を出さない (AC-REC-002-3) */
-                <a
-                  className={`secondary-link ${styles["calendar-transaction-edit"]}`}
-                  href={`/groups/${encodeURIComponent(data.group.id)}/recurring-transactions`}
-                >
-                  固定費の設定
-                </a>
-              ) : (
-                <a
-                  className={`secondary-link ${styles["calendar-transaction-edit"]}`}
-                  href={`/groups/${encodeURIComponent(data.group.id)}/transactions/${transaction.id}/edit?from=${encodeURIComponent(createCalendarDayUrl(data, selectedDay))}`}
-                >
-                  編集
-                </a>
-              )}
+              <DayTransactionRow
+                data={data}
+                selectedDay={selectedDay}
+                transaction={transaction}
+              />
             </li>
           ))}
         </ul>
