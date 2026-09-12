@@ -23,7 +23,8 @@ export default async function ProtectedAppPage({
     getDefaultGroupId(),
     searchParams,
   ]);
-  if (!profile) redirect("/login");
+  // グループ一覧のnullは未認証（認証起因の縮退を含む）。所属0件の空配列と区別し、作成画面を出さずログインへ合流させる (AC-AUTH-004-6)
+  if (!profile || groups === null) redirect("/login");
 
   // 遷移先はサーバーが取得した所属と本人の設定だけから決め、view=groupsのときだけ一覧を表示する (AC-GRP-011-1, AC-GRP-011-3, AC-GRP-011-4, AC-GRP-012-3)
   const destination = resolveHomeDestination({

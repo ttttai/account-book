@@ -9,6 +9,7 @@ import {
   getAllowedGoogleUserId,
   isAuthenticationQueryError,
   isUnavailableAuthError,
+  logAuthenticationQueryDegradation,
 } from "@/modules/auth/server";
 
 const preferenceRowSchema = z.object({
@@ -35,7 +36,10 @@ export async function getDefaultGroupId(): Promise<string | null> {
 
   if (result.error) {
     // 失効session等の認証起因の失敗はserver errorにせず、未設定と同じ判定へ縮退させる。
-    if (isAuthenticationQueryError(result.error)) return null;
+    if (isAuthenticationQueryError(result.error)) {
+      logAuthenticationQueryDegradation("groups.defaultGroup", result.error);
+      return null;
+    }
     throw createQueryFailureError(
       "groups.defaultGroup",
       result,

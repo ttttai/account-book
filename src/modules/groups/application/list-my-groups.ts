@@ -9,6 +9,7 @@ import {
   getAllowedGoogleUserId,
   isAuthenticationQueryError,
   isUnavailableAuthError,
+  logAuthenticationQueryDegradation,
 } from "@/modules/auth/server";
 
 import type { GroupSummary } from "./group-types";
@@ -27,8 +28,8 @@ const membershipRowSchema = z.object({
   }),
 });
 
-// ログイン中ユーザーが参加しているグループを参加順で返す（未認証は空配列）
-export async function listMyGroups(): Promise<readonly GroupSummary[]> {
+// ログイン中ユーザーが参加しているグループを参加順で返す。未認証・認証起因の失敗はnull、所属0件は空配列で区別する (AC-AUTH-004-6)
+export async function listMyGroups(): Promise<readonly GroupSummary[] | null> {
   const supabase = await createServerSupabaseClient();
   const { data: claimsData, error: claimsError } =
     await supabase.auth.getClaims();
@@ -37,7 +38,7 @@ export async function listMyGroups(): Promise<readonly GroupSummary[]> {
     throw new BackendUnavailableError("groups.listMyGroups.getClaims");
   }
   const userId = getAllowedGoogleUserId(claimsData?.claims);
-  if (claimsError || !userId) return [];
+  if (claimsError || !userId) return null;
 
   const result = await supabase
     .from("group_members")
@@ -50,7 +51,10 @@ export async function listMyGroups(): Promise<readonly GroupSummary[]> {
 
   if (result.error) {
     // 失効session等の認証起因の失敗はserver errorにせず、未認証としてログイン誘導へ合流させる。
-    if (isAuthenticationQueryError(result.error)) return [];
+    if (isAuthenticationQueryError(result.error)) {
+      logAuthenticationQueryDegradation("groups.listMyGroups", result.error);
+      return null;
+    }
     throw createQueryFailureError(
       "groups.listMyGroups",
       result,
