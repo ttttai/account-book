@@ -116,6 +116,7 @@ E2E stackのアプリは本番build（§3.1）で動かし、`next dev`固有の
 | `E2E-010` | 詳細分析の期間統計・数値表・URL同期        | `ANA-006`〜`ANA-009`、`ANA-013`、`ANA-015`、`AC-ANA-012-3` |
 | `E2E-011` | 起動時に開くグループの設定・直行・解除     | `GRP-012`、`AC-GRP-012-1`、`AC-GRP-012-3`〜`AC-GRP-012-5`  |
 | `E2E-012` | ホームカレンダーの行高配分と金額サイズ     | `NAV-002`、`CAL-002`、`CAL-012`、`AC-CAL-001-20`           |
+| `E2E-013` | reduced motionでのmotion無効化             | `NFR-A11Y-007`、`NFR-UI-009`                               |
 
 ### E2E-001 未認証の保護画面アクセスとログイン導線
 
@@ -203,6 +204,11 @@ E2E stackのアプリは本番build（§3.1）で動かし、`next dev`固有の
 - すべてのviewportで横スクロールが発生せず、`+999,999`の描画幅がセル幅に収まり1行で表示される（`AC-CAL-012-5`）。
 - 375 x 812では表の下端が下部ナビゲーション上端から32px以内にあり、6行の高さの差が2px以内で、金額の文字サイズが11px以上である。ページ全体は縦スクロールしない（`AC-NAV-002-2`）。
 - 1280 x 800では金額の文字サイズが16px以上である。
+
+### E2E-013 reduced motionでのmotion無効化
+
+- E2E利用者Aが新しいグループのホームを`emulateMedia({ reducedMotion: "reduce" })`で開いて日付を選び、日別取引sheetの`animation-name`が`none`、取引入力の入力ドックと下部ナビゲーションの現在地リンクの`transition-duration`が`0s`であることを確認する。「閉じる」を押すとsheetが即時に取り除かれる（`NFR-A11Y-007`）。
+- 同じ画面を`reducedMotion: "no-preference"`で開き直し、sheetにスライドのanimationが付き、入力ドックの`transition-duration`が0sを超え200ms以下であることを確認する（`NFR-UI-009`）。mobile projectだけで実行する。
 
 ## 6. CI
 

@@ -181,6 +181,8 @@ MVP入力項目:
 
 各取引にはメモがある場合、受取者（収入）と内訳（支出）の下にメモ全文を表示する（`AC-CAL-005-1`）。単発と定期の支出・収入に適用し、空白のみ・未記入の欄は省く。改行を保持して長い連続文字列も折り返す。HTMLとして解釈せずテキスト表示する。認可済みの月間データから最小DTOへ渡し、日付選択では再取得しない。
 
+モバイルのbottom sheetは、開くときに画面下端から`--motion-duration-medium`・`--motion-ease-out`（§14）でスライドインし、閉じるときは同じ長さで下へスライドアウトしてから取り除く（`NFR-UI-009`）。「閉じる」の時点で`day`の削除とfocusの復帰（§15）は即時に行い、スライドアウト中のsheetは`aria-hidden`と`pointer-events: none`で操作対象から外す。スライドアウト中に別の日付を選んだ場合は退場を中断し、新しい日付のsheetを表示する。900px以上のside panelはスライドせず、同じ長さの短いfadeで表示・非表示を切り替える。`prefers-reduced-motion: reduce`では開閉とも即時に切り替える（`NFR-A11Y-007`）。motionは日付選択の即時反映（`CAL-011`）を変えず、操作の応答を遅らせてはならない。
+
 - 正確な日付と日別合計
 - 同じ取引日内では、作成日時の新しい順に表示
 - 金額、カテゴリ、内訳（支出）または受取者（収入）。支出の支払者は表示しない（`TXN-018`）
@@ -247,6 +249,7 @@ MVP入力項目:
 - 展開・折りたたみでカテゴリのradio semanticsと選択状態、フォームの他の入力値を保持する。展開状態は`aria-expanded`で伝える。
 - カテゴリが増えても1行の高さを増やさず、320pxでカテゴリ名の欠落、ページ全体の横scroll、キーの重なりを発生させない。
 - 900px以上では入力ドックを画面下部へ固定せず、静的に配置してカテゴリを常に2列で表示する。
+- 入力ドックの高さが変わる操作（テンキーの開閉、カテゴリの展開・折りたたみ、計算結果や理由の行の増減）では、ドック上端の位置を`--motion-duration-medium`・`--motion-ease-out`（§14）のtransitionで滑らかに動かす（`NFR-UI-009`）。ドックの内容は操作の時点で即時に切り替え、内容をドック下端へ寄せて上端だけが動くようにする。動いている間も数字キー・カテゴリ・保存の操作を受け付ける。金額欄をドックへ隠れない位置へ移動する計算（`AC-TXN-014-7`）はtransition後のドックの高さを基準にする。`prefers-reduced-motion: reduce`では高さを即時に切り替える（`NFR-A11Y-007`）。900px以上ではドックを固定しないためtransitionを適用しない。
 
 取引入力は`/groups/{groupId}/transactions/new`を直接開ける専用routeとして提供し、グループホームの主要操作から遷移する。種別は画面上部の切替（支出・収入）で選び、初期選択は支出とする。切替は支出と収入の2つの選択肢だけを等幅で並べ、分け方（1人・均等・カスタム）の3列と列数を共有せず、空の選択枠を表示しない (AC-TXN-013-7)。
 
@@ -467,12 +470,22 @@ MVP入力項目:
 - 機能のpresentationコンポーネントだけが使うスタイルは、当該presentationディレクトリに併置した機能単位のCSS Modules（例: `src/modules/calendar/presentation/calendar.module.css`）で管理し、コンポーネントからimportして参照する。
 - module CSS内からglobalクラスと組み合わせる複合セレクタは`:global(...)`で明示する。globalへ機能固有セレクタを追加しない。
 - どの機能からも使われないセレクタを残さない。
+- motion（時間・easing）のdesign tokenは`src/app/styles.css`の`:root`で定義する。各機能のCSS Modulesは`transition`・`animation`の時間とeasingを数値で直書きせず、必ずtokenで参照する（`NFR-UI-009`）。
+
+| token                      | 値                           | 用途                                                                                                                                                       |
+| -------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--motion-duration-short`  | `120ms`                      | 選択状態・現在地の背景・枠・文字色の変化（下部ナビゲーション、履歴のchip、集計対象の切替、カテゴリ・種別・分け方の選択肢、分析の切替、カレンダーの選択日） |
+| `--motion-duration-medium` | `180ms`                      | 日別取引sheetのスライド・fade（§5）、取引入力の入力ドックの高さ（§6）                                                                                      |
+| `--motion-ease-out`        | `cubic-bezier(0.2, 0, 0, 1)` | 上記すべて。開閉・選択のいずれも減速で止める                                                                                                               |
+
+- motionの長さは200ms以下に限定し、操作の結果（選択状態、URL、focus、送信する値）はmotionの開始時点で確定させる。motionの終了を待ってから状態を変える実装は行わない（`CAL-011`）。
+- loadingのshimmer（`calendar-shimmer`、`history-shimmer`、`expense-loading`）は待機表示の繰り返しanimationであり、上記tokenの対象外とする。ただし`prefers-reduced-motion: reduce`では他のmotionと同じく無効化する（§15）。
 
 ## 15. アクセシビリティ・表記
 
 - formには視認できるlabelと、関連付けられたエラーメッセージを表示する。
 - dialogとsheetはfocusを閉じ込め、閉じた後に元の操作へfocusを戻す。
 - カレンダーセルのアクセシブル名に、正確な日付と金額を含める。
-- reduced motion設定を尊重する。
+- reduced motion設定を尊重する（`NFR-A11Y-007`）。`prefers-reduced-motion: reduce`では、`src/app/styles.css`のglobal ruleがすべての要素の`transition`と`animation`（loadingのshimmerを含む）を無効化し、日別取引sheetの開閉、入力ドックの高さ、選択状態・現在地の変化は即時に切り替わる。motionの終了を待つJavaScript（sheetのスライドアウト後の除去）は`matchMedia("(prefers-reduced-motion: reduce)")`で設定を確認し、reduce時は待たずに即時に完了させる。
 - 金額をheat mapの濃さだけで表現しない。分析の横棒・円グラフも長さ・角度と色だけで値を伝えない。
 - 削除操作はiconだけでなく文字labelも表示する。
