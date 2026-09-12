@@ -87,7 +87,8 @@
 - 固定費のowner/admin限定更新、member閲覧、別グループ拒否、支出の負担額合計一致
 - Proxyがframeworkの規約位置（`src`直下）に置かれ、未認証の保護画面要求を戻り先付きでログイン画面へredirectすること
 - Proxyの認証確認がAuth APIの5xx・接続失敗・timeoutで「不明」になった場合にログイン画面へredirectせず要求を通し、存在しない・無効・期限切れのsession（4xx）だけをログイン画面へ送ること。総待機時間の上限を超えた場合も応答不能として扱うこと（`AC-AUTH-004-4`、`AC-AUTH-004-5`。supabase-jsの実clientとstub fetchによるProxy境界の統合test）
-- プロフィール・グループ認可context・グループ一覧・起動時に開くグループの読み取りが、PostgRESTの5xx・接続失敗を未認証や存在しないグループへ縮退させず例外にし、認証起因の失敗（PGRST30x）だけを`null`・空へ縮退させること
+- プロフィール・グループ認可context・グループ一覧・起動時に開くグループの読み取りが、PostgRESTの5xx・接続失敗を未認証や存在しないグループへ縮退させず例外にし、認証起因の失敗（PGRST30x）だけを`null`・空へ縮退させること。縮退時は操作名とerror codeだけをlogへ残し、error本文を含めないこと（`AC-AUTH-004-6`）
+- PostgRESTのJWT時刻検証による一過性の失敗（`PGRST303` "JWT issued at future"）を認証起因と判定せず、上記の読み取りが`BackendUnavailableError`にすること。グループ一覧が未認証で`null`、所属0件で`[]`を返し、`/app`が`null`のときログイン画面へ遷移して「最初の家計グループを作りましょう」を表示しないこと。`compose.yaml`のPostgRESTが14.18以上であること（`AC-AUTH-004-6`。unit testとarchitecture test）
 - 保護画面（`/app`、`/groups/[groupId]`配下）とルートにerror境界があり、「再試行」を持ち、token・内部エラー詳細を表示しないこと（architecture test）
 - 認証済みの`/`とOAuth開始Route到達時に、OAuthを再実行せずホームまたは検証済みの戻り先へredirectすること
 - OAuth開始Route Handlerが返す認可URLに`prompt=select_account`が含まれ、`login_hint`を含まないこと（architecture testとOAuth HTTP integration test）
