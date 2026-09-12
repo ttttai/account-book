@@ -403,6 +403,11 @@
   font-weight: 800;
 }
 
+/* 収入のみの日の主見出し。文字サイズ・位置は支出と同じにし、色だけ収入用へ変える (AC-CAL-005-3) */
+.calendar-day-panel .calendar-day-total-income {
+  color: #2d5da8;
+}
+
 .calendar-close-link {
   display: grid;
   min-width: 44px;

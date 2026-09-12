@@ -163,6 +163,8 @@ function DayPanel({
   const dayTotal = data.dailyTotals[selectedDay] ?? 0;
   const dayIncomeTotal = data.incomeDailyTotals[selectedDay] ?? 0;
   const dayTransactions = data.dayTransactionsByDate[selectedDay] ?? [];
+  // 支出0円で収入だけの日は、支出額￥0ではなく収入額を主見出しにする (AC-CAL-005-3)
+  const isIncomeOnlyDay = dayTotal === 0 && dayIncomeTotal > 0;
 
   return (
     <aside
@@ -173,8 +175,18 @@ function DayPanel({
         <div>
           <p className="eyebrow">選択日</p>
           <h2 id="selected-day-title">{formatDay(selectedDay)}</h2>
-          <p className={styles["calendar-day-total"]}>{formatJpy(dayTotal)}</p>
-          {dayIncomeTotal > 0 ? (
+          {isIncomeOnlyDay ? (
+            <p
+              className={`${styles["calendar-day-total"]} ${styles["calendar-day-total-income"]}`}
+            >
+              収入 ＋{formatJpy(dayIncomeTotal)}
+            </p>
+          ) : (
+            <p className={styles["calendar-day-total"]}>
+              {formatJpy(dayTotal)}
+            </p>
+          )}
+          {!isIncomeOnlyDay && dayIncomeTotal > 0 ? (
             <p className={styles["calendar-day-income-total"]}>
               収入 ＋{formatJpy(dayIncomeTotal)}
             </p>

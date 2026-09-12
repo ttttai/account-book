@@ -214,6 +214,54 @@ describe("CalendarDayExplorer", () => {
     expect(panel.textContent).toContain("受取者 B");
   });
 
+  it("収入のみの日は収入額を主見出しにし、支出額￥0の行を出さない (AC-CAL-005-3)", () => {
+    const income = data.dayTransactionsByDate["2026-08-15"]?.[1];
+    if (!income) throw new Error("missing fixture");
+    const { container } = render(
+      <CalendarDayExplorer
+        data={{
+          ...data,
+          selectedDay: "2026-08-15",
+          dailyTotals: {},
+          incomeDailyTotals: { "2026-08-15": 300000 },
+          dayTransactionsByDate: { "2026-08-15": [income] },
+        }}
+      />,
+    );
+
+    const header = container.querySelector(".calendar-day-panel > header");
+    const total = container.querySelector(".calendar-day-total");
+    expect(total?.textContent).toBe("収入 ＋￥300,000");
+    expect(total?.classList.contains("calendar-day-total-income")).toBe(true);
+    expect(header?.textContent).not.toContain("￥0");
+    expect(container.querySelector(".calendar-day-income-total")).toBeNull();
+  });
+
+  it("支出と収入の両方がある日は支出を主見出しにし、収入を補助行に添える (AC-CAL-005-3)", () => {
+    const { container } = render(
+      <CalendarDayExplorer data={{ ...data, selectedDay: "2026-08-15" }} />,
+    );
+
+    const total = container.querySelector(".calendar-day-total");
+    expect(total?.textContent).toBe("￥1,000");
+    expect(total?.classList.contains("calendar-day-total-income")).toBe(false);
+    expect(
+      container.querySelector(".calendar-day-income-total")?.textContent,
+    ).toBe("収入 ＋￥300,000");
+  });
+
+  it("取引の無い日は￥0の主見出しと空状態の文言を表示する (AC-CAL-005-3)", () => {
+    const { container } = render(
+      <CalendarDayExplorer data={{ ...data, selectedDay: "2026-08-17" }} />,
+    );
+
+    const total = container.querySelector(".calendar-day-total");
+    expect(total?.textContent).toBe("￥0");
+    expect(total?.classList.contains("calendar-day-total-income")).toBe(false);
+    expect(container.querySelector(".calendar-day-income-total")).toBeNull();
+    expect(screen.getByText("この対象の取引はありません。")).toBeTruthy();
+  });
+
   it("日別取引sheetの追加導線は支出と収入の両方を指す文言にする", () => {
     render(<CalendarDayExplorer data={data} />);
     fireEvent.click(
