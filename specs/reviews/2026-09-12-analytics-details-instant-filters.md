@@ -1,6 +1,6 @@
 # 詳細分析の表示条件を即時反映にし、数値表を表形式へ戻し、期間指標の見出しに月数を入れる
 
-状態: 承認済み
+状態: 実装確認済み
 レビュー日: 2026-09-12
 ブランチ: feat/analytics-details-instant-filters
 対象仕様: `specs/01-product-requirements.md`（`ANA-016`）、`specs/02-use-cases.md`（`UC-019`、`AC-ANA-008-5`、`AC-ANA-009-5`、`AC-ANA-009-6`、`AC-ANA-016-1`〜`AC-ANA-016-4`）、`specs/03-screen-specification.md`（12. 詳細分析）、`specs/06-non-functional-requirements.md`（`NFR-PERF-008`）、`specs/07-acceptance-test-plan.md`、`specs/12-analytics-and-reporting.md`（4.2、5.2）、`specs/15-e2e-testing.md`（`E2E-010`）
@@ -40,3 +40,9 @@
 整合性、安全性、実装可能性、MVP範囲を確認し承認する。実装開始の条件: `analytics-details.test.tsx`（見出しの月数、即時反映と`pushState`、`aria-busy`中の同一性、不正期間、失敗時の再試行、popstate、最後の要求だけの採用、月別表の補助ラベル不在とメンバー別表の補助ラベル維持）、`tests/architecture/analytics-overview.test.mjs`（view・actionsの境界）、E2E-010の更新を先に行い、format、lint、型検査、本番buildを通し、375 x 812・320 x 812・1280 x 800で実画面確認する。
 
 ## 実装確認
+
+`analytics-details-view.tsx`（`"use client"`）へ表示条件の状態・`pushState`／`popstate`によるURL同期・通番で最後の要求だけを採用する取得・`aria-busy`と「表示条件を反映中…」・範囲外の説明・失敗時の「再試行」を実装し、`presentation/actions.ts`（`"use server"`）の`applyAnalyticsDetailsFilterAction`が`getAnalyticsDetails`をそのまま呼ぶ。表示条件は1行目にpreset（`aria-current`）と「期間を指定」（`aria-expanded`、presetと一致しない期間は初期表示から開く）、2行目に集計対象と（指定メンバーのときだけ）メンバーを置き、「表示する」と注意文を削除した。集計対象を「指定メンバー」へ変えると自分以外の先頭メンバーを選んで直ちに反映し、グループ全体・自分へ戻すと`member`をURLから除く。`analytics-details.tsx`は`"use client"`なしの`AnalyticsDetailsSections`として集計結果だけを描き、期間指標の見出しを「Nか月の支出／収入／収支」（Nは月別行数）にした。月別数値表はカード化CSSを外して全幅で列見出しを見せ、`.details-table-scroll`の内側だけを横scroll、月の行見出しを`position: sticky`で左端に固定した。メンバー別表のカード化（`.details-table-cards`）は維持した。集計サービス・domain純関数・DTO・認可・DB・migration・依存packageは変更していない。
+
+テスト: `analytics-details.test.tsx`（15件。見出しの月数、preset・select変更時の`applyAnalyticsDetailsFilterAction`と`pushState`、`aria-busy`中の見出し・表示条件の同一性、範囲外の説明、拒否・失敗時の結果維持と再試行、popstate、最後の要求だけの採用、月別表の補助ラベル不在とメンバー別表の補助ラベル維持）、`tests/architecture/analytics-overview.test.mjs`（1件追加。view・actionsの境界、CSSの横scroll範囲）。architecture 200件、単体・component 1,012件、biome lint、prettier、型検査、本番buildが成功。E2E-010へ「6か月の支出」「3か月の支出」の見出し、「表示する」の不在、集計対象変更時の全画面再読み込み無し（`window`の印）、月別表の列見出し常時表示・補助ラベル不在を追加し、実行はPRのCIで行う。
+
+fixtureの一時preview routeをworktree専用dev server（port 3217）で描き、Playwrightで確認した。375 x 812: ページ高さ2,222px（変更前は約3,360px）、ページ全体の横overflowなし、preset3つと「期間を指定」が1行（各44px以上、「12か月」は折り返さない）、6か月が`aria-current`、「期間を指定」は閉じた状態、見出しは「6か月の支出」、メンバー欄は非表示。「期間を指定」を開くと開始月・終了月が各列幅に収まり高さ44px以上。終了月を開始月より前にすると取得せず「1〜24か月」の説明を出し、結果は残る。集計対象を「指定メンバー」へ変えるとメンバー欄に「はな」が自動選択され、URLが`scope=member&member=…`へ変わり、結果領域だけが`aria-busy`になる。未認証previewではServer Actionが失敗し、結果を残したままエラーと「再試行」を表示、`window`の印が残る（全画面再読み込みなし）。月別数値表は列見出しが見え、表の内側だけがscroll（scrollWidth 393 / clientWidth 315）し、月の列が固定される。320 x 812: 同じ項目がすべてOK、ページ横overflowなし。1280 x 800: 表示条件は全幅1行、結果領域は2カラム（期間指標｜月別推移、貯金額｜カテゴリ）、メンバー別と数値表は全幅で横scrollなし。一時preview、`.next/dev`、`next-env.d.ts`の差分はコミット前に削除・復元した。

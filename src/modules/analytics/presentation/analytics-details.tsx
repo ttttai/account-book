@@ -1,11 +1,9 @@
-import Form from "next/form";
 import Link from "next/link";
 
 import type {
   AnalyticsDetailsInvalid,
   AnalyticsDetailsReady,
 } from "../application/analytics-types";
-import { analyticsPresetStart } from "../domain/analytics-details-input";
 import {
   formatAnalyticsJpy,
   formatAnalyticsSignedJpy,
@@ -19,18 +17,6 @@ import { AnalyticsCategoryChart } from "./analytics-category-chart";
 import { AnalyticsMonthlyTrendChart } from "./analytics-monthly-trend-chart";
 
 import styles from "./analytics.module.css";
-
-function detailsUrl(data: AnalyticsDetailsReady, startMonth: string): string {
-  const params = new URLSearchParams({
-    start: startMonth,
-    end: data.endMonth,
-    scope: data.scope,
-  });
-  if (data.scope === "member" && data.selectedMemberId) {
-    params.set("member", data.selectedMemberId);
-  }
-  return `/groups/${encodeURIComponent(data.group.id)}/analytics/details?${params.toString()}`;
-}
 
 function PeriodMetric({
   label,
@@ -49,7 +35,7 @@ function PeriodMetric({
   );
 }
 
-// モバイルでは項目名を併記し、読み上げは表の列見出しへ統一する。
+// メンバー別表の金額セル。モバイルでは項目名を併記し、読み上げは表の列見出しへ統一する (AC-ANA-009-6)
 function DetailsAmountCell({
   label,
   value,
@@ -117,110 +103,34 @@ function SavingsChart({
   );
 }
 
-// 期間・対象filterと、推移・カテゴリ・メンバー別統計を数値中心で表示する
-export function AnalyticsDetails({
+// 詳細分析の集計結果（期間指標・推移・貯金額・カテゴリ・メンバー別・数値表）を認可済みDTOから描く
+export function AnalyticsDetailsSections({
   data,
 }: Readonly<{ data: AnalyticsDetailsReady }>) {
-  const route = `/groups/${encodeURIComponent(data.group.id)}/analytics/details`;
   const cumulativeByMonth = new Map(
     data.cumulativeBalances.map((item) => [item.month, item.cumulativeBalance]),
   );
   const finalCumulative =
     data.cumulativeBalances.at(-1)?.cumulativeBalance ?? 0;
+  // 見出しの月数は月別数値表の行数と同じ値を使い、preset・任意指定で規則を変えない (AC-ANA-008-5)
+  const monthCountLabel = `${data.months.length}か月`;
 
   return (
-    <div className={styles["details-layout"]}>
-      <header className={styles["details-heading"]}>
-        <div>
-          <p className="eyebrow">詳細分析</p>
-          <h2>{`${formatAnalyticsMonth(data.startMonth)}〜${formatAnalyticsMonth(data.endMonth)}`}</h2>
-        </div>
-        <Link
-          href={`/groups/${encodeURIComponent(data.group.id)}/analytics?month=${data.endMonth}&scope=${data.scope}${data.scope === "member" && data.selectedMemberId ? `&member=${data.selectedMemberId}` : ""}`}
-        >
-          概要分析へ
-        </Link>
-      </header>
-
-      <section className={styles["details-filters"]}>
-        <nav aria-label="期間プリセット" className={styles["details-presets"]}>
-          {[3, 6, 12].map((count) => (
-            <Link
-              href={detailsUrl(
-                data,
-                analyticsPresetStart(data.endMonth, count),
-              )}
-              key={count}
-            >
-              {count}か月
-            </Link>
-          ))}
-        </nav>
-        <Form
-          action={route}
-          aria-label="詳細分析の表示条件"
-          className={styles["details-filter-form"]}
-        >
-          <label>
-            開始月
-            <input
-              defaultValue={data.startMonth}
-              name="start"
-              required
-              type="month"
-            />
-          </label>
-          <label>
-            終了月
-            <input
-              defaultValue={data.endMonth}
-              name="end"
-              required
-              type="month"
-            />
-          </label>
-          <label>
-            集計対象
-            <select defaultValue={data.scope} name="scope">
-              <option value="group">グループ全体</option>
-              <option value="self">自分</option>
-              <option value="member">指定メンバー</option>
-            </select>
-          </label>
-          <label>
-            メンバー
-            <select defaultValue={data.selectedMemberId ?? ""} name="member">
-              <option value="">選択しない</option>
-              {data.members.map((member) => (
-                <option key={member.membershipId} value={member.membershipId}>
-                  {member.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="primary-button" type="submit">
-            表示する
-          </button>
-        </Form>
-        <p className={styles["details-filter-hint"]}>
-          グループ・自分を選ぶ場合は、メンバーを「選択しない」にしてください。
-        </p>
-      </section>
-
+    <>
       <section
         aria-label="期間の主要指標"
         className={styles["details-period-summary"]}
       >
         <PeriodMetric
-          label="期間の支出"
+          label={`${monthCountLabel}の支出`}
           value={formatAnalyticsJpy(data.period.expenseTotal)}
         />
         <PeriodMetric
-          label="期間の収入"
+          label={`${monthCountLabel}の収入`}
           value={formatAnalyticsJpy(data.period.incomeTotal)}
         />
         <PeriodMetric
-          label="期間の収支"
+          label={`${monthCountLabel}の収支`}
           value={formatAnalyticsSignedJpy(data.period.balance)}
         />
         <p>{`月平均 ${formatAnalyticsJpy(data.period.averageExpense)}`}</p>
@@ -287,11 +197,10 @@ export function AnalyticsDetails({
           <h3>メンバー別</h3>
           <table
             aria-label="メンバー別の内訳"
-            className={styles["details-table"]}
+            className={`${styles["details-table"]} ${styles["details-table-cards"]}`}
           >
             <thead>
               <tr>
-                {/* 支払額(paidTotal)はDTOに残るが画面へ出さない (AC-TXN-018-4) */}
                 <th scope="col">メンバー</th>
                 <th scope="col">支出額</th>
                 <th scope="col">受取額</th>
@@ -320,47 +229,40 @@ export function AnalyticsDetails({
         className={`${styles["details-panel"]} ${styles["details-wide"]}`}
       >
         <h3>月別の正確な数値</h3>
-        <table
-          aria-label="月別の正確な数値"
-          className={`${styles["details-table"]} ${styles["details-table-quad"]}`}
-        >
-          <thead>
-            <tr>
-              <th scope="col">月</th>
-              <th scope="col">支出</th>
-              <th scope="col">収入</th>
-              <th scope="col">収支</th>
-              <th scope="col">累積収支</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.months.map((month) => (
-              <tr key={month.month}>
-                <th scope="row">{formatAnalyticsMonth(month.month)}</th>
-                <DetailsAmountCell
-                  label="支出"
-                  value={formatAnalyticsJpy(month.expenseTotal)}
-                />
-                <DetailsAmountCell
-                  label="収入"
-                  value={formatAnalyticsJpy(month.incomeTotal)}
-                />
-                <DetailsAmountCell
-                  label="収支"
-                  value={formatAnalyticsSignedJpy(month.balance)}
-                />
-                <DetailsAmountCell
-                  label="累積収支"
-                  value={formatAnalyticsSignedJpy(
-                    cumulativeByMonth.get(month.month) ?? 0,
-                  )}
-                />
+        {/* 列見出しを隠さず、幅を超える場合はこの領域の内側だけを横scrollにする (AC-ANA-009-6) */}
+        <div className={styles["details-table-scroll"]}>
+          <table
+            aria-label="月別の正確な数値"
+            className={`${styles["details-table"]} ${styles["details-table-months"]}`}
+          >
+            <thead>
+              <tr>
+                <th scope="col">月</th>
+                <th scope="col">支出</th>
+                <th scope="col">収入</th>
+                <th scope="col">収支</th>
+                <th scope="col">累積収支</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {data.months.map((month) => (
+                <tr key={month.month}>
+                  <th scope="row">{formatAnalyticsMonth(month.month)}</th>
+                  <td>{formatAnalyticsJpy(month.expenseTotal)}</td>
+                  <td>{formatAnalyticsJpy(month.incomeTotal)}</td>
+                  <td>{formatAnalyticsSignedJpy(month.balance)}</td>
+                  <td>
+                    {formatAnalyticsSignedJpy(
+                      cumulativeByMonth.get(month.month) ?? 0,
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
-    </div>
+    </>
   );
 }
 
