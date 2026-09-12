@@ -25,6 +25,7 @@ const groupRowSchema = z.object({
   timezone: z.string(),
   week_starts_on: z.union([z.literal(0), z.literal(1)]),
   default_allocation: z.enum(["equal", "self"]),
+  version: z.number().int().min(1),
 });
 const membershipRowSchema = z.object({
   id: z.uuid(),
@@ -64,7 +65,7 @@ export async function getGroupMembership(
     supabase
       .from("groups")
       .select(
-        "id, name, currency, timezone, week_starts_on, default_allocation",
+        "id, name, currency, timezone, week_starts_on, default_allocation, version",
       )
       .eq("id", groupIdResult.data)
       .maybeSingle(),
@@ -151,6 +152,7 @@ export async function getGroupMembership(
       timezone: group.timezone,
       weekStartsOn: group.week_starts_on,
       defaultAllocation: group.default_allocation,
+      version: group.version,
       role: currentMembership.role,
     },
     currentRole: currentMembership.role,

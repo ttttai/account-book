@@ -23,6 +23,7 @@ const membershipRowSchema = z.object({
     timezone: z.string(),
     week_starts_on: z.union([z.literal(0), z.literal(1)]),
     default_allocation: z.enum(["equal", "self"]),
+    version: z.number().int().min(1),
   }),
 });
 
@@ -41,7 +42,7 @@ export async function listMyGroups(): Promise<readonly GroupSummary[]> {
   const result = await supabase
     .from("group_members")
     .select(
-      "id, role, groups!inner(id, name, currency, timezone, week_starts_on, default_allocation)",
+      "id, role, groups!inner(id, name, currency, timezone, week_starts_on, default_allocation, version)",
     )
     .eq("user_id", userId)
     .eq("status", "active")
@@ -68,6 +69,7 @@ export async function listMyGroups(): Promise<readonly GroupSummary[]> {
       timezone: membership.groups.timezone,
       weekStartsOn: membership.groups.week_starts_on,
       defaultAllocation: membership.groups.default_allocation,
+      version: membership.groups.version,
       role: membership.role,
     }));
 }

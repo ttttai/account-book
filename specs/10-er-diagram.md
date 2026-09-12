@@ -2,13 +2,13 @@
 
 状態: 承認済み
 
-バージョン: 0.3.2
+バージョン: 0.3.3
 
-最終更新日: 2026-09-06
+最終更新日: 2026-09-12
 
 ## 1. 対象と正本
 
-この図は、2026-09-06時点で`supabase/migrations/`に実装済みのテーブルと外部キーを表す。列の制約、RLS、index、将来のデータ設計は`04-data-model.md`、実際のDB構造はmigrationを正本とする。
+この図は、2026-09-12時点で`supabase/migrations/`に実装済みのテーブルと外部キーを表す。列の制約、RLS、index、将来のデータ設計は`04-data-model.md`、実際のDB構造はmigrationを正本とする。
 
 `auth.users`はSupabase Authが管理する外部schemaである。`app_private.allowed_google_accounts`は認証許可リストであり、email照合に利用するが、`auth.users`との外部キーは持たない。`app_private.line_notification_targets`と`app_private.weekly_notification_log`はLINE週次レポート用のテーブルで、通知専用ロールの`security definer`関数だけが更新する。
 
@@ -49,6 +49,7 @@ erDiagram
         text timezone
         smallint week_starts_on
         text default_allocation
+        integer version
         uuid created_by FK
         timestamptz created_at
         timestamptz updated_at
