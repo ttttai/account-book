@@ -150,15 +150,30 @@ function selectedDayFromLocation(selectableDates: ReadonlySet<string>) {
   return unsafeDay && selectableDates.has(unsafeDay) ? unsafeDay : undefined;
 }
 
-// 選択日の合計と取引一覧を表示するパネル
+// animationendが届かない環境でも退場中のsheetを残し続けないための上限（motionの長さより十分長い）
+const CLOSING_FALLBACK_MS = 400;
+
+// OSのreduced motion設定。判定できない環境ではmotionありとして扱う (NFR-A11Y-007)
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+// 選択日の合計と取引一覧を表示するパネル。closing中はスライドアウトの表示だけを残す
 function DayPanel({
   data,
   selectedDay,
+  closing,
   onClose,
+  onClosed,
 }: Readonly<{
   data: CalendarDayExplorerData;
   selectedDay: string;
+  closing: boolean;
   onClose: (event: ReactMouseEvent<HTMLAnchorElement>) => void;
+  onClosed: () => void;
 }>) {
   const dayTotal = data.dailyTotals[selectedDay] ?? 0;
   const dayIncomeTotal = data.incomeDailyTotals[selectedDay] ?? 0;
@@ -168,6 +183,12 @@ function DayPanel({
     <aside
       className={styles["calendar-day-panel"]}
       aria-labelledby="selected-day-title"
+      aria-hidden={closing || undefined}
+      data-closing={closing ? "true" : undefined}
+      onAnimationEnd={(event) => {
+        // 退場のanimationが自身で終わったときだけ取り除く。開くanimationや子要素のものでは消さない
+        if (closing && event.target === event.currentTarget) onClosed();
+      }}
     >
       <header>
         <div>
@@ -298,6 +319,8 @@ export function CalendarDayExplorer({
     [data.grid],
   );
   const [selectedDay, setSelectedDay] = useState(data.selectedDay);
+  // 閉じた後もスライドアウトの間だけ表示を残す日付。選択の確定（URL・focus）とは切り離す (NFR-UI-009)
+  const [closingDay, setClosingDay] = useState<string | undefined>();
   const dayLinks = useRef(new Map<string, HTMLAnchorElement>());
   const weekdays =
     data.group.weekStartsOn === 0
@@ -307,14 +330,26 @@ export function CalendarDayExplorer({
   useEffect(() => {
     function handlePopState() {
       setSelectedDay(selectedDayFromLocation(selectableDates));
+      setClosingDay(undefined);
     }
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [selectableDates]);
 
+  // animationendが届かなくても退場中の表示を残し続けない
+  useEffect(() => {
+    if (!closingDay) return;
+    const timer = window.setTimeout(
+      () => setClosingDay(undefined),
+      CLOSING_FALLBACK_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [closingDay]);
+
   function updateSelectedDay(day: string | undefined) {
     setSelectedDay(day);
+    setClosingDay(undefined);
     window.history.pushState(null, "", createCalendarDayUrl(data, day));
   }
 
@@ -332,16 +367,23 @@ export function CalendarDayExplorer({
     event.preventDefault();
     const previouslySelectedDay = selectedDay;
     updateSelectedDay(undefined);
+    // スライドアウトの間だけ表示を残す。reduced motion設定では即時に取り除く (NFR-A11Y-007)
+    if (previouslySelectedDay && !prefersReducedMotion()) {
+      setClosingDay(previouslySelectedDay);
+    }
     // パネルを閉じたら、開く前に選んでいた日付セルへfocusを戻す
     if (previouslySelectedDay) {
       dayLinks.current.get(previouslySelectedDay)?.focus();
     }
   }
 
+  // 開いている日付、または退場中に表示を残す日付
+  const panelDay = selectedDay ?? closingDay;
+
   return (
     <div
       className={
-        selectedDay
+        panelDay
           ? `${styles["calendar-layout"]} ${styles["has-day-panel"]}`
           : styles["calendar-layout"]
       }
@@ -440,8 +482,14 @@ export function CalendarDayExplorer({
         </table>
         {footer}
       </section>
-      {selectedDay ? (
-        <DayPanel data={data} selectedDay={selectedDay} onClose={handleClose} />
+      {panelDay ? (
+        <DayPanel
+          closing={selectedDay === undefined}
+          data={data}
+          onClose={handleClose}
+          onClosed={() => setClosingDay(undefined)}
+          selectedDay={panelDay}
+        />
       ) : null}
     </div>
   );

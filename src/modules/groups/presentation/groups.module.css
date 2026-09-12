@@ -31,6 +31,10 @@
   font-weight: 750;
   line-height: 1;
   text-decoration: none;
+  /* 現在地の移動は背景・枠・文字色の短いtransitionで示す (NFR-UI-009) */
+  transition-property: color, background-color, border-color;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 .group-navigation-link svg {
