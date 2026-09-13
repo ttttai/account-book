@@ -121,7 +121,7 @@ services:
     restart: "no"
 
   rest:
-    image: postgrest/postgrest:v14.12
+    image: postgrest/postgrest:v14.18
     restart: unless-stopped
     depends_on:
       migrations:

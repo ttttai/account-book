@@ -5,6 +5,7 @@ import {
   createQueryFailureError,
   isUnavailableAuthError,
   isUnavailableQueryResult,
+  logAuthenticationQueryDegradation,
 } from "./backend-availability";
 
 describe("isUnavailableAuthError", () => {
@@ -150,6 +151,49 @@ describe("createQueryFailureError", () => {
     expect(logged).toContain("profiles.select");
     expect(logged).toContain("503");
     expect(logged).toContain("PGRST002");
+    expect(logged).not.toContain("secret@example.test");
+  });
+
+  it("PostgRESTの一過性の時刻検証エラー（401 JWT issued at future）はBackendUnavailableErrorにする (AC-AUTH-004-6)", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const transient = createQueryFailureError(
+      "groups.listMyGroups",
+      {
+        error: { code: "PGRST303", message: "JWT issued at future" },
+        status: 401,
+      },
+      "グループ一覧を取得できませんでした。",
+    );
+    expect(transient).toBeInstanceOf(BackendUnavailableError);
+
+    // 同じ401でも期限切れは応答不能ではなく、呼び出し側が未認証へ縮退させる対象のまま
+    const expired = createQueryFailureError(
+      "groups.listMyGroups",
+      { error: { code: "PGRST303", message: "JWT expired" }, status: 401 },
+      "グループ一覧を取得できませんでした。",
+    );
+    expect(expired).not.toBeInstanceOf(BackendUnavailableError);
+  });
+});
+
+describe("logAuthenticationQueryDegradation", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("操作名とcodeだけをwarnへ残し、error本文を含めない (AC-AUTH-004-6, NFR-SEC-005)", () => {
+    const warnLog = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    logAuthenticationQueryDegradation("groups.listMyGroups", {
+      code: "PGRST301",
+      message: "JWT expired for secret@example.test",
+    });
+
+    expect(warnLog).toHaveBeenCalledTimes(1);
+    const logged = warnLog.mock.calls[0]?.join(" ") ?? "";
+    expect(logged).toContain("groups.listMyGroups");
+    expect(logged).toContain("PGRST301");
     expect(logged).not.toContain("secret@example.test");
   });
 });

@@ -5,8 +5,12 @@ export {
   BackendUnavailableError,
   createQueryFailureError,
   isUnavailableAuthError,
+  logAuthenticationQueryDegradation,
 } from "./domain/backend-availability";
-export { isAuthenticationQueryError } from "./domain/postgrest-auth-error";
+export {
+  isAuthenticationQueryError,
+  isTransientAuthenticationQueryError,
+} from "./domain/postgrest-auth-error";
 export { resolveSafeNextPath } from "./domain/safe-next-path";
 export {
   getAllowedGoogleUserId,

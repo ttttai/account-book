@@ -142,6 +142,23 @@ describe("getDefaultGroupId", () => {
       "起動時に開くグループを取得できませんでした。",
     );
   });
+
+  it("PostgRESTの一過性の時刻検証エラーは未設定へ縮退させずBackendUnavailableErrorにする (AC-AUTH-004-6)", async () => {
+    const { from } = setupClient();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    from.mockReturnValueOnce(
+      preferenceQuery({
+        data: null,
+        error: { code: "PGRST303", message: "JWT issued at future" },
+        status: 401,
+      }),
+    );
+
+    await expect(getDefaultGroupId()).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    vi.restoreAllMocks();
+  });
 });
 
 describe("setDefaultGroup", () => {
