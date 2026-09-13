@@ -7,8 +7,26 @@
   --accent: #2f6f55;
   --accent-soft: #dcebe1;
   --border: #dce1da;
+  /* motionのdesign token (03 §14, NFR-UI-009)。各機能のCSS Modulesは時間・easingを直書きせずこれを参照する。
+     shortは選択状態・現在地の色変化、mediumはsheetのスライドと入力ドックの高さ。どちらも200ms以下に留める */
+  --motion-duration-short: 120ms;
+  --motion-duration-medium: 180ms;
+  --motion-ease-out: cubic-bezier(0.2, 0, 0, 1);
   font-family:
     Inter, "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", system-ui, sans-serif;
+}
+
+/* reduced motion設定ではloadingのshimmerを含むすべてのtransition・animationを止め、
+   開閉・選択状態の変化を即時に切り替える (03 §15, NFR-A11Y-007) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: 利用者のOS設定を全要素の個別指定より優先させるため */
+    animation: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: 利用者のOS設定を全要素の個別指定より優先させるため */
+    transition: none !important;
+  }
 }
 
 /* カテゴリ色のdesign token (AC-CAT-002-7)。各機能はbackground: var(--category-color)で描画し、

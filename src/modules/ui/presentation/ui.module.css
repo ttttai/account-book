@@ -35,6 +35,10 @@
   font-size: 0.88rem;
   font-weight: 700;
   line-height: 1.25;
+  /* 選択状態は枠・背景・文字色・影の短いtransitionで示す (NFR-UI-009) */
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 /* 名称は省略記号で切らずchip内で折り返す */
@@ -53,6 +57,9 @@
   color: transparent;
   background: white;
   font-size: 0.72rem;
+  transition-property: color, background-color, border-color;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 /* 複数選択の記号は角丸の四角にし、複数選べることを形でも示す */

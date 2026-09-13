@@ -57,6 +57,21 @@ test("選択肢chipはsrc/modules/uiの共有部品として公開し、semantic
     css,
     /\[type="checkbox"\][^{]*\.choice-chip-mark\s*\{[^}]*border-radius/s,
   );
+  // 選択状態の変化はmotion tokenの短いtransitionで示し、layoutを動かさない (NFR-UI-009)
+  const content = css.match(/\.choice-chip-content\s*\{[^}]*\}/s)?.[0] ?? "";
+  assert.match(
+    content,
+    /transition-property: color, background-color, border-color, box-shadow;/,
+  );
+  assert.match(content, /transition-duration: var\(--motion-duration-short\);/);
+  assert.match(
+    content,
+    /transition-timing-function: var\(--motion-ease-out\);/,
+  );
+  assert.doesNotMatch(
+    css,
+    /transition-property:[^;]*(?:height|width|transform|all)/,
+  );
   // 幅に収まらない分は折り返し、320pxで横scrollを出さない
   assert.match(css, /\.choice-chip-list\s*\{[^}]*flex-wrap:\s*wrap/s);
 });

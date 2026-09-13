@@ -4,6 +4,7 @@ import {
   BackendUnavailableError,
   createQueryFailureError,
   isUnavailableAuthError,
+  logAuthenticationQueryDegradation,
 } from "../domain/backend-availability";
 import { isAuthenticationQueryError } from "../domain/postgrest-auth-error";
 import { getAllowedGoogleUserId } from "../infrastructure/google-auth-access";
@@ -35,7 +36,10 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
 
   if (result.error) {
     // 失効session等の認証起因の失敗だけを未認証へ縮退させる (AC-AUTH-001-9)
-    if (isAuthenticationQueryError(result.error)) return null;
+    if (isAuthenticationQueryError(result.error)) {
+      logAuthenticationQueryDegradation("profiles.select", result.error);
+      return null;
+    }
     throw createQueryFailureError(
       "profiles.select",
       result,
