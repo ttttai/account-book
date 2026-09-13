@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { RecurringManagementView } from "../application/recurring-types";
@@ -277,5 +283,44 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
     fireEvent.focus(amountInput());
 
     await vi.waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+  });
+});
+
+describe("RecurringManagement のメンバー選択chip (AC-REC-003-3)", () => {
+  function formOf(headingName: string): HTMLFormElement {
+    return screen
+      .getByRole("heading", { name: headingName })
+      .closest("form") as HTMLFormElement;
+  }
+
+  function memberChip(form: HTMLFormElement, name: string): HTMLInputElement {
+    return within(form).getByRole<HTMLInputElement>("checkbox", { name });
+  }
+
+  it("作成フォームではメンバーをchip型のcheckboxとして表示し、自分だけを初期選択する", () => {
+    renderManagement();
+    const createForm = formOf("固定費を追加");
+
+    const self = memberChip(createForm, "山田（自分）");
+    const other = memberChip(createForm, "佐藤");
+    expect(self.checked).toBe(true);
+    expect(other.checked).toBe(false);
+    // 送信するname・valueは従来のまま
+    expect(self.name).toBe("selectedMemberIds");
+    expect(self.value).toBe(currentMembershipId);
+    expect(self.closest("label")?.classList.contains("choice-chip")).toBe(true);
+    expect(document.querySelector(".recurring-check")).toBeNull();
+
+    fireEvent.click(other);
+    expect(other.checked).toBe(true);
+  });
+
+  it("編集フォームでは保存済みの内訳に含まれるメンバーを選択状態で初期表示する", () => {
+    renderManagement();
+    fireEvent.click(screen.getByRole("button", { name: "編集" }));
+    const editForm = formOf("家賃を編集");
+
+    expect(memberChip(editForm, "山田（自分）").checked).toBe(true);
+    expect(memberChip(editForm, "佐藤").checked).toBe(false);
   });
 });

@@ -17,6 +17,7 @@ import {
   stripAmountGrouping,
 } from "@/modules/transactions";
 import { AmountKeypad } from "@/modules/transactions/presentation";
+import { ChoiceChip, ChoiceChipList } from "@/modules/ui";
 
 import type {
   RecurringManagementView,
@@ -377,32 +378,28 @@ function RecurringFormFields({ view, recurring, state }: FormFieldsProps) {
               </label>
             ))}
           </div>
-          <div className={styles["recurring-members"]}>
+          {/* メンバー選択はOS標準のcheckboxを出さず選択肢chipで表示し、編集時は保存済みの内訳を初期選択にする (AC-REC-003-3) */}
+          <ChoiceChipList>
             {view.members.map((member) => (
-              <label
-                className={styles["recurring-check"]}
+              <ChoiceChip
+                defaultChecked={
+                  recurring
+                    ? recurring.allocations.some(
+                        (allocation) =>
+                          allocation.membershipId === member.membershipId,
+                      )
+                    : member.isCurrentUser
+                }
                 key={member.membershipId}
+                name="selectedMemberIds"
+                type="checkbox"
+                value={member.membershipId}
               >
-                <input
-                  defaultChecked={
-                    recurring
-                      ? recurring.allocations.some(
-                          (allocation) =>
-                            allocation.membershipId === member.membershipId,
-                        )
-                      : member.isCurrentUser
-                  }
-                  name="selectedMemberIds"
-                  type="checkbox"
-                  value={member.membershipId}
-                />
-                <span>
-                  {member.displayName}
-                  {member.isCurrentUser ? "（自分）" : ""}
-                </span>
-              </label>
+                {member.displayName}
+                {member.isCurrentUser ? "（自分）" : ""}
+              </ChoiceChip>
             ))}
-          </div>
+          </ChoiceChipList>
           {fieldErrors.allocationMethod ? (
             <p className="field-error">
               {fieldErrors.allocationMethod.join(" ")}

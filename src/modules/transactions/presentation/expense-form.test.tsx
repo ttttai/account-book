@@ -879,3 +879,55 @@ describe("ExpenseForm の外枠と footer (AC-TXN-009-5)", () => {
     }
   });
 });
+
+describe("ExpenseForm の均等メンバー選択chip (AC-TXN-001-11)", () => {
+  function chooseEqual() {
+    fireEvent.click(screen.getByRole("radio", { name: "均等" }));
+  }
+
+  it("均等ではメンバーをchip型のcheckboxとして表示し、全員を初期選択する", () => {
+    renderForm();
+    chooseEqual();
+
+    const self = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "山田（自分）",
+    });
+    const other = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "佐藤",
+    });
+    expect(self.checked).toBe(true);
+    expect(other.checked).toBe(true);
+    // 送信するname・valueは従来のまま
+    expect(self.name).toBe("selectedMemberIds");
+    expect(self.value).toBe(currentMembershipId);
+    expect(self.closest("label")?.classList.contains("choice-chip")).toBe(true);
+    expect(document.querySelector(".check-option")).toBeNull();
+  });
+
+  it("chipを押すと選択が外れ、内訳の確認へ即時反映する", () => {
+    renderForm();
+    pressKey("6");
+    pressKey("0");
+    pressKey("0");
+    pressKey("0");
+    chooseEqual();
+
+    const preview = screen.getByRole("heading", { name: "内訳の確認" })
+      .parentElement as HTMLElement;
+    expect(preview.querySelectorAll("dt")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "佐藤" }));
+    expect(
+      screen.getByRole<HTMLInputElement>("checkbox", { name: "佐藤" }).checked,
+    ).toBe(false);
+    expect(
+      screen.getByRole<HTMLInputElement>("checkbox", { name: "山田（自分）" })
+        .checked,
+    ).toBe(true);
+    const names = [...preview.querySelectorAll("dt")].map(
+      (node) => node.textContent,
+    );
+    expect(names).toEqual(["山田"]);
+    expect(preview.querySelector("dd")?.textContent).toBe("¥6,000");
+  });
+});

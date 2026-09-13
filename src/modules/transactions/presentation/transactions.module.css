@@ -297,24 +297,9 @@
   outline-offset: 2px;
 }
 
-.allocation-members,
 .custom-allocation-list {
   display: grid;
   gap: 0.5rem;
-}
-
-.check-option {
-  display: flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 0.65rem;
-  padding-inline: 0.25rem;
-}
-
-.check-option input {
-  width: 1.25rem;
-  height: 1.25rem;
-  margin: 0;
 }
 
 .custom-allocation-list > label {
