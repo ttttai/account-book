@@ -9,6 +9,7 @@ import {
   getAllowedGoogleUserId,
   isAuthenticationQueryError,
   isUnavailableAuthError,
+  logAuthenticationQueryDegradation,
 } from "@/modules/auth/server";
 
 import type {
@@ -84,7 +85,13 @@ export async function getGroupMembership(
       : null;
   if (failedResult) {
     // 失効session等の認証起因の失敗だけを、存在を明かさないnullへ縮退させる (AC-AUTH-001-9)
-    if (isAuthenticationQueryError(failedResult.error)) return null;
+    if (isAuthenticationQueryError(failedResult.error)) {
+      logAuthenticationQueryDegradation(
+        "groups.membership",
+        failedResult.error,
+      );
+      return null;
+    }
     throw createQueryFailureError(
       "groups.membership",
       failedResult,

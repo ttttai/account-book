@@ -200,6 +200,22 @@ describe("HistoryList", () => {
     expect(
       screen.getByRole("link", { name: /カテゴリC/ }).textContent,
     ).not.toContain("山田");
+    // 2行目はメモの有無にかかわらず表示名（受取者）が先頭で、メモはその後に続く (AC-HIS-007-3)
+    const detailTexts = (name: RegExp) =>
+      Array.from(
+        screen
+          .getByRole("link", { name })
+          .querySelectorAll(".history-row-details > span"),
+      ).map((span) => span.textContent);
+    expect(detailTexts(/カテゴリD/)).toEqual(["山田・佐藤", "スーパー"]);
+    expect(detailTexts(/カテゴリA/)).toEqual(["山田"]);
+    expect(detailTexts(/カテゴリC/)).toEqual(["受取者 佐藤"]);
+    expect(
+      screen.getByText("山田・佐藤").classList.contains("history-row-party"),
+    ).toBe(true);
+    expect(
+      screen.getByText("スーパー").classList.contains("history-row-memo"),
+    ).toBe(true);
     expect(screen.queryByRole("button", { name: "さらに読み込む" })).toBeNull();
   });
 

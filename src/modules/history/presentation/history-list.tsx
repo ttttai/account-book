@@ -48,12 +48,17 @@ function HistoryRowItem({
   editHref: string;
   targetMemberName?: string;
 }>) {
-  // 支出は支出した人、収入は受取者を出し、支出の支払者は画面へ出さない (AC-TXN-018-3, AC-HIS-007-1)
+  // 2行目は支出した人（収入は受取者）を先頭に固定し、メモはその後ろ。支出の支払者は画面へ出さない (AC-TXN-018-3, AC-HIS-007-1, AC-HIS-007-3)
   const details = [
-    { key: "memo", text: row.memo },
-    { key: "party", text: describeHistoryParty(row) },
-  ].filter((detail): detail is { key: string; text: string } =>
-    Boolean(detail.text),
+    {
+      key: "party",
+      className: styles["history-row-party"],
+      text: describeHistoryParty(row),
+    },
+    { key: "memo", className: styles["history-row-memo"], text: row.memo },
+  ].filter(
+    (detail): detail is { key: string; className: string; text: string } =>
+      Boolean(detail.text),
   );
 
   return (
@@ -82,7 +87,9 @@ function HistoryRowItem({
           {details.length > 0 ? (
             <span className={styles["history-row-details"]}>
               {details.map((detail) => (
-                <span key={detail.key}>{detail.text}</span>
+                <span key={detail.key} className={detail.className}>
+                  {detail.text}
+                </span>
               ))}
             </span>
           ) : null}

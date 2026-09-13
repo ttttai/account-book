@@ -1,3 +1,5 @@
+import { isTransientAuthenticationQueryError } from "./postgrest-auth-error";
+
 export type BackendErrorLike = Readonly<{
   name?: string | null;
   status?: number | null;
@@ -52,8 +54,9 @@ function queryErrorCode(error: unknown): string {
   return typeof code === "string" && code !== "" ? code : "unknown";
 }
 
-// 読み取りqueryの失敗を例外へ変換する。応答不能はBackendUnavailableError、それ以外は与えた文言のError。
-// logには操作名・status・codeだけを残し、errorの本文（行の内容を含みうる）を記録しない (NFR-SEC-005, NFR-OPS-008)
+// 読み取りqueryの失敗を例外へ変換する。応答不能とPostgRESTの一過性の時刻検証エラーはBackendUnavailableError、
+// それ以外は与えた文言のError。logには操作名・status・codeだけを残し、errorの本文（行の内容を含みうる）を記録しない
+// (NFR-SEC-005, NFR-OPS-008, AC-AUTH-004-6)
 export function createQueryFailureError(
   operation: string,
   result: QueryResultLike,
@@ -65,8 +68,23 @@ export function createQueryFailureError(
     result.status ?? "unknown",
     queryErrorCode(result.error),
   );
-  if (isUnavailableQueryResult(result)) {
+  if (
+    isUnavailableQueryResult(result) ||
+    isTransientAuthenticationQueryError(result.error)
+  ) {
     return new BackendUnavailableError(operation);
   }
   return new Error(fallbackMessage);
+}
+
+// 認証起因の失敗を未認証へ縮退させた事実を、操作名とcodeだけでlogへ残す。黙って空表示になる経路を追跡可能にする (AC-AUTH-004-6)
+export function logAuthenticationQueryDegradation(
+  operation: string,
+  error: unknown,
+): void {
+  console.warn(
+    "read query degraded to unauthenticated: operation=%s code=%s",
+    operation,
+    queryErrorCode(error),
+  );
 }

@@ -194,6 +194,26 @@ describe("resolveGroupReadContext", () => {
     },
   );
 
+  const transientClockFailure = {
+    data: null,
+    error: { code: "PGRST303", message: "JWT issued at future" },
+    status: 401,
+  };
+
+  it.each([
+    ["group", transientClockFailure, { data: activeMemberships, error: null }],
+    ["membership", { data: groupRow, error: null }, transientClockFailure],
+  ])(
+    "%s queryの一過性の時刻検証エラーはnullへ縮退させず例外にする (AC-AUTH-004-6)",
+    async (_name, group, membership) => {
+      setupContextQueries(group, membership);
+
+      await expect(resolveGroupReadContext(GROUP_ID)).rejects.toBeInstanceOf(
+        BackendUnavailableError,
+      );
+    },
+  );
+
   it.each([
     [
       "group",

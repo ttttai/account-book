@@ -265,6 +265,69 @@ test("カレンダー本体の横スワイプ・ドラッグによる月移動�
   assert.doesNotMatch(css, /touch-action/);
 });
 
+test("日別sheetを閉じた直後に日付セルへhover・focusの塗りを残さない (AC-CAL-001-21)", async () => {
+  // review: 2026-09-13-calendar-close-highlight
+  const css = await read(
+    "src/modules/calendar/presentation/calendar.module.css",
+  );
+  // focusの塗りは:focus-withinではなく、キーボード操作だけが該当する:focus-visibleで付ける
+  assert.doesNotMatch(
+    css,
+    /\.calendar-cell[^{]*:focus-within/,
+    "日付セルの塗りに:focus-withinを使わない（閉じたあとのfocus復帰で塗り残る）",
+  );
+  // WebKitはタップ後のプログラム的なfocusも:focus-visibleにするため、pointer操作の印で塗りと輪郭を抑える
+  assert.match(
+    css,
+    /\.calendar-cell\.is-current-month:has\(\s*> \.calendar-cell-link:focus-visible:not\(\[data-pointer-focus\]\)\s*\) \{\s*background: var\(--accent-soft\);/,
+  );
+  assert.match(
+    css,
+    /\.calendar-cell-link\[data-pointer-focus\]:focus-visible \{\s*outline: none;/,
+  );
+  // hoverの塗りはhover可能な入力装置だけに限定し、touch端末の貼り付くhoverを活性化に見せない
+  const hoverRule = css.indexOf(".calendar-cell.is-current-month:hover");
+  assert.notEqual(hoverRule, -1, "日付セルのhover規則が必要です");
+  const mediaStart = css.lastIndexOf("@media (hover: hover) {", hoverRule);
+  assert.notEqual(
+    mediaStart,
+    -1,
+    "日付セルのhover規則は@media (hover: hover)の中に置く",
+  );
+  const mediaBody = css.slice(mediaStart, hoverRule);
+  assert.doesNotMatch(
+    mediaBody,
+    /\n\}\n/,
+    "日付セルのhover規則が@media (hover: hover)ブロックの外にある",
+  );
+  assert.equal(
+    (css.match(/\.calendar-cell\.is-current-month:hover/g) ?? []).length,
+    1,
+    "hover規則はメディアクエリ内の1つだけにする",
+  );
+
+  // 閉じたあとのfocus復帰は維持し、pointer操作（detailが0以外のclick）のときだけ印を付ける（§15）
+  const explorer = await read(
+    "src/modules/calendar/presentation/calendar-day-explorer.tsx",
+  );
+  assert.match(explorer, /previousLink\.focus\(\)/);
+  assert.match(
+    explorer,
+    /if \(event\.detail !== 0\) previousLink\.dataset\.pointerFocus = "true"/,
+  );
+  assert.match(explorer, /onBlur=\{clearPointerFocus\}/);
+  assert.match(explorer, /onKeyDown=\{clearPointerFocus\}/);
+
+  const useCases = await read("specs/02-use-cases.md");
+  const screens = await read("specs/03-screen-specification.md");
+  const review = await read(
+    "specs/reviews/2026-09-13-calendar-close-highlight.md",
+  );
+  assert.match(useCases, /^- `AC-CAL-001-21`/m);
+  assert.match(screens, /AC-CAL-001-21/);
+  assert.match(review, /^状態: (承認済み|実装確認済み)$/m);
+});
+
 test("空月メッセージはServer Componentからpropで渡すためkeyを持ち、開発時のkey警告を出さない (E2E-005)", async () => {
   const home = await read(
     "src/modules/calendar/presentation/calendar-home.tsx",

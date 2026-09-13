@@ -834,4 +834,100 @@ describe("ExpenseForm の外枠と footer (AC-TXN-009-5)", () => {
       /px$/,
     );
   });
+
+  it("ドックの中身をwrapperで包み、その高さをドックのtransition目標としてCSS変数へ渡す (NFR-UI-009)", () => {
+    let trigger: (() => void) | undefined;
+    const observed: Element[] = [];
+    class FakeResizeObserver {
+      constructor(callback: () => void) {
+        trigger = callback;
+      }
+      observe(target: Element) {
+        observed.push(target);
+      }
+      disconnect() {}
+    }
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    try {
+      render(<ExpenseForm clientRequestId="req-1" options={options} />);
+
+      const dock = screen
+        .getByRole("group", { name: "カテゴリ" })
+        .closest("[data-keypad-open]") as HTMLElement | null;
+      const content = dock?.querySelector(".input-dock-content");
+      expect(content).toBeTruthy();
+      // カテゴリと保存を含むテンキーはwrapperの中、「閉じる」はwrapperの外（ドック直下）に置く
+      expect(
+        content?.contains(screen.getByRole("group", { name: "カテゴリ" })),
+      ).toBe(true);
+      expect(
+        content?.contains(screen.getByRole("button", { name: "支出を保存" })),
+      ).toBe(true);
+      expect(
+        screen.getByRole("button", { name: "テンキーを閉じる" }).parentElement,
+      ).toBe(dock);
+      // 中身とドック自身の両方を観測し、どちらの変化でも目標高さを更新する
+      expect(observed).toContain(content);
+      expect(observed).toContain(dock);
+
+      trigger?.();
+      expect(
+        dock?.style.getPropertyValue("--input-dock-target-height"),
+      ).toMatch(/px$/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe("ExpenseForm の均等メンバー選択chip (AC-TXN-001-11)", () => {
+  function chooseEqual() {
+    fireEvent.click(screen.getByRole("radio", { name: "均等" }));
+  }
+
+  it("均等ではメンバーをchip型のcheckboxとして表示し、全員を初期選択する", () => {
+    renderForm();
+    chooseEqual();
+
+    const self = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "山田（自分）",
+    });
+    const other = screen.getByRole<HTMLInputElement>("checkbox", {
+      name: "佐藤",
+    });
+    expect(self.checked).toBe(true);
+    expect(other.checked).toBe(true);
+    // 送信するname・valueは従来のまま
+    expect(self.name).toBe("selectedMemberIds");
+    expect(self.value).toBe(currentMembershipId);
+    expect(self.closest("label")?.classList.contains("choice-chip")).toBe(true);
+    expect(document.querySelector(".check-option")).toBeNull();
+  });
+
+  it("chipを押すと選択が外れ、内訳の確認へ即時反映する", () => {
+    renderForm();
+    pressKey("6");
+    pressKey("0");
+    pressKey("0");
+    pressKey("0");
+    chooseEqual();
+
+    const preview = screen.getByRole("heading", { name: "内訳の確認" })
+      .parentElement as HTMLElement;
+    expect(preview.querySelectorAll("dt")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "佐藤" }));
+    expect(
+      screen.getByRole<HTMLInputElement>("checkbox", { name: "佐藤" }).checked,
+    ).toBe(false);
+    expect(
+      screen.getByRole<HTMLInputElement>("checkbox", { name: "山田（自分）" })
+        .checked,
+    ).toBe(true);
+    const names = [...preview.querySelectorAll("dt")].map(
+      (node) => node.textContent,
+    );
+    expect(names).toEqual(["山田"]);
+    expect(preview.querySelector("dd")?.textContent).toBe("¥6,000");
+  });
 });

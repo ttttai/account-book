@@ -152,15 +152,21 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
     });
   }
 
-  // 日別取引に「内訳」を表示し、支払者を表示しない (AC-TXN-018-3)
+  // 日別取引は支出した人の表示名だけを示し、「内訳」の見出し語・各人の金額・支払者・行内の「編集」リンクを表示しない (AC-TXN-018-3, AC-CAL-017-1, AC-CAL-017-2)
   await openCalendar(memberPage, groupId, { month, scope: "group", day });
   const dayPanel = memberPage.getByRole("complementary");
   await expect(dayPanel).toContainText("￥6,000");
-  await expect(dayPanel).toContainText("内訳");
-  await expect(dayPanel).toContainText(`${E2E_USER_A.displayName} ￥3,000`);
-  await expect(dayPanel).toContainText(`${E2E_USER_B.displayName} ￥3,000`);
+  await expect(dayPanel).toContainText(E2E_USER_A.displayName);
+  await expect(dayPanel).toContainText(E2E_USER_B.displayName);
+  await expect(dayPanel).not.toContainText("内訳");
+  await expect(dayPanel).not.toContainText("￥3,000");
   await expect(dayPanel).not.toContainText("支払者");
   await expect(dayPanel).not.toContainText("負担");
+  await expect(dayPanel.getByRole("link", { name: "編集" })).toHaveCount(0);
+  // 行全体が編集へのリンクで、アクセシブル名にカテゴリ・金額・両メンバーの表示名を含む
+  await expect(
+    dayPanel.getByRole("link", { name: /^食費 ￥6,000 / }),
+  ).toHaveCount(1);
 
   // 履歴は自分の支出額を主表示し、取引全体と区別する (HIS-003、HIS-004)
   await memberPage.goto(`/groups/${groupId}/history`);
@@ -271,7 +277,7 @@ test("E2E-005 支出を編集・削除するとカレンダー合計が追随す
   await openCalendar(memberPage, groupId, { month, scope: "group", day });
   await memberPage
     .getByRole("complementary")
-    .getByRole("link", { name: "編集" })
+    .getByRole("link", { name: /^食費 ￥/ })
     .click();
   await expect(memberPage).toHaveURL(/\/transactions\/[0-9a-f-]{36}\/edit/);
 
@@ -292,7 +298,7 @@ test("E2E-005 支出を編集・削除するとカレンダー合計が追随す
   await openCalendar(memberPage, groupId, { month, scope: "group", day });
   await memberPage
     .getByRole("complementary")
-    .getByRole("link", { name: "編集" })
+    .getByRole("link", { name: /^食費 ￥/ })
     .click();
   // 削除操作と確認ボタンは固定入力ドックに覆われず、通常のclickで到達できる (AC-TXN-009-5)
   await memberPage.getByRole("button", { name: "この取引を削除する" }).click();

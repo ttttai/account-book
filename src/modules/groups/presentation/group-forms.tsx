@@ -3,6 +3,8 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
+import { ChoiceChip, ChoiceChipList } from "@/modules/ui";
+
 import { INITIAL_GROUP_ACTION_STATE } from "./action-state";
 import { createGroupAction } from "./actions";
 
@@ -39,33 +41,34 @@ export function CreateGroupForm() {
         </p>
       )}
 
+      {/* 2択はOS標準のradioを出さず選択肢chipで表示する (AC-GRP-001-6) */}
       <fieldset>
         <legend>週の開始曜日</legend>
-        <label className={styles["radio-option"]}>
-          <input defaultChecked name="weekStartsOn" type="radio" value="0" />
-          日曜日
-        </label>
-        <label className={styles["radio-option"]}>
-          <input name="weekStartsOn" type="radio" value="1" />
-          月曜日
-        </label>
+        <ChoiceChipList>
+          <ChoiceChip defaultChecked name="weekStartsOn" type="radio" value="0">
+            日曜日
+          </ChoiceChip>
+          <ChoiceChip name="weekStartsOn" type="radio" value="1">
+            月曜日
+          </ChoiceChip>
+        </ChoiceChipList>
       </fieldset>
 
       <fieldset>
         <legend>標準の支出負担</legend>
-        <label className={styles["radio-option"]}>
-          <input
+        <ChoiceChipList>
+          <ChoiceChip
             defaultChecked
             name="defaultAllocation"
             type="radio"
             value="equal"
-          />
-          メンバーで均等
-        </label>
-        <label className={styles["radio-option"]}>
-          <input name="defaultAllocation" type="radio" value="self" />
-          自分が全額負担
-        </label>
+          >
+            メンバーで均等
+          </ChoiceChip>
+          <ChoiceChip name="defaultAllocation" type="radio" value="self">
+            自分が全額負担
+          </ChoiceChip>
+        </ChoiceChipList>
       </fieldset>
 
       {state.message && (
