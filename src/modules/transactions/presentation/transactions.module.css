@@ -12,7 +12,7 @@
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   background: var(--surface);
-  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+  box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 7%);
 }
 
 .expense-field,
@@ -42,10 +42,10 @@
   min-width: 0;
   min-height: 48px;
   padding: 0.65rem 0.75rem;
-  border: 1px solid #bdc7bd;
+  border: 1px solid var(--field-border);
   border-radius: 0.7rem;
   color: var(--text);
-  background: white;
+  background: var(--surface-strong);
   font: inherit;
 }
 
@@ -105,9 +105,9 @@
 .category-expand-toggle {
   min-height: 48px;
   padding: 0.5rem 0.7rem;
-  border: 1px solid #bdc7bd;
+  border: 1px solid var(--field-border);
   border-radius: 0.75rem;
-  background: white;
+  background: var(--surface-strong);
   color: var(--text);
   font: inherit;
   font-size: 0.82rem;
@@ -136,9 +136,9 @@
   gap: 0.45rem;
   min-height: 48px;
   padding: 0.6rem 0.65rem;
-  border: 1px solid #bdc7bd;
+  border: 1px solid var(--field-border);
   border-radius: 0.75rem;
-  background: white;
+  background: var(--surface-strong);
   font-size: 0.88rem;
   font-weight: 700;
   line-height: 1.25;
@@ -161,7 +161,7 @@
   width: 0.75rem;
   height: 0.75rem;
   border-radius: 50%;
-  background: var(--category-color, #758178);
+  background: var(--category-color, var(--neutral));
 }
 
 .category-option-check {
@@ -169,10 +169,10 @@
   width: 1.25rem;
   height: 1.25rem;
   place-items: center;
-  border: 1px solid #a9b4aa;
+  border: 1px solid var(--field-border);
   border-radius: 50%;
   color: transparent;
-  background: white;
+  background: var(--surface-strong);
   font-size: 0.72rem;
 }
 
@@ -180,7 +180,7 @@
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-soft);
-  box-shadow: 0 2px 8px rgb(36 49 38 / 9%);
+  box-shadow: 0 2px 8px rgb(var(--shadow-rgb) / 9%);
 }
 
 .category-option
@@ -188,12 +188,12 @@
   + .category-option-content
   .category-option-check {
   border-color: var(--accent);
-  color: white;
-  background: var(--accent);
+  color: var(--on-accent);
+  background: var(--accent-surface);
 }
 
 .category-option input:focus-visible + .category-option-content {
-  outline: 3px solid rgb(47 111 85 / 28%);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -203,14 +203,14 @@
   align-items: center;
   gap: 0.4rem;
   padding-inline: 0.85rem;
-  border: 2px solid #9dae9f;
+  border: 2px solid var(--field-border);
   border-radius: 1rem;
-  background: white;
+  background: var(--surface-strong);
 }
 
 .amount-input-wrap:focus-within {
   border-color: var(--accent);
-  outline: 3px solid rgb(47 111 85 / 18%);
+  outline: 3px solid var(--focus-ring-soft);
 }
 
 .amount-input-wrap > span {
@@ -257,7 +257,7 @@
   gap: 0.35rem;
   padding: 0.25rem;
   border-radius: 0.8rem;
-  background: #eef1ed;
+  background: var(--surface-muted);
 }
 
 .segmented-control label {
@@ -288,12 +288,12 @@
 
 .segmented-control input:checked + span {
   color: var(--accent);
-  background: white;
-  box-shadow: 0 2px 8px rgb(36 49 38 / 10%);
+  background: var(--surface-strong);
+  box-shadow: 0 2px 8px rgb(var(--shadow-rgb) / 10%);
 }
 
 .segmented-control input:focus-visible + span {
-  outline: 3px solid rgb(47 111 85 / 28%);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -376,7 +376,7 @@
   overflow: clip;
   border-top: 1px solid var(--border);
   background: var(--surface);
-  box-shadow: 0 -10px 30px rgb(36 49 38 / 9%);
+  box-shadow: 0 -10px 30px rgb(var(--shadow-rgb) / 9%);
   transition: height var(--motion-duration-medium) var(--motion-ease-out);
 }
 
@@ -422,7 +422,7 @@
 }
 
 .keypad-close:active {
-  background: #eef1ed;
+  background: var(--surface-muted);
 }
 
 .keypad {
@@ -456,9 +456,9 @@
   display: grid;
   min-height: 48px;
   padding: 0.35rem;
-  border: 1px solid #bdc7bd;
+  border: 1px solid var(--field-border);
   border-radius: 0.75rem;
-  background: white;
+  background: var(--surface-strong);
   color: var(--text);
   font: inherit;
   font-size: 1.35rem;
@@ -470,7 +470,7 @@
 }
 
 .keypad-key:active {
-  background: #eef1ed;
+  background: var(--surface-muted);
 }
 
 .keypad-key[data-key="0"] {
@@ -497,13 +497,13 @@
 }
 
 .keypad-key[data-operator] {
-  background: #eaf2ec;
+  background: var(--accent-faint);
   color: var(--accent);
   font-size: 1.5rem;
 }
 
 .keypad-key[data-operator]:active {
-  background: #d9e6dc;
+  background: var(--accent-soft);
 }
 
 /* 保存はテンキーの開閉・カテゴリ展開に関係なく常設する (AC-TXN-016-1) */
@@ -559,7 +559,7 @@
 }
 
 .amount-calculation[data-invalid="true"] {
-  color: #a13d2d;
+  color: var(--danger);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -729,7 +729,7 @@
 
 .edit-note {
   margin: 0.35rem 0 0;
-  color: #8a5a24;
+  color: var(--warning);
   font-size: 0.82rem;
   line-height: 1.6;
 }
@@ -742,17 +742,17 @@
 
 .delete-transaction-open {
   min-height: 44px;
-  border-color: #cf9a96;
-  color: #a3342f;
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .delete-transaction-confirm {
   display: grid;
   gap: 0.7rem;
   padding: 0.85rem;
-  border: 1px solid #cf9a96;
+  border: 1px solid var(--danger-border);
   border-radius: 0.85rem;
-  background: #f9efee;
+  background: var(--danger-soft);
 }
 
 .delete-transaction-confirm p {
@@ -773,7 +773,7 @@
 }
 
 :global(.primary-button).danger-button {
-  background: #a3342f;
+  background: var(--danger-surface);
 }
 
 /* 種別切替（支出・収入） */

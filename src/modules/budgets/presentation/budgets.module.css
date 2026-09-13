@@ -22,7 +22,7 @@
   border: 1px solid var(--border);
   border-radius: 50%;
   color: var(--text);
-  background: white;
+  background: var(--surface-strong);
   font-size: 1.7rem;
   text-decoration: none;
 }
@@ -99,13 +99,13 @@
 }
 
 .budget-status[data-status="warn"] {
-  color: #8a5a00;
-  background: #fbefd2;
+  color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .budget-status[data-status="over"] {
-  color: #a33b2d;
-  background: #f9e1dc;
+  color: var(--danger);
+  background: var(--danger-soft);
 }
 
 /* 進捗バーは装飾であり、数値とラベルで同じ内容を伝える */
@@ -122,15 +122,15 @@
   display: block;
   height: 100%;
   border-radius: 999px;
-  background: var(--accent);
+  background: var(--accent-surface);
 }
 
 .budget-bar[data-status="warn"] > span {
-  background: #d29a35;
+  background: var(--warning-bar);
 }
 
 .budget-bar[data-status="over"] > span {
-  background: #d8664f;
+  background: var(--chart-expense);
 }
 
 .budget-metrics,
@@ -204,7 +204,7 @@
   width: 0.7rem;
   height: 0.7rem;
   border-radius: 50%;
-  background: var(--category-color, #758178);
+  background: var(--category-color, var(--neutral));
 }
 
 .budget-category-name {
@@ -289,14 +289,14 @@
   align-items: center;
   gap: 0.4rem;
   padding-inline: 0.75rem;
-  border: 1px solid #bdc7bd;
+  border: 1px solid var(--field-border);
   border-radius: 0.7rem;
-  background: white;
+  background: var(--surface-strong);
 }
 
 .budget-amount-wrap:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(47 111 85 / 18%);
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
 }
 
 .budget-amount-wrap > span {

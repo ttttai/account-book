@@ -12,10 +12,10 @@
   width: 100%;
   min-height: 48px;
   padding: 10px 12px;
-  border: 1px solid #bdc7bd;
+  border: 1px solid var(--field-border);
   border-radius: 10px;
   color: var(--text);
-  background: white;
+  background: var(--surface-strong);
   font: inherit;
 }
 

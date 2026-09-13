@@ -48,11 +48,12 @@ test("NFR-PWA-001/002: manifestが名称・start_url・standalone・トークン
     "manifestの色がデザイントークン--backgroundと一致しません",
   );
 
+  // ライトのtheme-colorはmanifestと同じ値。ダークの追従はdark-theme.test.mjsで検証する (NFR-UI-010)
   const layout = await read("src/app/layout.tsx");
   assert.match(
     layout,
-    /themeColor:\s*"#f7f5ef"/,
-    "viewport.themeColorがmanifestのtheme_colorと一致しません",
+    /media:\s*"\(prefers-color-scheme: light\)",\s*color:\s*"#f7f5ef"/,
+    "ライトのviewport.themeColorがmanifestのtheme_colorと一致しません",
   );
 });
 

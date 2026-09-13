@@ -103,10 +103,10 @@ test("パレット拡張migrationはcheck制約と更新関数を同じ18色へ�
 test("色tokenの値はstyles.cssのdesign tokenとして1箇所で定義する (AC-CAT-002-7, NFR-MNT-010)", async () => {
   const styles = await read("src/app/styles.css");
 
-  // 未知のtokenは既定色に留まる
+  // 未知のtokenは既定色（--neutral、両テーマで定義）に留まる (review: 2026-09-14-dark-theme)
   assert.match(
     styles,
-    /\[data-category-color\]\s*\{[^}]*--category-color:\s*#[0-9a-f]{6}/is,
+    /\[data-category-color\]\s*\{[^}]*--category-color:\s*var\(--neutral\)/is,
   );
   const definedValues = new Set();
   for (const token of EXPECTED_COLORS) {

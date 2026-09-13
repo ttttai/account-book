@@ -290,10 +290,10 @@ test("詳細分析の月入力欄はWebKitでも列幅に収まり、累積収�
   assert.match(savings, /export function scaleAnalyticsSavingsChart/);
   assert.doesNotMatch(details, /^"use client";/m);
   assert.match(details, /data-details-chart="savings"/);
-  // 赤字の棒は赤系の背景色を持つ (review: 2026-09-04-analytics-savings-trend-negative-color)
+  // 赤字の棒は支出と同じ赤系のtokenで塗る (review: 2026-09-04-analytics-savings-trend-negative-color, 2026-09-14-dark-theme)
   assert.match(
     moduleCss,
-    /i\[data-chart-bar="negative"\] \{[^}]*background:\s*#d8664f;/,
+    /i\[data-chart-bar="negative"\] \{[^}]*background:\s*var\(--chart-expense\);/,
   );
   assert.doesNotMatch(details, /cumulativeBalance\s*[+-]=|reduce\(/);
 });
@@ -414,11 +414,11 @@ test("月別推移は支出既定の縦棒グラフをclient側だけで収入�
   // 支出は赤系、収入は緑系で塗り、切替ボタンは既存の44px以上の規則を共有する (AC-ANA-015-2、3)
   assert.match(
     moduleCss,
-    /\[data-trend-bar="expense"\] \{[^}]*background:\s*#d8664f;/,
+    /\[data-trend-bar="expense"\] \{[^}]*background:\s*var\(--chart-expense\);/,
   );
   assert.match(
     moduleCss,
-    /\[data-trend-bar="income"\] \{[^}]*background:\s*#3d8a5f;/,
+    /\[data-trend-bar="income"\] \{[^}]*background:\s*var\(--chart-income\);/,
   );
   assert.match(chart, /analytics-chart-toggle/);
 });

@@ -12,7 +12,7 @@
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   background: var(--surface);
-  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+  box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 7%);
 }
 
 .recurring-list-panel h2,
@@ -43,12 +43,12 @@
   padding: 0.85rem;
   border: 1px solid var(--border);
   border-radius: 0.9rem;
-  background: white;
+  background: var(--surface-strong);
 }
 
 /* 終了済みは継続中と視覚的に区別する（色だけに依存せずbadgeも表示する） */
 .recurring-card.is-ended {
-  background: #f3f4f1;
+  background: var(--surface-muted);
 }
 
 .recurring-card-heading {
@@ -61,19 +61,19 @@
 .recurring-type {
   padding: 0.1rem 0.5rem;
   border-radius: 999px;
-  color: white;
-  background: #758178;
+  color: var(--on-accent);
+  background: var(--neutral);
   font-size: 0.72rem;
   font-weight: 750;
 }
 
 .recurring-type.is-income {
-  background: var(--accent);
+  background: var(--accent-surface);
 }
 
 .recurring-ended-badge {
   padding: 0.1rem 0.5rem;
-  border: 1px solid #b9c2b9;
+  border: 1px solid var(--field-border);
   border-radius: 999px;
   color: var(--muted);
   font-size: 0.72rem;
@@ -159,10 +159,10 @@
   min-width: 0;
   min-height: 48px;
   padding: 0.65rem 0.75rem;
-  border: 1px solid #bdc7bd;
+  border: 1px solid var(--field-border);
   border-radius: 0.7rem;
   color: var(--text);
-  background: white;
+  background: var(--surface-strong);
   font: inherit;
 }
 
@@ -199,7 +199,7 @@
   gap: 0.35rem;
   padding: 0.25rem;
   border-radius: 0.8rem;
-  background: #eef1ed;
+  background: var(--surface-muted);
 }
 
 .recurring-segmented label {
@@ -225,12 +225,12 @@
 
 .recurring-segmented input:checked + span {
   color: var(--accent);
-  background: white;
-  box-shadow: 0 2px 8px rgb(36 49 38 / 10%);
+  background: var(--surface-strong);
+  box-shadow: 0 2px 8px rgb(var(--shadow-rgb) / 10%);
 }
 
 .recurring-segmented input:focus-visible + span {
-  outline: 3px solid rgb(47 111 85 / 28%);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -252,14 +252,14 @@
   align-items: center;
   gap: 0.4rem;
   padding-inline: 0.75rem;
-  border: 1px solid #bdc7bd;
+  border: 1px solid var(--field-border);
   border-radius: 0.7rem;
-  background: white;
+  background: var(--surface-strong);
 }
 
 .recurring-amount-wrap:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgb(47 111 85 / 18%);
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
 }
 
 .recurring-amount-wrap > span {
