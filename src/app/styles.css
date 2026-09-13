@@ -1,12 +1,51 @@
 :root {
+  /* 色のdesign token (03 §14, NFR-UI-010)。ライトの値をここで、ダークの値を下の
+     prefers-color-scheme: darkで同じ名前に定義する。CSS Modulesは色値を直書きせずこれを参照する */
   color-scheme: light;
   --background: #f7f5ef;
+  --background-glow: #e4eee4;
   --surface: #fffdf8;
+  --surface-strong: #ffffff;
+  --surface-muted: #eef1ed;
   --text: #243126;
   --muted: #647066;
-  --accent: #2f6f55;
-  --accent-soft: #dcebe1;
+  --text-faint: #b1b8b1;
   --border: #dce1da;
+  --field-border: #bdc7bd;
+  --shadow-rgb: 36 49 38;
+  --backdrop: rgb(36 49 38 / 35%);
+  --skeleton-base: #ecefeb;
+  --skeleton-highlight: #f7f8f6;
+  /* accentは文字・枠用（--accent）と塗り用（--accent-surface）を分け、ダークで文字だけを明るくする */
+  --accent: #2f6f55;
+  --accent-surface: #2f6f55;
+  --accent-surface-end: #50745b;
+  --accent-soft: #dcebe1;
+  --accent-faint: #eaf2ec;
+  --accent-strong: #275e47;
+  --accent-border: #bad5c3;
+  --on-accent: #ffffff;
+  --on-accent-muted: rgb(255 255 255 / 78%);
+  --income-on-accent: #d9e7ff;
+  --negative-on-accent: #ffd8cf;
+  --income: #2d5da8;
+  --income-soft: #e3ecfa;
+  --danger: #a3342f;
+  --danger-soft: #f6e8e7;
+  --danger-border: #cf9a96;
+  --danger-surface: #a3342f;
+  --warning: #8a5a00;
+  --warning-soft: #fbefd2;
+  --warning-bar: #d29a35;
+  --neutral: #758178;
+  --chart-expense: #d8664f;
+  --chart-income: #3d8a5f;
+  --weekend-saturday: #3d6fbf;
+  --weekend-sunday: #c24b45;
+  --weekend-saturday-faint: #a9bfe0;
+  --weekend-sunday-faint: #e3b0ad;
+  --focus-ring: rgb(47 111 85 / 28%);
+  --focus-ring-soft: rgb(47 111 85 / 18%);
   /* motionのdesign token (03 §14, NFR-UI-009)。各機能のCSS Modulesは時間・easingを直書きせずこれを参照する。
      shortは選択状態・現在地の色変化、mediumはsheetのスライドと入力ドックの高さ。どちらも200ms以下に留める */
   --motion-duration-short: 120ms;
@@ -32,7 +71,7 @@
 /* カテゴリ色のdesign token (AC-CAT-002-7)。各機能はbackground: var(--category-color)で描画し、
    tokenごとの色値をここ以外に書かない。未知のtokenは既定色（「その他」と同じ）に留まる */
 [data-category-color] {
-  --category-color: #758178;
+  --category-color: var(--neutral);
 }
 [data-category-color="food"] {
   --category-color: #d8664f;
@@ -89,6 +128,71 @@
   --category-color: #414a52;
 }
 
+/* ダークテーマ (03 §14, NFR-UI-010, NFR-A11Y-008)。OSの配色設定に追従し、tokenの値だけを差し替える。
+   各値の対比はtests/architecture/dark-theme.test.mjsがWCAG AA（文字4.5:1、塗り3:1）で検証する */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: #151a17;
+    --background-glow: #1c2822;
+    --surface: #1e2521;
+    --surface-strong: #272f2a;
+    --surface-muted: #303a33;
+    --text: #e8ece8;
+    --muted: #a5b0a8;
+    --text-faint: #5d675f;
+    --border: #38423b;
+    --field-border: #4a564e;
+    --shadow-rgb: 0 0 0;
+    --backdrop: rgb(0 0 0 / 60%);
+    --skeleton-base: #242c27;
+    --skeleton-highlight: #2e3731;
+    --accent: #7fc6a2;
+    --accent-surface: #337a5e;
+    --accent-surface-end: #3c8062;
+    --accent-soft: #24382e;
+    --accent-faint: #1f2f27;
+    --accent-strong: #a7dcbf;
+    --accent-border: #3a5a48;
+    --on-accent: #ffffff;
+    --on-accent-muted: rgb(255 255 255 / 78%);
+    --income-on-accent: #edf3ff;
+    --negative-on-accent: #fff0ec;
+    --income: #8fb6f5;
+    --income-soft: #1f2d47;
+    --danger: #f29a90;
+    --danger-soft: #3b2523;
+    --danger-border: #7a423d;
+    --danger-surface: #a3342f;
+    --warning: #f0c268;
+    --warning-soft: #3a2f15;
+    --warning-bar: #d29a35;
+    --neutral: #7f8b81;
+    --chart-expense: #e5786a;
+    --chart-income: #5fb886;
+    --weekend-saturday: #8fb1f2;
+    --weekend-sunday: #f29a90;
+    --weekend-saturday-faint: #4f6488;
+    --weekend-sunday-faint: #7a5654;
+    --focus-ring: rgb(127 198 162 / 45%);
+    --focus-ring-soft: rgb(127 198 162 / 30%);
+  }
+
+  /* 暗い面に沈む4色だけ明度を上げる。他の14色はライトと同じ値 (AC-CAT-002-7) */
+  [data-category-color="indigo"] {
+    --category-color: #8385e6;
+  }
+  [data-category-color="navy"] {
+    --category-color: #7391c4;
+  }
+  [data-category-color="wine"] {
+    --category-color: #c96274;
+  }
+  [data-category-color="charcoal"] {
+    --category-color: #96a1aa;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -103,7 +207,11 @@ body {
   margin: 0;
   color: var(--text);
   background:
-    radial-gradient(circle at 85% 4%, #e4eee4 0, transparent 32rem),
+    radial-gradient(
+      circle at 85% 4%,
+      var(--background-glow) 0,
+      transparent 32rem
+    ),
     var(--background);
 }
 
@@ -143,9 +251,9 @@ body {
   min-height: 44px;
   margin-top: 28px;
   padding: 10px 16px;
-  border: 1px solid #bad5c3;
+  border: 1px solid var(--accent-border);
   border-radius: 999px;
-  color: #275e47;
+  color: var(--accent-strong);
   background: var(--accent-soft);
   font-size: 0.9rem;
   font-weight: 650;
@@ -156,8 +264,8 @@ body {
   height: 8px;
   margin-right: 9px;
   border-radius: 999px;
-  background: var(--accent);
-  box-shadow: 0 0 0 4px rgb(47 111 85 / 12%);
+  background: var(--accent-surface);
+  box-shadow: 0 0 0 4px var(--focus-ring-soft);
 }
 
 .hero-actions {
@@ -185,9 +293,9 @@ body {
 
 .primary-link,
 .primary-button {
-  border: 1px solid var(--accent);
-  color: white;
-  background: var(--accent);
+  border: 1px solid var(--accent-surface);
+  color: var(--on-accent);
+  background: var(--accent-surface);
 }
 
 .secondary-link,
@@ -226,8 +334,8 @@ button:disabled {
   padding: 28px 24px;
   border: 1px solid var(--border);
   border-radius: 24px;
-  background: rgb(255 253 248 / 94%);
-  box-shadow: 0 20px 60px rgb(36 49 38 / 9%);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  box-shadow: 0 20px 60px rgb(var(--shadow-rgb) / 9%);
 }
 
 .brand-link {
@@ -251,7 +359,7 @@ button:disabled {
 
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid rgb(47 111 85 / 28%);
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -269,7 +377,7 @@ a:focus-visible {
 
 .field-error,
 .form-message.error {
-  color: #a3342f;
+  color: var(--danger);
 }
 
 .form-message.success {
@@ -341,7 +449,12 @@ a:focus-visible {
 .groups-skeleton {
   overflow: hidden;
   border-radius: 1rem;
-  background: linear-gradient(100deg, #f1f3f1 20%, #fafbfa 40%, #f1f3f1 60%);
+  background: linear-gradient(
+    100deg,
+    var(--skeleton-base) 20%,
+    var(--skeleton-highlight) 40%,
+    var(--skeleton-base) 60%
+  );
   background-size: 220% 100%;
   animation: history-shimmer 1.4s infinite linear;
 }
@@ -399,7 +512,7 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: var(--surface);
-  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+  box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 7%);
 }
 
 .profile-panel h1 {
@@ -417,7 +530,7 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: var(--surface);
-  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+  box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 7%);
 }
 
 .load-error-panel h1 {
@@ -488,7 +601,12 @@ a:focus-visible {
 .expense-loading-bar,
 .expense-loading-card {
   border-radius: 1rem;
-  background: linear-gradient(90deg, #e7ebe5, #f4f5f1, #e7ebe5);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base),
+    var(--skeleton-highlight),
+    var(--skeleton-base)
+  );
   background-size: 200% 100%;
   animation: expense-loading 1.4s ease-in-out infinite;
 }
@@ -547,7 +665,7 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: var(--surface);
-  box-shadow: 0 14px 38px rgb(36 49 38 / 7%);
+  box-shadow: 0 14px 38px rgb(var(--shadow-rgb) / 7%);
 }
 
 .settings-panel h1,
@@ -620,7 +738,7 @@ a:focus-visible {
 .settings-session-panel .text-button {
   min-height: 44px;
   border: 1px solid var(--border);
-  background: white;
+  background: var(--surface-strong);
 }
 
 .settings-error {
@@ -637,7 +755,12 @@ a:focus-visible {
 .settings-loading-heading,
 .settings-loading-panel {
   border-radius: 1rem;
-  background: linear-gradient(90deg, #e7ebe5, #f4f5f1, #e7ebe5);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base),
+    var(--skeleton-highlight),
+    var(--skeleton-base)
+  );
   background-size: 200% 100%;
   animation: expense-loading 1.4s ease-in-out infinite;
 }
@@ -657,7 +780,7 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 1rem;
   background: var(--surface);
-  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+  box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 7%);
 }
 
 .member-info-panel h2 {
@@ -672,7 +795,7 @@ a:focus-visible {
 
 .danger-text {
   min-width: 44px;
-  color: #a3342f;
+  color: var(--danger);
 }
 
 .invitation-acceptance-card .eyebrow {
@@ -756,7 +879,7 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 1.25rem;
   background: var(--surface);
-  box-shadow: 0 14px 38px rgb(36 49 38 / 7%);
+  box-shadow: 0 14px 38px rgb(var(--shadow-rgb) / 7%);
 }
 
 .calendar-validation-error h1,
@@ -783,7 +906,12 @@ a:focus-visible {
 
 .calendar-skeleton {
   overflow: hidden;
-  background: linear-gradient(100deg, #f1f3f1 20%, #fafbfa 40%, #f1f3f1 60%);
+  background: linear-gradient(
+    100deg,
+    var(--skeleton-base) 20%,
+    var(--skeleton-highlight) 40%,
+    var(--skeleton-base) 60%
+  );
   background-size: 220% 100%;
   animation: calendar-shimmer 1.4s infinite linear;
 }
@@ -798,7 +926,7 @@ a:focus-visible {
   height: 44px;
   margin-bottom: 1rem;
   border-radius: 0.8rem;
-  background: rgb(255 255 255 / 60%);
+  background: color-mix(in srgb, var(--surface-strong) 60%, transparent);
 }
 
 .calendar-skeleton-total {
@@ -815,7 +943,7 @@ a:focus-visible {
 .calendar-skeleton-grid span {
   min-height: 44px;
   border-radius: 0.5rem;
-  background: rgb(255 255 255 / 56%);
+  background: color-mix(in srgb, var(--surface-strong) 56%, transparent);
 }
 
 @keyframes calendar-shimmer {
@@ -830,7 +958,7 @@ a:focus-visible {
   border: 1px solid var(--border);
   border-radius: 24px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
-  box-shadow: 0 16px 50px rgb(36 49 38 / 7%);
+  box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 7%);
 }
 
 .roadmap h2 {
@@ -1017,7 +1145,12 @@ a:focus-visible {
   height: 4.5rem;
   border: 1px solid var(--border);
   border-radius: 0.9rem;
-  background: linear-gradient(90deg, #e7ebe5, #f4f5f1, #e7ebe5);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base),
+    var(--skeleton-highlight),
+    var(--skeleton-base)
+  );
   background-size: 200% 100%;
   animation: expense-loading 1.4s ease-in-out infinite;
 }
@@ -1072,7 +1205,12 @@ a:focus-visible {
 .history-skeleton {
   overflow: hidden;
   border-radius: 1rem;
-  background: linear-gradient(100deg, #f1f3f1 20%, #fafbfa 40%, #f1f3f1 60%);
+  background: linear-gradient(
+    100deg,
+    var(--skeleton-base) 20%,
+    var(--skeleton-highlight) 40%,
+    var(--skeleton-base) 60%
+  );
   background-size: 220% 100%;
   animation: history-shimmer 1.4s infinite linear;
 }

@@ -12,7 +12,12 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f7f5ef",
+  // ブラウザUIの色を両テーマの--backgroundへ追従させる (NFR-UI-010, NFR-PWA-002)。
+  // ライトはmanifestのtheme_colorと同じ値にする
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f5ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#151a17" },
+  ],
 };
 
 type RootLayoutProps = Readonly<{ children: ReactNode }>;

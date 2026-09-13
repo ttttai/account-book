@@ -70,7 +70,7 @@
   position: relative;
   z-index: 2;
   background: var(--surface);
-  box-shadow: 0 14px 34px rgb(30 45 38 / 20%);
+  box-shadow: 0 14px 34px rgb(var(--shadow-rgb) / 20%);
 }
 
 .category-drop-before {
@@ -127,7 +127,7 @@
   height: 0.75rem;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--category-color, #758178);
+  background: var(--category-color, var(--neutral));
 }
 
 .category-item-name {
@@ -218,7 +218,7 @@
   width: 1.35rem;
   height: 1.35rem;
   border-radius: 50%;
-  background: var(--category-color, #758178);
+  background: var(--category-color, var(--neutral));
 }
 
 /* 選択状態は色だけに依存させず、枠と選択記号でも示す */
