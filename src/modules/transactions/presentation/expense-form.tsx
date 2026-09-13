@@ -11,6 +11,8 @@ import {
 } from "react";
 import { useFormStatus } from "react-dom";
 
+import { ChoiceChip, ChoiceChipList } from "@/modules/ui";
+
 import type { TransactionEditTransaction } from "../application/edit-types";
 import type {
   ExpenseFormCategory,
@@ -578,30 +580,28 @@ export function ExpenseForm({
               ))}
             </div>
 
+            {/* 均等のメンバー選択はOS標準のcheckboxを出さず選択肢chipで表示する (AC-TXN-001-11) */}
             {allocationMethod === "equal" && (
-              <div className={styles["allocation-members"]}>
+              <ChoiceChipList>
                 {options.members.map((member) => (
-                  <label
-                    className={styles["check-option"]}
+                  <ChoiceChip
+                    checked={selectedMemberIds.includes(member.membershipId)}
                     key={member.membershipId}
+                    name="selectedMemberIds"
+                    onChange={(event) =>
+                      toggleEqualMember(
+                        member.membershipId,
+                        event.target.checked,
+                      )
+                    }
+                    type="checkbox"
+                    value={member.membershipId}
                   >
-                    <input
-                      checked={selectedMemberIds.includes(member.membershipId)}
-                      name="selectedMemberIds"
-                      onChange={(event) =>
-                        toggleEqualMember(
-                          member.membershipId,
-                          event.target.checked,
-                        )
-                      }
-                      type="checkbox"
-                      value={member.membershipId}
-                    />
                     {member.displayName}
                     {member.isCurrentUser ? "（自分）" : ""}
-                  </label>
+                  </ChoiceChip>
                 ))}
-              </div>
+              </ChoiceChipList>
             )}
 
             {allocationMethod === "single" && (
