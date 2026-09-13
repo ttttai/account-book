@@ -142,6 +142,10 @@
   font-size: 0.88rem;
   font-weight: 700;
   line-height: 1.25;
+  /* カテゴリの選択状態は枠・背景・文字色の短いtransitionで示す (TXN-015, NFR-UI-009) */
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 /* 1行表示では名称を折り返さず、展開時は通常どおり折り返す */
@@ -276,6 +280,10 @@
   place-items: center;
   font-size: 0.85rem;
   font-weight: 750;
+  /* 種別・分け方の選択は色と影の短いtransitionで示す (NFR-UI-009) */
+  transition-property: color, background-color, box-shadow;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 .segmented-control input:checked + span {
@@ -372,14 +380,25 @@
   bottom: 0;
   left: 0;
   display: grid;
-  gap: 0.5rem;
+  /* 高さはResizeObserverが内容から求めて--input-dock-target-heightへ渡し、上端の移動だけをtransitionする。
+     内容は操作の時点で即時に切り替え、下端へ寄せて動いている間は上端で切る。初回は測定前のautoで描く (NFR-UI-009) */
+  height: var(--input-dock-target-height, auto);
+  align-content: end;
   padding-top: 0.6rem;
   padding-right: max(0.75rem, env(safe-area-inset-right));
   padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
   padding-left: max(0.75rem, env(safe-area-inset-left));
+  overflow: clip;
   border-top: 1px solid var(--border);
   background: var(--surface);
   box-shadow: 0 -10px 30px rgb(36 49 38 / 9%);
+  transition: height var(--motion-duration-medium) var(--motion-ease-out);
+}
+
+/* ドックの中身（カテゴリ・テンキー・保存）。高さの測定対象で、「閉じる」はこの外に置く */
+.input-dock-content {
+  display: grid;
+  gap: 0.5rem;
 }
 
 .input-dock .category-fieldset > legend {
@@ -574,8 +593,11 @@
     gap: 1.25rem;
     padding: 1.5rem;
   }
-  /* PCでは入力ドックを固定せず、子要素を既存の2カラムへ流し込むため余白も不要 */
+  /* PCでは入力ドックを固定せず、子要素を既存の2カラムへ流し込むため余白も不要。高さのtransitionも対象外 */
   .input-dock {
+    display: contents;
+  }
+  .input-dock-content {
     display: contents;
   }
   .expense-form-shell {

@@ -834,4 +834,48 @@ describe("ExpenseForm の外枠と footer (AC-TXN-009-5)", () => {
       /px$/,
     );
   });
+
+  it("ドックの中身をwrapperで包み、その高さをドックのtransition目標としてCSS変数へ渡す (NFR-UI-009)", () => {
+    let trigger: (() => void) | undefined;
+    const observed: Element[] = [];
+    class FakeResizeObserver {
+      constructor(callback: () => void) {
+        trigger = callback;
+      }
+      observe(target: Element) {
+        observed.push(target);
+      }
+      disconnect() {}
+    }
+    vi.stubGlobal("ResizeObserver", FakeResizeObserver);
+    try {
+      render(<ExpenseForm clientRequestId="req-1" options={options} />);
+
+      const dock = screen
+        .getByRole("group", { name: "カテゴリ" })
+        .closest("[data-keypad-open]") as HTMLElement | null;
+      const content = dock?.querySelector(".input-dock-content");
+      expect(content).toBeTruthy();
+      // カテゴリと保存を含むテンキーはwrapperの中、「閉じる」はwrapperの外（ドック直下）に置く
+      expect(
+        content?.contains(screen.getByRole("group", { name: "カテゴリ" })),
+      ).toBe(true);
+      expect(
+        content?.contains(screen.getByRole("button", { name: "支出を保存" })),
+      ).toBe(true);
+      expect(
+        screen.getByRole("button", { name: "テンキーを閉じる" }).parentElement,
+      ).toBe(dock);
+      // 中身とドック自身の両方を観測し、どちらの変化でも目標高さを更新する
+      expect(observed).toContain(content);
+      expect(observed).toContain(dock);
+
+      trigger?.();
+      expect(
+        dock?.style.getPropertyValue("--input-dock-target-height"),
+      ).toMatch(/px$/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

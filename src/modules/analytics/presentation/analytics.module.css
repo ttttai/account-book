@@ -65,6 +65,10 @@
   text-decoration: none;
   text-overflow: ellipsis;
   white-space: nowrap;
+  /* 集計対象の切替は色と影の短いtransitionで選択状態の移動を示す (NFR-UI-009) */
+  transition-property: color, background-color, box-shadow;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 .analytics-scope-nav :global(.is-active) {
@@ -316,6 +320,10 @@
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
+  /* 円グラフ・棒グラフの切替は色の短いtransitionで示す (NFR-UI-009) */
+  transition-property: color, background-color;
+  transition-duration: var(--motion-duration-short);
+  transition-timing-function: var(--motion-ease-out);
 }
 
 .analytics-chart-toggle button[aria-pressed="true"] {
