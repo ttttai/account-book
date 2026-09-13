@@ -5,7 +5,7 @@ import {
   type ThemePreference,
 } from "../domain/theme-preference";
 
-// theme-colorのmetaをサーバーの出力と同じ形へ作り直す（OSに従う: media付き2件、明示選択: 1件）
+// theme-colorのmetaをサーバーの出力と同じ形へ作り直す（未選択: media付き2件、選択後: 1件）
 function replaceThemeColorMetas(preference: ThemePreference): void {
   for (const meta of document.head.querySelectorAll(
     'meta[name="theme-color"]',

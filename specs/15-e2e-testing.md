@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.2
+バージョン: 0.2.3
 
 ## 1. 目的と範囲
 
@@ -221,9 +221,9 @@ E2E stackのアプリは本番build（§3.1）で動かし、`next dev`固有の
 
 ### E2E-015 画面の配色の選択とOS設定への追従
 
-- E2E利用者Aが`emulateMedia({ colorScheme: "light" })`で新しいグループの設定画面を開くと`<html>`に`data-theme`が無く、`body`の背景がライトの`--background`である。「画面の配色」の「ダーク」を選ぶと、遷移・再読み込みなしに`data-theme="dark"`が付き、`body`の背景がダークの`--background`（`rgb(21, 26, 23)`）、`theme-color`のmetaがダークの値1件になる（`NFR-UI-010`、`NFR-PWA-002`）。
+- E2E利用者Aが`emulateMedia({ colorScheme: "light" })`で新しいグループの設定画面を開くと`<html>`に`data-theme`が無く、`body`の背景がライトの`--background`で、「画面の配色」は「ライト」が選択状態（OSの配色に合う側）である。「ダーク」を選ぶと、遷移・再読み込みなしに`data-theme="dark"`が付き、`body`の背景がダークの`--background`（`rgb(21, 26, 23)`）、`theme-color`のmetaがダークの値1件になる（`NFR-UI-010`、`NFR-PWA-002`）。
 - 再読み込み後もサーバーが出力した初回HTMLに`data-theme="dark"`が付き、ホームへ移動してもダークのままである。cookie `theme`は`dark`である。
-- `colorScheme: "dark"`のまま「ライト」を選ぶとライトの背景になり、「OSに従う」を選ぶと`data-theme`とcookieが消え、OSの設定（dark）どおりの背景へ戻る。mobile projectだけで実行する。
+- `colorScheme: "dark"`のまま「ライト」を選ぶとライトの背景になり、`theme-color`のmetaがライトの値1件になる。cookie `theme`だけを削除して再読み込みすると`data-theme`が無くなり、OSの設定（dark）どおりの背景で「ダーク」が選択状態になる。mobile projectだけで実行する。
 
 ## 6. CI
 

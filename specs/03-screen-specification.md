@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.3.12
+バージョン: 0.3.13
 
 ## 1. モバイル基準
 
@@ -352,7 +352,7 @@ sheetの見出しは選択日の日付の横（狭い幅では折り返して直
 
 - プロフィール表示名の確認・更新
 - 起動時に開くグループの設定・解除
-- 画面の配色（OSに従う・ライト・ダーク）の選択
+- 画面の配色（ライト・ダーク）の選択
 - グループ切り替え・作成
 - メンバー一覧・招待・権限管理への入口
 - グループ設定（グループ名、週の開始曜日、標準の分け方の確認・変更。通貨・タイムゾーンは表示のみ）
@@ -366,7 +366,7 @@ sheetの見出しは選択日の日付の横（狭い幅では折り返して直
 
 アカウント項目の「起動時に開くグループ」は、表示中のグループが起動時に開くグループでなければ「このグループを起動時に開く」ボタンを、起動時に開くグループであれば「このグループを起動時に開きます」の状態表示と「解除する」ボタンを表示する。ボタンは44 x 44 CSS pixel以上とし、実行中は無効化して結果メッセージを同じ項目内へ表示する。設定はメンバー権限を問わず本人のアカウント設定として扱い、他のメンバーの起動時の遷移先へ影響しないことを補足文で示す。
 
-アカウント項目の「画面の配色」は、「OSに従う」「ライト」「ダーク」の3択を§15の選択肢chip（単一選択、各44 x 44 CSS pixel以上、320pxでは折り返し）で表示し、現在の選択をcontrolledな`checked`で示す。選ぶと同じ画面が即時にその配色へ切り替わり、ページの再読み込み・再取得・Server Actionを伴わない。選択はこのブラウザだけのcookieに保存され、他のメンバーや他の端末に影響しないことを補足文で示す。「OSに従う」を選ぶとcookieを削除し、OSの設定どおりの配色へ戻す（`NFR-UI-010`）。
+アカウント項目の「画面の配色」は、「ライト」「ダーク」の2択を§15の選択肢chip（単一選択、各44 x 44 CSS pixel以上、320pxでは折り返し）で表示し、現在の選択をcontrolledな`checked`で示す。まだ選んでいない（cookieが無い）間はOSの設定どおりの配色で表示し、chipにはhydration後に`matchMedia("(prefers-color-scheme: dark)")`で判定した現在有効な配色を選択状態で示す（サーバーはOS設定を知らないため、初回HTMLではどちらも未選択で出す）。選ぶと同じ画面が即時にその配色へ切り替わり、ページの再読み込み・再取得・Server Actionを伴わない。選択はこのブラウザだけのcookieに保存され、他のメンバーや他の端末に影響しないことを補足文で示す。「OSに従う」に戻す操作は提供しない（`NFR-UI-010`）。
 
 「グループ設定」項目（`GRP-013`）は、owner/adminにはグループ名（1〜50文字のテキスト入力）、週の開始曜日（日曜日・月曜日）、標準の分け方（メンバーで均等・自分だけ）の編集フォームと「保存する」ボタンを表示する。ボタンは44 x 44 CSS pixel以上とし、保存中は無効化する。通貨（JPY）とタイムゾーン（Asia/Tokyo）は同じ項目内に読み取り専用で表示し、「通貨とタイムゾーンは現在JPY・日本時間（Asia/Tokyo）に固定で、変更できません」の補足文で変更手段が無い理由を示す。フォームは読み込み時の`version`を隠しfieldで保持し、保存結果（成功・入力エラー・競合・権限不足）を同じ項目内へ表示する。成功時は他画面へ遷移せず、画面見出しのグループ名と項目内の値を更新後の値にする。競合時は他のメンバーが先に変更した旨と再読み込みを案内し、入力中の値を破棄しない。memberには同じ項目をグループ名・通貨・タイムゾーン・週の開始・標準の分け方の読み取り専用一覧として表示し、編集操作を出さない。項目の文言は「分け方」を使い、「負担」を表示しない（`AC-TXN-018-2`）。週の開始曜日と標準の分け方の選択肢はグループ作成（§4）と同じ選択肢chip（§15）で表示し、controlledな`checked`で現在値を示す（`AC-GRP-013-8`）。
 
@@ -503,8 +503,8 @@ sheetの見出しは選択日の日付の横（狭い幅では折り返して直
 
 ### 色のdesign tokenとダークテーマ
 
-- 色のdesign tokenは`src/app/styles.css`の`:root`でライトテーマの値を定義し、ダークテーマの値は同じtokenに対して2つの規則で再定義する。`@media (prefers-color-scheme: dark)`内の`:root:not([data-theme="light"])`（OSに従う場合）と、`:root[data-theme="dark"]`（アプリで明示選択した場合）である。2つの規則の宣言は同一に保ち、architecture testで一致を検証する。`color-scheme`もライトは`light`、ダークは`dark`とし、OS標準のform control・scrollbar・`dialog::backdrop`も追従させる（`NFR-UI-010`）。
-- `<html data-theme="light|dark">`はサーバーがcookie `theme`の許可値から初回HTMLへ出力し、設定画面の「画面の配色」（§9）の変更時はClient Componentが同じ属性とcookie、`theme-color`のmetaを即時に書き換える。「OSに従う」では属性を付けない。属性の値はcookie・URL・DTOのどれからも許可値以外を通さない。
+- 色のdesign tokenは`src/app/styles.css`の`:root`でライトテーマの値を定義し、ダークテーマの値は同じtokenに対して2つの規則で再定義する。`@media (prefers-color-scheme: dark)`内の`:root:not([data-theme="light"])`（未選択でOS設定に従う場合）と、`:root[data-theme="dark"]`（アプリで「ダーク」を選んだ場合）である。2つの規則の宣言は同一に保ち、architecture testで一致を検証する。`color-scheme`もライトは`light`、ダークは`dark`とし、OS標準のform control・scrollbar・`dialog::backdrop`も追従させる（`NFR-UI-010`）。
+- `<html data-theme="light|dark">`はサーバーがcookie `theme`の許可値から初回HTMLへ出力し、設定画面の「画面の配色」（§9）の変更時はClient Componentが同じ属性とcookie、`theme-color`のmetaを即時に書き換える。未選択（cookieなし）では属性を付けない。属性の値はcookie・URL・DTOのどれからも許可値以外を通さない。
 - 各機能のCSS Modules（`src/modules/ui`を含む）と`styles.css`のtoken定義以外の規則は、色を必ず`var(--token)`で参照し、HEX・`rgb()`・`hsl()`・色名（`white`など）を直書きしない。半透明の影・overlayは`rgb(var(--shadow-rgb) / n%)`または`color-mix(in srgb, var(--token) n%, transparent)`で作る。
 - ダークテーマはライトと同じレイアウト・情報・操作順序を保ち、色だけを変える。塗りの意味（accent＝支出・主操作、青系＝収入、赤系＝赤字・削除・エラー、黄系＝予算の警告）はテーマで変えない。テーマの切替UIは設定画面の「画面の配色」（§9）だけに置き、他の画面へは置かない。
 - 選択はブラウザのcookieだけに保存する。利用者アカウントへの保存（端末間の同期）、時間帯による自動切替、画像・アイコンの差し替えは行わない。
@@ -558,7 +558,7 @@ sheetの見出しは選択日の日付の横（狭い幅では折り返して直
 - カテゴリ色token（`[data-category-color="<token>"]`の`--category-color`、`AC-CAT-002-7`）はライトの18色を基準とし、ダークでは`--surface`に対して3:1未満になる`indigo`（`#8385e6`）、`navy`（`#7391c4`）、`wine`（`#c96274`）、`charcoal`（`#96a1aa`）だけを明度を上げた値へ再定義する。他の14色はテーマで変えない。各機能の`var(--category-color, ...)`の既定値は`var(--neutral)`とする。
 - ライトの`--weekend-sunday`は`#c9524c`から`#c24b45`へ、月間合計バナー上の収入額は`#cfe0ff`から`#d9e7ff`へ変更し、`NFR-A11Y-008`の4.5:1を満たす。土曜の日番号の色は変えない。
 - 影は両テーマで`rgb(var(--shadow-rgb) / n%)`とし、ダークでは黒の影で面の重なりを示す。半透明の下部ナビゲーション・認証カードの背景は`color-mix(in srgb, var(--surface) 94%, transparent)`で作る。
-- `viewport.themeColor`は「OSに従う」ではライト`#f7f5ef`・ダーク`#151a17`の2件を`prefers-color-scheme`のmediaで宣言し、ライト・ダークの明示選択では選んだ側の1件だけを宣言する（`generateViewport`がcookieを読む）。manifestの`theme_color`・`background_color`はライトの値に固定する（`NFR-PWA-002`）。
+- `viewport.themeColor`は配色が未選択のときはライト`#f7f5ef`・ダーク`#151a17`の2件を`prefers-color-scheme`のmediaで宣言し、ライト・ダークを選んだ後は選んだ側の1件だけを宣言する（`generateViewport`がcookieを読む）。manifestの`theme_color`・`background_color`はライトの値に固定する（`NFR-PWA-002`）。
 
 ## 15. アクセシビリティ・表記
 

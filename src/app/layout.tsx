@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 // ブラウザUIの色を配色の選択に追従させる (NFR-UI-010, NFR-PWA-002)。
-// OSに従うときは両テーマのmeta 2件、明示選択ではその--backgroundの1件。ライトはmanifestのtheme_colorと同じ値
+// 未選択（cookieなし）では両テーマのmeta 2件、選択後はその--backgroundの1件。ライトはmanifestのtheme_colorと同じ値
 export async function generateViewport(): Promise<Viewport> {
   const preference = await getThemePreference();
   return {

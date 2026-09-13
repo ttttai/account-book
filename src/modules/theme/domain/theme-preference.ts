@@ -23,12 +23,12 @@ function isExplicitTheme(value: unknown): value is ExplicitTheme {
   );
 }
 
-// cookieなど外部から来た値を許可値だけに絞る。不正値・未設定はOSに従う扱い（fail closed）
+// cookieなど外部から来た値を許可値だけに絞る。不正値・未設定は未選択（OS設定に従う）扱い（fail closed）
 export function parseThemePreference(value: unknown): ThemePreference {
   return isExplicitTheme(value) ? value : "system";
 }
 
-/** viewport.themeColorの値。OSに従うときはmedia付きの2件、明示選択では選んだ側の1件 */
+/** viewport.themeColorの値。未選択のときはmedia付きの2件、選択後は選んだ側の1件 */
 export type ThemeColorDeclaration = string | { media: string; color: string }[];
 
 // ブラウザUIの色を実際の配色に合わせる (NFR-PWA-002)
@@ -50,14 +50,14 @@ export function resolveThemeColor(
   return THEME_BACKGROUND_COLORS[preference];
 }
 
-// <html data-theme>へ出す値。OSに従うときは属性を付けない
+// <html data-theme>へ出す値。未選択のときは属性を付けない
 export function resolveDocumentTheme(
   preference: ThemePreference,
 ): ExplicitTheme | undefined {
   return preference === "system" ? undefined : preference;
 }
 
-// document.cookieへ代入する文字列。OSに従うときは削除（Max-Age=0）にする
+// document.cookieへ代入する文字列。未選択（system）は削除（Max-Age=0）にする
 export function buildThemeCookie(preference: ThemePreference): string {
   if (preference === "system") {
     return `${THEME_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;

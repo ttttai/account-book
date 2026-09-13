@@ -401,7 +401,16 @@ test("仕様がダークテーマのtoken表とコントラスト条件を定義
     );
   }
   assert.match(nfr, /^- `NFR-UI-010` .*prefers-color-scheme/m);
-  assert.match(nfr, /^- `NFR-UI-010` .*OSに従う.*cookie/m);
+  assert.match(nfr, /^- `NFR-UI-010` .*「ライト」「ダーク」.*cookie/m);
+  // 未選択ではOSの配色をchipへ映すため、chipsはmatchMediaで判定する
+  assert.match(
+    await read("src/modules/theme/presentation/theme-preference-chips.tsx"),
+    /matchMedia\("\(prefers-color-scheme: dark\)"\)/,
+  );
+  assert.doesNotMatch(
+    await read("src/modules/theme/presentation/theme-preference-chips.tsx"),
+    /OSに従う/,
+  );
   assert.match(nfr, /^- `NFR-A11Y-008` .*4\.5:1.*3:1/m);
   assert.match(
     nfr,
