@@ -3,18 +3,39 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AnalyticsDetailsReady } from "../application/analytics-types";
-import {
-  AnalyticsDetails,
-  AnalyticsDetailsValidationError,
-} from "./analytics-details";
+import type { AnalyticsMonthTotals } from "../domain/analytics-summary";
+import { applyAnalyticsDetailsFilterAction } from "./actions";
+import { AnalyticsDetailsValidationError } from "./analytics-details";
+import { AnalyticsDetails } from "./analytics-details-view";
+
+vi.mock("./actions", () => ({
+  applyAnalyticsDetailsFilterAction: vi.fn(),
+}));
 
 const GROUP_ID = "10000000-0000-4000-8000-000000000001";
 const MEMBER_A = "40000000-0000-4000-8000-00000000000a";
+const MEMBER_B = "40000000-0000-4000-8000-00000000000b";
+const detailsPath = `/groups/${GROUP_ID}/analytics/details`;
+
+function createMonth(
+  month: string,
+  expenseTotal: number,
+  incomeTotal: number,
+): AnalyticsMonthTotals {
+  return {
+    month,
+    expenseTotal,
+    incomeTotal,
+    balance: incomeTotal - expenseTotal,
+    expenseByCategory: [],
+  };
+}
 
 function createData(
   overrides: Partial<AnalyticsDetailsReady> = {},
@@ -28,22 +49,11 @@ function createData(
     scope: "group",
     members: [
       { membershipId: MEMBER_A, displayName: "利用者A", isCurrentUser: true },
+      { membershipId: MEMBER_B, displayName: "利用者B", isCurrentUser: false },
     ],
     months: [
-      {
-        month: "2026-08",
-        expenseTotal: 10000,
-        incomeTotal: 20000,
-        balance: 10000,
-        expenseByCategory: [],
-      },
-      {
-        month: "2026-09",
-        expenseTotal: 11000,
-        incomeTotal: 5000,
-        balance: -6000,
-        expenseByCategory: [],
-      },
+      createMonth("2026-08", 10000, 20000),
+      createMonth("2026-09", 11000, 5000),
     ],
     period: {
       expenseTotal: 21000,
@@ -86,27 +96,65 @@ function createData(
   };
 }
 
+// 3か月presetの結果に相当するDTO。見出しの月数が行数と同じ3になる
+function createThreeMonthData(): AnalyticsDetailsReady {
+  return createData({
+    startMonth: "2026-07",
+    months: [
+      createMonth("2026-07", 0, 0),
+      createMonth("2026-08", 10000, 20000),
+      createMonth("2026-09", 11000, 5000),
+    ],
+    cumulativeBalances: [
+      { month: "2026-07", balance: 0, cumulativeBalance: 0 },
+      { month: "2026-08", balance: 10000, cumulativeBalance: 10000 },
+      { month: "2026-09", balance: -6000, cumulativeBalance: 4000 },
+    ],
+  });
+}
+
+function currentSearch(): URLSearchParams {
+  return new URLSearchParams(window.location.search);
+}
+
+function results(): HTMLElement {
+  const element = document.querySelector("[data-details-results]");
+  if (!(element instanceof HTMLElement)) throw new Error("results missing");
+  return element;
+}
+
+beforeEach(() => {
+  vi.mocked(applyAnalyticsDetailsFilterAction).mockReset();
+  window.history.replaceState(null, "", detailsPath);
+});
+
 afterEach(() => cleanup());
 
 describe("AnalyticsDetails", () => {
-  it("期間指標と追加統計を正確なテキストで表示する (AC-ANA-008-1、2)", () => {
+  it("期間指標の見出しは月数を含み、追加統計を正確なテキストで表示する (AC-ANA-008-1、2、5)", () => {
     render(<AnalyticsDetails data={createData()} />);
 
     expect(
-      within(screen.getByRole("group", { name: "期間の支出" })).getByText(
+      within(screen.getByRole("group", { name: "2か月の支出" })).getByText(
         "￥21,000",
       ),
     ).toBeTruthy();
     expect(
-      within(screen.getByRole("group", { name: "期間の収入" })).getByText(
+      within(screen.getByRole("group", { name: "2か月の収入" })).getByText(
         "￥25,000",
       ),
     ).toBeTruthy();
+    expect(
+      within(screen.getByRole("group", { name: "2か月の収支" })).getByText(
+        "＋￥4,000",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "期間の支出" })).toBeNull();
     expect(screen.getByText("月平均 ￥10,500")).toBeTruthy();
     expect(screen.getByText(/最大支出月 2026年9月/)).toBeTruthy();
   });
 
-  it("月別推移、カテゴリ、メンバー3系列をグラフなしでも読める (AC-ANA-008-3、4、AC-ANA-009-4)", () => {
+  it("月別推移、カテゴリ、メンバー別をグラフなしでも読める (AC-ANA-008-3、4、AC-ANA-009-4)", () => {
     const { container } = render(<AnalyticsDetails data={createData()} />);
 
     const table = screen.getByRole("table", { name: "月別の正確な数値" });
@@ -152,51 +200,320 @@ describe("AnalyticsDetails", () => {
     }
   });
 
-  it("preset・GET form・概要への導線が期間と対象をURLへ保持する (AC-ANA-006-1、2)", () => {
+  it("preset・表示条件・概要への導線が期間と対象をURL形で持ち、適用ボタンを置かない (AC-ANA-006-1、2、AC-ANA-016-1)", () => {
     render(<AnalyticsDetails data={createData()} />);
 
     expect(
       screen.getByRole("link", { name: "3か月" }).getAttribute("href"),
-    ).toContain("start=2026-07&end=2026-09");
+    ).toContain("start=2026-07&end=2026-09&scope=group");
     const form = screen.getByRole("form", { name: "詳細分析の表示条件" });
-    expect(form.getAttribute("action")).toBe(
-      `/groups/${GROUP_ID}/analytics/details`,
-    );
+    expect(form.getAttribute("action")).toBeNull();
+    expect(within(form).queryByRole("button", { name: "表示する" })).toBeNull();
+    expect(screen.queryByText(/メンバーを「選択しない」/)).toBeNull();
+    expect(within(form).queryByLabelText("メンバー")).toBeNull();
     expect(
       screen.getByRole("link", { name: /概要分析/ }).getAttribute("href"),
     ).toContain("month=2026-09");
   });
 
-  it("各金額にモバイル用項目名を持ち、表の見出しと重複して読み上げない (AC-ANA-009-6)", () => {
+  it("月別表は列見出しを隠さず補助ラベルを持たず、メンバー別表だけがモバイル用項目名を持つ (AC-ANA-009-6)", () => {
     render(<AnalyticsDetails data={createData()} />);
 
-    for (const [name, labels, values] of [
-      ["メンバー別の内訳", ["支出額", "受取額"], ["￥21,000", "￥25,000"]],
-      [
-        "月別の正確な数値",
-        ["支出", "収入", "収支", "累積収支"],
-        ["￥10,000", "￥20,000", "＋￥10,000", "＋￥10,000"],
-      ],
-    ] as const) {
-      const table = screen.getByRole("table", { name });
-      const firstRow = within(table).getAllByRole("row")[1];
-      const cells = within(firstRow).getAllByRole("cell");
-      labels.forEach((label, index) => {
-        expect(
-          within(cells[index]).getByText(label).getAttribute("aria-hidden"),
-        ).toBe("true");
-        expect(within(cells[index]).getByText(values[index])).toBeTruthy();
-        expect(cells[index].getAttribute("aria-label")).toBeNull();
-        expect(
-          within(table)
-            .getByRole("columnheader", { name: label })
-            .getAttribute("scope"),
-        ).toBe("col");
-      });
+    const months = screen.getByRole("table", { name: "月別の正確な数値" });
+    for (const label of ["月", "支出", "収入", "収支", "累積収支"]) {
       expect(
-        within(firstRow).getByRole("rowheader").getAttribute("scope"),
-      ).toBe("row");
+        within(months)
+          .getByRole("columnheader", { name: label })
+          .getAttribute("scope"),
+      ).toBe("col");
     }
+    const monthRow = within(months).getAllByRole("row")[1];
+    expect(within(monthRow).getByRole("rowheader").getAttribute("scope")).toBe(
+      "row",
+    );
+    const monthCells = within(monthRow).getAllByRole("cell");
+    expect(monthCells.map((cell) => cell.textContent)).toEqual([
+      "￥10,000",
+      "￥20,000",
+      "＋￥10,000",
+      "＋￥10,000",
+    ]);
+    expect(months.querySelectorAll("[aria-hidden='true']")).toHaveLength(0);
+    // 表が幅を超えたときに内側だけをscrollさせる領域で包む
+    expect(months.parentElement?.className).toContain("details-table-scroll");
+
+    const members = screen.getByRole("table", { name: "メンバー別の内訳" });
+    const memberRow = within(members).getAllByRole("row")[1];
+    const memberCells = within(memberRow).getAllByRole("cell");
+    [
+      ["支出額", "￥21,000"],
+      ["受取額", "￥25,000"],
+    ].forEach(([label, value], index) => {
+      expect(
+        within(memberCells[index]).getByText(label).getAttribute("aria-hidden"),
+      ).toBe("true");
+      expect(within(memberCells[index]).getByText(value)).toBeTruthy();
+      expect(memberCells[index].getAttribute("aria-label")).toBeNull();
+      expect(
+        within(members)
+          .getByRole("columnheader", { name: label })
+          .getAttribute("scope"),
+      ).toBe("col");
+    });
+    expect(within(memberRow).getByRole("rowheader").getAttribute("scope")).toBe(
+      "row",
+    );
+  });
+
+  it("presetのタップはページ遷移せず、結果だけを取得してURLへpushStateし、見出しの月数を更新する (AC-ANA-016-1、2、AC-ANA-008-5)", async () => {
+    let resolveApply: (value: {
+      status: "ready";
+      data: AnalyticsDetailsReady;
+    }) => void = () => {};
+    vi.mocked(applyAnalyticsDetailsFilterAction).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveApply = resolve;
+        }),
+    );
+    const pushState = vi.spyOn(window.history, "pushState");
+    render(<AnalyticsDetails data={createData()} />);
+    const heading = screen.getByRole("heading", { level: 2 });
+    const form = screen.getByRole("form", { name: "詳細分析の表示条件" });
+    const region = results();
+
+    const clickEvent = fireEvent.click(
+      screen.getByRole("link", { name: "3か月" }),
+    );
+
+    // 修飾キーなしのクリックはアプリ内で処理し、ブラウザ遷移を止める
+    expect(clickEvent).toBe(false);
+    expect(window.location.pathname).toBe(detailsPath);
+    expect(currentSearch().get("start")).toBe("2026-07");
+    expect(currentSearch().get("end")).toBe("2026-09");
+    expect(pushState).toHaveBeenCalledTimes(1);
+    expect(applyAnalyticsDetailsFilterAction).toHaveBeenCalledWith(GROUP_ID, {
+      start: "2026-07",
+      end: "2026-09",
+      scope: "group",
+    });
+    // 反映中は結果領域だけが待機表示になり、見出し・表示条件は同じ要素のまま値も残る
+    expect(region.getAttribute("aria-busy")).toBe("true");
+    expect(screen.getByRole("status").textContent).toContain("反映中");
+    expect(screen.getByRole("group", { name: "2か月の支出" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2 })).toBe(heading);
+    expect(screen.getByRole("form", { name: "詳細分析の表示条件" })).toBe(form);
+    expect(
+      screen.getByRole("link", { name: "3か月" }).getAttribute("aria-current"),
+    ).toBe("true");
+
+    resolveApply({ status: "ready", data: createThreeMonthData() });
+    await waitFor(() =>
+      expect(screen.getByRole("group", { name: "3か月の支出" })).toBeTruthy(),
+    );
+    expect(screen.queryByRole("group", { name: "2か月の支出" })).toBeNull();
+    expect(heading.textContent).toBe("2026年7月〜2026年9月");
+    expect(region.getAttribute("aria-busy")).toBeNull();
+    expect(results()).toBe(region);
+    expect(
+      within(
+        screen.getByRole("table", { name: "月別の正確な数値" }),
+      ).getAllByRole("row"),
+    ).toHaveLength(4);
+    pushState.mockRestore();
+  });
+
+  it("集計対象の変更は選択と同時に反映し、グループ・自分ではmemberをURLから除き、指定メンバーでは自分以外を自動選択する (AC-ANA-016-2、4)", async () => {
+    vi.mocked(applyAnalyticsDetailsFilterAction).mockResolvedValue({
+      status: "ready",
+      data: createData({ scope: "self", memberBreakdown: [] }),
+    });
+    render(<AnalyticsDetails data={createData()} />);
+
+    fireEvent.change(screen.getByLabelText("集計対象"), {
+      target: { value: "self" },
+    });
+    expect(applyAnalyticsDetailsFilterAction).toHaveBeenLastCalledWith(
+      GROUP_ID,
+      { start: "2026-08", end: "2026-09", scope: "self" },
+    );
+    expect(currentSearch().get("scope")).toBe("self");
+    expect(currentSearch().has("member")).toBe(false);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("table", { name: "メンバー別の内訳" }),
+      ).toBeNull(),
+    );
+
+    fireEvent.change(screen.getByLabelText("集計対象"), {
+      target: { value: "member" },
+    });
+    expect(applyAnalyticsDetailsFilterAction).toHaveBeenLastCalledWith(
+      GROUP_ID,
+      { start: "2026-08", end: "2026-09", scope: "member", member: MEMBER_B },
+    );
+    expect(currentSearch().get("member")).toBe(MEMBER_B);
+    const memberSelect = screen.getByLabelText("メンバー");
+    expect((memberSelect as HTMLSelectElement).value).toBe(MEMBER_B);
+
+    fireEvent.change(memberSelect, { target: { value: MEMBER_A } });
+    expect(applyAnalyticsDetailsFilterAction).toHaveBeenLastCalledWith(
+      GROUP_ID,
+      { start: "2026-08", end: "2026-09", scope: "member", member: MEMBER_A },
+    );
+  });
+
+  it("「期間を指定」はpresetに一致しない期間で開いており、範囲外の入力は取得せず説明を出して結果を残す (AC-ANA-016-3、4)", () => {
+    vi.mocked(applyAnalyticsDetailsFilterAction).mockResolvedValue({
+      status: "ready",
+      data: createThreeMonthData(),
+    });
+    const pushState = vi.spyOn(window.history, "pushState");
+    render(<AnalyticsDetails data={createData()} />);
+
+    const toggle = screen.getByRole("button", { name: "期間を指定" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    const start = screen.getByLabelText("開始月") as HTMLInputElement;
+    const end = screen.getByLabelText("終了月") as HTMLInputElement;
+    expect(start.value).toBe("2026-08");
+    expect(end.value).toBe("2026-09");
+
+    fireEvent.change(end, { target: { value: "2026-06" } });
+    expect(applyAnalyticsDetailsFilterAction).not.toHaveBeenCalled();
+    expect(pushState).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert").textContent).toContain("1〜24か月");
+    expect(screen.getByRole("group", { name: "2か月の支出" })).toBeTruthy();
+
+    fireEvent.change(end, { target: { value: "2026-10" } });
+    expect(applyAnalyticsDetailsFilterAction).toHaveBeenLastCalledWith(
+      GROUP_ID,
+      { start: "2026-08", end: "2026-10", scope: "group" },
+    );
+    expect(currentSearch().get("end")).toBe("2026-10");
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(document.getElementById("analytics-details-range")?.hidden).toBe(
+      true,
+    );
+    pushState.mockRestore();
+  });
+
+  it("presetと一致する期間では「期間を指定」を閉じ、一致するpresetをaria-currentで示す (AC-ANA-016-4)", () => {
+    render(<AnalyticsDetails data={createThreeMonthData()} />);
+
+    expect(
+      screen
+        .getByRole("button", { name: "期間を指定" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+    expect(
+      screen.getByRole("link", { name: "3か月" }).getAttribute("aria-current"),
+    ).toBe("true");
+    expect(
+      screen.getByRole("link", { name: "6か月" }).getAttribute("aria-current"),
+    ).toBeNull();
+  });
+
+  it("取得に失敗しても表示中の結果を消さず、再試行できる。サーバーの拒否も結果を残す (AC-ANA-016-3)", async () => {
+    vi.mocked(applyAnalyticsDetailsFilterAction)
+      .mockResolvedValueOnce({
+        status: "error",
+        message: "表示条件を反映できませんでした。",
+      })
+      .mockResolvedValueOnce({ status: "invalid" })
+      .mockResolvedValueOnce({
+        status: "ready",
+        data: createThreeMonthData(),
+      });
+    render(<AnalyticsDetails data={createData()} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "3か月" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
+    expect(screen.getByRole("group", { name: "2か月の支出" })).toBeTruthy();
+    expect(results().getAttribute("aria-busy")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "再試行" }));
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toContain(
+        "正しくありません",
+      ),
+    );
+    expect(applyAnalyticsDetailsFilterAction).toHaveBeenCalledTimes(2);
+    expect(applyAnalyticsDetailsFilterAction).toHaveBeenLastCalledWith(
+      GROUP_ID,
+      { start: "2026-07", end: "2026-09", scope: "group" },
+    );
+    expect(screen.getByRole("group", { name: "2か月の支出" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("link", { name: "6か月" }));
+    await waitFor(() =>
+      expect(screen.getByRole("group", { name: "3か月の支出" })).toBeTruthy(),
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("ブラウザの戻る／進むではURLの条件に従って再取得する (AC-ANA-016-2)", async () => {
+    vi.mocked(applyAnalyticsDetailsFilterAction).mockResolvedValue({
+      status: "ready",
+      data: createData({ scope: "self", memberBreakdown: [] }),
+    });
+    render(<AnalyticsDetails data={createData()} />);
+
+    window.history.pushState(
+      null,
+      "",
+      `${detailsPath}?start=2026-08&end=2026-09&scope=self&other=1`,
+    );
+    fireEvent.popState(window);
+
+    await waitFor(() =>
+      expect(applyAnalyticsDetailsFilterAction).toHaveBeenLastCalledWith(
+        GROUP_ID,
+        { start: "2026-08", end: "2026-09", scope: "self" },
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        (screen.getByLabelText("集計対象") as HTMLSelectElement).value,
+      ).toBe("self"),
+    );
+  });
+
+  it("連続して条件を変えたときは最後の条件の結果だけを表示する (AC-ANA-016-3)", async () => {
+    const resolvers: ((value: {
+      status: "ready";
+      data: AnalyticsDetailsReady;
+    }) => void)[] = [];
+    vi.mocked(applyAnalyticsDetailsFilterAction).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvers.push(resolve);
+        }),
+    );
+    render(<AnalyticsDetails data={createData()} />);
+
+    fireEvent.click(screen.getByRole("link", { name: "3か月" }));
+    fireEvent.change(screen.getByLabelText("集計対象"), {
+      target: { value: "self" },
+    });
+    expect(resolvers).toHaveLength(2);
+
+    resolvers[1]?.({
+      status: "ready",
+      data: createData({ scope: "self", memberBreakdown: [] }),
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("table", { name: "メンバー別の内訳" }),
+      ).toBeNull(),
+    );
+    resolvers[0]?.({ status: "ready", data: createThreeMonthData() });
+    await Promise.resolve();
+    expect(screen.queryByRole("group", { name: "3か月の支出" })).toBeNull();
+    expect(screen.getByRole("group", { name: "2か月の支出" })).toBeTruthy();
+    expect(results().getAttribute("aria-busy")).toBeNull();
   });
 
   it("月別推移は支出既定の縦棒グラフで、「収入」へ遷移なしに切り替わり、数値表の値は変わらない (AC-ANA-015-1〜3)", () => {
