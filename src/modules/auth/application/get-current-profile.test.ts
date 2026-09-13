@@ -164,4 +164,38 @@ describe("getCurrentProfile", () => {
       "プロフィールを取得できませんでした。",
     );
   });
+
+  it("PostgRESTの一過性の時刻検証エラーは未認証へ縮退させずBackendUnavailableErrorにする (AC-AUTH-004-6)", async () => {
+    const { from } = setupClient();
+    from.mockReturnValue(
+      profileQuery({
+        data: null,
+        error: { code: "PGRST303", message: "JWT issued at future" },
+        status: 401,
+      }),
+    );
+
+    await expect(getCurrentProfile()).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+  });
+
+  it("認証起因の失敗で未認証へ縮退する際は操作名とcodeだけをlogへ残す (AC-AUTH-004-6)", async () => {
+    const warnLog = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { from } = setupClient();
+    from.mockReturnValue(
+      profileQuery({
+        data: null,
+        error: { code: "PGRST301", message: "JWT expired" },
+        status: 401,
+      }),
+    );
+
+    await expect(getCurrentProfile()).resolves.toBeNull();
+    expect(warnLog).toHaveBeenCalledTimes(1);
+    const logged = warnLog.mock.calls[0]?.join(" ") ?? "";
+    expect(logged).toContain("profiles.select");
+    expect(logged).toContain("PGRST301");
+    expect(logged).not.toContain("JWT expired");
+  });
 });

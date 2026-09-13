@@ -78,4 +78,15 @@ test("E2E-006 同じ月内の日付選択を再取得なしで切り替え、URL
   await memberPage.getByRole("link", { name: "日別取引を閉じる" }).click();
   await expect(memberPage).not.toHaveURL(/day=/);
   await expect(memberPage.getByRole("complementary")).toHaveCount(0);
+
+  // 閉じた直後、開いていた日付セルへfocusは戻るが、選択・focusの塗りは残さない (AC-CAL-001-21)
+  const closedDayLink = memberPage.getByRole("link", {
+    name: new RegExp(`${Number(otherDay.slice(8))}日、`),
+  });
+  await expect(closedDayLink).toBeFocused();
+  // クリックで閉じたので、戻したfocusにはpointer操作の印が付く
+  await expect(closedDayLink).toHaveAttribute("data-pointer-focus", "true");
+  const closedDayCell = closedDayLink.locator("xpath=..");
+  await expect(closedDayCell).not.toHaveClass(/is-selected/);
+  await expect(closedDayCell).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
 });

@@ -2,6 +2,8 @@
 
 import { useActionState, useId, useState } from "react";
 
+import { ChoiceChip, ChoiceChipList } from "@/modules/ui";
+
 import { updateGroupSettingsAction } from "./actions";
 import { INITIAL_GROUP_SETTINGS_ACTION_STATE } from "./group-settings-action-state";
 import {
@@ -69,36 +71,41 @@ export function GroupSettingsForm({
         ) : null}
       </div>
 
+      {/* グループ作成と同じ選択肢chipで現在値をcontrolledに示す (AC-GRP-013-8) */}
       <fieldset className={styles["group-settings-fieldset"]}>
         <legend>週の開始曜日</legend>
-        {(["0", "1"] as const).map((option) => (
-          <label className={styles["radio-option"]} key={option}>
-            <input
+        <ChoiceChipList>
+          {(["0", "1"] as const).map((option) => (
+            <ChoiceChip
               checked={weekStartsOn === option}
+              key={option}
               name="weekStartsOn"
               onChange={() => setWeekStartsOn(option)}
               type="radio"
               value={option}
-            />
-            {weekStartLabels[Number(option) as 0 | 1]}
-          </label>
-        ))}
+            >
+              {weekStartLabels[Number(option) as 0 | 1]}
+            </ChoiceChip>
+          ))}
+        </ChoiceChipList>
       </fieldset>
 
       <fieldset className={styles["group-settings-fieldset"]}>
         <legend>標準の分け方</legend>
-        {(["equal", "self"] as const).map((option) => (
-          <label className={styles["radio-option"]} key={option}>
-            <input
+        <ChoiceChipList>
+          {(["equal", "self"] as const).map((option) => (
+            <ChoiceChip
               checked={defaultAllocation === option}
+              key={option}
               name="defaultAllocation"
               onChange={() => setDefaultAllocation(option)}
               type="radio"
               value={option}
-            />
-            {defaultAllocationLabels[option]}
-          </label>
-        ))}
+            >
+              {defaultAllocationLabels[option]}
+            </ChoiceChip>
+          ))}
+        </ChoiceChipList>
         <p className="field-hint">
           新しい支出の初期値だけに影響し、保存済みの取引は変わりません。
         </p>

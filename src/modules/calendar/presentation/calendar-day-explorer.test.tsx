@@ -1,10 +1,28 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CalendarReadyData } from "../application/calendar-types";
 import { CalendarDayExplorer } from "./calendar-day-explorer";
 
 const { routerPush } = vi.hoisted(() => ({ routerPush: vi.fn() }));
+
+// jsdomにはAnimationEventが無く、無いままだとReactはwebkitAnimationEndだけを購読して
+// fireEvent.animationEndがonAnimationEndへ届かない。react-domの読み込み前に定義する
+vi.hoisted(() => {
+  if (!("AnimationEvent" in globalThis)) {
+    Object.defineProperty(globalThis, "AnimationEvent", {
+      value: class AnimationEvent extends Event {},
+      configurable: true,
+      writable: true,
+    });
+  }
+});
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: routerPush }),
@@ -181,7 +199,10 @@ describe("CalendarDayExplorer", () => {
     );
   });
 
-  it("日別取引sheetは支出の支払者を表示せず、内訳を「内訳」、収入の受取者を表示する (AC-TXN-018-3)", () => {
+  // 2人で分けた支出と収入を同じ日に置いたsheetを描く
+  function renderSharedDay(
+    overrides: Partial<CalendarReadyData> = {},
+  ): HTMLElement {
     const transactions = data.dayTransactionsByDate["2026-08-15"];
     if (!transactions?.[0] || !transactions[1]) {
       throw new Error("missing fixture");
@@ -195,6 +216,8 @@ describe("CalendarDayExplorer", () => {
             "2026-08-15": [
               {
                 ...transactions[0],
+                targetAmountMinor: 500,
+                memo: "夕食",
                 allocations: [
                   { membershipId: "m-a", displayName: "A", amountMinor: 500 },
                   { membershipId: "m-b", displayName: "B", amountMinor: 500 },
@@ -203,15 +226,174 @@ describe("CalendarDayExplorer", () => {
               transactions[1],
             ],
           },
+          ...overrides,
+        }}
+      />,
+    );
+    return screen.getByRole("complementary");
+  }
+
+  it("日別取引sheetは支払者・「内訳」・各人の金額を表示せず、支出した人の表示名と収入の受取者を表示する (AC-TXN-018-3, AC-CAL-017-1)", () => {
+    const panel = renderSharedDay();
+
+    expect(panel.textContent).not.toContain("支払者");
+    expect(panel.textContent).not.toContain("負担");
+    expect(panel.textContent).not.toContain("内訳");
+    expect(panel.textContent).not.toContain("￥500");
+    expect(screen.getByText("A・B")).toBeTruthy();
+    expect(screen.getByText("受取者 B")).toBeTruthy();
+  });
+
+  it("行全体が編集へのリンクで、アクセシブル名にカテゴリ・金額・表示名・メモを含み、「編集」リンクを別に置かない (AC-CAL-017-2)", () => {
+    const panel = renderSharedDay();
+
+    const expenseRow = screen.getByRole("link", {
+      name: "食費 ￥1,000 A・B 夕食",
+    });
+    expect(expenseRow.getAttribute("href")).toBe(
+      "/groups/00000000-0000-4000-8000-000000000001/transactions/00000000-0000-4000-8000-000000000101/edit?from=%2Fgroups%2F00000000-0000-4000-8000-000000000001%3Fmonth%3D2026-08%26scope%3Dgroup%26day%3D2026-08-15",
+    );
+    expect(
+      screen
+        .getByRole("link", { name: "給与 収入 ￥300,000 受取者 B" })
+        .getAttribute("href"),
+    ).toContain("/transactions/00000000-0000-4000-8000-000000000102/edit");
+    expect(screen.queryByRole("link", { name: "編集" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "固定費の設定" })).toBeNull();
+    expect(panel.querySelectorAll(".calendar-transaction-row")).toHaveLength(2);
+  });
+
+  it("収入行は「収入」の印と＋つきの金額を表示し、対象者の支出額と内訳を出さない (AC-CAL-012-4, AC-CAL-017-1)", () => {
+    renderSharedDay({ scope: "self", selectedMemberLabel: "自分" });
+
+    const incomeRow = screen.getByRole("link", {
+      name: "給与 収入 ￥300,000 受取者 B",
+    });
+    expect(incomeRow.textContent).toContain("収入");
+    expect(incomeRow.textContent).toContain("＋￥300,000");
+    expect(incomeRow.textContent).not.toContain("取引全体");
+    expect(incomeRow.textContent).not.toContain("の支出");
+    expect(
+      incomeRow.querySelector(".calendar-income-amount")?.textContent,
+    ).toBe("＋￥300,000");
+  });
+
+  it("scope=self|memberの支出行は対象者の負担額を主金額にし「取引全体」を補足、「〇〇の支出」はアクセシブル名だけに含める (AC-CAL-017-3)", () => {
+    renderSharedDay({
+      scope: "member",
+      selectedMemberId: "00000000-0000-4000-8000-000000000301",
+      selectedMemberLabel: "A",
+    });
+
+    const expenseRow = screen.getByRole("link", {
+      name: "食費 Aの支出 ￥500 取引全体 ￥1,000 A・B 夕食",
+    });
+    expect(
+      expenseRow.querySelector(".calendar-transaction-amount")?.textContent,
+    ).toBe("￥500");
+    expect(expenseRow.textContent).toContain("取引全体 ￥1,000");
+    expect(expenseRow.textContent).not.toContain("Aの支出");
+    // memberを保った選択日つきURLへ戻る
+    expect(expenseRow.getAttribute("href")).toContain(
+      encodeURIComponent(
+        "member=00000000-0000-4000-8000-000000000301&day=2026-08-15",
+      ),
+    );
+  });
+
+  it("グループ集計では主金額を取引金額にし「取引全体」を補足しない (AC-CAL-017-3)", () => {
+    renderSharedDay();
+
+    const expenseRow = screen.getByRole("link", {
+      name: "食費 ￥1,000 A・B 夕食",
+    });
+    expect(
+      expenseRow.querySelector(".calendar-transaction-amount")?.textContent,
+    ).toBe("￥1,000");
+    expect(expenseRow.textContent).not.toContain("取引全体");
+  });
+
+  it("メモも表示名も無い行は2行目を省く (AC-CAL-017-1)", () => {
+    const transaction = data.dayTransactionsByDate["2026-08-15"]?.[0];
+    if (!transaction) throw new Error("missing fixture");
+    render(
+      <CalendarDayExplorer
+        data={{
+          ...data,
+          selectedDay: "2026-08-15",
+          dayTransactionsByDate: {
+            "2026-08-15": [{ ...transaction, memo: null, allocations: [] }],
+          },
         }}
       />,
     );
 
-    const panel = screen.getByRole("complementary");
-    expect(panel.textContent).not.toContain("支払者");
-    expect(panel.textContent).not.toContain("負担");
-    expect(panel.textContent).toContain("内訳 A ￥500 / B ￥500");
-    expect(panel.textContent).toContain("受取者 B");
+    const row = screen.getByRole("link", { name: "食費 ￥1,000" });
+    expect(row.querySelector(".calendar-transaction-details")).toBeNull();
+  });
+
+  it("固定費の展開行は行全体が固定費画面へのリンクで、編集URLを持たない (AC-REC-002-3, AC-CAL-017-2)", () => {
+    render(
+      <CalendarDayExplorer data={{ ...data, selectedDay: "2026-08-16" }} />,
+    );
+
+    const row = screen.getByRole("link", {
+      name: "家賃 固定費 自宅の家賃 ￥2,000 A 毎月の住居費",
+    });
+    expect(row.getAttribute("href")).toBe(
+      "/groups/00000000-0000-4000-8000-000000000001/recurring-transactions",
+    );
+    expect(row.getAttribute("href")).not.toContain("/edit");
+    expect(screen.queryByRole("link", { name: "編集" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "固定費の設定" })).toBeNull();
+  });
+
+  it("収入のみの日は収入額を主見出しにし、支出額￥0の行を出さない (AC-CAL-005-3)", () => {
+    const income = data.dayTransactionsByDate["2026-08-15"]?.[1];
+    if (!income) throw new Error("missing fixture");
+    const { container } = render(
+      <CalendarDayExplorer
+        data={{
+          ...data,
+          selectedDay: "2026-08-15",
+          dailyTotals: {},
+          incomeDailyTotals: { "2026-08-15": 300000 },
+          dayTransactionsByDate: { "2026-08-15": [income] },
+        }}
+      />,
+    );
+
+    const header = container.querySelector(".calendar-day-panel > header");
+    const total = container.querySelector(".calendar-day-total");
+    expect(total?.textContent).toBe("収入 ＋￥300,000");
+    expect(total?.classList.contains("calendar-day-total-income")).toBe(true);
+    expect(header?.textContent).not.toContain("￥0");
+    expect(container.querySelector(".calendar-day-income-total")).toBeNull();
+  });
+
+  it("支出と収入の両方がある日は支出を主見出しにし、収入を補助行に添える (AC-CAL-005-3)", () => {
+    const { container } = render(
+      <CalendarDayExplorer data={{ ...data, selectedDay: "2026-08-15" }} />,
+    );
+
+    const total = container.querySelector(".calendar-day-total");
+    expect(total?.textContent).toBe("￥1,000");
+    expect(total?.classList.contains("calendar-day-total-income")).toBe(false);
+    expect(
+      container.querySelector(".calendar-day-income-total")?.textContent,
+    ).toBe("収入 ＋￥300,000");
+  });
+
+  it("取引の無い日は￥0の主見出しと空状態の文言を表示する (AC-CAL-005-3)", () => {
+    const { container } = render(
+      <CalendarDayExplorer data={{ ...data, selectedDay: "2026-08-17" }} />,
+    );
+
+    const total = container.querySelector(".calendar-day-total");
+    expect(total?.textContent).toBe("￥0");
+    expect(total?.classList.contains("calendar-day-total-income")).toBe(false);
+    expect(container.querySelector(".calendar-day-income-total")).toBeNull();
+    expect(screen.getByText("この対象の取引はありません。")).toBeTruthy();
   });
 
   it("日別取引sheetの追加導線は支出と収入の両方を指す文言にする", () => {
@@ -321,9 +503,151 @@ describe("CalendarDayExplorer", () => {
 
     fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }));
 
-    expect(screen.queryByRole("heading", { name: "2026年8月15日" })).toBeNull();
+    // URLとfocusは退場のmotionを待たず、閉じた時点で確定する (CAL-011)
     expect(new URLSearchParams(window.location.search).has("day")).toBe(false);
     expect(document.activeElement).toBe(dayLink);
+    // 退場中のsheetは操作対象から外し、読み上げからも除く
+    const closingPanel = screen.getByRole("complementary", { hidden: true });
+    expect(closingPanel.getAttribute("aria-hidden")).toBe("true");
+    expect(closingPanel.getAttribute("data-closing")).toBe("true");
+    expect(screen.queryByRole("complementary")).toBeNull();
+
+    fireEvent.animationEnd(closingPanel);
+    expect(screen.queryByRole("heading", { name: "2026年8月15日" })).toBeNull();
+    expect(screen.queryByRole("complementary", { hidden: true })).toBeNull();
+  });
+
+  it("タップ・クリックで閉じたときは戻したfocusに印を付け、focusが離れると外す (AC-CAL-001-21)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月15日、支出￥1,000、収入￥300,000",
+    });
+    fireEvent.click(dayLink, { detail: 1 });
+
+    // pointer操作のclickはdetailが1以上になる
+    fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }), {
+      detail: 1,
+    });
+
+    expect(document.activeElement).toBe(dayLink);
+    expect(dayLink.getAttribute("data-pointer-focus")).toBe("true");
+
+    fireEvent.blur(dayLink);
+    expect(dayLink.getAttribute("data-pointer-focus")).toBeNull();
+  });
+
+  it("キーボード操作で閉じたときは戻したfocusに印を付けず、可視focusを残す (AC-CAL-001-21)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月15日、支出￥1,000、収入￥300,000",
+    });
+    fireEvent.click(dayLink);
+
+    // キーボード操作（Enter）によるclickはdetailが0
+    fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }), {
+      detail: 0,
+    });
+
+    expect(document.activeElement).toBe(dayLink);
+    expect(dayLink.getAttribute("data-pointer-focus")).toBeNull();
+  });
+
+  it("印の付いたfocusでキーボード操作を始めると印を外す (AC-CAL-001-21)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月15日、支出￥1,000、収入￥300,000",
+    });
+    fireEvent.click(dayLink, { detail: 1 });
+    fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }), {
+      detail: 1,
+    });
+    expect(dayLink.getAttribute("data-pointer-focus")).toBe("true");
+
+    fireEvent.keyDown(dayLink, { key: "Tab" });
+    expect(dayLink.getAttribute("data-pointer-focus")).toBeNull();
+  });
+
+  it("開いている間のanimation終了ではsheetを取り除かない (NFR-UI-009)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      }),
+    );
+
+    const panel = screen.getByRole("complementary");
+    expect(panel.getAttribute("data-closing")).toBeNull();
+    expect(panel.getAttribute("aria-hidden")).toBeNull();
+    fireEvent.animationEnd(panel);
+
+    expect(screen.getByRole("heading", { name: "2026年8月15日" })).toBeTruthy();
+  });
+
+  it("スライドアウト中に別の日付を選ぶと退場を中断して新しい日付を表示する", () => {
+    render(<CalendarDayExplorer data={data} />);
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      }),
+    );
+    fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }));
+    fireEvent.click(
+      screen.getByRole("link", { name: "2026年8月16日、支出￥2,000" }),
+    );
+
+    const panel = screen.getByRole("complementary");
+    expect(panel.getAttribute("data-closing")).toBeNull();
+    expect(screen.getByRole("heading", { name: "2026年8月16日" })).toBeTruthy();
+    expect(new URLSearchParams(window.location.search).get("day")).toBe(
+      "2026-08-16",
+    );
+    // 中断した退場のanimationend が届いても、開いているsheetは消えない
+    fireEvent.animationEnd(panel);
+    expect(screen.getByRole("heading", { name: "2026年8月16日" })).toBeTruthy();
+  });
+
+  it("animationendが届かない環境でも退場中の表示を残し続けない", () => {
+    vi.useFakeTimers();
+    try {
+      render(<CalendarDayExplorer data={data} />);
+      fireEvent.click(
+        screen.getByRole("link", {
+          name: "2026年8月15日、支出￥1,000、収入￥300,000",
+        }),
+      );
+      fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }));
+      expect(screen.getByRole("complementary", { hidden: true })).toBeTruthy();
+
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(screen.queryByRole("complementary", { hidden: true })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("reduced motion設定では閉じた時点でsheetを取り除く (NFR-A11Y-007)", () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query.includes("prefers-reduced-motion"),
+      media: query,
+    }));
+    try {
+      render(<CalendarDayExplorer data={data} />);
+      const dayLink = screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      });
+      fireEvent.click(dayLink);
+      fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }));
+
+      expect(screen.queryByRole("complementary", { hidden: true })).toBeNull();
+      expect(new URLSearchParams(window.location.search).has("day")).toBe(
+        false,
+      );
+      expect(document.activeElement).toBe(dayLink);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("5桁以下のセル金額は折り返し機会を与えず1行で表示する", () => {

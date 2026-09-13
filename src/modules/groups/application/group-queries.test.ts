@@ -152,12 +152,19 @@ describe("listMyGroups", () => {
     expect(query.eq).toHaveBeenCalledWith("status", "active");
   });
 
-  it("claims取得失敗は未認証として空配列にする", async () => {
+  it("claims取得失敗は未認証としてnullにし、所属0件の空配列と区別する (AC-AUTH-004-6)", async () => {
     const { getClaims, from } = setupClient();
     getClaims.mockResolvedValue({ data: null, error: { code: "invalid" } });
 
-    await expect(listMyGroups()).resolves.toEqual([]);
+    await expect(listMyGroups()).resolves.toBeNull();
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it("所属が0件なら空配列を返す (AC-GRP-011-2)", async () => {
+    const { from } = setupClient();
+    from.mockReturnValue(orderedQuery({ data: [], error: null }));
+
+    await expect(listMyGroups()).resolves.toEqual([]);
   });
 
   it("claims取得が応答不能なら空配列へ縮退させず例外にする (AC-AUTH-004-4)", async () => {
@@ -190,22 +197,46 @@ describe("listMyGroups", () => {
     vi.restoreAllMocks();
   });
 
-  it("許可されたGoogle userが無ければqueryしない", async () => {
+  it("許可されたGoogle userが無ければqueryせずnullにする", async () => {
     const { from } = setupClient();
     authMocks.getAllowedGoogleUserId.mockReturnValue(null);
 
-    await expect(listMyGroups()).resolves.toEqual([]);
+    await expect(listMyGroups()).resolves.toBeNull();
     expect(from).not.toHaveBeenCalled();
   });
 
-  it("認証起因のquery失敗は空配列にする", async () => {
+  it("認証起因のquery失敗はnullにし、操作名とcodeだけをlogへ残す (AC-AUTH-001-9, AC-AUTH-004-6)", async () => {
+    const warnLog = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { from } = setupClient();
-    const error = { code: "PGRST301" };
+    const error = { code: "PGRST301", message: "JWT expired" };
     from.mockReturnValue(orderedQuery({ data: null, error }));
     authMocks.isAuthenticationQueryError.mockReturnValue(true);
 
-    await expect(listMyGroups()).resolves.toEqual([]);
+    await expect(listMyGroups()).resolves.toBeNull();
     expect(authMocks.isAuthenticationQueryError).toHaveBeenCalledWith(error);
+    expect(warnLog).toHaveBeenCalledTimes(1);
+    const logged = warnLog.mock.calls[0]?.join(" ") ?? "";
+    expect(logged).toContain("groups.listMyGroups");
+    expect(logged).toContain("PGRST301");
+    expect(logged).not.toContain("JWT expired");
+    vi.restoreAllMocks();
+  });
+
+  it("PostgRESTの一過性の時刻検証エラー（JWT issued at future）はnullへ縮退させずBackendUnavailableErrorにする (AC-AUTH-004-6)", async () => {
+    const { from } = setupClient();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    from.mockReturnValue(
+      orderedQuery({
+        data: null,
+        error: { code: "PGRST303", message: "JWT issued at future" },
+        status: 401,
+      }),
+    );
+
+    await expect(listMyGroups()).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    vi.restoreAllMocks();
   });
 
   it("認証以外のquery失敗は一般化した例外にする", async () => {
