@@ -63,6 +63,7 @@
 - 日別取引sheetの見出しが、支出のある日は支出合計を主見出しに収入を補助行へ、支出0円で収入のある日は「収入 ＋￥〇〇」を主見出しにして「￥0」を出さず、取引の無い日は「￥0」と空状態を表示すること。component testで3通りを確認し、375pxと1280pxの実画面で収入のみの日の見出しを確認する（`AC-CAL-005-3`）
 - カテゴリ色パレットが18色のtokenで構成され、入力schema・DB check制約・`update_group_category`関数が同じ18色を受け付けてパレット外を拒否すること。`src/app/styles.css`が全tokenの`--category-color`を定義し、各機能のCSS Modulesがtokenごとの色値を再定義せず`var(--category-color)`で描画すること。カテゴリ管理の全swatchが色名labelを持ち、375pxで横scrollなく表示されること（`AC-CAT-002-7`）
 - 同じ月・scope・member内の日付選択がserver navigationを行わず、URL、選択表示、日別パネル、戻る／進むを同期すること
+- 日別取引sheetを「閉じる」で閉じた直後に、開いていた日付セルへfocusが戻りつつ選択・focusの塗りが残らないこと（E2Eで背景色が透明、`is-selected`なしを確認）。タップ・クリックで閉じたときだけ戻したfocusにpointer操作の印が付き、focusが離れるかキーボード操作で外れること（component test）。日付セルのhoverの塗りが`@media (hover: hover)`の中だけにあり、focusの塗りが`:focus-within`ではなく印の無い`:focus-visible`で付くこと（architecture test）。touch端末の貼り付くhoverはPlaywrightで再現できないため、375pxのiOS Safari（Simulator）で閉じた直後に2つの日付が塗られないことを実画面で確認する（`AC-CAL-001-21`）
 - ホーム（`/app`）の遷移先判定が純関数で決まり、アクティブな所属が0件は作成画面、1件は`/groups/{groupId}`への直行、2件以上は一覧となり、`view=groups`では件数にかかわらず一覧、`view`のその他の値は既定の判定になること。groupIDはURLへ安全にencodeされること
 - 起動時に開くグループがアクティブ所属に含まれるときは所属件数にかかわらずそのグループへ直行し、含まれないときや未設定のときは所属件数の判定へ戻ること。`view=groups`は起動時に開くグループより優先して一覧を表示すること
 - 起動時に開くグループのqueryが本人の1行だけを読み、未認証・認証起因の失敗で`null`へ縮退すること。commandが`set_default_group`関数へ検証済みgroupIDまたは`null`だけを渡すこと

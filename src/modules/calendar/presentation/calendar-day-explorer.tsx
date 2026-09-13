@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type SyntheticEvent,
   type ReactNode,
 } from "react";
 
@@ -428,9 +429,20 @@ export function CalendarDayExplorer({
       setClosingDay(previouslySelectedDay);
     }
     // パネルを閉じたら、開く前に選んでいた日付セルへfocusを戻す
-    if (previouslySelectedDay) {
-      dayLinks.current.get(previouslySelectedDay)?.focus();
+    const previousLink = previouslySelectedDay
+      ? dayLinks.current.get(previouslySelectedDay)
+      : undefined;
+    if (previousLink) {
+      // タップ・クリックで閉じた場合（キーボード操作のclickはdetailが0）は、戻したfocusの塗り・輪郭を出さない。
+      // WebKitはプログラム的なfocusでも:focus-visibleにするため、印でCSS側が抑える (AC-CAL-001-21)
+      if (event.detail !== 0) previousLink.dataset.pointerFocus = "true";
+      previousLink.focus();
     }
+  }
+
+  // pointer操作で戻したfocusの印は、focusが離れるかキーボード操作を始めた時点で外す
+  function clearPointerFocus(event: SyntheticEvent<HTMLAnchorElement>) {
+    delete event.currentTarget.dataset.pointerFocus;
   }
 
   // 開いている日付、または退場中に表示を残す日付
@@ -508,6 +520,8 @@ export function CalendarDayExplorer({
                           aria-label={exactLabel}
                           aria-current={cell.isToday ? "date" : undefined}
                           onClick={(event) => handleDayClick(event, cell.date)}
+                          onBlur={clearPointerFocus}
+                          onKeyDown={clearPointerFocus}
                         >
                           <span className={styles["calendar-day-number"]}>
                             {cell.day}

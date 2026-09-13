@@ -517,6 +517,56 @@ describe("CalendarDayExplorer", () => {
     expect(screen.queryByRole("complementary", { hidden: true })).toBeNull();
   });
 
+  it("タップ・クリックで閉じたときは戻したfocusに印を付け、focusが離れると外す (AC-CAL-001-21)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月15日、支出￥1,000、収入￥300,000",
+    });
+    fireEvent.click(dayLink, { detail: 1 });
+
+    // pointer操作のclickはdetailが1以上になる
+    fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }), {
+      detail: 1,
+    });
+
+    expect(document.activeElement).toBe(dayLink);
+    expect(dayLink.getAttribute("data-pointer-focus")).toBe("true");
+
+    fireEvent.blur(dayLink);
+    expect(dayLink.getAttribute("data-pointer-focus")).toBeNull();
+  });
+
+  it("キーボード操作で閉じたときは戻したfocusに印を付けず、可視focusを残す (AC-CAL-001-21)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月15日、支出￥1,000、収入￥300,000",
+    });
+    fireEvent.click(dayLink);
+
+    // キーボード操作（Enter）によるclickはdetailが0
+    fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }), {
+      detail: 0,
+    });
+
+    expect(document.activeElement).toBe(dayLink);
+    expect(dayLink.getAttribute("data-pointer-focus")).toBeNull();
+  });
+
+  it("印の付いたfocusでキーボード操作を始めると印を外す (AC-CAL-001-21)", () => {
+    render(<CalendarDayExplorer data={data} />);
+    const dayLink = screen.getByRole("link", {
+      name: "2026年8月15日、支出￥1,000、収入￥300,000",
+    });
+    fireEvent.click(dayLink, { detail: 1 });
+    fireEvent.click(screen.getByRole("link", { name: "日別取引を閉じる" }), {
+      detail: 1,
+    });
+    expect(dayLink.getAttribute("data-pointer-focus")).toBe("true");
+
+    fireEvent.keyDown(dayLink, { key: "Tab" });
+    expect(dayLink.getAttribute("data-pointer-focus")).toBeNull();
+  });
+
   it("開いている間のanimation終了ではsheetを取り除かない (NFR-UI-009)", () => {
     render(<CalendarDayExplorer data={data} />);
     fireEvent.click(
