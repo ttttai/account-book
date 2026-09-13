@@ -119,7 +119,11 @@ function readBlock(css, start) {
   assert.fail("CSSブロックが閉じていません");
 }
 
-// ライトの:rootブロックと、prefers-color-scheme: dark内の:rootブロックを返す
+// OSに従う場合のダーク規則（media内）と、アプリで明示選択した場合のダーク規則のセレクタ (03 §14)
+const MEDIA_DARK_SELECTOR = ':root:not([data-theme="light"]) {';
+const EXPLICIT_DARK_SELECTOR = ':root[data-theme="dark"] {';
+
+// ライトの:rootブロック、prefers-color-scheme: dark内の:rootブロック、明示選択のダークブロックを返す
 function readThemeBlocks(styles) {
   const lightStart = styles.indexOf(":root {");
   assert.notEqual(lightStart, -1, ":rootのtoken定義が必要");
@@ -127,9 +131,32 @@ function readThemeBlocks(styles) {
   const mediaStart = styles.indexOf("@media (prefers-color-scheme: dark)");
   assert.notEqual(mediaStart, -1, "prefers-color-scheme: darkの定義が必要");
   const media = readBlock(styles, mediaStart);
-  const darkRootStart = media.indexOf(":root {");
-  assert.notEqual(darkRootStart, -1, "dark media内に:rootが必要");
-  return { light, media, dark: readBlock(media, darkRootStart) };
+  const darkRootStart = media.indexOf(MEDIA_DARK_SELECTOR);
+  assert.notEqual(
+    darkRootStart,
+    -1,
+    `dark media内に${MEDIA_DARK_SELECTOR}が必要（ライト固定時はOSのダークを無効にする）`,
+  );
+  const explicitStart = styles.indexOf(EXPLICIT_DARK_SELECTOR);
+  assert.notEqual(
+    explicitStart,
+    -1,
+    `${EXPLICIT_DARK_SELECTOR}（アプリで選んだダーク）の定義が必要`,
+  );
+  return {
+    light,
+    media,
+    dark: readBlock(media, darkRootStart),
+    explicitDark: readBlock(styles, explicitStart),
+  };
+}
+
+// ブロックの宣言部分を、空白を正規化した文字列で返す
+function readDeclarations(block) {
+  return block
+    .slice(block.indexOf("{") + 1, block.lastIndexOf("}"))
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 // ブロック内のcustom property値を読む
@@ -270,8 +297,11 @@ test("ダークテーマのカテゴリ色はsurfaceに対して3:1以上で、�
 
 test("CSS Modulesとstyles.cssのtoken定義以外に色リテラルを書かない (NFR-UI-010, NFR-MNT-010)", async () => {
   const styles = await read("src/app/styles.css");
-  const { light, media } = readThemeBlocks(styles);
-  let remainder = styles.replace(light, "").replace(media, "");
+  const { light, media, explicitDark } = readThemeBlocks(styles);
+  let remainder = styles
+    .replace(light, "")
+    .replace(media, "")
+    .replace(explicitDark, "");
   // カテゴリ色tokenの定義ブロックも色値の置き場として除く
   remainder = remainder.replace(
     /\[data-category-color(?:="[a-z]+")?\]\s*\{[^}]*\}/g,
@@ -299,28 +329,55 @@ test("CSS Modulesとstyles.cssのtoken定義以外に色リテラルを書かな
   }
 });
 
-test("theme-colorは両テーマの--backgroundに追従し、manifestはライトの値に固定する (NFR-PWA-002, NFR-UI-010)", async () => {
+test("OSに従うダーク規則とアプリで選んだダーク規則は同じ宣言を持つ (NFR-UI-010, 03 §14)", async () => {
+  const styles = await read("src/app/styles.css");
+  const { media, dark, explicitDark } = readThemeBlocks(styles);
+
+  assert.equal(readDeclarations(explicitDark), readDeclarations(dark));
+  // 明度を上げるカテゴリ色4件も両方の経路で同じ値にする
+  for (const token of ["indigo", "navy", "wine", "charcoal"]) {
+    const inMedia = readCategoryColor(media, token);
+    assert.ok(inMedia, `media内に${token}のダーク値が必要`);
+    const explicitRule = styles.match(
+      new RegExp(
+        `:root\\[data-theme="dark"\\] \\[data-category-color="${token}"\\]\\s*\\{[^}]*--category-color:\\s*(#[0-9a-f]{6})`,
+        "i",
+      ),
+    );
+    assert.ok(
+      explicitRule,
+      `:root[data-theme="dark"]配下に${token}のダーク値が必要`,
+    );
+    assert.equal(explicitRule[1].toLowerCase(), inMedia);
+  }
+  // media内のカテゴリ色の上書きは、ライト固定時に効かないよう:root:not([data-theme="light"])配下に置く
+  assert.doesNotMatch(
+    media,
+    /\n\s*\[data-category-color="[a-z]+"\]\s*\{/,
+    'media内のカテゴリ色は:root:not([data-theme="light"])を前置する',
+  );
+});
+
+test("theme-colorは配色の選択に追従し、manifestはライトの値に固定する (NFR-PWA-002, NFR-UI-010)", async () => {
   const styles = await read("src/app/styles.css");
   const { light, dark } = readThemeBlocks(styles);
   const lightBackground = readToken(light, "--background");
   const darkBackground = readToken(dark, "--background");
   assert.notEqual(lightBackground, darkBackground);
 
+  // 両テーマの--backgroundはthemeモジュールの定数と一致し、layoutはcookieの選択からthemeColorとdata-themeを決める
+  const preference = await read("src/modules/theme/domain/theme-preference.ts");
+  assert.match(preference, new RegExp(`light:\\s*"${lightBackground}"`));
+  assert.match(preference, new RegExp(`dark:\\s*"${darkBackground}"`));
+  assert.match(preference, /"\(prefers-color-scheme: light\)"/);
+  assert.match(preference, /"\(prefers-color-scheme: dark\)"/);
+
   const layout = await read("src/app/layout.tsx");
-  const themeColor = layout.match(/themeColor:\s*\[([\s\S]*?)\]/);
-  assert.ok(themeColor, "viewport.themeColorをmedia付きの配列で宣言する");
-  assert.match(
-    themeColor[1],
-    new RegExp(
-      `media:\\s*"\\(prefers-color-scheme: light\\)",\\s*color:\\s*"${lightBackground}"`,
-    ),
-  );
-  assert.match(
-    themeColor[1],
-    new RegExp(
-      `media:\\s*"\\(prefers-color-scheme: dark\\)",\\s*color:\\s*"${darkBackground}"`,
-    ),
-  );
+  assert.match(layout, /export async function generateViewport\(/);
+  assert.match(layout, /themeColor:\s*resolveThemeColor\(/);
+  assert.match(layout, /data-theme=\{resolveDocumentTheme\(/);
+  assert.match(layout, /from "@\/modules\/theme\/server"/);
+  assert.doesNotMatch(layout, /themeColor:\s*"#/);
 
   const manifest = await read("src/app/manifest.ts");
   assert.match(manifest, new RegExp(`theme_color:\\s*"${lightBackground}"`));
@@ -344,10 +401,57 @@ test("仕様がダークテーマのtoken表とコントラスト条件を定義
     );
   }
   assert.match(nfr, /^- `NFR-UI-010` .*prefers-color-scheme/m);
+  assert.match(nfr, /^- `NFR-UI-010` .*OSに従う.*cookie/m);
   assert.match(nfr, /^- `NFR-A11Y-008` .*4\.5:1.*3:1/m);
   assert.match(
     nfr,
     /^- `NFR-PWA-002` .*viewport\.themeColor.*prefers-color-scheme/m,
   );
   assert.match(plan, /NFR-UI-010/);
+  assert.match(screen, /「画面の配色」/);
+  assert.match(await read("specs/15-e2e-testing.md"), /`E2E-015`/);
+  assert.match(await read("tests/e2e/theme-preference.spec.ts"), /E2E-015/);
+});
+
+test("配色の選択はthemeモジュールに閉じ、cookieの許可値だけを設定画面のchipとdata-themeへ反映する (NFR-UI-010, 03 §9)", async () => {
+  const index = await read("src/modules/theme/index.ts");
+  assert.match(index, /ThemePreferenceChips/);
+  assert.match(index, /parseThemePreference/);
+
+  // サーバー側の読み取りはserver-onlyに置き、cookieを読むだけで書かない
+  const server = await read("src/modules/theme/server.ts");
+  assert.match(server, /^import "server-only";/m);
+  assert.match(server, /getThemePreference/);
+  const serverRead = await read(
+    "src/modules/theme/application/get-theme-preference.ts",
+  );
+  assert.match(serverRead, /cookies\(\)/);
+  assert.match(serverRead, /parseThemePreference\(/);
+  assert.doesNotMatch(serverRead, /\.set\(|\.delete\(/);
+
+  // 設定画面はServer Actionではなく、Client側でdata-theme・cookie・metaを即時に書き換える
+  const chips = await read(
+    "src/modules/theme/presentation/theme-preference-chips.tsx",
+  );
+  assert.match(chips, /^"use client";/m);
+  assert.match(chips, /from "@\/modules\/ui"/);
+  assert.match(chips, /ChoiceChip/);
+  assert.doesNotMatch(chips, /"use server"|useActionState|<form/);
+  const apply = await read(
+    "src/modules/theme/presentation/apply-theme-preference.ts",
+  );
+  assert.match(apply, /dataset\.theme/);
+  assert.match(apply, /document\.cookie\s*=\s*buildThemeCookie\(/);
+  assert.match(apply, /meta\[name="theme-color"\]/);
+
+  const settings = await read("src/app/groups/[groupId]/settings/page.tsx");
+  assert.match(
+    settings,
+    /import \{ ThemePreferenceChips \} from "@\/modules\/theme";/,
+  );
+  assert.match(
+    settings,
+    /import \{ getThemePreference \} from "@\/modules\/theme\/server";/,
+  );
+  assert.match(settings, /<ThemePreferenceChips initialPreference=\{/);
 });

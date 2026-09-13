@@ -131,7 +131,7 @@
 /* ダークテーマ (03 §14, NFR-UI-010, NFR-A11Y-008)。OSの配色設定に追従し、tokenの値だけを差し替える。
    各値の対比はtests/architecture/dark-theme.test.mjsがWCAG AA（文字4.5:1、塗り3:1）で検証する */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
     --background: #151a17;
     --background-glow: #1c2822;
@@ -178,19 +178,79 @@
     --focus-ring-soft: rgb(127 198 162 / 30%);
   }
 
-  /* 暗い面に沈む4色だけ明度を上げる。他の14色はライトと同じ値 (AC-CAT-002-7) */
-  [data-category-color="indigo"] {
+  /* 暗い面に沈む4色だけ明度を上げる。他の14色はライトと同じ値 (AC-CAT-002-7)。下の明示選択の規則と同じ値にする */
+  :root:not([data-theme="light"]) [data-category-color="indigo"] {
     --category-color: #8385e6;
   }
-  [data-category-color="navy"] {
+  :root:not([data-theme="light"]) [data-category-color="navy"] {
     --category-color: #7391c4;
   }
-  [data-category-color="wine"] {
+  :root:not([data-theme="light"]) [data-category-color="wine"] {
     --category-color: #c96274;
   }
-  [data-category-color="charcoal"] {
+  :root:not([data-theme="light"]) [data-category-color="charcoal"] {
     --category-color: #96a1aa;
   }
+}
+/* 設定画面で「ダーク」を選んだとき (03 §9, NFR-UI-010)。OSの設定にかかわらず上のmedia内と同じ宣言を適用する。
+   2つの規則の一致はtests/architecture/dark-theme.test.mjsが検証する */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #151a17;
+  --background-glow: #1c2822;
+  --surface: #1e2521;
+  --surface-strong: #272f2a;
+  --surface-muted: #303a33;
+  --text: #e8ece8;
+  --muted: #a5b0a8;
+  --text-faint: #5d675f;
+  --border: #38423b;
+  --field-border: #4a564e;
+  --shadow-rgb: 0 0 0;
+  --backdrop: rgb(0 0 0 / 60%);
+  --skeleton-base: #242c27;
+  --skeleton-highlight: #2e3731;
+  --accent: #7fc6a2;
+  --accent-surface: #337a5e;
+  --accent-surface-end: #3c8062;
+  --accent-soft: #24382e;
+  --accent-faint: #1f2f27;
+  --accent-strong: #a7dcbf;
+  --accent-border: #3a5a48;
+  --on-accent: #ffffff;
+  --on-accent-muted: rgb(255 255 255 / 78%);
+  --income-on-accent: #edf3ff;
+  --negative-on-accent: #fff0ec;
+  --income: #8fb6f5;
+  --income-soft: #1f2d47;
+  --danger: #f29a90;
+  --danger-soft: #3b2523;
+  --danger-border: #7a423d;
+  --danger-surface: #a3342f;
+  --warning: #f0c268;
+  --warning-soft: #3a2f15;
+  --warning-bar: #d29a35;
+  --neutral: #7f8b81;
+  --chart-expense: #e5786a;
+  --chart-income: #5fb886;
+  --weekend-saturday: #8fb1f2;
+  --weekend-sunday: #f29a90;
+  --weekend-saturday-faint: #4f6488;
+  --weekend-sunday-faint: #7a5654;
+  --focus-ring: rgb(127 198 162 / 45%);
+  --focus-ring-soft: rgb(127 198 162 / 30%);
+}
+:root[data-theme="dark"] [data-category-color="indigo"] {
+  --category-color: #8385e6;
+}
+:root[data-theme="dark"] [data-category-color="navy"] {
+  --category-color: #7391c4;
+}
+:root[data-theme="dark"] [data-category-color="wine"] {
+  --category-color: #c96274;
+}
+:root[data-theme="dark"] [data-category-color="charcoal"] {
+  --category-color: #96a1aa;
 }
 
 * {

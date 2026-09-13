@@ -10,6 +10,8 @@ import {
   type GroupSettingsView,
 } from "@/modules/groups/presentation";
 import { getDefaultGroupId, getGroupMembership } from "@/modules/groups/server";
+import { ThemePreferenceChips } from "@/modules/theme";
+import { getThemePreference } from "@/modules/theme/server";
 
 type SettingsPageProps = Readonly<{
   params: Promise<{ groupId: string }>;
@@ -23,11 +25,13 @@ const roleLabels = {
 
 export default async function SettingsPage({ params }: SettingsPageProps) {
   const { groupId } = await params;
-  const [profile, membership, defaultGroupId] = await Promise.all([
-    getCurrentProfile(),
-    getGroupMembership(groupId),
-    getDefaultGroupId(),
-  ]);
+  const [profile, membership, defaultGroupId, themePreference] =
+    await Promise.all([
+      getCurrentProfile(),
+      getGroupMembership(groupId),
+      getDefaultGroupId(),
+      getThemePreference(),
+    ]);
   if (!profile) {
     const nextPath = `/groups/${encodeURIComponent(groupId)}/settings`;
     redirect(`/login?next=${encodeURIComponent(nextPath)}`);
@@ -70,6 +74,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
             groupId={membership.group.id}
             isDefault={defaultGroupId === membership.group.id}
           />
+          <ThemePreferenceChips initialPreference={themePreference} />
           <Link className="settings-row-link" href="/app?view=groups">
             <span>
               <strong>グループを切り替える・作る</strong>
