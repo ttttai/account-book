@@ -123,6 +123,13 @@ function results(): HTMLElement {
   return element;
 }
 
+// 月別の正確な数値は既定で閉じているため、開いてから表を取る (AC-ANA-017-2)
+function openMonthsTable(): HTMLElement {
+  const toggle = screen.getByRole("button", { name: "月別の正確な数値" });
+  if (toggle.getAttribute("aria-expanded") !== "true") fireEvent.click(toggle);
+  return screen.getByRole("table", { name: "月別の正確な数値" });
+}
+
 beforeEach(() => {
   vi.mocked(applyAnalyticsDetailsFilterAction).mockReset();
   window.history.replaceState(null, "", detailsPath);
@@ -154,10 +161,59 @@ describe("AnalyticsDetails", () => {
     expect(screen.getByText(/最大支出月 2026年9月/)).toBeTruthy();
   });
 
+  it("並びは期間指標・カテゴリ・月別推移・メンバー別（既定展開）・数値表（既定で閉じる）で、独立した貯金額の推移は無い (AC-ANA-017-1、2)", () => {
+    render(<AnalyticsDetails data={createData()} />);
+
+    const sections = [...results().children]
+      .map(
+        (element) =>
+          element.getAttribute("aria-label") ??
+          element.getAttribute("data-details-fold"),
+      )
+      .filter((label): label is string => label !== null);
+    expect(sections).toEqual([
+      "期間の主要指標",
+      "支出カテゴリ構成",
+      "月別推移",
+      "analytics-details-members",
+      "analytics-details-months",
+    ]);
+    expect(screen.queryByRole("region", { name: "貯金額の推移" })).toBeNull();
+    expect(screen.queryByText("貯金額の推移")).toBeNull();
+
+    const members = screen.getByRole("button", { name: "メンバー別" });
+    expect(members.getAttribute("aria-expanded")).toBe("true");
+    expect(members.closest("h3")).toBeTruthy();
+    expect(
+      screen.getByRole("table", { name: "メンバー別の内訳" }),
+    ).toBeTruthy();
+
+    const months = screen.getByRole("button", { name: "月別の正確な数値" });
+    expect(months.getAttribute("aria-expanded")).toBe("false");
+    expect(
+      screen.queryByRole("table", { name: "月別の正確な数値" }),
+    ).toBeNull();
+    expect(
+      document.getElementById(months.getAttribute("aria-controls") ?? "")
+        ?.hidden,
+    ).toBe(true);
+
+    // 開閉はURLを変えず、他の領域を再描画しない
+    const trend = screen.getByRole("region", { name: "月別推移" });
+    fireEvent.click(months);
+    expect(months.getAttribute("aria-expanded")).toBe("true");
+    expect(
+      screen.getByRole("table", { name: "月別の正確な数値" }),
+    ).toBeTruthy();
+    expect(window.location.pathname + window.location.search).toBe(detailsPath);
+    expect(screen.getByRole("region", { name: "月別推移" })).toBe(trend);
+    expect(applyAnalyticsDetailsFilterAction).not.toHaveBeenCalled();
+  });
+
   it("月別推移、カテゴリ、メンバー別をグラフなしでも読める (AC-ANA-008-3、4、AC-ANA-009-4)", () => {
     const { container } = render(<AnalyticsDetails data={createData()} />);
 
-    const table = screen.getByRole("table", { name: "月別の正確な数値" });
+    const table = openMonthsTable();
     expect(within(table).getByText("2026年8月")).toBeTruthy();
     expect(within(table).getByText("−￥6,000")).toBeTruthy();
     const categories = screen.getByRole("list", { name: "期間の支出カテゴリ" });
@@ -219,7 +275,7 @@ describe("AnalyticsDetails", () => {
   it("月別表は列見出しを隠さず補助ラベルを持たず、メンバー別表だけがモバイル用項目名を持つ (AC-ANA-009-6)", () => {
     render(<AnalyticsDetails data={createData()} />);
 
-    const months = screen.getByRole("table", { name: "月別の正確な数値" });
+    const months = openMonthsTable();
     for (const label of ["月", "支出", "収入", "収支", "累積収支"]) {
       expect(
         within(months)
@@ -281,6 +337,7 @@ describe("AnalyticsDetails", () => {
     const heading = screen.getByRole("heading", { level: 2 });
     const form = screen.getByRole("form", { name: "詳細分析の表示条件" });
     const region = results();
+    openMonthsTable();
 
     const clickEvent = fireEvent.click(
       screen.getByRole("link", { name: "3か月" }),
@@ -315,6 +372,12 @@ describe("AnalyticsDetails", () => {
     expect(heading.textContent).toBe("2026年7月〜2026年9月");
     expect(region.getAttribute("aria-busy")).toBeNull();
     expect(results()).toBe(region);
+    // 開いた折りたたみは条件変更後も開いたまま
+    expect(
+      screen
+        .getByRole("button", { name: "月別の正確な数値" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
     expect(
       within(
         screen.getByRole("table", { name: "月別の正確な数値" }),
@@ -517,7 +580,7 @@ describe("AnalyticsDetails", () => {
   });
 
   it("月別推移は支出既定の縦棒グラフで、「収入」へ遷移なしに切り替わり、数値表の値は変わらない (AC-ANA-015-1〜3)", () => {
-    const { container } = render(<AnalyticsDetails data={createData()} />);
+    render(<AnalyticsDetails data={createData()} />);
 
     const section = screen.getByRole("region", { name: "月別推移" });
     const chart = section.querySelector("[data-details-chart='trend']");
@@ -544,34 +607,45 @@ describe("AnalyticsDetails", () => {
     expect(section.querySelector("a[href]")).toBeNull();
     expect(section.querySelector("form")).toBeNull();
 
-    const table = screen.getByRole("table", { name: "月別の正確な数値" });
+    const table = openMonthsTable();
     expect(within(table).getByText("￥10,000")).toBeTruthy();
     expect(within(table).getByText("￥20,000")).toBeTruthy();
-    expect(
-      container.querySelector("[data-details-chart='savings']"),
-    ).toBeTruthy();
   });
 
-  it("貯金額の推移を装飾の棒グラフと数値表の累積収支列で示し、注記を表示する (AC-ANA-013-1〜3)", () => {
-    const { container } = render(<AnalyticsDetails data={createData()} />);
+  it("貯金額は月別推移の3つ目の系列で、累積収支の棒・期間末の値・注記を同じ領域に示し、数値表の累積収支列と一致する (AC-ANA-013-1〜3)", () => {
+    render(<AnalyticsDetails data={createData()} />);
 
-    const section = screen.getByRole("region", { name: "貯金額の推移" });
-    expect(within(section).getByText(/期間開始時を0円として計算/)).toBeTruthy();
-    const chart = container.querySelector("[data-details-chart='savings']");
+    const section = screen.getByRole("region", { name: "月別推移" });
+    const toggle = within(section).getByRole("group", {
+      name: "月別推移の系列",
+    });
+    expect(
+      within(toggle)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["支出", "収入", "貯金額"]);
+    expect(section.textContent).not.toContain("期間開始時を0円として計算");
+
+    fireEvent.click(within(toggle).getByRole("button", { name: "貯金額" }));
+    const chart = section.querySelector("[data-details-chart='trend']");
+    expect(chart?.getAttribute("data-trend-series")).toBe("savings");
     expect(chart?.getAttribute("aria-hidden")).toBe("true");
-    expect(chart?.querySelector("[data-chart-baseline]")).toBeTruthy();
-    // 棒は月数と同じ本数で、正の値は基準線より上に先端を持つ
-    const bars = chart?.querySelectorAll("[data-chart-bar]") ?? [];
+    // 棒は月数と同じ本数で、累積収支が正の月は基準線より上へ伸びる
+    const bars = section.querySelectorAll("[data-trend-bar='savings']");
     expect(bars).toHaveLength(2);
     expect(bars[0]?.getAttribute("data-chart-bar")).toBe("positive");
+    expect(chart?.querySelector("[data-chart-baseline]")).toBeTruthy();
     expect(chart?.querySelector("svg polyline")).toBeNull();
-    // 最大値・最小値・開始月・終了月は文字で添える
+    // 上端・下端と月は文字で添え、期間末の累積収支と注記を同じ領域に出す
     expect(chart?.textContent).toContain("＋￥10,000");
     expect(chart?.textContent).toContain("±￥0");
-    expect(chart?.textContent).toContain("2026年8月");
-    expect(chart?.textContent).toContain("2026年9月");
+    expect(chart?.textContent).toContain("8月");
+    expect(within(section).getByText("期間末の累積収支")).toBeTruthy();
+    expect(section.textContent).toContain("＋￥4,000");
+    expect(section.textContent).toContain("期間開始時を0円として計算");
+    expect(window.location.search).toBe("");
 
-    const table = screen.getByRole("table", { name: "月別の正確な数値" });
+    const table = openMonthsTable();
     expect(
       within(table)
         .getByRole("columnheader", { name: "累積収支" })
@@ -582,7 +656,7 @@ describe("AnalyticsDetails", () => {
 
     // 赤字の月は色分け用の値を持つ。意味は向きと数値表の符号でも伝える
     cleanup();
-    const negative = render(
+    render(
       <AnalyticsDetails
         data={createData({
           cumulativeBalances: [
@@ -592,8 +666,10 @@ describe("AnalyticsDetails", () => {
         })}
       />,
     );
-    const negativeBars =
-      negative.container.querySelectorAll("[data-chart-bar]");
+    fireEvent.click(screen.getByRole("button", { name: "貯金額" }));
+    const negativeBars = document.querySelectorAll(
+      "[data-trend-bar='savings']",
+    );
     expect(negativeBars[1]?.getAttribute("data-chart-bar")).toBe("negative");
   });
 
@@ -612,13 +688,13 @@ describe("AnalyticsDetails", () => {
       />,
     );
     expect(screen.getByText("この期間の取引はまだありません。")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "貯金額の推移" })).toBeTruthy();
+    expect(screen.getByRole("region", { name: "月別推移" })).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "貯金額の推移" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "メンバー別" })).toBeNull();
     expect(
       screen.queryByRole("table", { name: "メンバー別の内訳" }),
     ).toBeNull();
-    expect(
-      screen.getByRole("table", { name: "月別の正確な数値" }),
-    ).toBeTruthy();
+    expect(openMonthsTable()).toBeTruthy();
   });
 });
 

@@ -291,13 +291,14 @@ test("詳細分析の月入力欄はWebKitでも列幅に収まり、累積収�
   );
   // 累積収支の計算と座標は純関数に置き、componentはClient化せずSVGを描く
   assert.match(savings, /export function accumulateAnalyticsBalance/);
-  assert.match(savings, /export function scaleAnalyticsSavingsChart/);
+  // 貯金額の座標は月別推移の純関数へ統合し、独立した貯金額の推移セクションは置かない (review: 2026-09-13-analytics-details-layout)
+  assert.doesNotMatch(savings, /scaleAnalyticsSavingsChart/);
   assert.doesNotMatch(details, /^"use client";/m);
-  assert.match(details, /data-details-chart="savings"/);
+  assert.doesNotMatch(details, /data-details-chart="savings"|貯金額の推移/);
   // 赤字の棒は赤系の背景色を持つ (review: 2026-09-04-analytics-savings-trend-negative-color)
   assert.match(
     moduleCss,
-    /i\[data-chart-bar="negative"\] \{[^}]*background:\s*#d8664f;/,
+    /i\[data-trend-bar="savings"\]\[data-chart-bar="negative"\] \{[^}]*background:\s*#d8664f;/,
   );
   assert.doesNotMatch(details, /cumulativeBalance\s*[+-]=|reduce\(/);
 });
@@ -488,4 +489,77 @@ test("詳細分析の表示条件は選択と同時に反映し、pushStateでUR
   );
   assert.match(moduleCss, /\.details-table-cards thead \{/);
   assert.doesNotMatch(moduleCss, /\.details-table thead \{|details-table-quad/);
+});
+
+test("詳細分析はカテゴリ・月別推移を常時表示し、メンバー別・数値表を折りたたみ、貯金額を月別推移の系列にする (ANA-017, AC-ANA-013-2, AC-ANA-015-1, AC-ANA-017-1〜3)", async () => {
+  const details = await read(
+    "src/modules/analytics/presentation/analytics-details.tsx",
+  );
+  const fold = await read(
+    "src/modules/analytics/presentation/analytics-details-fold.tsx",
+  );
+  const chart = await read(
+    "src/modules/analytics/presentation/analytics-monthly-trend-chart.tsx",
+  );
+  const layout = await read(
+    "src/modules/analytics/domain/analytics-trend-chart.ts",
+  );
+  const moduleCss = await read(
+    "src/modules/analytics/presentation/analytics.module.css",
+  );
+  const review = await read(
+    "specs/reviews/2026-09-13-analytics-details-layout.md",
+  );
+  const requirements = await read("specs/01-product-requirements.md");
+  const useCases = await read("specs/02-use-cases.md");
+
+  assert.match(review, /状態: (承認済み|実装確認済み)/);
+  assert.match(requirements, /^- `ANA-017`/m);
+  assert.match(useCases, /^- `AC-ANA-017-3`/m);
+
+  // 並びはカテゴリ → 月別推移 → メンバー別（既定展開）→ 数値表（既定で閉じる）
+  const categoryAt = details.indexOf('data-details-section="category"');
+  const trendAt = details.indexOf('data-details-section="trend"');
+  const membersAt = details.indexOf('id="analytics-details-members"');
+  const monthsAt = details.indexOf('id="analytics-details-months"');
+  assert.ok(categoryAt > 0 && categoryAt < trendAt, "カテゴリは月別推移より前");
+  assert.ok(
+    trendAt < membersAt && membersAt < monthsAt,
+    "折りたたみは月別推移の後",
+  );
+  assert.match(
+    details,
+    /<AnalyticsDetailsFold\s+defaultOpen\s+heading="メンバー別"/,
+  );
+  assert.match(details, /defaultOpen=\{false\}\s+heading="月別の正確な数値"/);
+  assert.doesNotMatch(details, /SavingsChart|scaleAnalyticsSavingsChart/);
+
+  // 折りたたみはClient Componentのローカル状態で、h3内のボタンとhiddenで開閉し、URL・遷移を使わない
+  assert.match(fold, /^"use client";/m);
+  assert.match(fold, /aria-expanded=\{isOpen\}/);
+  assert.match(fold, /aria-controls=\{bodyId\}/);
+  assert.match(fold, /hidden=\{!isOpen\}/);
+  assert.doesNotMatch(
+    fold,
+    /next\/link|next\/form|next\/navigation|href=|<details|localStorage/,
+  );
+  assert.match(moduleCss, /\.details-fold-toggle \{[^}]*min-height:\s*44px;/);
+  assert.match(
+    moduleCss,
+    /\.details-fold-body\[hidden\] \{[^}]*display:\s*block;/,
+  );
+
+  // 月別推移は支出・収入・貯金額の3系列を同じ領域で切り替え、座標は純関数が返す
+  assert.match(layout, /"expense" \| "income" \| "savings"/);
+  assert.match(layout, /zeroY/);
+  assert.match(chart, /"expense",\s*"income",\s*"savings"/);
+  assert.match(chart, /savings: "貯金額"/);
+  assert.match(chart, /期間末の累積収支/);
+  assert.match(chart, /期間開始時を0円として計算/);
+  assert.match(chart, /data-chart-bar=\{bar\.direction\}/);
+  assert.doesNotMatch(chart, /Math\.(max|min|round)|\/ *max|reduce\(/);
+  assert.match(
+    moduleCss,
+    /i\[data-trend-bar="savings"\] \{[^}]*background:\s*var\(--accent\);/,
+  );
 });

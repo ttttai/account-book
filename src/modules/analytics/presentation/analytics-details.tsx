@@ -9,11 +9,8 @@ import {
   formatAnalyticsSignedJpy,
 } from "../domain/analytics-jpy";
 import { formatAnalyticsMonth } from "../domain/analytics-month";
-import {
-  type AnalyticsCumulativeBalance,
-  scaleAnalyticsSavingsChart,
-} from "../domain/analytics-savings";
 import { AnalyticsCategoryChart } from "./analytics-category-chart";
+import { AnalyticsDetailsFold } from "./analytics-details-fold";
 import { AnalyticsMonthlyTrendChart } from "./analytics-monthly-trend-chart";
 
 import styles from "./analytics.module.css";
@@ -50,68 +47,13 @@ function DetailsAmountCell({
   );
 }
 
-// 累積収支の棒グラフ。数値は表が主情報のため、グラフ全体を装飾として隠す (AC-ANA-013-2)
-function SavingsChart({
-  balances,
-}: Readonly<{ balances: readonly AnalyticsCumulativeBalance[] }>) {
-  const chart = scaleAnalyticsSavingsChart(balances);
-  const firstMonth = balances[0]?.month;
-  const lastMonth = balances.at(-1)?.month;
-  // 棒は枡の6割の太さとし、月数が少なくても24pxを超えない
-  const barWidth = `min(${chart.slotWidth * 0.6}%, 24px)`;
-
-  return (
-    <div
-      aria-hidden="true"
-      className={styles["details-savings-chart"]}
-      data-details-chart="savings"
-    >
-      <div className={styles["details-savings-scale"]}>
-        <span>{formatAnalyticsSignedJpy(chart.maxMinor)}</span>
-        <span>{formatAnalyticsSignedJpy(chart.minMinor)}</span>
-      </div>
-      <div className={styles["details-savings-plot"]}>
-        <i data-chart-baseline="zero" style={{ top: `${chart.zeroY}%` }} />
-        {chart.points.map((point) => (
-          <i
-            data-chart-bar={
-              point.y < chart.zeroY
-                ? "positive"
-                : point.y > chart.zeroY
-                  ? "negative"
-                  : "zero"
-            }
-            key={point.month}
-            style={{
-              left: `${point.x}%`,
-              top: `${Math.min(point.y, chart.zeroY)}%`,
-              height: `${Math.abs(point.y - chart.zeroY)}%`,
-              width: barWidth,
-            }}
-          />
-        ))}
-      </div>
-      <div className={styles["details-savings-axis"]}>
-        <span>{firstMonth ? formatAnalyticsMonth(firstMonth) : ""}</span>
-        <span>
-          {lastMonth && lastMonth !== firstMonth
-            ? formatAnalyticsMonth(lastMonth)
-            : ""}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// 詳細分析の集計結果（期間指標・推移・貯金額・カテゴリ・メンバー別・数値表）を認可済みDTOから描く
+// 詳細分析の集計結果を「期間指標 → カテゴリ → 月別推移（支出・収入・貯金額）→ 折りたたみ（メンバー別・数値表）」の順に認可済みDTOから描く (ANA-017)
 export function AnalyticsDetailsSections({
   data,
 }: Readonly<{ data: AnalyticsDetailsReady }>) {
   const cumulativeByMonth = new Map(
     data.cumulativeBalances.map((item) => [item.month, item.cumulativeBalance]),
   );
-  const finalCumulative =
-    data.cumulativeBalances.at(-1)?.cumulativeBalance ?? 0;
   // 見出しの月数は月別数値表の行数と同じ値を使い、preset・任意指定で規則を変えない (AC-ANA-008-5)
   const monthCountLabel = `${data.months.length}か月`;
 
@@ -147,29 +89,11 @@ export function AnalyticsDetailsSections({
         </p>
       ) : null}
 
-      <section aria-label="月別推移" className={styles["details-panel"]}>
-        <AnalyticsMonthlyTrendChart
-          months={data.months.map((month) => ({
-            month: month.month,
-            expenseTotal: month.expenseTotal,
-            incomeTotal: month.incomeTotal,
-          }))}
-        />
-      </section>
-
-      <section aria-label="貯金額の推移" className={styles["details-panel"]}>
-        <h3>貯金額の推移</h3>
-        <p className={styles["details-savings-summary"]}>
-          <span>期間末の累積収支</span>
-          <strong>{formatAnalyticsSignedJpy(finalCumulative)}</strong>
-        </p>
-        <SavingsChart balances={data.cumulativeBalances} />
-        <p className={styles["details-muted"]}>
-          収入−支出を開始月から足し上げた値です。期間開始時を0円として計算し、期間前の残高は含みません。各月の値は下の数値表の「累積収支」で確認できます。
-        </p>
-      </section>
-
-      <section className={styles["details-panel"]}>
+      <section
+        aria-label="支出カテゴリ構成"
+        className={styles["details-panel"]}
+        data-details-section="category"
+      >
         {data.period.expenseByCategory.length > 0 ? (
           <AnalyticsCategoryChart
             heading="支出カテゴリ構成"
@@ -190,11 +114,27 @@ export function AnalyticsDetailsSections({
         )}
       </section>
 
+      <section
+        aria-label="月別推移"
+        className={styles["details-panel"]}
+        data-details-section="trend"
+      >
+        <AnalyticsMonthlyTrendChart
+          months={data.months.map((month) => ({
+            month: month.month,
+            expenseTotal: month.expenseTotal,
+            incomeTotal: month.incomeTotal,
+            cumulativeBalance: cumulativeByMonth.get(month.month) ?? 0,
+          }))}
+        />
+      </section>
+
       {data.scope === "group" ? (
-        <section
-          className={`${styles["details-panel"]} ${styles["details-wide"]}`}
+        <AnalyticsDetailsFold
+          defaultOpen
+          heading="メンバー別"
+          id="analytics-details-members"
         >
-          <h3>メンバー別</h3>
           <table
             aria-label="メンバー別の内訳"
             className={`${styles["details-table"]} ${styles["details-table-cards"]}`}
@@ -222,13 +162,15 @@ export function AnalyticsDetailsSections({
               ))}
             </tbody>
           </table>
-        </section>
+        </AnalyticsDetailsFold>
       ) : null}
 
-      <section
-        className={`${styles["details-panel"]} ${styles["details-wide"]}`}
+      <AnalyticsDetailsFold
+        defaultOpen={false}
+        heading="月別の正確な数値"
+        id="analytics-details-months"
+        wide
       >
-        <h3>月別の正確な数値</h3>
         {/* 列見出しを隠さず、幅を超える場合はこの領域の内側だけを横scrollにする (AC-ANA-009-6) */}
         <div className={styles["details-table-scroll"]}>
           <table
@@ -261,7 +203,7 @@ export function AnalyticsDetailsSections({
             </tbody>
           </table>
         </div>
-      </section>
+      </AnalyticsDetailsFold>
     </>
   );
 }
