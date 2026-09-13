@@ -295,9 +295,24 @@
   text-decoration: none;
 }
 
-.calendar-cell.is-current-month:hover,
-.calendar-cell.is-current-month:focus-within {
+/* hoverの塗りはhover可能な入力装置だけに付ける。touch端末ではタップ位置にhoverが貼り付き、
+   sheetを閉じたあとに「閉じる」の下へ来た日付セルが活性化して見える (AC-CAL-001-21) */
+@media (hover: hover) {
+  .calendar-cell.is-current-month:hover {
+    background: var(--accent-soft);
+  }
+}
+
+/* focusの塗りはキーボード操作で可視focusになる場合だけに付ける。sheetをタップ・クリックで閉じたあとの
+   focus復帰（§15）はdata-pointer-focusの印を持ち、WebKitが:focus-visibleにしても塗り・輪郭を出さない (AC-CAL-001-21) */
+.calendar-cell.is-current-month:has(
+    > .calendar-cell-link:focus-visible:not([data-pointer-focus])
+  ) {
   background: var(--accent-soft);
+}
+
+.calendar-cell-link[data-pointer-focus]:focus-visible {
+  outline: none;
 }
 
 .calendar-cell.is-other-month {
