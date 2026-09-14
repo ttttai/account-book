@@ -244,6 +244,25 @@ describe("CalendarDayExplorer", () => {
     expect(screen.getByText("受取者 B")).toBeTruthy();
   });
 
+  it("2行目はメモの有無にかかわらず表示名（受取者）が先頭で、メモはその後に続く (AC-CAL-017-1)", () => {
+    renderSharedDay();
+
+    const detailTexts = (name: string) =>
+      Array.from(
+        screen
+          .getByRole("link", { name })
+          .querySelectorAll(".calendar-transaction-details > span"),
+      ).map((span) => span.textContent);
+    expect(detailTexts("食費 ￥1,000 A・B 夕食")).toEqual(["A・B", "夕食"]);
+    expect(detailTexts("給与 収入 ￥300,000 受取者 B")).toEqual(["受取者 B"]);
+    expect(
+      screen.getByText("A・B").classList.contains("calendar-transaction-party"),
+    ).toBe(true);
+    expect(
+      screen.getByText("夕食").classList.contains("calendar-transaction-memo"),
+    ).toBe(true);
+  });
+
   it("行全体が編集へのリンクで、アクセシブル名にカテゴリ・金額・表示名・メモを含み、「編集」リンクを別に置かない (AC-CAL-017-2)", () => {
     const panel = renderSharedDay();
 
