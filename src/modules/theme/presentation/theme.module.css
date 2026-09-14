@@ -13,8 +13,3 @@
   padding: 0;
   font-weight: 700;
 }
-
-.theme-preference-note {
-  color: var(--muted);
-  line-height: 1.45;
-}

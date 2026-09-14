@@ -55,10 +55,7 @@ export function ThemePreferenceChips({
   }
 
   return (
-    <fieldset
-      aria-describedby="theme-preference-note"
-      className={styles["theme-preference"]}
-    >
+    <fieldset className={styles["theme-preference"]}>
       <legend className={styles["theme-preference-title"]}>画面の配色</legend>
       <ChoiceChipList>
         {OPTIONS.map((option) => (
@@ -74,12 +71,6 @@ export function ThemePreferenceChips({
           </ChoiceChip>
         ))}
       </ChoiceChipList>
-      <small
-        className={styles["theme-preference-note"]}
-        id="theme-preference-note"
-      >
-        選ぶまでは端末の設定どおりに表示します。このブラウザだけの設定で、他のメンバーや他の端末には影響しません。
-      </small>
     </fieldset>
   );
 }

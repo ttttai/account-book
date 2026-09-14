@@ -84,11 +84,9 @@ describe("ThemePreferenceChips", () => {
       "checked",
       true,
     );
-    expect(
-      screen.getByText(
-        /このブラウザだけの設定で、他のメンバーや他の端末には影響しません/,
-      ),
-    ).toBeTruthy();
+    // 見出しと2つのchipだけを置き、説明文は表示しない (03 §9)
+    expect(group.querySelector("small")).toBeNull();
+    expect(group.getAttribute("aria-describedby")).toBeNull();
   });
 
   it("未選択ではOSの配色に合う側をhydration後に選択状態にし、選ぶまではOSの変更に追従する (NFR-UI-010)", () => {
