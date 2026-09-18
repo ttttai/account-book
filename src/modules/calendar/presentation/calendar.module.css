@@ -587,21 +587,26 @@
 }
 
 .calendar-transaction-details > span {
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-/* メモは残り幅で縮め、支出した人・受取者は行幅の7割を上限に省略記号で切る (AC-CAL-005-1, AC-CAL-017-1) */
-.calendar-transaction-details > span:first-child {
-  flex: 1 1 auto;
-  min-width: 0;
+/* 支出した人・受取者は先頭に固定して本文色で出し、メモと並ぶときは行幅の7割を上限に省略記号で切る。メモの有無で位置を変えない (AC-CAL-017-1, AC-HIS-007-3) */
+.calendar-transaction-party {
+  flex: 0 0 auto;
+  max-width: 70%;
+  color: var(--text);
 }
 
-.calendar-transaction-details > span:not(:first-child) {
-  flex: 0 0 auto;
-  min-width: 0;
-  max-width: 70%;
+.calendar-transaction-party:only-child {
+  max-width: 100%;
+}
+
+/* メモは表示名の後ろで残り幅を使い、収まらない分は省略記号で切る (AC-CAL-005-1) */
+.calendar-transaction-memo {
+  flex: 1 1 auto;
 }
 
 .calendar-transaction-amounts {

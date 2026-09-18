@@ -192,16 +192,21 @@ function DayTransactionRow({
   const recurringName = transaction.isRecurring
     ? transaction.recurringName?.trim()
     : undefined;
-  // 支出は支出した人、収入は受取者を出し、支出の支払者は画面へ出さない (AC-TXN-018-3)
+  // 2行目は支出した人（収入は受取者）を先頭に固定し、メモはその後ろ。支出の支払者は画面へ出さない。履歴の2行目と同じ順序 (AC-TXN-018-3, AC-CAL-017-1, AC-HIS-007-3)
   const details = [
-    { key: "memo", text: transaction.memo?.trim(), isMemo: true },
     {
       key: "party",
+      className: styles["calendar-transaction-party"],
       text: describeCalendarDayParty(transaction),
-      isMemo: false,
     },
-  ].filter((detail): detail is { key: string; text: string; isMemo: boolean } =>
-    Boolean(detail.text),
+    {
+      key: "memo",
+      className: styles["calendar-transaction-memo"],
+      text: transaction.memo?.trim(),
+    },
+  ].filter(
+    (detail): detail is { key: string; className: string; text: string } =>
+      Boolean(detail.text),
   );
 
   return (
@@ -233,14 +238,7 @@ function DayTransactionRow({
         {details.length > 0 ? (
           <span className={styles["calendar-transaction-details"]}>
             {details.map((detail) => (
-              <span
-                key={detail.key}
-                className={
-                  detail.isMemo
-                    ? styles["calendar-transaction-memo"]
-                    : undefined
-                }
-              >
+              <span key={detail.key} className={detail.className}>
                 {detail.text}
               </span>
             ))}
