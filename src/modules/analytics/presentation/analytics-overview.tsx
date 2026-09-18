@@ -124,13 +124,10 @@ type ScopeNavigationProps = Readonly<{
 
 // 自分以外のアクティブメンバー数で3枠目を切り替える集計対象ナビゲーション (AC-ANA-005-3)
 // 0人は2枠、1人はメンバー名の直接リンク、2人以上はホームカレンダーと同じ選択欄にして枠を折り返さない
-// 3枠のときだけ固定語の幅を確保して残りを3枠目へ渡す修飾classを付ける (AC-CAL-004-3)
+// 枠幅は枠数にかかわらずCSSで等分し、componentから修飾classを付けない (AC-CAL-004-3)
 function ScopeNavigation({ data, isSelfActive }: ScopeNavigationProps) {
   const others = data.members.filter((member) => !member.isCurrentUser);
-  const navClassName =
-    others.length > 0
-      ? `${styles["analytics-scope-nav"]} ${styles["has-member-slot"]}`
-      : styles["analytics-scope-nav"];
+  const navClassName = styles["analytics-scope-nav"];
   const memberHref = (membershipId: string) =>
     createAnalyticsUrl(data.group.id, {
       month: data.month,

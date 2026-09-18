@@ -468,19 +468,19 @@ describe("AnalyticsValidationError", () => {
 describe("AnalyticsOverview 集計対象の幅配分 (AC-ANA-005-3, AC-CAL-004-3)", () => {
   const navName = { name: "分析の集計対象" };
 
-  it("2枠では幅配分の修飾classを付けない", () => {
+  it("2枠では枠幅を不ぞろいにする修飾classを付けない", () => {
     render(<AnalyticsOverview data={createData({ members: [SELF] })} />);
     const nav = screen.getByRole("navigation", navName);
     expect(nav.classList).toContain("analytics-scope-nav");
     expect(nav.classList).not.toContain("has-member-slot");
   });
 
-  it("直接リンクの3枠では修飾classを付け、表示名の全文をリンク名に残す", () => {
+  it("直接リンクの3枠でも修飾classを付けず、表示名の全文をリンク名に残す", () => {
     render(
       <AnalyticsOverview data={createData({ members: [SELF, OTHERS[2]] })} />,
     );
     const nav = screen.getByRole("navigation", navName);
-    expect(nav.classList).toContain("has-member-slot");
+    expect(nav.classList).not.toContain("has-member-slot");
     const link = within(nav).getByRole("link", {
       name: OTHERS[2].displayName,
     });
@@ -488,7 +488,7 @@ describe("AnalyticsOverview 集計対象の幅配分 (AC-ANA-005-3, AC-CAL-004-3
     expect(nav.children[2]).toBe(link);
   });
 
-  it("選択欄の3枠でも修飾classを付け、summaryは文字として表示名だけを持つ", () => {
+  it("選択欄の3枠でも修飾classを付けず、summaryは文字として表示名だけを持つ", () => {
     render(
       <AnalyticsOverview
         data={createData({
@@ -500,7 +500,7 @@ describe("AnalyticsOverview 集計対象の幅配分 (AC-ANA-005-3, AC-CAL-004-3
       />,
     );
     const nav = screen.getByRole("navigation", navName);
-    expect(nav.classList).toContain("has-member-slot");
+    expect(nav.classList).not.toContain("has-member-slot");
     const summary = nav.querySelector("summary");
     expect(summary?.parentElement).toBe(nav.children[2]);
     expect(summary?.textContent).toBe(OTHERS[2].displayName);

@@ -117,24 +117,19 @@ function readRule(css, selector) {
   return css.slice(start + selector.length + 2, css.indexOf("}", start));
 }
 
-test("集計対象は1行で折り返さず、3枠では固定語を省略せず3枠目だけを縮める (AC-CAL-004-1, AC-CAL-004-3)", async () => {
+test("集計対象は1行で折り返さず、枠数にかかわらず等幅で収まらない文字だけを省略する (AC-CAL-004-1, AC-CAL-004-3)", async () => {
   const css = await read(
     "src/modules/calendar/presentation/calendar.module.css",
   );
   const nav = readRule(css, ".calendar-scope-nav");
-  assert.match(nav, /display: flex/);
-  assert.doesNotMatch(nav, /grid|flex-wrap/);
-  // 2枠は等幅から始め、3枠では「グループ」「自分」を縮めず3枠目へ残り幅を渡す
-  assert.match(readRule(css, ".calendar-scope-nav > a"), /flex: 1 1 0/);
-  assert.match(readRule(css, ".calendar-member-picker"), /flex: 1 1 0/);
-  assert.match(
-    readRule(css, ".calendar-scope-nav.has-member-slot > a:nth-child(-n + 2)"),
-    /flex: 1 0 auto/,
-  );
-  assert.match(
-    readRule(css, ".calendar-scope-nav.has-member-slot > :nth-child(3)"),
-    /flex: 1 1 auto/,
-  );
+  // 枠数にかかわらず等幅の列へ分け、折り返さない（flexはpaddingの有無で枠幅がずれる）
+  assert.match(nav, /display: grid/);
+  assert.match(nav, /grid-auto-flow: column/);
+  assert.match(nav, /grid-auto-columns: minmax\(0, 1fr\)/);
+  assert.doesNotMatch(nav, /flex-wrap|grid-template-columns/);
+  assert.match(readRule(css, ".calendar-member-picker"), /min-width: 0/);
+  // 枠幅を不ぞろいにする修飾classを持たない
+  assert.doesNotMatch(css, /has-member-slot/);
   // 開閉の印はCSSの疑似要素で描き、accessibility nameへ文字を足さない
   assert.match(
     readRule(css, ".calendar-member-picker > summary::after"),
@@ -143,7 +138,7 @@ test("集計対象は1行で折り返さず、3枠では固定語を省略せず
   const home = await read(
     "src/modules/calendar/presentation/calendar-home.tsx",
   );
-  assert.match(home, /has-member-slot/);
+  assert.doesNotMatch(home, /has-member-slot/);
   const control = readRule(css, ".calendar-member-picker > summary");
   assert.match(control, /min-height: 44px/);
   assert.match(control, /text-overflow: ellipsis/);
