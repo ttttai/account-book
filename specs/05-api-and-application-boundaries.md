@@ -143,6 +143,8 @@ setDefaultGroup(groupId | null)
 
 `updateTransaction`と`deleteTransaction`は、検証済みGoogle sessionとアクティブ所属を確認し、ユーザーsession付きSupabase clientで原子的なDB関数を呼ぶ。DB関数は対象行をlockし、`expectedVersion`と現在versionの不一致を`CONFLICT`として返す。`updateTransaction`は種別ごとのDB関数で行い、取引の種別は変更できない。成功時にversionを加算して操作者と日時を記録し、支出は金額・負担額合計・支払者と負担者のアクティブ所属・カテゴリ種別を、収入は金額・受取者のアクティブ所属・収入カテゴリを、登録時と同じ規則で再検証する。カテゴリだけは、変更しない場合に限り既存行と同じアーカイブ済みカテゴリを許可する。`deleteTransaction`は取引本体と負担行を同じtransactionで物理削除し、対象が存在しない（すでに削除済みの）再要求を状態を変更しない成功として冪等に扱う。復元用のcommand・queryは提供しない。
 
+取引の登録・編集・削除のServer Actionは、成功時に`redirect()`を投げず、`status: "success"`と検証済みの遷移先（`resolveEditReturnPath`またはグループホーム）、通知内容（見出しと説明）を返す。フォーム（Client Component）が通知を表示してから`router.push`で遷移する（`TXN-019`）。通知内容はActionがユーザーsession付きSupabase clientで保存済みの行（削除は削除前の行）と、そのカテゴリ名・グループのタイムゾーンを読み、純関数で組み立てる。この読み取りが失敗しても保存結果は変えず、見出しだけを返す。遷移先はActionが組み立てた同一origin相対pathだけを返し、クライアントの入力をそのまま`router.push`へ渡さない。失敗時の戻り値（`status: "error"`、message、fieldErrors）は従来どおりとする。
+
 commandがDB関数の失敗で完了しなかった場合、利用者向けには競合・対象なし・入力不正・その他の分類だけを返し、サーバーlogへ操作名と失敗codeを記録する。logへ家計データ、個人情報、token、許可リストの値を含めない。失敗を分類できないまま無記録で握りつぶさない。
 
 支出登録画面のServer Componentは、サーバー専用queryからグループ、現在のmembership、アクティブメンバー、未アーカイブの支出カテゴリだけを含む最小DTOを受け取る。Client Componentへuser ID、DB行全体、認証tokenを渡さない。
