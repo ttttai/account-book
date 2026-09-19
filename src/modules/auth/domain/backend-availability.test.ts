@@ -6,6 +6,8 @@ import {
   isUnavailableAuthError,
   isUnavailableQueryResult,
   logAuthenticationQueryDegradation,
+  runReadQueriesWithTransientRetry,
+  runReadQueryWithTransientRetry,
 } from "./backend-availability";
 
 describe("isUnavailableAuthError", () => {
@@ -195,5 +197,142 @@ describe("logAuthenticationQueryDegradation", () => {
     expect(logged).toContain("groups.listMyGroups");
     expect(logged).toContain("PGRST301");
     expect(logged).not.toContain("secret@example.test");
+  });
+});
+
+describe("runReadQueryWithTransientRetry", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const transient = {
+    code: "PGRST303",
+    message: "JWT issued at future check failed",
+  };
+
+  it("失敗しない読み取りは1回だけ実行して結果をそのまま返す", async () => {
+    const run = vi.fn().mockResolvedValue({ data: [{ id: 1 }], error: null });
+
+    await expect(
+      runReadQueryWithTransientRetry("groups.listMyGroups", run),
+    ).resolves.toEqual({ data: [{ id: 1 }], error: null });
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("一過性の時刻検証エラーは同じqueryを1回だけ再実行し、成功すればその結果を返す (AC-AUTH-004-7)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({ data: null, error: transient, status: 401 })
+      .mockResolvedValueOnce({ data: { display_name: "花子" }, error: null });
+
+    await expect(
+      runReadQueryWithTransientRetry("profiles.select", run),
+    ).resolves.toEqual({ data: { display_name: "花子" }, error: null });
+    expect(run).toHaveBeenCalledTimes(2);
+  });
+
+  it("再実行も一過性の失敗なら2回目の結果を返し、応答不能の例外へ変換できる (AC-AUTH-004-6, AC-AUTH-004-7)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const run = vi
+      .fn()
+      .mockResolvedValue({ data: null, error: transient, status: 401 });
+
+    const result = await runReadQueryWithTransientRetry(
+      "groups.defaultGroup",
+      run,
+    );
+
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(
+      createQueryFailureError("groups.defaultGroup", result, "失敗しました。"),
+    ).toBeInstanceOf(BackendUnavailableError);
+  });
+
+  it("認証起因の失敗・応答不能・その他の失敗は再実行しない (AC-AUTH-004-7)", async () => {
+    for (const error of [
+      { code: "PGRST301", message: "JWT expired" },
+      { code: "XX000", message: "server error" },
+      { code: "42501", message: "permission denied" },
+    ]) {
+      const run = vi.fn().mockResolvedValue({ data: null, error, status: 500 });
+      await runReadQueryWithTransientRetry("groups.readContext", run);
+      expect(run).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("再実行のlogは操作名とcodeだけで、error本文を含めない (NFR-SEC-005, NFR-OPS-008)", async () => {
+    const warnLog = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: null,
+        error: {
+          code: "PGRST303",
+          message: "JWT issued at future for secret@example.test",
+        },
+        status: 401,
+      })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    await runReadQueryWithTransientRetry("profiles.select", run);
+
+    expect(warnLog).toHaveBeenCalledTimes(1);
+    const logged = warnLog.mock.calls[0]?.join(" ") ?? "";
+    expect(logged).toContain("profiles.select");
+    expect(logged).toContain("PGRST303");
+    expect(logged).not.toContain("secret@example.test");
+  });
+});
+
+describe("runReadQueriesWithTransientRetry", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const transient = { code: "PGRST303", message: "JWT issued at future" };
+
+  it("どのqueryも失敗しなければ1回だけ実行する", async () => {
+    const run = vi.fn().mockResolvedValue([
+      { data: { id: 1 }, error: null },
+      { data: [], error: null },
+    ]);
+
+    await runReadQueriesWithTransientRetry("groups.readContext", run);
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("いずれかが一過性の時刻検証エラーなら、まとめて1回だけ再実行する (AC-AUTH-004-7)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce([
+        { data: null, error: null },
+        { data: null, error: transient, status: 401 },
+      ])
+      .mockResolvedValueOnce([
+        { data: { id: 1 }, error: null },
+        { data: [], error: null },
+      ]);
+
+    const [group, members] = await runReadQueriesWithTransientRetry(
+      "groups.membership",
+      run,
+    );
+
+    expect(run).toHaveBeenCalledTimes(2);
+    expect(group).toEqual({ data: { id: 1 }, error: null });
+    expect(members).toEqual({ data: [], error: null });
+  });
+
+  it("一過性でない失敗は再実行しない (AC-AUTH-004-7)", async () => {
+    const run = vi.fn().mockResolvedValue([
+      { data: null, error: { code: "PGRST301", message: "JWT expired" } },
+      { data: [], error: null },
+    ]);
+
+    await runReadQueriesWithTransientRetry("groups.readContext", run);
+    expect(run).toHaveBeenCalledTimes(1);
   });
 });

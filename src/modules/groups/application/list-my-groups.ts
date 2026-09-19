@@ -10,6 +10,7 @@ import {
   isAuthenticationQueryError,
   isUnavailableAuthError,
   logAuthenticationQueryDegradation,
+  runReadQueryWithTransientRetry,
 } from "@/modules/auth/server";
 
 import type { GroupSummary } from "./group-types";
@@ -40,14 +41,19 @@ export async function listMyGroups(): Promise<readonly GroupSummary[] | null> {
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return null;
 
-  const result = await supabase
-    .from("group_members")
-    .select(
-      "id, role, groups!inner(id, name, currency, timezone, week_starts_on, default_allocation, version)",
-    )
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .order("joined_at", { ascending: true });
+  // 一過性の時刻検証エラーはその場で1回だけ取り直し、初回アクセスでエラー画面を出さない (AC-AUTH-004-7)
+  const result = await runReadQueryWithTransientRetry(
+    "groups.listMyGroups",
+    () =>
+      supabase
+        .from("group_members")
+        .select(
+          "id, role, groups!inner(id, name, currency, timezone, week_starts_on, default_allocation, version)",
+        )
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("joined_at", { ascending: true }),
+  );
 
   if (result.error) {
     // 失効session等の認証起因の失敗はserver errorにせず、未認証としてログイン誘導へ合流させる。

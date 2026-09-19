@@ -10,6 +10,7 @@ import {
   isAuthenticationQueryError,
   isUnavailableAuthError,
   logAuthenticationQueryDegradation,
+  runReadQueriesWithTransientRetry,
 } from "@/modules/auth/server";
 
 type ServerSupabaseClient = Awaited<
@@ -107,23 +108,26 @@ export async function resolveGroupReadContext(
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return null;
 
-  const groupQuery = supabase
-    .from("groups")
-    .select("id, name, timezone, week_starts_on")
-    .eq("id", groupIdResult.data)
-    .maybeSingle();
-  let membershipQuery = supabase
-    .from("group_members")
-    .select("id, user_id, status")
-    .eq("group_id", groupIdResult.data);
-  if (!options.includeRemovedMembers) {
-    membershipQuery = membershipQuery.eq("status", "active");
-  }
-
-  const [groupResult, membershipResult] = await Promise.all([
-    groupQuery,
-    membershipQuery.order("joined_at", { ascending: true }),
-  ]);
+  // どちらかが一過性の時刻検証エラーなら両方を1回だけ取り直す。どちらも読み取りで冪等 (AC-AUTH-004-7)
+  const [groupResult, membershipResult] =
+    await runReadQueriesWithTransientRetry("groups.readContext", () => {
+      const groupQuery = supabase
+        .from("groups")
+        .select("id, name, timezone, week_starts_on")
+        .eq("id", groupIdResult.data)
+        .maybeSingle();
+      let membershipQuery = supabase
+        .from("group_members")
+        .select("id, user_id, status")
+        .eq("group_id", groupIdResult.data);
+      if (!options.includeRemovedMembers) {
+        membershipQuery = membershipQuery.eq("status", "active");
+      }
+      return Promise.all([
+        groupQuery,
+        membershipQuery.order("joined_at", { ascending: true }),
+      ]);
+    });
   const failedResult = groupResult.error
     ? groupResult
     : membershipResult.error

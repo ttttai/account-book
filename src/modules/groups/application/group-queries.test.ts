@@ -239,6 +239,29 @@ describe("listMyGroups", () => {
     vi.restoreAllMocks();
   });
 
+  it("一過性の時刻検証エラーは同じqueryを1回だけ取り直し、成功すれば例外にしない (AC-AUTH-004-7)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { from } = setupClient();
+    from
+      .mockReturnValueOnce(
+        orderedQuery({
+          data: null,
+          error: { code: "PGRST303", message: "JWT issued at future" },
+          status: 401,
+        }),
+      )
+      .mockReturnValueOnce(
+        orderedQuery({
+          data: [{ id: MEMBERSHIP_ID, role: "owner", groups: groupRow }],
+          error: null,
+        }),
+      );
+
+    await expect(listMyGroups()).resolves.toHaveLength(1);
+    expect(from).toHaveBeenCalledTimes(2);
+    vi.restoreAllMocks();
+  });
+
   it("認証以外のquery失敗は一般化した例外にする", async () => {
     const { from } = setupClient();
     from.mockReturnValue(
@@ -339,6 +362,56 @@ describe("getGroupMembership", () => {
       vi.restoreAllMocks();
     },
   );
+
+  it("一過性の時刻検証エラーは両方のqueryを1回だけ取り直し、成功すれば例外にしない (AC-AUTH-004-7)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { from, rpc } = setupClient();
+    rpc.mockResolvedValue({ data: [], error: null });
+    from
+      .mockReturnValueOnce(
+        maybeSingleQuery({
+          data: null,
+          error: { code: "PGRST303", message: "JWT issued at future" },
+          status: 401,
+        }),
+      )
+      .mockReturnValueOnce(orderedQuery({ data: [], error: null }))
+      .mockReturnValueOnce(maybeSingleQuery({ data: groupRow, error: null }))
+      .mockReturnValueOnce(
+        orderedQuery({ data: [ownerMembership], error: null }),
+      )
+      .mockReturnValueOnce(
+        profileQuery({
+          data: [{ user_id: USER_ID, display_name: "自分" }],
+          error: null,
+        }),
+      );
+
+    await expect(getGroupMembership(GROUP_ID)).resolves.not.toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it("一過性の時刻検証エラーが2回とも続く場合だけBackendUnavailableErrorにする (AC-AUTH-004-6, AC-AUTH-004-7)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { from } = setupClient();
+    const failure = {
+      data: null,
+      error: { code: "PGRST303", message: "JWT issued at future" },
+      status: 401,
+    };
+    from
+      .mockReturnValueOnce(maybeSingleQuery(failure))
+      .mockReturnValueOnce(orderedQuery({ data: [], error: null }))
+      .mockReturnValueOnce(maybeSingleQuery(failure))
+      .mockReturnValueOnce(orderedQuery({ data: [], error: null }));
+
+    await expect(getGroupMembership(GROUP_ID)).rejects.toBeInstanceOf(
+      BackendUnavailableError,
+    );
+    expect(from).toHaveBeenCalledTimes(4);
+    vi.restoreAllMocks();
+  });
 
   it("認証・応答不能以外のquery失敗は一般化した例外にする", async () => {
     const { from } = setupClient();

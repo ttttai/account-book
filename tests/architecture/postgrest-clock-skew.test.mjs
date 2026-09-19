@@ -60,6 +60,77 @@ test("一過性の時刻検証エラーを認証起因と区別し、応答不�
   assert.match(serverEntry, /logAuthenticationQueryDegradation/);
 });
 
+test("一過性の時刻検証エラーを受けた読み取りは同じqueryを1回だけ再実行する (AC-AUTH-004-7)", async () => {
+  const availability = await read(
+    "src/modules/auth/domain/backend-availability.ts",
+  );
+  assert.match(availability, /export function runReadQueryWithTransientRetry/);
+  assert.match(
+    availability,
+    /export function runReadQueriesWithTransientRetry/,
+  );
+  // 再実行のlogは操作名とcodeだけで、error本文を含めない
+  const retryHelper =
+    availability.match(
+      /async function retryReadOnTransientClockError[\s\S]*?\n}/,
+    )?.[0] ?? "";
+  assert.match(retryHelper, /queryErrorCode\(/);
+  assert.doesNotMatch(
+    retryHelper,
+    /\.message/,
+    "再実行logにerror本文を含めない",
+  );
+
+  const serverEntry = await read("src/modules/auth/server.ts");
+  assert.match(serverEntry, /runReadQueryWithTransientRetry/);
+  assert.match(serverEntry, /runReadQueriesWithTransientRetry/);
+
+  for (const [path, helper] of [
+    [
+      "src/modules/auth/application/get-current-profile.ts",
+      "runReadQueryWithTransientRetry",
+    ],
+    [
+      "src/modules/groups/application/list-my-groups.ts",
+      "runReadQueryWithTransientRetry",
+    ],
+    [
+      "src/modules/groups/application/default-group.ts",
+      "runReadQueryWithTransientRetry",
+    ],
+    [
+      "src/modules/groups/application/group-read-context.ts",
+      "runReadQueriesWithTransientRetry",
+    ],
+    [
+      "src/modules/groups/application/get-group-membership.ts",
+      "runReadQueriesWithTransientRetry",
+    ],
+  ]) {
+    const source = await read(path);
+    assert.match(
+      source,
+      new RegExp(`await ${helper}\\(`),
+      `${path}は一過性の時刻検証エラーで読み取りを再実行する`,
+    );
+  }
+});
+
+test("更新処理は一過性エラーで再実行しない (AC-AUTH-004-7)", async () => {
+  for (const path of [
+    "src/modules/groups/application/update-group-settings.ts",
+    "src/modules/transactions/application/create-expense.ts",
+    "src/modules/transactions/application/create-income.ts",
+  ]) {
+    const source = await read(path);
+    assert.doesNotMatch(
+      source,
+      /WithTransientRetry/,
+      `${path}は冪等でない処理を再実行しない`,
+    );
+  }
+});
+
 test("認証起因の失敗を縮退させる読み取りは操作名とcodeをlogへ残す (AC-AUTH-004-6)", async () => {
   for (const path of [
     "src/modules/auth/application/get-current-profile.ts",
@@ -105,9 +176,17 @@ test("仕様とレビューに一過性の時刻検証エラーの扱いを記�
   );
 
   assert.match(useCases, /^- `AC-AUTH-004-6`/m);
+  assert.match(useCases, /^- `AC-AUTH-004-7`/m);
   assert.match(useCases, /JWT issued at future/);
   assert.match(boundaries, /JWT issued at future/);
   assert.match(testPlan, /AC-AUTH-004-6/);
+  assert.match(testPlan, /AC-AUTH-004-7/);
   assert.match(review, /^状態: (承認済み|実装確認済み)$/m);
   assert.match(review, /AC-AUTH-004-6/);
+
+  const retryReview = await read(
+    "specs/reviews/2026-09-19-postgrest-transient-retry.md",
+  );
+  assert.match(retryReview, /^状態: (承認済み|実装確認済み)$/m);
+  assert.match(retryReview, /AC-AUTH-004-7/);
 });

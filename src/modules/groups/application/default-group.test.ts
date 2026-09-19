@@ -143,10 +143,11 @@ describe("getDefaultGroupId", () => {
     );
   });
 
-  it("PostgRESTの一過性の時刻検証エラーは未設定へ縮退させずBackendUnavailableErrorにする (AC-AUTH-004-6)", async () => {
+  it("一過性の時刻検証エラーが2回とも続く場合だけBackendUnavailableErrorにする (AC-AUTH-004-6, AC-AUTH-004-7)", async () => {
     const { from } = setupClient();
     vi.spyOn(console, "error").mockImplementation(() => {});
-    from.mockReturnValueOnce(
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    from.mockReturnValue(
       preferenceQuery({
         data: null,
         error: { code: "PGRST303", message: "JWT issued at future" },
@@ -157,6 +158,27 @@ describe("getDefaultGroupId", () => {
     await expect(getDefaultGroupId()).rejects.toBeInstanceOf(
       BackendUnavailableError,
     );
+    expect(from).toHaveBeenCalledTimes(2);
+    vi.restoreAllMocks();
+  });
+
+  it("一過性の時刻検証エラーは同じqueryを1回だけ取り直し、成功すれば例外にしない (AC-AUTH-004-7)", async () => {
+    const { from } = setupClient();
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    from
+      .mockReturnValueOnce(
+        preferenceQuery({
+          data: null,
+          error: { code: "PGRST303", message: "JWT issued at future" },
+          status: 401,
+        }),
+      )
+      .mockReturnValueOnce(
+        preferenceQuery({ data: { default_group_id: GROUP_ID }, error: null }),
+      );
+
+    await expect(getDefaultGroupId()).resolves.toBe(GROUP_ID);
+    expect(from).toHaveBeenCalledTimes(2);
     vi.restoreAllMocks();
   });
 });

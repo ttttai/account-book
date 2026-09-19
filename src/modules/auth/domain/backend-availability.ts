@@ -77,6 +77,50 @@ export function createQueryFailureError(
   return new Error(fallbackMessage);
 }
 
+// 一過性の時刻検証エラーだけ、同じ読み取りをもう一度だけ実行する。冪等な読み取り専用の処理にだけ使う。
+// 再実行した事実は操作名とcodeだけをlogへ残す (AC-AUTH-004-7, NFR-SEC-005)
+async function retryReadOnTransientClockError<T>(
+  operation: string,
+  run: () => PromiseLike<T>,
+  transientErrorOf: (value: T) => unknown,
+): Promise<T> {
+  const first = await run();
+  const transientError = transientErrorOf(first);
+  if (transientError === undefined) return first;
+  console.warn(
+    "read query retried after transient clock error: operation=%s code=%s",
+    operation,
+    queryErrorCode(transientError),
+  );
+  return run();
+}
+
+// 単一の読み取りqueryを、PostgRESTの一過性の時刻検証エラーのときだけ1回再実行する (AC-AUTH-004-7)
+export function runReadQueryWithTransientRetry<T extends QueryResultLike>(
+  operation: string,
+  run: () => PromiseLike<T>,
+): Promise<T> {
+  return retryReadOnTransientClockError(operation, run, (result) =>
+    isTransientAuthenticationQueryError(result.error)
+      ? result.error
+      : undefined,
+  );
+}
+
+// 並列に実行する複数の読み取りqueryを、いずれかが一過性の時刻検証エラーのときだけまとめて1回再実行する (AC-AUTH-004-7)
+export function runReadQueriesWithTransientRetry<
+  T extends readonly QueryResultLike[],
+>(operation: string, run: () => PromiseLike<T>): Promise<T> {
+  return retryReadOnTransientClockError(
+    operation,
+    run,
+    (results) =>
+      results.find((result) =>
+        isTransientAuthenticationQueryError(result.error),
+      )?.error,
+  );
+}
+
 // 認証起因の失敗を未認証へ縮退させた事実を、操作名とcodeだけでlogへ残す。黙って空表示になる経路を追跡可能にする (AC-AUTH-004-6)
 export function logAuthenticationQueryDegradation(
   operation: string,

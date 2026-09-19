@@ -5,6 +5,7 @@ import {
   createQueryFailureError,
   isUnavailableAuthError,
   logAuthenticationQueryDegradation,
+  runReadQueryWithTransientRetry,
 } from "../domain/backend-availability";
 import { isAuthenticationQueryError } from "../domain/postgrest-auth-error";
 import { getAllowedGoogleUserId } from "../infrastructure/google-auth-access";
@@ -28,11 +29,14 @@ export async function getCurrentProfile(): Promise<CurrentProfile | null> {
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return null;
 
-  const result = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("user_id", userId)
-    .maybeSingle();
+  // 一過性の時刻検証エラーはその場で1回だけ取り直し、初回アクセスでエラー画面を出さない (AC-AUTH-004-7)
+  const result = await runReadQueryWithTransientRetry("profiles.select", () =>
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  );
 
   if (result.error) {
     // 失効session等の認証起因の失敗だけを未認証へ縮退させる (AC-AUTH-001-9)

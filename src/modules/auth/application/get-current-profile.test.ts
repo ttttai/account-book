@@ -180,6 +180,28 @@ describe("getCurrentProfile", () => {
     );
   });
 
+  it("一過性の時刻検証エラーは同じqueryを1回だけ取り直し、成功すれば例外にしない (AC-AUTH-004-7)", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { from } = setupClient();
+    from
+      .mockReturnValueOnce(
+        profileQuery({
+          data: null,
+          error: { code: "PGRST303", message: "JWT issued at future" },
+          status: 401,
+        }),
+      )
+      .mockReturnValueOnce(
+        profileQuery({ data: { display_name: "自分" }, error: null }),
+      );
+
+    await expect(getCurrentProfile()).resolves.toEqual({
+      userId: USER_ID,
+      displayName: "自分",
+    });
+    expect(from).toHaveBeenCalledTimes(2);
+  });
+
   it("認証起因の失敗で未認証へ縮退する際は操作名とcodeだけをlogへ残す (AC-AUTH-004-6)", async () => {
     const warnLog = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { from } = setupClient();
