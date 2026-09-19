@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { getCurrentProfile } from "@/modules/auth/server";
@@ -25,14 +24,12 @@ export default async function RecurringTransactionsPage({
 
   return (
     <main className="protected-shell recurring-page">
+      {/* headerはグループ名と画面名だけ。共通ナビゲーションと重複する画面間移動は置かない (AC-NAV-001-4) */}
       <header className="app-header">
         <div>
           <p className="eyebrow">{view.group.name}</p>
           <h1 className="group-page-title">固定費</h1>
         </div>
-        <Link className="text-link" href={`/groups/${view.group.id}`}>
-          ホームへ戻る
-        </Link>
       </header>
       <p className="recurring-page-description">
         毎月同じ日・同じ金額の取引を登録すると、開始月から終了月までのホームカレンダーへ「固定費」として反映されます。過去に登録した通常の取引は変更されません。

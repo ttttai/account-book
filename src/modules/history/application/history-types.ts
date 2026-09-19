@@ -11,6 +11,7 @@ export type HistorySearchInput = Readonly<{
   payer?: string | string[];
   recipient?: string | string[];
   member?: string | string[];
+  q?: string | string[];
   limit?: string | string[];
   cursor?: string | string[];
 }>;

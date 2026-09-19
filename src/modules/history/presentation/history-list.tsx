@@ -228,6 +228,10 @@ export function HistoryList({
   const dateGroupsClassName = isApplying
     ? `${styles["history-date-groups"]} is-stale`
     : styles["history-date-groups"];
+  // キーワード指定時は何に一致しなかったかを示す (AC-HIS-009-4)
+  const emptyMessage = filterParams.q
+    ? `「${filterParams.q}」に一致する取引はありません。`
+    : "条件に一致する取引はありません。";
 
   return (
     <section
@@ -248,7 +252,7 @@ export function HistoryList({
               : styles["history-empty-message"]
           }
         >
-          条件に一致する取引はありません。
+          {emptyMessage}
         </p>
       ) : (
         <ol className={dateGroupsClassName}>

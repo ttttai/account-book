@@ -187,6 +187,25 @@ test("固定費画面と設定ハブ導線を用意し、展開取引を識別�
   assert.match(management, /view\.canManage \?/);
 });
 
+test("固定費画面のheaderに共通ナビゲーションと重複する画面間移動を置かず、0件時は空状態から作成フォームへ導く (AC-NAV-001-4, AC-REC-004-2)", async () => {
+  const page = await read(
+    "src/app/groups/[groupId]/recurring-transactions/page.tsx",
+  );
+  const management = await read(
+    "src/modules/recurring/presentation/recurring-management.tsx",
+  );
+
+  // headerはグループ名と画面名だけ。「ホームへ戻る」をCSSで隠すのではなくmarkupから外す
+  assert.doesNotMatch(page, /ホームへ戻る/);
+  assert.doesNotMatch(page, /from "next\/link"/);
+  assert.match(page, /<header className="app-header">/);
+
+  // 0件時の空状態と、owner/adminだけに出す作成フォームへのリンク
+  assert.match(management, /固定費はまだありません/);
+  assert.match(management, /href="#recurring-create-form"/);
+  assert.match(management, /id="recurring-create-form"/);
+});
+
 test("固定費の金額欄は取引入力と共有する画面内テンキーで入力する (REC-010, AC-REC-005-1, AC-REC-005-4)", async () => {
   const management = await read(
     "src/modules/recurring/presentation/recurring-management.tsx",

@@ -65,6 +65,7 @@ describe("parseHistoryFilter", () => {
         payer: payerId,
         recipient: recipientId,
         member: memberId,
+        q: " 炊飯器 ",
         limit: "100",
         cursor: encodeHistoryCursor(cursor),
       },
@@ -80,13 +81,27 @@ describe("parseHistoryFilter", () => {
         payerMemberId: payerId,
         recipientMemberId: recipientId,
         memberMemberId: memberId,
+        query: "炊飯器",
         limit: historyMaxPageSize,
         cursor,
       },
     });
   });
 
+  it("キーワードは前後の空白を除いて受け付け、空白だけは未指定にする (AC-HIS-009-1)", () => {
+    expect(parseHistoryFilter({ q: "   " }, context)).toEqual({
+      success: true,
+      value: { limit: historyDefaultPageSize },
+    });
+    expect(parseHistoryFilter({ q: "あ".repeat(100) }, context)).toEqual({
+      success: true,
+      value: { query: "あ".repeat(100), limit: historyDefaultPageSize },
+    });
+  });
+
   it.each([
+    [{ q: "あ".repeat(101) }, "invalid_query"],
+    [{ q: ["炊飯器", "コストコ"] }, "invalid_query"],
     [{ month: "2026-13" }, "invalid_month"],
     [{ month: "abc" }, "invalid_month"],
     [{ month: ["2026-08", "2026-09"] }, "invalid_month"],

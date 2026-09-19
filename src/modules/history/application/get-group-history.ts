@@ -18,6 +18,10 @@ import {
   type HistoryFilter,
 } from "../domain/history-filter";
 import {
+  buildHistoryKeywordCondition,
+  buildHistoryKeywordOrCondition,
+} from "../domain/history-keyword";
+import {
   compareHistoryRowSourcesDesc,
   toHistoryRow,
   type HistoryRowSource,
@@ -163,6 +167,14 @@ async function queryHistoryPage(
   }
   if (filter.memberMemberId) {
     query = query.eq("member_filter.member_id", filter.memberMemberId);
+  }
+  if (filter.query) {
+    // メモの部分一致。数字だけのキーワードは取引金額の完全一致も「または」で加える (AC-HIS-009-2)
+    const keyword = buildHistoryKeywordCondition(filter.query);
+    query =
+      keyword.amountMinor === undefined
+        ? query.ilike("memo", keyword.memoPattern)
+        : query.or(buildHistoryKeywordOrCondition(keyword));
   }
   if (filter.cursor) {
     query = query.or(buildHistoryCursorCondition(filter.cursor));
