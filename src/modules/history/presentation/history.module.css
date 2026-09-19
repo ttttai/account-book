@@ -165,9 +165,11 @@
   background: var(--surface-strong);
   color: var(--text);
   font: inherit;
+  font-size: 1rem;
 }
 
 /* キーワード欄はselectと同じ寸法にそろえ、WebKitの検索欄固有の丸い形状を外す (AC-HIS-009-3) */
+/* labelの0.85remを継承すると16px未満になり、iOS Safariがfocus時にページを拡大するため文字サイズを1remに固定する */
 .history-keyword-field input {
   min-width: 0;
   min-height: 44px;
@@ -177,6 +179,7 @@
   background: var(--surface-strong);
   color: var(--text);
   font: inherit;
+  font-size: 1rem;
   appearance: none;
 }
 

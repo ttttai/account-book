@@ -186,3 +186,20 @@ test("historyモジュールは他機能の内部実装へ依存しない", asyn
     );
   }
 });
+
+test("キーワード欄と選択肢は1remの文字サイズを持ち、iOS Safariのfocus時自動拡大を起こさない (AC-HIS-009-3)", async () => {
+  const css = await read("src/modules/history/presentation/history.module.css");
+  const layout = await read("src/app/layout.tsx");
+
+  // labelの0.85remをfont: inheritで継承すると16px未満になり、iOS Safariがページを拡大する
+  const keywordInput = css.match(
+    /\.history-keyword-field input \{([^}]*)\}/,
+  )?.[1];
+  const select = css.match(/\.history-filter-form select \{([^}]*)\}/)?.[1];
+  assert.ok(keywordInput, "キーワード欄の規則が必要です");
+  assert.ok(select, "選択肢の規則が必要です");
+  assert.match(keywordInput, /font-size: 1rem;/);
+  assert.match(select, /font-size: 1rem;/);
+  // 拡大禁止で回避せず、ピンチ拡大を残す
+  assert.doesNotMatch(layout, /maximumScale|userScalable/);
+});
