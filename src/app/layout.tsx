@@ -6,6 +6,7 @@ import {
   resolveDocumentTheme,
   resolveThemeColor,
 } from "@/modules/theme/server";
+import { SaveFeedbackToaster } from "@/modules/ui";
 
 import "./styles.css";
 
@@ -28,12 +29,15 @@ export async function generateViewport(): Promise<Viewport> {
 
 type RootLayoutProps = Readonly<{ children: ReactNode }>;
 
-// 全画面共通のルートレイアウト（日本語設定、共通スタイル、cookieの配色選択をdata-themeへ反映）
+// 全画面共通のルートレイアウト（日本語設定、共通スタイル、cookieの配色選択をdata-themeへ反映、保存結果の通知領域）
 export default async function RootLayout({ children }: RootLayoutProps) {
   const preference = await getThemePreference();
   return (
     <html data-theme={resolveDocumentTheme(preference)} lang="ja">
-      <body>{children}</body>
+      <body>
+        {children}
+        <SaveFeedbackToaster />
+      </body>
     </html>
   );
 }

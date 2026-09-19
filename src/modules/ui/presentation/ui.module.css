@@ -89,3 +89,88 @@
   opacity: 0.55;
   cursor: default;
 }
+
+/* 保存結果のトースト (03 §6 保存結果のトースト, TXN-019):
+   ライブラリ（sonner）が実行時に注入する既定の色・幅・時間・閉じるボタンを、
+   tokenと44pxのタップ領域へ上書きする。selectorはライブラリの規則より詳細度を高くして順序に依存させない */
+.toast-region :global([data-sonner-toaster][data-sonner-theme]) {
+  --normal-bg: var(--surface);
+  --normal-border: var(--border);
+  --normal-text: var(--text);
+  width: min(100vw - 32px, 24rem);
+  font-family: inherit;
+  transition: transform var(--motion-duration-medium) var(--motion-ease-out);
+}
+
+/* 出現・消失は200ms以下のmotion tokenで統一する (AC-TXN-019-5, NFR-UI-009)。
+   幅はライブラリの既定（356px）ではなく通知領域いっぱいにそろえる */
+.toast-region :global([data-sonner-toaster]) :global([data-sonner-toast]) {
+  width: 100%;
+  transition:
+    transform var(--motion-duration-medium) var(--motion-ease-out),
+    opacity var(--motion-duration-medium) var(--motion-ease-out),
+    height var(--motion-duration-medium) var(--motion-ease-out);
+}
+
+.toast-region :global([data-sonner-toast]) > * {
+  transition: opacity var(--motion-duration-medium) var(--motion-ease-out);
+}
+
+/* 右上の閉じるボタン（44px）ぶんの余白を右に取り、見出しと説明を2行で並べる */
+.toast-region :global([data-sonner-toast][data-styled]) {
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 3rem 0.85rem 1rem;
+  border-radius: 0.9rem;
+  box-shadow: 0 10px 30px rgb(var(--shadow-rgb) / 16%);
+  font-size: 0.9rem;
+}
+
+.toast-region :global([data-sonner-toast][data-styled]) :global([data-title]) {
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.toast-region
+  :global([data-sonner-toast][data-styled])
+  :global([data-description]) {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* 成功のチェックの印はaccentの文字色。操作・取引の種別で色を変えない (AC-TXN-019-4) */
+.toast-region :global([data-sonner-toast][data-styled]) :global([data-icon]) {
+  margin-top: 0.15rem;
+  color: var(--accent);
+}
+
+/* 閉じるボタンは通知の右上に44 x 44 CSS pixelで置く (AC-TXN-019-4, NFR-A11Y-003) */
+.toast-region
+  :global([data-sonner-toast][data-styled])
+  :global([data-close-button]) {
+  top: 0;
+  right: 0;
+  left: auto;
+  width: 44px;
+  height: 44px;
+  transform: none;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--muted);
+}
+
+.toast-region
+  :global([data-sonner-toast][data-styled]):hover
+  :global([data-close-button]):hover {
+  background: var(--surface-muted);
+  border-color: transparent;
+}
+
+.toast-region
+  :global([data-sonner-toast][data-styled])
+  :global([data-close-button]):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: -3px;
+  box-shadow: none;
+}

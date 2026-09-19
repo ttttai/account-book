@@ -7,6 +7,7 @@ import {
   getAllowedGoogleUserId,
 } from "@/modules/auth/server";
 
+import { dateInTimeZone } from "../domain/date-in-time-zone";
 import { resolveExpenseInitialDate } from "../domain/expense-initial-date";
 import type { ExpenseFormOptions } from "./expense-types";
 
@@ -34,18 +35,6 @@ const categoryRowSchema = z.object({
   icon: z.string(),
   sort_order: z.number().int(),
 });
-
-// 指定タイムゾーンにおける日付をYYYY-MM-DD形式で得る
-function dateInTimeZone(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const values = new Map(parts.map((part) => [part.type, part.value]));
-  return `${values.get("year")}-${values.get("month")}-${values.get("day")}`;
-}
 
 // 支出登録フォームに必要なグループ・メンバー・カテゴリ情報を集めて返す（未所属や不正IDはnull）
 export async function getExpenseFormOptions(

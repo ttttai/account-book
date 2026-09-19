@@ -1,12 +1,20 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
+import {
+  encodeSaveFeedbackCookie,
+  SAVE_FEEDBACK_COOKIE_MAX_AGE_SECONDS,
+  SAVE_FEEDBACK_COOKIE_NAME,
+} from "@/modules/ui";
 
 import { createExpense } from "../application/create-expense";
 import { createIncome } from "../application/create-income";
 import { deleteTransaction } from "../application/delete-transaction";
 import type { TransactionCommandResult } from "../application/edit-types";
+import { loadTransactionSaveFeedback } from "../application/load-transaction-save-feedback";
 import { updateExpense } from "../application/update-expense";
 import { updateIncome } from "../application/update-income";
 import { resolveEditReturnPath } from "../domain/edit-return-path";
@@ -17,6 +25,11 @@ import {
   createIncomeInputSchema,
   updateIncomeInputSchema,
 } from "../domain/income-input";
+import type {
+  TransactionSaveFeedback,
+  TransactionSaveOperation,
+  TransactionType,
+} from "../domain/save-feedback";
 import { updateExpenseInputSchema } from "../domain/update-expense-input";
 import type { ExpenseActionState } from "./action-state";
 
@@ -42,6 +55,43 @@ function customAllocations(formData: FormData) {
       memberId: name.slice("customAmount:".length),
       amountMinor: amountMinor === "" ? "0" : amountMinor,
     }));
+}
+
+// 保存結果の通知内容を短命cookieへ書き、遷移後の画面の通知領域に読ませる (AC-TXN-019-3)
+// 戻り値で返してクライアントが遷移する方式は、削除後に現在の編集画面が再描画されて404になるため採らない
+async function writeSaveFeedbackCookie(
+  feedback: TransactionSaveFeedback,
+): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(
+    SAVE_FEEDBACK_COOKIE_NAME,
+    encodeSaveFeedbackCookie(feedback),
+    {
+      path: "/",
+      maxAge: SAVE_FEEDBACK_COOKIE_MAX_AGE_SECONDS,
+      sameSite: "lax",
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+    },
+  );
+}
+
+// 保存済みの行から通知内容を組み立ててcookieへ書き、検証済みの遷移先へredirectする (AC-TXN-019-1, AC-TXN-019-2)
+async function redirectWithSaveFeedback(
+  operation: Exclude<TransactionSaveOperation, "delete">,
+  type: TransactionType,
+  groupId: string,
+  transactionId: string,
+  redirectTo: string,
+): Promise<never> {
+  const feedback = await loadTransactionSaveFeedback({
+    operation,
+    groupId,
+    transactionId,
+    fallbackType: type,
+  });
+  await writeSaveFeedbackCookie(feedback);
+  redirect(redirectTo);
 }
 
 // 支出登録フォームのServer Action。入力検証と負担額計算を経て支出を登録し、グループ画面へ戻す
@@ -89,8 +139,9 @@ export async function createExpenseAction(
     };
   }
 
+  let transactionId: string;
   try {
-    await createExpense(result.data, allocations);
+    transactionId = await createExpense(result.data, allocations);
   } catch {
     return {
       status: "error",
@@ -100,7 +151,13 @@ export async function createExpenseAction(
   }
 
   revalidatePath(`/groups/${result.data.groupId}`);
-  redirect(`/groups/${result.data.groupId}?created=expense`);
+  return redirectWithSaveFeedback(
+    "create",
+    "expense",
+    result.data.groupId,
+    transactionId,
+    `/groups/${result.data.groupId}`,
+  );
 }
 
 // 競合・対象なし・検証・その他のcommand結果を利用者向けメッセージへ変換する
@@ -184,10 +241,16 @@ export async function updateExpenseAction(
   }
 
   revalidateGroupScreens(result.data.groupId);
-  redirect(resolveEditReturnPath(unsafeReturnTo, result.data.groupId));
+  return redirectWithSaveFeedback(
+    "update",
+    "expense",
+    result.data.groupId,
+    result.data.transactionId,
+    resolveEditReturnPath(unsafeReturnTo, result.data.groupId),
+  );
 }
 
-// 取引削除のServer Action。楽観的ロック付きで物理削除し、検証済みの遷移元へ戻す
+// 取引削除のServer Action。削除前の行から通知内容を作り、楽観的ロック付きで物理削除して検証済みの遷移元へ戻す
 export async function deleteTransactionAction(
   groupId: string,
   transactionId: string,
@@ -196,6 +259,13 @@ export async function deleteTransactionAction(
   formData: FormData,
 ): Promise<ExpenseActionState> {
   const expectedVersion = Number(value(formData, "expectedVersion"));
+
+  // 物理削除後は行を読めないため、通知内容は削除前に組み立てる (AC-TXN-019-2)
+  const feedback = await loadTransactionSaveFeedback({
+    operation: "delete",
+    groupId,
+    transactionId,
+  });
 
   const commandResult = await deleteTransaction({
     groupId,
@@ -213,6 +283,7 @@ export async function deleteTransactionAction(
   }
 
   revalidateGroupScreens(groupId);
+  await writeSaveFeedbackCookie(feedback);
   redirect(resolveEditReturnPath(unsafeReturnTo, groupId));
 }
 
@@ -240,8 +311,9 @@ export async function createIncomeAction(
     };
   }
 
+  let transactionId: string;
   try {
-    await createIncome(result.data);
+    transactionId = await createIncome(result.data);
   } catch {
     return {
       status: "error",
@@ -251,7 +323,13 @@ export async function createIncomeAction(
   }
 
   revalidateGroupScreens(result.data.groupId);
-  redirect(`/groups/${result.data.groupId}?created=income`);
+  return redirectWithSaveFeedback(
+    "create",
+    "income",
+    result.data.groupId,
+    transactionId,
+    `/groups/${result.data.groupId}`,
+  );
 }
 
 // 取引登録の入口Action。フォームの種別に応じて支出・収入のActionへ振り分ける
@@ -304,5 +382,11 @@ export async function updateIncomeAction(
   }
 
   revalidateGroupScreens(result.data.groupId);
-  redirect(resolveEditReturnPath(unsafeReturnTo, result.data.groupId));
+  return redirectWithSaveFeedback(
+    "update",
+    "income",
+    result.data.groupId,
+    result.data.transactionId,
+    resolveEditReturnPath(unsafeReturnTo, result.data.groupId),
+  );
 }
