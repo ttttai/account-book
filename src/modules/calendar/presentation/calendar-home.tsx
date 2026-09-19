@@ -62,13 +62,10 @@ export function CalendarValidationError({
 }
 
 // 自分以外のアクティブメンバー数で2枠・直接リンク・選択欄を切り替える (AC-CAL-004-1)
-// 3枠のときだけ固定語の幅を確保して残りを3枠目へ渡す修飾classを付ける (AC-CAL-004-3)
+// 枠幅は枠数にかかわらずCSSで等分し、componentから修飾classを付けない (AC-CAL-004-3)
 function ScopeNavigation({ data }: Readonly<{ data: CalendarReadyData }>) {
   const others = data.members.filter((member) => !member.isCurrentUser);
-  const navClassName =
-    others.length > 0
-      ? `${styles["calendar-scope-nav"]} ${styles["has-member-slot"]}`
-      : styles["calendar-scope-nav"];
+  const navClassName = styles["calendar-scope-nav"];
   const currentMember = data.members.find((member) => member.isCurrentUser);
   const isSelfActive =
     data.scope === "self" ||

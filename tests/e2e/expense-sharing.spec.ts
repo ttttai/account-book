@@ -136,11 +136,16 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
       expect(box.height).toBeGreaterThanOrEqual(44);
       expect(Math.abs(box.y - boxes[0].y)).toBeLessThan(1);
       expect(box.x + box.width).toBeLessThanOrEqual(width);
-      // 「グループ」「自分」と相手の表示名のいずれも省略されない (AC-CAL-004-3)
-      expect(box.isClipped).toBe(false);
+      // 3枠は枠数にかかわらず等幅とする (AC-CAL-004-3)
+      expect(Math.abs(box.width - boxes[0].width)).toBeLessThan(1);
     }
-    // 3枠目は320pxでも「グループ」枠以上の幅を持つ (AC-CAL-004-3)
-    expect(boxes[2].width).toBeGreaterThanOrEqual(boxes[0].width);
+    // 固定語の「グループ」「自分」は等幅の枠に収まり省略されない (AC-CAL-004-3)
+    expect(boxes[0].isClipped).toBe(false);
+    expect(boxes[1].isClipped).toBe(false);
+    // 3枠目は省略され得るが、accessibility nameには表示名の全文が残る (AC-CAL-004-3)
+    await expect(
+      scopeNav.getByRole("link", { name: E2E_USER_B.displayName }),
+    ).toHaveCount(1);
     expect(
       await memberPage.evaluate(
         () => document.documentElement.scrollWidth - innerWidth,

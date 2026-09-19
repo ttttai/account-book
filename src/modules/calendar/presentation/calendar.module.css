@@ -92,18 +92,16 @@
   }
 }
 
-/* 枠は1行で折り返さない。2枠は等幅、3枠は固定語の幅を確保して残りを3枠目へ渡す (AC-CAL-004-1, AC-CAL-004-3) */
+/* 枠は1行で折り返さず、枠数にかかわらず等幅に分ける。flexではpaddingを持つ枠だけ基準幅が広がり等幅にならない (AC-CAL-004-1, AC-CAL-004-3) */
 .calendar-scope-nav {
-  display: flex;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 0.35rem;
   margin-top: 0.35rem;
   padding: 0.15rem;
   border-radius: 0.9rem;
   background: var(--background);
-}
-
-.calendar-scope-nav > a {
-  flex: 1 1 0;
 }
 
 .calendar-scope-nav > a,
@@ -136,14 +134,13 @@
 
 .calendar-member-picker {
   position: relative;
-  flex: 1 1 0;
   min-width: 0;
 }
 
-/* 選択欄であることを示す開閉の印の分だけ左右を空け、文字は中央に保つ */
+/* 等幅の枠でも固定語が省略されないよう、開閉の印に必要な分だけ左右を空けて文字は中央に保つ (AC-CAL-004-3) */
 .calendar-member-picker > summary {
   position: relative;
-  padding-inline: 1.25rem;
+  padding-inline: 0.75rem;
   list-style: none;
   cursor: pointer;
 }
@@ -153,9 +150,9 @@
   content: "";
   position: absolute;
   top: 50%;
-  right: 0.55rem;
-  width: 0.38rem;
-  height: 0.38rem;
+  right: 0.2rem;
+  width: 0.3rem;
+  height: 0.3rem;
   border-right: 2px solid currentColor;
   border-bottom: 2px solid currentColor;
   transform: translateY(-70%) rotate(45deg);
@@ -200,15 +197,6 @@
   color: var(--accent);
   background: var(--accent-soft);
   font-weight: 700;
-}
-
-/* 3枠では「グループ」「自分」を省略せず、幅が足りないときは3枠目だけを縮めて省略する (AC-CAL-004-3) */
-.calendar-scope-nav.has-member-slot > a:nth-child(-n + 2) {
-  flex: 1 0 auto;
-}
-
-.calendar-scope-nav.has-member-slot > :nth-child(3) {
-  flex: 1 1 auto;
 }
 
 .calendar-total {
