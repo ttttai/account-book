@@ -10,6 +10,7 @@ import {
   isAuthenticationQueryError,
   isUnavailableAuthError,
   logAuthenticationQueryDegradation,
+  runReadQueryWithTransientRetry,
 } from "@/modules/auth/server";
 
 const preferenceRowSchema = z.object({
@@ -28,11 +29,16 @@ export async function getDefaultGroupId(): Promise<string | null> {
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return null;
 
-  const result = await supabase
-    .from("user_preferences")
-    .select("default_group_id")
-    .eq("user_id", userId)
-    .maybeSingle();
+  // 一過性の時刻検証エラーはその場で1回だけ取り直し、初回アクセスでエラー画面を出さない (AC-AUTH-004-7)
+  const result = await runReadQueryWithTransientRetry(
+    "groups.defaultGroup",
+    () =>
+      supabase
+        .from("user_preferences")
+        .select("default_group_id")
+        .eq("user_id", userId)
+        .maybeSingle(),
+  );
 
   if (result.error) {
     // 失効session等の認証起因の失敗はserver errorにせず、未設定と同じ判定へ縮退させる。

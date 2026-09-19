@@ -204,13 +204,38 @@ describe("resolveGroupReadContext", () => {
     ["group", transientClockFailure, { data: activeMemberships, error: null }],
     ["membership", { data: groupRow, error: null }, transientClockFailure],
   ])(
-    "%s queryの一過性の時刻検証エラーはnullへ縮退させず例外にする (AC-AUTH-004-6)",
+    "%s queryの一過性の時刻検証エラーが2回とも続く場合だけ例外にする (AC-AUTH-004-6, AC-AUTH-004-7)",
     async (_name, group, membership) => {
-      setupContextQueries(group, membership);
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      // 再実行で組み直される2本分も積む
+      const client = setupContextQueries(group, membership);
+      client.from
+        .mockReturnValueOnce(maybeSingleQuery(group))
+        .mockReturnValueOnce(membershipQuery(membership));
 
       await expect(resolveGroupReadContext(GROUP_ID)).rejects.toBeInstanceOf(
         BackendUnavailableError,
       );
+      expect(client.from).toHaveBeenCalledTimes(4);
+    },
+  );
+
+  it.each([
+    ["group", transientClockFailure, { data: activeMemberships, error: null }],
+    ["membership", { data: groupRow, error: null }, transientClockFailure],
+  ])(
+    "%s queryの一過性の時刻検証エラーは1回だけ取り直し、成功すれば例外にしない (AC-AUTH-004-7)",
+    async (_name, group, membership) => {
+      vi.spyOn(console, "warn").mockImplementation(() => {});
+      const client = setupContextQueries(group, membership);
+      client.from
+        .mockReturnValueOnce(maybeSingleQuery({ data: groupRow, error: null }))
+        .mockReturnValueOnce(
+          membershipQuery({ data: activeMemberships, error: null }),
+        );
+
+      await expect(resolveGroupReadContext(GROUP_ID)).resolves.not.toBeNull();
+      expect(client.from).toHaveBeenCalledTimes(4);
     },
   );
 

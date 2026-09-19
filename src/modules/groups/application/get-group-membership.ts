@@ -10,6 +10,7 @@ import {
   isAuthenticationQueryError,
   isUnavailableAuthError,
   logAuthenticationQueryDegradation,
+  runReadQueriesWithTransientRetry,
 } from "@/modules/auth/server";
 
 import type {
@@ -62,21 +63,25 @@ export async function getGroupMembership(
   const userId = getAllowedGoogleUserId(claimsData?.claims);
   if (claimsError || !userId) return null;
 
-  const [groupResult, membershipResult] = await Promise.all([
-    supabase
-      .from("groups")
-      .select(
-        "id, name, currency, timezone, week_starts_on, default_allocation, version",
-      )
-      .eq("id", groupIdResult.data)
-      .maybeSingle(),
-    supabase
-      .from("group_members")
-      .select("id, user_id, role, joined_at")
-      .eq("group_id", groupIdResult.data)
-      .eq("status", "active")
-      .order("joined_at", { ascending: true }),
-  ]);
+  // どちらかが一過性の時刻検証エラーなら両方を1回だけ取り直す。どちらも読み取りで冪等 (AC-AUTH-004-7)
+  const [groupResult, membershipResult] =
+    await runReadQueriesWithTransientRetry("groups.membership", () =>
+      Promise.all([
+        supabase
+          .from("groups")
+          .select(
+            "id, name, currency, timezone, week_starts_on, default_allocation, version",
+          )
+          .eq("id", groupIdResult.data)
+          .maybeSingle(),
+        supabase
+          .from("group_members")
+          .select("id, user_id, role, joined_at")
+          .eq("group_id", groupIdResult.data)
+          .eq("status", "active")
+          .order("joined_at", { ascending: true }),
+      ]),
+    );
 
   const failedResult = groupResult.error
     ? groupResult

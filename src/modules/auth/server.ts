@@ -6,6 +6,8 @@ export {
   createQueryFailureError,
   isUnavailableAuthError,
   logAuthenticationQueryDegradation,
+  runReadQueriesWithTransientRetry,
+  runReadQueryWithTransientRetry,
 } from "./domain/backend-availability";
 export {
   isAuthenticationQueryError,
