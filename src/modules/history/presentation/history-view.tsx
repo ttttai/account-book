@@ -13,6 +13,7 @@ import type {
   HistoryReadyData,
 } from "../application/history-types";
 import { historyDefaultPageSize } from "../domain/history-filter";
+import { historyKeywordMaxLength } from "../domain/history-keyword";
 import {
   formatHistoryMonthLabel,
   historyMonthOfDate,
@@ -26,6 +27,7 @@ type HistoryParams = Readonly<Record<string, string>>;
 
 // URLから拾う既知のkeyだけを条件として扱う。値の検証はサーバーで毎回行う (AC-HIS-008-2)
 const historyParamKeys = [
+  "q",
   "month",
   "type",
   "category",
@@ -38,6 +40,7 @@ const historyParamKeys = [
 
 // 「絞り込み」の件数に数える条件。支払者は画面へ出さないため数えない (TXN-018)
 const sheetConditionKeys = [
+  "q",
   "month",
   "type",
   "category",
@@ -45,8 +48,12 @@ const sheetConditionKeys = [
   "member",
 ] as const;
 
+// キーワードは入力の停止からこの時間で反映する (AC-HIS-009-3)
+const keywordApplyDelayMs = 400;
+
 function filterToParams(filter: HistoryAppliedFilter): HistoryParams {
   const params: Record<string, string> = {};
+  if (filter.query) params.q = filter.query;
   if (filter.month) params.month = filter.month;
   if (filter.type) params.type = filter.type;
   if (filter.categoryId) params.category = filter.categoryId;
@@ -272,17 +279,98 @@ function MonthField({
   );
 }
 
+// メモ・金額のキーワード欄。入力の停止からおよそ400ms（IMEの変換中は待つ）、Enter、focusの移動で反映し、
+// Enterではsheetを閉じて結果を見せる。同じキーワードのままでは再取得しない (HIS-009, AC-HIS-009-3)
+function KeywordField({
+  params,
+  onChange,
+  onSubmit,
+}: Readonly<{
+  params: HistoryParams;
+  onChange: FilterChangeHandler;
+  onSubmit: () => void;
+}>) {
+  const appliedKeyword = params.q ?? "";
+  const [value, setValue] = useState(appliedKeyword);
+  const paramsRef = useRef(params);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const isComposingRef = useRef(false);
+
+  useEffect(() => {
+    paramsRef.current = params;
+  }, [params]);
+
+  // 戻る／進むや「解除」でURL側のキーワードが変わったら欄へ同期する。入力中の末尾空白は消さない
+  useEffect(() => {
+    setValue((current) =>
+      current.trim() === appliedKeyword ? current : appliedKeyword,
+    );
+  }, [appliedKeyword]);
+
+  useEffect(() => () => clearTimeout(timerRef.current), []);
+
+  function commit(rawValue: string) {
+    clearTimeout(timerRef.current);
+    timerRef.current = undefined;
+    const keyword = rawValue.trim();
+    const latestParams = paramsRef.current;
+    if (keyword === (latestParams.q ?? "")) return;
+    onChange(withParam(latestParams, "q", keyword));
+  }
+
+  function schedule(rawValue: string) {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => commit(rawValue), keywordApplyDelayMs);
+  }
+
+  return (
+    <label className={styles["history-keyword-field"]}>
+      キーワード
+      <input
+        type="search"
+        name="q"
+        value={value}
+        maxLength={historyKeywordMaxLength}
+        placeholder="メモや金額"
+        enterKeyHint="search"
+        autoComplete="off"
+        onChange={(event) => {
+          setValue(event.target.value);
+          if (!isComposingRef.current) schedule(event.target.value);
+        }}
+        onCompositionStart={() => {
+          isComposingRef.current = true;
+          clearTimeout(timerRef.current);
+        }}
+        onCompositionEnd={(event) => {
+          isComposingRef.current = false;
+          schedule(event.currentTarget.value);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
+          event.preventDefault();
+          commit(event.currentTarget.value);
+          onSubmit();
+        }}
+        onBlur={(event) => commit(event.currentTarget.value)}
+      />
+    </label>
+  );
+}
+
 // 詳細条件のsheet。各条件は選択と同時に反映し、「適用」操作を置かない (HIS-002, AC-HIS-002-1)
 function FilterSheetFields({
   data,
   params,
   todayMonth,
   onChange,
+  onKeywordSubmit,
 }: Readonly<{
   data: HistoryReadyData;
   params: HistoryParams;
   todayMonth: string;
   onChange: FilterChangeHandler;
+  onKeywordSubmit: () => void;
 }>) {
   const expenseCategories = data.categories.filter(
     (category) => category.type === "expense",
@@ -295,6 +383,11 @@ function FilterSheetFields({
 
   return (
     <div className={styles["history-filter-form"]}>
+      <KeywordField
+        params={params}
+        onChange={onChange}
+        onSubmit={onKeywordSubmit}
+      />
       <MonthField
         month={params.month}
         todayMonth={todayMonth}
@@ -374,6 +467,9 @@ function AppliedFilters({
     data.categories.map((category) => [category.id, category.name]),
   );
   const chips: { key: string; label: string }[] = [];
+  if (params.q) {
+    chips.push({ key: "q", label: `キーワード「${params.q}」` });
+  }
   if (params.month) {
     chips.push({ key: "month", label: formatHistoryMonthLabel(params.month) });
   }
@@ -558,6 +654,7 @@ export function HistoryView({ data }: Readonly<{ data: HistoryReadyData }>) {
               params={params}
               todayMonth={todayMonth}
               onChange={handleFilterChange}
+              onKeywordSubmit={closeSheet}
             />
           </div>
         </dialog>

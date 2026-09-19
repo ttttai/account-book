@@ -397,4 +397,20 @@ describe("HistoryList", () => {
 
     expect(screen.getByText("条件に一致する取引はありません。")).toBeTruthy();
   });
+
+  it("キーワード指定時の空状態はキーワードを含めて示す (AC-HIS-009-4)", () => {
+    render(
+      <HistoryList
+        groupId={groupId}
+        filterParams={{ month: "2026-08", q: "炊飯器" }}
+        initialRows={[]}
+        initialNextCursor={undefined}
+        todayDate={todayDate}
+      />,
+    );
+
+    expect(
+      screen.getByText("「炊飯器」に一致する取引はありません。"),
+    ).toBeTruthy();
+  });
 });

@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -438,6 +439,163 @@ describe("HistoryView の絞り込みsheet (HIS-002, HIS-008)", () => {
     expect(currentSearch().has("member")).toBe(false);
     expect(applyHistoryFilterAction).toHaveBeenLastCalledWith(groupId, {});
     expect(screen.queryByRole("list", { name: "適用中の絞り込み" })).toBeNull();
+  });
+});
+
+describe("HistoryView のキーワード検索 (HIS-009)", () => {
+  function keywordInput(): HTMLInputElement {
+    return screen.getByRole("searchbox", {
+      name: "キーワード",
+    }) as HTMLInputElement;
+  }
+
+  it("sheet先頭のキーワード欄は入力停止からおよそ400msで反映し、同じ値では再取得しない (AC-HIS-009-3)", () => {
+    vi.useFakeTimers();
+    try {
+      renderHistoryPage();
+      const sheet = openFilterSheet();
+      const input = keywordInput();
+      expect(input.type).toBe("search");
+      expect(input.maxLength).toBe(100);
+      expect(input.getAttribute("enterkeyhint")).toBe("search");
+      expect(input.getAttribute("autocomplete")).toBe("off");
+      // sheetの最初の入力部品がキーワード欄
+      expect(sheet.querySelector("input, select")).toBe(input);
+
+      fireEvent.change(input, { target: { value: "炊飯" } });
+      fireEvent.change(input, { target: { value: "炊飯器" } });
+      expect(applyHistoryFilterAction).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
+      expect(applyHistoryFilterAction).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(applyHistoryFilterAction).toHaveBeenCalledTimes(1);
+      expect(applyHistoryFilterAction).toHaveBeenLastCalledWith(groupId, {
+        q: "炊飯器",
+      });
+      expect(currentSearch().get("q")).toBe("炊飯器");
+      // 反映後もsheetは開いたままで、件数と適用中条件に数える
+      expect(sheet.open).toBe(true);
+      expect(
+        screen.getByRole("button", { name: "絞り込み（1件適用中）" }),
+      ).toBeTruthy();
+      const applied = screen.getByRole("list", { name: "適用中の絞り込み" });
+      expect(within(applied).getByText("キーワード「炊飯器」")).toBeTruthy();
+
+      // 前後の空白だけが違う同じキーワードでは再取得せず、入力中の末尾空白も消さない
+      fireEvent.change(input, { target: { value: "炊飯器 " } });
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(applyHistoryFilterAction).toHaveBeenCalledTimes(1);
+      expect(input.value).toBe("炊飯器 ");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("IMEの変換中は反映を待ち、変換の確定後に反映する (AC-HIS-009-3)", () => {
+    vi.useFakeTimers();
+    try {
+      renderHistoryPage();
+      openFilterSheet();
+      const input = keywordInput();
+
+      fireEvent.compositionStart(input);
+      fireEvent.change(input, { target: { value: "すいはんき" } });
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(applyHistoryFilterAction).not.toHaveBeenCalled();
+
+      fireEvent.change(input, { target: { value: "炊飯器" } });
+      fireEvent.compositionEnd(input);
+      act(() => {
+        vi.advanceTimersByTime(400);
+      });
+      expect(applyHistoryFilterAction).toHaveBeenCalledTimes(1);
+      expect(applyHistoryFilterAction).toHaveBeenLastCalledWith(groupId, {
+        q: "炊飯器",
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("Enterでは即時に反映してsheetを閉じ、focusを「絞り込み」へ戻す (AC-HIS-009-3)", () => {
+    renderHistoryPage(createData({ limit: 30, type: "expense" }));
+    const sheet = openFilterSheet();
+    const input = keywordInput();
+
+    fireEvent.change(input, { target: { value: "¥3,980" } });
+    const keyEvent = fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(keyEvent).toBe(false);
+    expect(applyHistoryFilterAction).toHaveBeenCalledTimes(1);
+    // 他の条件を維持してキーワードを加える
+    expect(applyHistoryFilterAction).toHaveBeenLastCalledWith(groupId, {
+      type: "expense",
+      q: "¥3,980",
+    });
+    expect(currentSearch().get("q")).toBe("¥3,980");
+    expect(sheet.open).toBe(false);
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: /^絞り込み/ }),
+    );
+  });
+
+  it("focusの移動でも反映し、空にするとキーワード条件を外す (AC-HIS-009-3)", () => {
+    renderHistoryPage(createData({ limit: 30, query: "炊飯器" }));
+    openFilterSheet();
+    const input = keywordInput();
+    expect(input.value).toBe("炊飯器");
+
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+
+    expect(applyHistoryFilterAction).toHaveBeenCalledTimes(1);
+    expect(applyHistoryFilterAction).toHaveBeenLastCalledWith(groupId, {});
+    expect(currentSearch().has("q")).toBe(false);
+    expect(screen.queryByRole("list", { name: "適用中の絞り込み" })).toBeNull();
+  });
+
+  it("URLのqを欄と適用中条件へ復元し、戻る／進むと「解除」で欄も同期する (AC-HIS-009-3)", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      `${historyPath}?${new URLSearchParams({ q: "炊飯器" })}`,
+    );
+    renderHistoryPage(createData({ limit: 30, query: "炊飯器" }));
+    openFilterSheet();
+    expect(keywordInput().value).toBe("炊飯器");
+    const applied = screen.getByRole("list", { name: "適用中の絞り込み" });
+    expect(within(applied).getByText("キーワード「炊飯器」")).toBeTruthy();
+
+    window.history.pushState(
+      null,
+      "",
+      `${historyPath}?${new URLSearchParams({ q: "コストコ" })}`,
+    );
+    fireEvent.popState(window);
+    await waitFor(() =>
+      expect(applyHistoryFilterAction).toHaveBeenLastCalledWith(groupId, {
+        q: "コストコ",
+      }),
+    );
+    expect(keywordInput().value).toBe("コストコ");
+    expect(within(applied).getByText("キーワード「コストコ」")).toBeTruthy();
+
+    fireEvent.click(
+      within(applied).getByRole("link", {
+        name: "キーワード「コストコ」の絞り込みを解除",
+      }),
+    );
+    expect(currentSearch().has("q")).toBe(false);
+    expect(keywordInput().value).toBe("");
+    expect(applyHistoryFilterAction).toHaveBeenLastCalledWith(groupId, {});
   });
 });
 

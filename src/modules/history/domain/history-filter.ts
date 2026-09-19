@@ -1,4 +1,5 @@
 import { decodeHistoryCursor, type HistoryCursor } from "./history-cursor";
+import { normalizeHistoryKeyword } from "./history-keyword";
 
 export const historyDefaultPageSize = 30;
 export const historyMaxPageSize = 100;
@@ -12,6 +13,8 @@ export type HistoryFilter = Readonly<{
   payerMemberId?: string;
   recipientMemberId?: string;
   memberMemberId?: string;
+  /** メモ・金額のキーワード（前後空白を除いた1〜100文字） (HIS-009) */
+  query?: string;
   limit: number;
   cursor?: HistoryCursor;
 }>;
@@ -23,6 +26,7 @@ export type HistoryFilterReason =
   | "invalid_payer"
   | "invalid_recipient"
   | "invalid_member"
+  | "invalid_query"
   | "invalid_limit"
   | "invalid_cursor";
 
@@ -37,6 +41,7 @@ export type HistoryFilterInput = Readonly<{
   payer?: unknown;
   recipient?: unknown;
   member?: unknown;
+  q?: unknown;
   limit?: unknown;
   cursor?: unknown;
 }>;
@@ -112,6 +117,13 @@ export function parseHistoryFilter(
   const memberMemberId = memberIdOf(input.member);
   if (memberMemberId === null) return invalid("invalid_member");
 
+  // 空白だけは未指定、上限超過と文字列以外は不正として暗黙補正しない (AC-HIS-009-1)
+  const rawQuery = optionalString(input.q);
+  if (rawQuery === null) return invalid("invalid_query");
+  const query =
+    rawQuery === undefined ? undefined : normalizeHistoryKeyword(rawQuery);
+  if (query === null) return invalid("invalid_query");
+
   const limitValue = optionalString(input.limit);
   if (limitValue === null) return invalid("invalid_limit");
   let limit = historyDefaultPageSize;
@@ -140,6 +152,7 @@ export function parseHistoryFilter(
       ...(payerMemberId === undefined ? {} : { payerMemberId }),
       ...(recipientMemberId === undefined ? {} : { recipientMemberId }),
       ...(memberMemberId === undefined ? {} : { memberMemberId }),
+      ...(query === undefined ? {} : { query }),
       limit,
       ...(cursor === undefined ? {} : { cursor }),
     },

@@ -132,6 +132,35 @@ test("絞り込みの変更はページ全体を再読み込みせず、Client�
   assert.match(page, /<header className="app-header history-page-header">/);
 });
 
+test("キーワード検索はサーバー検証つきの`q`をfilter builderへ渡し、SQL文字列を組み立てない (HIS-009)", async () => {
+  const filter = await read("src/modules/history/domain/history-filter.ts");
+  const keyword = await read("src/modules/history/domain/history-keyword.ts");
+  const query = await read(
+    "src/modules/history/application/get-group-history.ts",
+  );
+  const view = await read("src/modules/history/presentation/history-view.tsx");
+  const list = await read("src/modules/history/presentation/history-list.tsx");
+
+  // 検証は既存のparseHistoryFilterで行い、長さの上限を純関数で持つ
+  assert.match(filter, /normalizeHistoryKeyword/);
+  assert.match(filter, /"invalid_query"/);
+  assert.match(keyword, /historyKeywordMaxLength = 100/);
+  assert.match(keyword, /\[\\\\%_\]/);
+  // queryはsupabase-jsのilike/orへパターンを値として渡し、SQLやrpcを文字列で組まない
+  assert.match(query, /buildHistoryKeywordCondition/);
+  assert.match(query, /\.ilike\("memo", /);
+  assert.match(query, /buildHistoryKeywordOrCondition/);
+  assert.doesNotMatch(query, /\.rpc\(|\.textSearch\(|sql`/);
+  // 欄はsheet内のsearch入力で、IME変換中の反映抑止とEnterの即時反映を持つ
+  assert.match(view, /type="search"/);
+  assert.match(view, /enterKeyHint="search"/);
+  assert.match(view, /onCompositionStart/);
+  assert.match(view, /onCompositionEnd/);
+  assert.match(view, /keywordApplyDelayMs = 400/);
+  assert.doesNotMatch(view, /autoFocus/);
+  assert.match(list, /に一致する取引はありません。/);
+});
+
 test("historyモジュールは他機能の内部実装へ依存しない", async () => {
   const entries = await readdir(new URL("src/modules/history/", root), {
     recursive: true,
