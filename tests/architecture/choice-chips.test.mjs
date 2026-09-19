@@ -94,7 +94,7 @@ test("取引入力・固定費・グループ作成・グループ設定はOS標
     // 公開エントリーポイント経由で共有部品を使う
     assert.match(
       source,
-      /import \{ ChoiceChip, ChoiceChipList \} from "@\/modules\/ui"/,
+      /import \{ ChoiceChip, ChoiceChipList(?:, \w+)* \} from "@\/modules\/ui"/,
     );
     assert.doesNotMatch(source, /@\/modules\/ui\/presentation/);
   }

@@ -1,7 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+
+import { showSaveFeedback } from "@/modules/ui";
 
 import { INITIAL_EXPENSE_ACTION_STATE } from "./action-state";
 import { deleteTransactionAction } from "./actions";
@@ -17,13 +20,13 @@ type DeleteTransactionFormProps = Readonly<{
   summary: string;
 }>;
 
-// 送信中は無効化する削除確定ボタン
-function ConfirmDeleteButton() {
+// 送信中と成功後（遷移完了まで）は無効化する削除確定ボタン
+function ConfirmDeleteButton({ disabled }: Readonly<{ disabled: boolean }>) {
   const { pending } = useFormStatus();
   return (
     <button
       className={`primary-button ${styles["danger-button"]}`}
-      disabled={pending}
+      disabled={pending || disabled}
       type="submit"
     >
       {pending ? "削除中…" : "削除を確定する"}
@@ -49,8 +52,17 @@ export function DeleteTransactionForm({
     boundAction,
     INITIAL_EXPENSE_ACTION_STATE,
   );
+  const router = useRouter();
   const [isConfirming, setIsConfirming] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
+
+  // 成功結果を受けたら通知を出してから遷移元へ戻る。遷移完了まで確定操作は無効のまま (AC-TXN-019-2, AC-TXN-019-3)
+  const saved = state.success;
+  useEffect(() => {
+    if (!saved) return;
+    showSaveFeedback(saved.feedback);
+    router.push(saved.redirectTo);
+  }, [saved, router]);
 
   // 確認dialogは開いた場所で縦に伸びるため、固定ドックへ隠れないよう重なりぶんだけ移動する (AC-TXN-009-5)
   // ドックが画面下端へ重なるのは狭い画面だけなので、PC幅では動かさない
@@ -93,9 +105,10 @@ export function DeleteTransactionForm({
               value={expectedVersion}
             />
             <div className={styles["delete-transaction-actions"]}>
-              <ConfirmDeleteButton />
+              <ConfirmDeleteButton disabled={Boolean(saved)} />
               <button
                 className="secondary-button"
+                disabled={Boolean(saved)}
                 onClick={() => setIsConfirming(false)}
                 type="button"
               >

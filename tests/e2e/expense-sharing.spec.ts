@@ -18,6 +18,17 @@ function monthlyTotal(page: Page) {
   return page.getByRole("region", { name: /月間合計$/ });
 }
 
+// 保存結果のトーストの通知領域 (TXN-019)
+function saveFeedback(page: Page) {
+  return page.getByRole("region", { name: "保存結果の通知" });
+}
+
+// 当年の取引日は「M/D」で表示する (AC-TXN-019-1)
+function shortDateLabel(day: string): string {
+  const [, month, date] = day.split("-").map(Number);
+  return `${month}/${date}`;
+}
+
 // E2E-004・E2E-005で共通に使う「2人メンバー + 均等共有支出」の状態を作る
 async function setUpSharedExpense(
   ownerPage: Page,
@@ -64,6 +75,17 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
     openUserPage,
     "E2E 均等共有",
   );
+
+  // 保存直後のカレンダー上部に、種別・操作と取引日・カテゴリ・金額の通知が出る (AC-TXN-019-1, AC-TXN-019-3)
+  const feedback = saveFeedback(memberPage);
+  await expect(feedback).toContainText("支出を登録しました");
+  await expect(feedback).toContainText(`${shortDateLabel(day)} 食費 ￥6,000`);
+  for (const banned of ["支払者", "負担", "内訳", "E2E 均等共有"]) {
+    await expect(feedback).not.toContainText(banned);
+  }
+  await expect(
+    feedback.getByRole("button", { name: "通知を閉じる" }),
+  ).toBeVisible();
 
   await openCalendar(memberPage, groupId, { month, scope: "group" });
   await expect(monthlyTotal(memberPage)).toContainText("￥6,000");
@@ -298,6 +320,12 @@ test("E2E-005 支出を編集・削除するとカレンダー合計が追随す
   await memberPage.getByRole("button", { name: "変更を保存" }).click();
 
   await expect(memberPage).toHaveURL(new RegExp(`/groups/${groupId}\\?`));
+  // 更新後の通知は更新後の金額を示し、本体のタップで即時に消える (AC-TXN-019-2, AC-TXN-019-4)
+  const updatedFeedback = saveFeedback(memberPage);
+  await expect(updatedFeedback).toContainText("支出を更新しました");
+  await expect(updatedFeedback).toContainText("食費 ￥8,000");
+  await updatedFeedback.getByText("支出を更新しました").click();
+  await expect(updatedFeedback).not.toContainText("支出を更新しました");
   await expect(monthlyTotal(memberPage)).toContainText("￥8,000");
 
   await openCalendar(memberPage, groupId, { month, scope: "group", day });
@@ -313,6 +341,12 @@ test("E2E-005 支出を編集・削除するとカレンダー合計が追随す
   await memberPage.getByRole("button", { name: "削除を確定する" }).click();
 
   await expect(memberPage).toHaveURL(new RegExp(`/groups/${groupId}\\?`));
+  // 削除後の通知は削除前の取引日・カテゴリ・金額を示す (AC-TXN-019-2)
+  const deletedFeedback = saveFeedback(memberPage);
+  await expect(deletedFeedback).toContainText("支出を削除しました");
+  await expect(deletedFeedback).toContainText(
+    `${shortDateLabel(day)} 食費 ￥8,000`,
+  );
   await expect(monthlyTotal(memberPage)).toContainText("￥0");
   await expect(
     memberPage.getByText("この月の取引はまだありません。"),
