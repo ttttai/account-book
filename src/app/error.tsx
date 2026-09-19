@@ -1,7 +1,7 @@
 "use client";
 
 // ルートのerror境界。固有のerror境界を持たない画面（招待の承認など）の読み込み失敗を、認証画面と同じカードで表示する (AC-AUTH-004-4)
-export default function RootError({ reset }: Readonly<{ reset: () => void }>) {
+export default function RootError({ retry }: Readonly<{ retry: () => void }>) {
   return (
     <main className="auth-page">
       <section
@@ -17,7 +17,7 @@ export default function RootError({ reset }: Readonly<{ reset: () => void }>) {
         <button
           className="primary-button"
           type="button"
-          onClick={() => reset()}
+          onClick={() => retry()}
         >
           再試行
         </button>

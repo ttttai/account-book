@@ -182,7 +182,7 @@ test("予算routeは公開境界、Promise searchParams、loading・error境界�
   assert.doesNotMatch(page, /fetch\([^)]+\/api\//);
   assert.match(loading, /aria-busy="true"/);
   assert.match(error, /^"use client";/m);
-  assert.match(error, /reset\(\)/);
+  assert.match(error, /retry\(\)/);
   // 設定ハブから遷移でき、現在地は「設定」
   assert.match(settings, /\/budgets/);
   assert.match(navigation, /`\$\{groupBase\}\/budgets`/);

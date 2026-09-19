@@ -125,7 +125,7 @@ test("分析routeにloadingとerror境界を置く", async () => {
 
   assert.match(loading, /aria-busy="true"/);
   assert.match(error, /^"use client";/m);
-  assert.match(error, /reset\(\)/);
+  assert.match(error, /retry\(\)/);
 });
 
 test("詳細分析routeは公開境界、Promise searchParams、固有loadingを使う", async () => {

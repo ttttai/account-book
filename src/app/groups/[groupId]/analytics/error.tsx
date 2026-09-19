@@ -1,8 +1,8 @@
 "use client";
 
 export default function AnalyticsError({
-  reset,
-}: Readonly<{ reset: () => void }>) {
+  retry,
+}: Readonly<{ retry: () => void }>) {
   return (
     <main className="protected-shell analytics-page">
       <section className="empty-panel" role="alert">
@@ -15,7 +15,7 @@ export default function AnalyticsError({
         </p>
         <button
           className="primary-button"
-          onClick={() => reset()}
+          onClick={() => retry()}
           type="button"
         >
           再試行
