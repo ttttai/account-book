@@ -298,7 +298,7 @@ Bの支出: 3,000円
 - `AC-AUTH-004-2` 外部URL、protocol-relative URL、制御文字を含む戻り先を拒否し、標準の保護画面を使う。
 - `AC-AUTH-004-3` サーバーの重要な読み取り・更新は、cookie上の未検証session情報ではなく検証済みclaimsまたはAuthユーザーを使用する。
 - `AC-AUTH-004-4` 保護画面の認証確認でSupabase Auth・PostgRESTが応答不能（接続失敗、timeout、5xx）な場合、未認証として扱わず、ログイン画面へ遷移しない。Proxyはredirectせずに要求を通し、Server Componentの読み取りは認証起因の失敗（`AC-AUTH-001-9`）と区別してserver errorにし、routeのerror境界が「読み込めませんでした」と「再試行」を表示する。sessionが存在しない、無効、または期限切れで更新できない場合だけ、従来どおりログイン画面へ遷移する。
-- `AC-AUTH-004-5` Proxyの認証確認は総待機時間5秒で打ち切り、超過を応答不能として扱う。Server Componentの取得中はroute-level loadingを表示し、取得失敗後にerror境界へ切り替える。error境界の「再試行」は同じURLを再取得し、認証状態や戻り先を書き換えない。
+- `AC-AUTH-004-5` Proxyの認証確認は総待機時間5秒で打ち切り、超過を応答不能として扱う。Server Componentの取得中はroute-level loadingを表示し、取得失敗後にerror境界へ切り替える。error境界の「再試行」は同じURLを再取得し、認証状態や戻り先を書き換えない。error stateを解除して同じ結果を再描画するだけの復帰手段は使わない。押すたびに同じURLへのサーバー要求が1回発生し、障害が解消していればその場で画面が戻る。
 - `AC-AUTH-004-6` PostgRESTがJWTの時刻検証で一過性の失敗（`PGRST303` "JWT issued at future"。idle後に古いキャッシュ時刻で`iat`を検証するPostgREST側の既知バグ）を返した場合、未認証や0件へ縮退させず、応答不能（`AC-AUTH-004-4`）と同じserver errorにしてerror境界の「再試行」へ委ねる。認証起因の失敗（`AC-AUTH-001-9`）で未認証へ縮退させる読み取りは、操作名とerror codeだけをlogへ残し、tokenやerror本文を記録しない。ホーム（`/app`）は、グループ一覧の読み取りが未認証へ縮退した場合に「最初の家計グループを作りましょう」を表示せず、ログイン画面へ遷移する。ローカル・E2E stackのPostgRESTは、この時刻検証の修正を含む14.18以上を使う。
 - `AC-AUTH-005-1` ユーザー向けコードからメール・パスワード登録、ログイン、再設定の画面と処理を削除する。旧URLはログイン画面へ安全に転送する。
 - `AC-AUTH-005-2` Authのメール、電話番号、匿名ログインを無効化し、ローカル・本番のアプリ構成からSMTPとMailpitを除外する。

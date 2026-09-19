@@ -86,7 +86,7 @@ test("履歴routeにloadingとerror境界を置く", async () => {
 
   assert.match(loading, /history-skeleton/);
   assert.match(error, /"use client"/);
-  assert.match(error, /reset\(\)/);
+  assert.match(error, /retry\(\)/);
 });
 
 test("さらに読み込むは薄いServer Action経由でDTOをClient追記する", async () => {

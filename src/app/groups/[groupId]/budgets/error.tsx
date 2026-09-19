@@ -1,8 +1,8 @@
 "use client";
 
 export default function BudgetsError({
-  reset,
-}: Readonly<{ reset: () => void }>) {
+  retry,
+}: Readonly<{ retry: () => void }>) {
   return (
     <main className="protected-shell budget-page">
       <section className="empty-panel" role="alert">
@@ -13,7 +13,7 @@ export default function BudgetsError({
         <p>接続状態を確認して、もう一度お試しください。</p>
         <button
           className="primary-button"
-          onClick={() => reset()}
+          onClick={() => retry()}
           type="button"
         >
           再試行

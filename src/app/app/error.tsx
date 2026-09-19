@@ -2,8 +2,8 @@
 
 // ホーム（/app）のerror境界。バックエンド障害でもログイン画面へ遷移せず、loading・確定後と同じshellで再試行を表示する (AC-AUTH-004-4)
 export default function ProtectedAppError({
-  reset,
-}: Readonly<{ reset: () => void }>) {
+  retry,
+}: Readonly<{ retry: () => void }>) {
   return (
     <main className="protected-shell groups-overview">
       <section
@@ -19,7 +19,7 @@ export default function ProtectedAppError({
         <button
           className="primary-button"
           type="button"
-          onClick={() => reset()}
+          onClick={() => retry()}
         >
           再試行
         </button>

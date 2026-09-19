@@ -1,8 +1,8 @@
 "use client";
 
 export default function GroupHistoryError({
-  reset,
-}: Readonly<{ reset: () => void }>) {
+  retry,
+}: Readonly<{ retry: () => void }>) {
   return (
     <main className="protected-shell group-home history-page">
       <section className="history-validation-error" role="alert">
@@ -12,7 +12,7 @@ export default function GroupHistoryError({
         <button
           className="primary-button"
           type="button"
-          onClick={() => reset()}
+          onClick={() => retry()}
         >
           再試行
         </button>

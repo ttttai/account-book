@@ -1,8 +1,8 @@
 "use client";
 
 export default function GroupCalendarError({
-  reset,
-}: Readonly<{ reset: () => void }>) {
+  retry,
+}: Readonly<{ retry: () => void }>) {
   return (
     <main className="protected-shell group-home calendar-home-page">
       <section className="calendar-validation-error" role="alert">
@@ -12,7 +12,7 @@ export default function GroupCalendarError({
         <button
           className="primary-button"
           type="button"
-          onClick={() => reset()}
+          onClick={() => retry()}
         >
           再試行
         </button>

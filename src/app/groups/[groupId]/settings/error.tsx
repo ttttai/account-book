@@ -1,6 +1,6 @@
 "use client";
 
-export default function SettingsError({ reset }: { reset: () => void }) {
+export default function SettingsError({ retry }: { retry: () => void }) {
   return (
     <main className="protected-shell settings-page">
       <section className="settings-panel settings-error" role="alert">
@@ -10,7 +10,7 @@ export default function SettingsError({ reset }: { reset: () => void }) {
         <button
           className="primary-button"
           type="button"
-          onClick={() => reset()}
+          onClick={() => retry()}
         >
           再試行
         </button>

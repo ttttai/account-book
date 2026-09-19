@@ -66,7 +66,7 @@ test("カレンダーrouteにloadingとerror境界を置く", async () => {
 
   assert.match(loading, /calendar-skeleton/);
   assert.match(error, /"use client"/);
-  assert.match(error, /reset\(\)/);
+  assert.match(error, /retry\(\)/);
 });
 
 test("日付選択は認可済み月間DTOを使う局所的なClient interactionとする", async () => {
