@@ -251,6 +251,55 @@ test("E2E-004 均等共有支出がカレンダーと履歴で一致する @desk
   await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
     "￥3,000",
   );
+  // キーワード検索: メモの一部でEnterを押すと、ページ全体を再読み込みせずURLへqが保存され同じ取引が残る (AC-HIS-009-2, AC-HIS-009-3)
+  const isMobile = testInfo.project.name === "mobile";
+  const keywordInput = memberPage.getByRole("searchbox", {
+    name: "キーワード",
+  });
+  await memberPage.evaluate(() => {
+    (window as Window & { __e2eHistoryMarker?: boolean }).__e2eHistoryMarker =
+      true;
+  });
+  if (isMobile) {
+    await memberPage.getByRole("button", { name: /^絞り込み/ }).click();
+  }
+  await keywordInput.fill("均等");
+  await keywordInput.press("Enter");
+  await expect(memberPage).toHaveURL(
+    new RegExp(`[?&]q=${encodeURIComponent("均等")}`),
+  );
+  if (isMobile) {
+    // Enterはsheetを閉じて結果を見せる
+    await expect(
+      memberPage.getByRole("dialog", { name: "絞り込み" }),
+    ).toBeHidden();
+  }
+  await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
+    "￥3,000",
+  );
+  expect(
+    await memberPage.evaluate(
+      () =>
+        (window as Window & { __e2eHistoryMarker?: boolean })
+          .__e2eHistoryMarker,
+    ),
+  ).toBe(true);
+  // 一致しない語では空状態がキーワードを含めて示され、「解除」で一覧が戻る (AC-HIS-009-4)
+  if (isMobile) {
+    await memberPage.getByRole("button", { name: /^絞り込み/ }).click();
+  }
+  await keywordInput.fill("該当なし");
+  await keywordInput.press("Enter");
+  await expect(historyRows).toContainText(
+    "「該当なし」に一致する取引はありません。",
+  );
+  await memberPage
+    .getByRole("link", { name: "キーワード「該当なし」の絞り込みを解除" })
+    .click();
+  await expect(memberPage).not.toHaveURL(/[?&]q=/);
+  await expect(historyRows.locator('[class*="history-amount"]')).toHaveText(
+    "￥3,000",
+  );
   // 行全体のタップで取引編集へ遷移し、戻り先に履歴URLを持つ (AC-HIS-006-3)
   await historyRows.getByRole("link").click();
   await expect(memberPage).toHaveURL(

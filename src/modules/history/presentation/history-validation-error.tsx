@@ -11,7 +11,7 @@ export function HistoryValidationError({
       <p className="eyebrow">絞り込み条件を確認してください</p>
       <h2>履歴を表示できません</h2>
       <p>
-        月、種別、カテゴリ、メンバー、件数またはページ位置の指定が正しくありません。取引データは読み込んでいません。
+        キーワード、月、種別、カテゴリ、メンバー、件数またはページ位置の指定が正しくありません。取引データは読み込んでいません。
       </p>
       <Link
         className="primary-link"

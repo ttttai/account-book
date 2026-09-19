@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.16
+バージョン: 0.2.17
 
 ## 1. 設計目標
 
@@ -367,6 +367,8 @@ RLSテストでは、テーブル直接アクセス、RESTアクセス、RPC/DB�
 分析（`ANA-*`）は集計用のテーブル、materialized view、集計列を追加しない。月範囲とカテゴリ別の集計は`transactions_group_date_idx`・`transactions_group_category_date_idx`と`transaction_allocations`の主keyを使い、サーバー上の純関数で合計する。
 
 初期実装は選択月を読み取り時に集計する。測定で必要になるまで`daily_summaries`テーブルを作らない。
+
+履歴のキーワード検索（`HIS-009`）は、`transactions_group_date_idx`で絞ったグループ範囲内の`memo`への`ILIKE`部分一致と`amount_minor`の完全一致で行う。非公開MVPのデータ量では専用の列・trigram index・全文検索の設定を追加せず、計測で必要になった時点で`pg_trgm`のindexを別のmigrationとして検討する。
 
 ## 7. 削除・保持
 
