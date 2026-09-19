@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.3.10
+バージョン: 0.3.14
 
 ## 1. モバイル基準
 
@@ -15,6 +15,7 @@
 - viewport幅を変えても横スクロール、要素の重なり、操作不能な領域を発生させず、情報の意味と操作順序を変えない。
 - 金額は日本式の桁区切りと`¥`で表示する。カレンダーの日付セルも`10,000`のような10進数字を使い、`万`表記への省略や丸めを行わない。
 - 色だけで意味を伝えない。
+- 配色は既定でOSの配色設定に追従し、ダーク設定ではダークテーマで表示する。設定画面の「画面の配色」で、このアプリだけをライト・ダークへ固定できる（§9、§14、`NFR-UI-010`）。
 
 ## 2. ナビゲーション
 
@@ -351,6 +352,7 @@ sheetの見出しは選択日の日付の横（狭い幅では折り返して直
 
 - プロフィール表示名の確認・更新
 - 起動時に開くグループの設定・解除
+- 画面の配色（ライト・ダーク）の選択
 - グループ切り替え・作成
 - メンバー一覧・招待・権限管理への入口
 - グループ設定（グループ名、週の開始曜日、標準の分け方の確認・変更。通貨・タイムゾーンは表示のみ）
@@ -363,6 +365,8 @@ sheetの見出しは選択日の日付の横（狭い幅では折り返して直
 グループ削除はMVPに表示しない。
 
 アカウント項目の「起動時に開くグループ」は、表示中のグループが起動時に開くグループでなければ「このグループを起動時に開く」ボタンを、起動時に開くグループであれば「このグループを起動時に開きます」の状態表示と「解除する」ボタンを表示する。ボタンは44 x 44 CSS pixel以上とし、実行中は無効化して結果メッセージを同じ項目内へ表示する。設定はメンバー権限を問わず本人のアカウント設定として扱い、他のメンバーの起動時の遷移先へ影響しないことを補足文で示す。
+
+アカウント項目の「画面の配色」は、「ライト」「ダーク」の2択を§15の選択肢chip（単一選択、各44 x 44 CSS pixel以上、320pxでは折り返し）で表示し、現在の選択をcontrolledな`checked`で示す。まだ選んでいない（cookieが無い）間はOSの設定どおりの配色で表示し、chipにはhydration後に`matchMedia("(prefers-color-scheme: dark)")`で判定した現在有効な配色を選択状態で示す（サーバーはOS設定を知らないため、初回HTMLではどちらも未選択で出す）。選ぶと同じ画面が即時にその配色へ切り替わり、ページの再読み込み・再取得・Server Actionを伴わない。項目は見出しと2つのchipだけで構成し、説明文は表示しない。「OSに従う」に戻す操作は提供しない（`NFR-UI-010`）。
 
 「グループ設定」項目（`GRP-013`）は、owner/adminにはグループ名（1〜50文字のテキスト入力）、週の開始曜日（日曜日・月曜日）、標準の分け方（メンバーで均等・自分だけ）の編集フォームと「保存する」ボタンを表示する。ボタンは44 x 44 CSS pixel以上とし、保存中は無効化する。通貨（JPY）とタイムゾーン（Asia/Tokyo）は同じ項目内に読み取り専用で表示し、「通貨とタイムゾーンは現在JPY・日本時間（Asia/Tokyo）に固定で、変更できません」の補足文で変更手段が無い理由を示す。フォームは読み込み時の`version`を隠しfieldで保持し、保存結果（成功・入力エラー・競合・権限不足）を同じ項目内へ表示する。成功時は他画面へ遷移せず、画面見出しのグループ名と項目内の値を更新後の値にする。競合時は他のメンバーが先に変更した旨と再読み込みを案内し、入力中の値を破棄しない。memberには同じ項目をグループ名・通貨・タイムゾーン・週の開始・標準の分け方の読み取り専用一覧として表示し、編集操作を出さない。項目の文言は「分け方」を使い、「負担」を表示しない（`AC-TXN-018-2`）。週の開始曜日と標準の分け方の選択肢はグループ作成（§4）と同じ選択肢chip（§15）で表示し、controlledな`checked`で現在値を示す（`AC-GRP-013-8`）。
 
@@ -499,6 +503,65 @@ sheetの見出しは選択日の日付の横（狭い幅では折り返して直
 - motionの長さは200ms以下に限定し、操作の結果（選択状態、URL、focus、送信する値）はmotionの開始時点で確定させる。motionの終了を待ってから状態を変える実装は行わない（`CAL-011`）。
 - loadingのshimmer（`calendar-shimmer`、`history-shimmer`、`expense-loading`）は待機表示の繰り返しanimationであり、上記tokenの対象外とする。ただし`prefers-reduced-motion: reduce`では他のmotionと同じく無効化する（§15）。
 
+### 色のdesign tokenとダークテーマ
+
+- 色のdesign tokenは`src/app/styles.css`の`:root`でライトテーマの値を定義し、ダークテーマの値は同じtokenに対して2つの規則で再定義する。`@media (prefers-color-scheme: dark)`内の`:root:not([data-theme="light"])`（未選択でOS設定に従う場合）と、`:root[data-theme="dark"]`（アプリで「ダーク」を選んだ場合）である。2つの規則の宣言は同一に保ち、architecture testで一致を検証する。`color-scheme`もライトは`light`、ダークは`dark`とし、OS標準のform control・scrollbar・`dialog::backdrop`も追従させる（`NFR-UI-010`）。
+- `<html data-theme="light|dark">`はサーバーがcookie `theme`の許可値から初回HTMLへ出力し、設定画面の「画面の配色」（§9）の変更時はClient Componentが同じ属性とcookie、`theme-color`のmetaを即時に書き換える。未選択（cookieなし）では属性を付けない。属性の値はcookie・URL・DTOのどれからも許可値以外を通さない。
+- 各機能のCSS Modules（`src/modules/ui`を含む）と`styles.css`のtoken定義以外の規則は、色を必ず`var(--token)`で参照し、HEX・`rgb()`・`hsl()`・色名（`white`など）を直書きしない。半透明の影・overlayは`rgb(var(--shadow-rgb) / n%)`または`color-mix(in srgb, var(--token) n%, transparent)`で作る。
+- ダークテーマはライトと同じレイアウト・情報・操作順序を保ち、色だけを変える。塗りの意味（accent＝支出・主操作、青系＝収入、赤系＝赤字・削除・エラー、黄系＝予算の警告）はテーマで変えない。テーマの切替UIは設定画面の「画面の配色」（§9）だけに置き、他の画面へは置かない。
+- 選択はブラウザのcookieだけに保存する。利用者アカウントへの保存（端末間の同期）、時間帯による自動切替、画像・アイコンの差し替えは行わない。
+
+| token                      | ライト                   | ダーク                   | 用途                                                                         |
+| -------------------------- | ------------------------ | ------------------------ | ---------------------------------------------------------------------------- |
+| `--background`             | `#f7f5ef`                | `#151a17`                | ページ背景。`viewport.themeColor`と一致させる（`NFR-PWA-002`）               |
+| `--background-glow`        | `#e4eee4`                | `#1c2822`                | ページ背景右上のradial gradient                                              |
+| `--surface`                | `#fffdf8`                | `#1e2521`                | カード・パネル・sheet・下部ナビゲーション                                    |
+| `--surface-strong`         | `#ffffff`                | `#272f2a`                | 入力欄、選択中のsegment、丸ボタン、テンキーのキーなどsurface上の一段明るい面 |
+| `--surface-muted`          | `#eef1ed`                | `#303a33`                | segmented controlの溝、押下中のキー、終了済みの固定費カード                  |
+| `--text`                   | `#243126`                | `#e8ece8`                | 本文                                                                         |
+| `--muted`                  | `#647066`                | `#a5b0a8`                | 補助文・ラベル                                                               |
+| `--text-faint`             | `#b1b8b1`                | `#5d675f`                | 選択月外の日番号（非活性、コントラスト対象外）                               |
+| `--border`                 | `#dce1da`                | `#38423b`                | カード・区切り線の枠                                                         |
+| `--field-border`           | `#bdc7bd`                | `#4a564e`                | 入力欄・キー・選択肢chipの枠                                                 |
+| `--shadow-rgb`             | `36 49 38`               | `0 0 0`                  | 影の色成分。`rgb(var(--shadow-rgb) / n%)`で使う                              |
+| `--backdrop`               | `rgb(36 49 38 / 35%)`    | `rgb(0 0 0 / 60%)`       | dialogの背景overlay                                                          |
+| `--skeleton-base`          | `#ecefeb`                | `#242c27`                | loading shimmerの地色                                                        |
+| `--skeleton-highlight`     | `#f7f8f6`                | `#2e3731`                | loading shimmerの光                                                          |
+| `--accent`                 | `#2f6f55`                | `#7fc6a2`                | accentの文字・アイコン・枠（リンク、eyebrow、選択中の文字、支出額）          |
+| `--accent-surface`         | `#2f6f55`                | `#337a5e`                | accentの塗り（主ボタン、今日のセル、収入の固定費badge、予算の棒、選択記号）  |
+| `--accent-surface-end`     | `#50745b`                | `#3c8062`                | 月間合計バナーのgradient終端                                                 |
+| `--accent-soft`            | `#dcebe1`                | `#24382e`                | accentの淡い背景（選択中のchip、hoverしたセル、役割badge）                   |
+| `--accent-faint`           | `#eaf2ec`                | `#1f2f27`                | テンキーの演算子キーの背景                                                   |
+| `--accent-strong`          | `#275e47`                | `#a7dcbf`                | `--accent-soft`上の強い文字（statusバッジ）                                  |
+| `--accent-border`          | `#bad5c3`                | `#3a5a48`                | statusバッジ・共有リンク結果の枠                                             |
+| `--on-accent`              | `#ffffff`                | `#ffffff`                | accent塗り・危険塗りの上の文字                                               |
+| `--on-accent-muted`        | `rgb(255 255 255 / 78%)` | `rgb(255 255 255 / 78%)` | 月間合計バナー上の補助文                                                     |
+| `--income-on-accent`       | `#d9e7ff`                | `#edf3ff`                | 月間合計バナー上の収入額                                                     |
+| `--negative-on-accent`     | `#ffd8cf`                | `#fff0ec`                | 月間合計バナー上の赤字の収支                                                 |
+| `--income`                 | `#2d5da8`                | `#8fb6f5`                | 収入の文字（セルの収入額、日別sheetの収入見出し、「収入」の印の文字）        |
+| `--income-soft`            | `#e3ecfa`                | `#1f2d47`                | 「収入」の印の背景                                                           |
+| `--danger`                 | `#a3342f`                | `#f29a90`                | エラー文、赤字の指標、削除導線の文字・枠色                                   |
+| `--danger-soft`            | `#f6e8e7`                | `#3b2523`                | 削除確認・超過badgeの淡い背景                                                |
+| `--danger-border`          | `#cf9a96`                | `#7a423d`                | 削除導線・削除確認の枠                                                       |
+| `--danger-surface`         | `#a3342f`                | `#a3342f`                | 削除実行ボタンの塗り（文字は`--on-accent`）                                  |
+| `--warning`                | `#8a5a00`                | `#f0c268`                | 予算80%以上の状態文字、編集時の注意文                                        |
+| `--warning-soft`           | `#fbefd2`                | `#3a2f15`                | 予算80%以上のbadge背景                                                       |
+| `--warning-bar`            | `#d29a35`                | `#d29a35`                | 予算80%以上の棒（状態ラベル併記、コントラスト対象外）                        |
+| `--neutral`                | `#758178`                | `#8d998f`                | 支出の固定費badgeの塗り、カテゴリ色の既定値（`[data-category-color]`）       |
+| `--chart-expense`          | `#d8664f`                | `#e5786a`                | 月別推移の支出の棒、貯金額推移の赤字の棒                                     |
+| `--chart-income`           | `#3d8a5f`                | `#5fb886`                | 月別推移の収入の棒                                                           |
+| `--weekend-saturday`       | `#3d6fbf`                | `#8fb1f2`                | 土曜の日番号（`CAL-016`）                                                    |
+| `--weekend-sunday`         | `#c24b45`                | `#f29a90`                | 日曜の日番号（`CAL-016`）                                                    |
+| `--weekend-saturday-faint` | `#a9bfe0`                | `#4f6488`                | 選択月外の土曜の日番号（非活性、コントラスト対象外）                         |
+| `--weekend-sunday-faint`   | `#e3b0ad`                | `#7a5654`                | 選択月外の日曜の日番号（非活性、コントラスト対象外）                         |
+| `--focus-ring`             | `rgb(47 111 85 / 28%)`   | `rgb(127 198 162 / 45%)` | focus-visibleのoutline                                                       |
+| `--focus-ring-soft`        | `rgb(47 111 85 / 18%)`   | `rgb(127 198 162 / 30%)` | 金額欄のfocus時の影、下部ナビゲーション現在地の枠                            |
+
+- カテゴリ色token（`[data-category-color="<token>"]`の`--category-color`、`AC-CAT-002-7`）はライトの18色を基準とし、ダークでは`--surface`に対して3:1未満になる`indigo`（`#8385e6`）、`navy`（`#7391c4`）、`wine`（`#c96274`）、`charcoal`（`#96a1aa`）だけを明度を上げた値へ再定義する。他の14色はテーマで変えない。各機能の`var(--category-color, ...)`の既定値は`var(--neutral)`とする。
+- ライトの`--weekend-sunday`は`#c9524c`から`#c24b45`へ、月間合計バナー上の収入額は`#cfe0ff`から`#d9e7ff`へ変更し、`NFR-A11Y-008`の4.5:1を満たす。土曜の日番号の色は変えない。
+- 影は両テーマで`rgb(var(--shadow-rgb) / n%)`とし、ダークでは黒の影で面の重なりを示す。半透明の下部ナビゲーション・認証カードの背景は`color-mix(in srgb, var(--surface) 94%, transparent)`で作る。
+- `viewport.themeColor`は配色が未選択のときはライト`#f7f5ef`・ダーク`#151a17`の2件を`prefers-color-scheme`のmediaで宣言し、ライト・ダークを選んだ後は選んだ側の1件だけを宣言する（`generateViewport`がcookieを読む）。manifestの`theme_color`・`background_color`はライトの値に固定する（`NFR-PWA-002`）。
+
 ## 15. アクセシビリティ・表記
 
 - formには視認できるlabelと、関連付けられたエラーメッセージを表示する。
@@ -507,6 +570,7 @@ sheetの見出しは選択日の日付の横（狭い幅では折り返して直
 - reduced motion設定を尊重する（`NFR-A11Y-007`）。`prefers-reduced-motion: reduce`では、`src/app/styles.css`のglobal ruleがすべての要素の`transition`と`animation`（loadingのshimmerを含む）を無効化し、日別取引sheetの開閉、入力ドックの高さ、選択状態・現在地の変化は即時に切り替わる。motionの終了を待つJavaScript（sheetのスライドアウト後の除去）は`matchMedia("(prefers-reduced-motion: reduce)")`で設定を確認し、reduce時は待たずに即時に完了させる。
 - 金額をheat mapの濃さだけで表現しない。分析の横棒・円グラフも長さ・角度と色だけで値を伝えない。
 - 削除操作はiconだけでなく文字labelも表示する。
+- ライト・ダークの両テーマで、文字と背景のtokenの組み合わせは4.5:1以上、意味を持つ非テキストの塗りは3:1以上のコントラスト比を保つ（`NFR-A11Y-008`）。比率は§14のtoken値からarchitecture testで検証する。
 
 ### 選択肢chip
 

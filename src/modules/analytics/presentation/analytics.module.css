@@ -21,7 +21,7 @@
   border: 1px solid var(--border);
   border-radius: 50%;
   color: var(--text);
-  background: white;
+  background: var(--surface-strong);
   font-size: 1.7rem;
   text-decoration: none;
 }
@@ -71,8 +71,8 @@
 
 .analytics-scope-nav :global(.is-active) {
   color: var(--accent);
-  background: white;
-  box-shadow: 0 4px 14px rgb(36 49 38 / 8%);
+  background: var(--surface-strong);
+  box-shadow: 0 4px 14px rgb(var(--shadow-rgb) / 8%);
 }
 
 .analytics-member-picker {
@@ -123,8 +123,8 @@
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 0.8rem;
-  background: white;
-  box-shadow: 0 16px 36px rgb(36 49 38 / 16%);
+  background: var(--surface-strong);
+  box-shadow: 0 16px 36px rgb(var(--shadow-rgb) / 16%);
 }
 
 .analytics-member-options a {
@@ -184,7 +184,7 @@
 }
 
 .analytics-metric.is-negative .analytics-metric-amount {
-  color: #a33b2d;
+  color: var(--danger);
 }
 
 .analytics-metric-comparison {
@@ -217,19 +217,19 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--accent);
-  background: white;
+  background: var(--surface-strong);
   font-size: 0.72rem;
   font-weight: 750;
 }
 
 .analytics-budget[data-status="warn"] .analytics-budget-status {
-  color: #8a5a00;
-  background: #fbefd2;
+  color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .analytics-budget[data-status="over"] .analytics-budget-status {
-  color: #a33b2d;
-  background: #f9e1dc;
+  color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .analytics-budget-limit,
@@ -334,7 +334,7 @@
 
 /* 扇形はstyles.cssのdesign token（--category-color）で塗る */
 .analytics-pie path {
-  fill: var(--category-color, #758178);
+  fill: var(--category-color, var(--neutral));
   stroke: var(--surface);
   stroke-width: 1;
 }
@@ -345,7 +345,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--category-color, #758178);
+  background: var(--category-color, var(--neutral));
 }
 
 .analytics-category-list {
@@ -405,7 +405,7 @@
   height: 8px;
   max-width: 100%;
   border-radius: 999px;
-  background: var(--category-color, #758178);
+  background: var(--category-color, var(--neutral));
 }
 
 .analytics-empty-message {
@@ -517,8 +517,8 @@
 /* 選択中のpresetは塗りで示し、aria-currentでも伝える */
 .details-presets > a[aria-current="true"] {
   border-color: var(--accent);
-  color: white;
-  background: var(--accent);
+  color: var(--on-accent);
+  background: var(--accent-surface);
 }
 
 .details-range-toggle {
@@ -574,7 +574,7 @@
   border: 1px solid var(--border);
   border-radius: 0.65rem;
   color: var(--text);
-  background: white;
+  background: var(--surface-strong);
   font: inherit;
 }
 
@@ -600,7 +600,7 @@
   align-items: center;
   margin: 0.6rem 0 0;
   gap: 0.5rem;
-  color: #a3372a;
+  color: var(--danger);
   font-size: 0.78rem;
 }
 
@@ -737,20 +737,20 @@
 
 /* 系列の色は支出が赤系、収入が緑系、貯金額はaccent色。系列名はボタンのaria-pressedでも示す */
 .details-trend-plot i[data-trend-bar="expense"] {
-  background: #d8664f;
+  background: var(--chart-expense);
 }
 
 .details-trend-plot i[data-trend-bar="income"] {
-  background: #3d8a5f;
+  background: var(--chart-income);
 }
 
 .details-trend-plot i[data-trend-bar="savings"] {
-  background: var(--accent);
+  background: var(--accent-surface);
 }
 
 /* 貯金額の赤字は支出と同じ赤系にするが、向きと数値表の符号でも伝える (review: 2026-09-04-analytics-savings-trend-negative-color) */
 .details-trend-plot i[data-trend-bar="savings"][data-chart-bar="negative"] {
-  background: #d8664f;
+  background: var(--chart-expense);
 }
 
 .details-trend-axis {

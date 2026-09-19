@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.1
+バージョン: 0.2.3
 
 ## 1. 目的と範囲
 
@@ -118,6 +118,7 @@ E2E stackのアプリは本番build（§3.1）で動かし、`next dev`固有の
 | `E2E-012` | ホームカレンダーの行高配分と金額サイズ     | `NAV-002`、`CAL-002`、`CAL-012`、`AC-CAL-001-20`                      |
 | `E2E-013` | グループ設定の変更と読み取り専用表示       | `GRP-013`、`AC-GRP-013-1`、`AC-GRP-013-2`、`AC-GRP-013-6`             |
 | `E2E-014` | reduced motionでのmotion無効化             | `NFR-A11Y-007`、`NFR-UI-009`                                          |
+| `E2E-015` | 画面の配色の選択とOS設定への追従           | `NFR-UI-010`、`NFR-PWA-002`                                           |
 
 ### E2E-001 未認証の保護画面アクセスとログイン導線
 
@@ -219,6 +220,12 @@ E2E stackのアプリは本番build（§3.1）で動かし、`next dev`固有の
 
 - E2E利用者Aが新しいグループのホームを`emulateMedia({ reducedMotion: "reduce" })`で開いて日付を選び、日別取引sheetの`animation-name`が`none`、取引入力の入力ドックと下部ナビゲーションの現在地リンクの`transition-duration`が`0s`であることを確認する。「閉じる」を押すとsheetが即時に取り除かれる（`NFR-A11Y-007`）。
 - 同じ画面を`reducedMotion: "no-preference"`で開き直し、sheetにスライドのanimationが付き、入力ドックの`transition-duration`が0sを超え200ms以下であることを確認する（`NFR-UI-009`）。mobile projectだけで実行する。
+
+### E2E-015 画面の配色の選択とOS設定への追従
+
+- E2E利用者Aが`emulateMedia({ colorScheme: "light" })`で新しいグループの設定画面を開くと`<html>`に`data-theme`が無く、`body`の背景がライトの`--background`で、「画面の配色」は「ライト」が選択状態（OSの配色に合う側）である。「ダーク」を選ぶと、遷移・再読み込みなしに`data-theme="dark"`が付き、`body`の背景がダークの`--background`（`rgb(21, 26, 23)`）、`theme-color`のmetaがダークの値1件になる（`NFR-UI-010`、`NFR-PWA-002`）。
+- 再読み込み後もサーバーが出力した初回HTMLに`data-theme="dark"`が付き、ホームへ移動してもダークのままである。cookie `theme`は`dark`である。
+- `colorScheme: "dark"`のまま「ライト」を選ぶとライトの背景になり、`theme-color`のmetaがライトの値1件になる。cookie `theme`だけを削除して再読み込みすると`data-theme`が無くなり、OSの設定（dark）どおりの背景で「ダーク」が選択状態になる。mobile projectだけで実行する。
 
 ## 6. CI
 

@@ -40,7 +40,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--accent);
-  background: white;
+  background: var(--surface-strong);
   font-size: 0.82rem;
   font-weight: 700;
   text-decoration: none;
@@ -59,7 +59,7 @@
   border: 1px solid var(--border);
   border-radius: 50%;
   color: var(--text);
-  background: white;
+  background: var(--surface-strong);
   font-size: 1.7rem;
   text-decoration: none;
 }
@@ -128,8 +128,8 @@
 
 .calendar-scope-nav :global(.is-active) {
   color: var(--accent);
-  background: white;
-  box-shadow: 0 4px 14px rgb(36 49 38 / 8%);
+  background: var(--surface-strong);
+  box-shadow: 0 4px 14px rgb(var(--shadow-rgb) / 8%);
 }
 
 .calendar-member-picker {
@@ -179,8 +179,8 @@
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 0.8rem;
-  background: white;
-  box-shadow: 0 16px 36px rgb(36 49 38 / 16%);
+  background: var(--surface-strong);
+  box-shadow: 0 16px 36px rgb(var(--shadow-rgb) / 16%);
 }
 
 .calendar-member-options a {
@@ -207,13 +207,17 @@
   margin: 0.35rem 0;
   padding: 0.35rem 0.65rem;
   border-radius: 0.75rem;
-  color: white;
-  background: linear-gradient(135deg, var(--accent), #50745b);
+  color: var(--on-accent);
+  background: linear-gradient(
+    135deg,
+    var(--accent-surface),
+    var(--accent-surface-end)
+  );
 }
 
 .calendar-total p,
 .calendar-total span {
-  color: rgb(255 255 255 / 78%);
+  color: var(--on-accent-muted);
   font-size: 0.78rem;
 }
 
@@ -304,26 +308,26 @@
 }
 
 .calendar-cell.is-other-month {
-  color: #b1b8b1;
+  color: var(--text-faint);
 }
 
 /* 土曜は薄い青、日曜は薄い赤の日番号で区別する。色を変えるのは日番号だけで、見出し・背景・金額は変えない (CAL-016) */
 /* 日番号の色はcustom propertyで受け渡し、今日の規則が後続で優先する (AC-CAL-016-2) */
 .calendar-cell.is-saturday {
-  --weekend-color: #3d6fbf;
+  --weekend-color: var(--weekend-saturday);
 }
 
 .calendar-cell.is-sunday {
-  --weekend-color: #c9524c;
+  --weekend-color: var(--weekend-sunday);
 }
 
 /* 選択月外の土日は弱い表示のまま色相だけ区別する */
 .calendar-cell.is-other-month.is-saturday {
-  --weekend-color: #a9bfe0;
+  --weekend-color: var(--weekend-saturday-faint);
 }
 
 .calendar-cell.is-other-month.is-sunday {
-  --weekend-color: #e3b0ad;
+  --weekend-color: var(--weekend-sunday-faint);
 }
 
 /* 今日の丸を付けても縦位置がずれないよう、全セルで同じ寸法のボックスを確保する */
@@ -341,8 +345,8 @@
 }
 
 .calendar-cell.is-today .calendar-day-number {
-  color: white;
-  background: var(--accent);
+  color: var(--on-accent);
+  background: var(--accent-surface);
 }
 
 /* 選択枠はborderではなく内側のshadowで描き、セル幅を金額へ回す */
@@ -393,8 +397,8 @@
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 1.25rem 1.25rem 0 0;
-  background: white;
-  box-shadow: 0 -18px 60px rgb(36 49 38 / 20%);
+  background: var(--surface-strong);
+  box-shadow: 0 -18px 60px rgb(var(--shadow-rgb) / 20%);
   /* 開くときは画面下端からスライドインする。時間・easingはglobalのtoken (CAL-005, NFR-UI-009) */
   animation: calendar-sheet-in var(--motion-duration-medium)
     var(--motion-ease-out) both;
@@ -477,7 +481,7 @@
 
 /* 収入のみの日の主見出し。文字サイズ・位置は支出と同じにし、色だけ収入用へ変える (AC-CAL-005-3) */
 .calendar-day-panel .calendar-day-total-income {
-  color: #2d5da8;
+  color: var(--income);
 }
 
 .calendar-close-link {
@@ -531,7 +535,7 @@
   height: 0.7rem;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--category-color, #758178);
+  background: var(--category-color, var(--neutral));
 }
 
 .calendar-transaction-main {
@@ -561,8 +565,8 @@
   flex: 0 0 auto;
   padding: 0.1rem 0.45rem;
   border-radius: 999px;
-  background: #e3ecfa;
-  color: #2d5da8;
+  background: var(--income-soft);
+  color: var(--income);
   font-size: 0.7rem;
 }
 
@@ -647,7 +651,7 @@
     overflow-y: auto;
     border: 1px solid var(--border);
     border-radius: 1.25rem;
-    box-shadow: 0 18px 48px rgb(30 45 38 / 12%);
+    box-shadow: 0 18px 48px rgb(var(--shadow-rgb) / 12%);
     /* side panelはスライドせず短いfadeで表示・非表示を切り替える */
     animation-name: calendar-panel-fade-in;
   }
@@ -659,7 +663,7 @@
 /* 収入の表示（支出と色で区別し、＋表記を併用する） */
 
 .calendar-cell-income {
-  color: #2d5da8;
+  color: var(--income);
 }
 
 /* 月間合計の右側は支払額と収入を縦積みし、grid領域の重なりを防ぐ */
@@ -677,7 +681,7 @@
 
 /* 緑バナー上でも読めるよう、収入は明るい青で示す（＋表記と併用し色だけに依存しない） */
 .calendar-total .calendar-total-income {
-  color: #cfe0ff;
+  color: var(--income-on-accent);
   font-weight: 700;
 }
 
@@ -697,13 +701,13 @@
 }
 
 .calendar-day-income-total {
-  color: #2d5da8;
+  color: var(--income);
   font-size: 0.85rem;
   font-weight: 700;
 }
 
 .calendar-income-amount {
-  color: #2d5da8;
+  color: var(--income);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -711,12 +715,12 @@
 /* 収支差額（黒字・赤字は符号でも判別できるため、色は補助として使う） */
 
 .calendar-total .calendar-total-balance {
-  color: white;
+  color: var(--on-accent);
   font-weight: 700;
 }
 
 .calendar-total .calendar-total-balance.is-negative {
-  color: #ffd8cf;
+  color: var(--negative-on-accent);
 }
 
 /* 展開された固定費を単発取引と識別する (REC-009、AC-REC-002-3) */

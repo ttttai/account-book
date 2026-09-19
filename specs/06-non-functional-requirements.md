@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.14
+バージョン: 0.2.17
 
 ## セキュリティ
 
@@ -57,6 +57,7 @@
 - `NFR-A11Y-005` 金額、状態、errorを色だけで表現しない。
 - `NFR-A11Y-006` form controlとlabel、説明、errorを関連付ける。
 - `NFR-A11Y-007` `prefers-reduced-motion: reduce`では、loadingのshimmerを含むすべてのtransition・animationを無効化し、開閉・選択状態の変化を即時に切り替える。motionの終了を待つ処理は、reduce時には待たずに完了させる。
+- `NFR-A11Y-008` ライト・ダークの両テーマで、文字色と背景色の組み合わせ（本文・補助文・accent文字・収入色・赤字と削除の危険色・予算の警告色と、それぞれの淡い背景、accent塗り上の文字、土曜・日曜の日番号）はWCAG 2.2 AAのコントラスト比4.5:1以上、非テキストの意味を持つ塗り（グラフの支出・収入の棒、accent塗り）は隣接する面に対して3:1以上を満たす。比率は`src/app/styles.css`のdesign tokenから機械的に検証し、値を変えるときはtestで再確認する。選択月外の日番号（操作できないセル）、状態ラベルを併記する予算の棒、背景で識別できる入力欄の枠線は非活性・補助表現として対象外とする。
 
 ## レスポンシブ動作
 
@@ -69,11 +70,12 @@
 - `NFR-UI-007` グループ内の主要ナビゲーションはスマートフォンの片手操作を優先して画面下部へ固定し、safe areaを確保する。デスクトップでは同じ情報構造のサイドナビゲーションへ適応してよい。
 - `NFR-UI-008` 通常の375 x 812 CSS pixelではホームカレンダーの42日分を初期viewport内へ表示する。高さ不足や大きな文字設定では内容を切り捨てず、安全な縦スクロールへ切り替える。
 - `NFR-UI-009` 繰り返す操作の結果（日別取引sheetの開閉、入力ドックの高さの変化、下部ナビゲーションの現在地・chipの選択状態）には200ms以下の短いmotionを付け、指の操作と画面の変化を結び付ける。motionは操作の応答（状態・URL・focusの確定）を遅らせず、時間とeasingは`03-screen-specification.md` §14のdesign tokenで統一する。
+- `NFR-UI-010` 画面の配色は既定でOSの配色設定（`prefers-color-scheme`）に追従し、ダーク設定では暗い背景と明るい文字のダークテーマで全画面を表示する。利用者は設定画面の「画面の配色」で「ライト」「ダーク」のどちらかを選べ、選んだ配色はOS設定より優先してこのアプリだけに適用する。選ぶ前（未選択）はOS設定に従い、設定画面のchipには現在有効な配色を選択状態で示す。選択はブラウザごとのcookie（`theme`、値は`light`・`dark`のみ）に保存し、DBに保存せず、他のメンバーや他の端末に影響しない。サーバーは初回HTMLの`<html data-theme>`にcookieの値を反映して、描画後に配色が切り替わる瞬きを起こさない。cookieの値はサーバー・クライアントの両方で許可値だけを受け付け、不正値・未設定は未選択（OS設定に従う）として扱う。色はすべて`03-screen-specification.md` §14の色のdesign tokenで参照し、ライト・ダークの値は`src/app/styles.css`だけで定義する。各機能のCSS Modulesと`src/app/styles.css`のtoken定義以外に色値を直書きしない。テーマ切替で画面の情報・操作順序・レイアウト・金額の意味を変えない。
 
 ## インストール（PWA）
 
 - `NFR-PWA-001` アプリはWeb App Manifestを配信し、スマートフォンのホーム画面へインストールしてブラウザUIなしのstandalone表示で起動できる。
-- `NFR-PWA-002` manifestの名称は「わが家計」、`start_url`は`/`、`display`は`standalone`とし、`theme_color`と`background_color`はデザイントークンの背景色（`--background`）および`viewport.themeColor`と同じ値にする。
+- `NFR-PWA-002` manifestの名称は「わが家計」、`start_url`は`/`、`display`は`standalone`とし、`theme_color`と`background_color`はライトテーマのデザイントークンの背景色（`--background`）と同じ値にする（manifestはテーマ別の値を持てないため、起動splashはライトの値で固定する）。`viewport.themeColor`は配色が未選択のときは`prefers-color-scheme`のmediaごとに2件（ライトはmanifestと同じ値、ダークはダークテーマの`--background`と同じ値）を宣言し、ライト・ダークを明示選択している場合は選んだテーマの`--background`1件だけを宣言して、ブラウザUIの色を実際の配色に追従させる（`NFR-UI-010`）。
 - `NFR-PWA-003` manifestから192 x 192と512 x 512のPNGアイコンを配信し、maskable用途のアイコンは主要図案を中央の安全領域内へ収める。iOSホーム画面用にapple-touch-iconを、ブラウザのタブ・履歴表示用に同じ図案のfaviconを配信する。
 - `NFR-PWA-004` MVPではService Workerを導入せず、オフラインキャッシュとプッシュ通知を実装しない。manifestとアイコンは認証不要の静的配信とし、家計データ・認証情報を含めない。インストール状態を認証・認可判断に使わない。
 - `NFR-PWA-005` standalone表示でも通常のブラウザ表示と同じ認証動作とする。未認証はログイン画面へ遷移し、Google OAuthログインが完了してホームが表示されることをiOS Safari実機または実機相当環境で確認する。access tokenの期限が切れても、refresh tokenが有効な間は再ログインを求めない。
