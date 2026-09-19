@@ -508,9 +508,20 @@ export function RecurringManagement({ view }: RecurringManagementProps) {
       <section className={styles["recurring-list-panel"]}>
         <h2>登録済みの固定費</h2>
         {view.recurringTransactions.length === 0 ? (
-          <p className={styles["recurring-empty"]}>
-            家賃や給与のように毎月同じ日・同じ金額で発生する取引を登録すると、ホームカレンダーの対象月へ自動で反映されます。
-          </p>
+          // 0件は空状態として示し、owner/adminには作成フォームへの導線を置く (AC-REC-004-2)
+          <div className={styles["recurring-empty"]}>
+            <p className={styles["recurring-empty-title"]}>
+              固定費はまだありません
+            </p>
+            <p className={styles["recurring-empty-description"]}>
+              家賃や給与など、毎月同じ日・同じ金額の取引を登録できます。
+            </p>
+            {view.canManage ? (
+              <a className="secondary-link" href="#recurring-create-form">
+                固定費を追加する
+              </a>
+            ) : null}
+          </div>
         ) : (
           <ul className={styles["recurring-list"]}>
             {view.recurringTransactions.map((recurring) => (
@@ -580,7 +591,10 @@ export function RecurringManagement({ view }: RecurringManagementProps) {
       </section>
 
       {view.canManage ? (
-        <section className={styles["recurring-form-panel"]}>
+        <section
+          className={styles["recurring-form-panel"]}
+          id="recurring-create-form"
+        >
           {editing ? (
             <EditRecurringForm
               key={editing.id}
