@@ -286,6 +286,53 @@ describe("RecurringManagement の金額テンキー (REC-010)", () => {
   });
 });
 
+describe("RecurringManagement の0件時の空状態 (AC-REC-004-2)", () => {
+  const EMPTY_TITLE = "固定費はまだありません";
+  const ADD_LINK = "固定費を追加する";
+  const emptyView: RecurringManagementView = {
+    ...view,
+    recurringTransactions: [],
+  };
+
+  it("owner/adminには空状態の見出し・1文の説明と、作成フォームへ移動するリンクを表示する", () => {
+    render(<RecurringManagement view={emptyView} />);
+
+    expect(screen.getByText(EMPTY_TITLE)).toBeTruthy();
+    expect(screen.queryByRole("list")).toBeNull();
+    // 説明は1文だけにし、長い重複説明を置かない
+    const description = screen.getByText(/家賃や給与など/);
+    expect(description.textContent?.split("。").filter(Boolean)).toHaveLength(
+      1,
+    );
+
+    const link = screen.getByRole("link", { name: ADD_LINK });
+    expect(link.getAttribute("href")).toBe("#recurring-create-form");
+    const form = screen
+      .getByRole("heading", { name: "固定費を追加" })
+      .closest("section");
+    expect(form?.id).toBe("recurring-create-form");
+  });
+
+  it("memberには空状態の見出しだけを表示し、作成フォームへのリンクを出さない", () => {
+    render(<RecurringManagement view={{ ...emptyView, canManage: false }} />);
+
+    expect(screen.getByText(EMPTY_TITLE)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: ADD_LINK })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "固定費を追加" })).toBeNull();
+    expect(
+      screen.getByText("固定費の設定はオーナーと管理者が行います。"),
+    ).toBeTruthy();
+  });
+
+  it("1件以上あるときは空状態を表示せず一覧を先頭に置く", () => {
+    renderManagement();
+
+    expect(screen.queryByText(EMPTY_TITLE)).toBeNull();
+    expect(screen.queryByRole("link", { name: ADD_LINK })).toBeNull();
+    expect(screen.getByRole("list")).toBeTruthy();
+  });
+});
+
 describe("RecurringManagement のメンバー選択chip (AC-REC-003-3)", () => {
   function formOf(headingName: string): HTMLFormElement {
     return screen

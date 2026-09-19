@@ -13,6 +13,8 @@
   border-radius: 1.25rem;
   background: var(--surface);
   box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 7%);
+  /* 空状態のリンクで移動したフォームの上端に余白を残す */
+  scroll-margin-top: 0.75rem;
 }
 
 .recurring-list-panel h2,
@@ -21,12 +23,38 @@
   font-size: 1.05rem;
 }
 
-.recurring-empty,
 .recurring-readonly {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.7;
+}
+
+/* 0件の空状態。見出し・1文の説明・作成フォームへのリンクを縦に並べる (AC-REC-004-2) */
+.recurring-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0.5rem 0.25rem;
+  text-align: center;
+}
+
+.recurring-empty-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.recurring-empty-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.recurring-empty :global(.secondary-link) {
+  margin-top: 0.25rem;
 }
 
 .recurring-list {

@@ -11,7 +11,7 @@ const RECURRING_NAME =
 const RECURRING_AMOUNT = 80000;
 
 // E2E-009 固定費の登録と一覧表示
-// （REC-001〜REC-004、AC-REC-004-1、AC-REC-002-2）
+// （REC-001〜REC-004、AC-REC-004-1、AC-REC-004-2、AC-REC-002-2）
 test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダーへ表示される @desktop", async ({
   memberPage,
 }, testInfo) => {
@@ -22,6 +22,18 @@ test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダ
   await expect(
     memberPage.getByRole("heading", { name: "登録済みの固定費" }),
   ).toBeVisible();
+
+  // headerに共通ナビゲーションと重複する「ホームへ戻る」を置かない (AC-NAV-001-4)
+  await expect(
+    memberPage.getByRole("link", { name: "ホームへ戻る" }),
+  ).toHaveCount(0);
+  // 0件のときは空状態から作成フォームへ移動できる (AC-REC-004-2)
+  const emptyState = memberPage.getByText("固定費はまだありません");
+  await expect(emptyState).toBeVisible();
+  await memberPage.getByRole("link", { name: "固定費を追加する" }).click();
+  await expect(
+    memberPage.getByRole("heading", { name: "固定費を追加" }),
+  ).toBeInViewport();
 
   const form = memberPage.locator("form").filter({ hasText: "固定費を追加" });
   await form.getByLabel("名称").fill(RECURRING_NAME);
@@ -44,6 +56,8 @@ test("E2E-009 登録した固定費が再読み込み後も一覧とカレンダ
     .getByRole("listitem")
     .filter({ hasText: RECURRING_NAME });
   await expect(card).toBeVisible();
+  // 1件以上になると空状態を表示しない (AC-REC-004-2)
+  await expect(emptyState).toHaveCount(0);
 
   // 1件以上登録された状態で再読み込みしてもerror境界へ落ちない (AC-REC-004-1)
   await memberPage.reload();
