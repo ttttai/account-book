@@ -8,10 +8,18 @@ const mocks = vi.hoisted(() => ({
   deleteTransaction: vi.fn(),
   loadTransactionSaveFeedback: vi.fn(),
   revalidatePath: vi.fn(),
+  cookieSet: vi.fn(),
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
+  }),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ set: mocks.cookieSet }),
+}));
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("../application/create-expense", () => ({
   createExpense: mocks.createExpense,
 }));
@@ -53,7 +61,7 @@ const feedback = {
 
 function expenseFormData(overrides: Record<string, string> = {}): FormData {
   const formData = new FormData();
-  const values: Record<string, string> = {
+  const fields: Record<string, string> = {
     amountMinor: "1200",
     transactionDate: "2026-09-19",
     categoryId: CATEGORY_ID,
@@ -64,8 +72,8 @@ function expenseFormData(overrides: Record<string, string> = {}): FormData {
     expectedVersion: "1",
     ...overrides,
   };
-  for (const [name, value] of Object.entries(values)) {
-    formData.set(name, value);
+  for (const [name, fieldValue] of Object.entries(fields)) {
+    formData.set(name, fieldValue);
   }
   formData.append("selectedMemberIds", MEMBER_ID);
   return formData;
@@ -83,25 +91,35 @@ function incomeFormData(): FormData {
   return formData;
 }
 
-describe("取引Server Actionの成功結果 (TXN-019, AC-TXN-019-1〜3)", () => {
+// cookieへ書いた通知内容と、直後のredirect先を取り出す
+function writtenFeedback() {
+  const [name, rawValue, options] = mocks.cookieSet.mock.calls[0] ?? [];
+  return { name, feedback: JSON.parse(String(rawValue)), options };
+}
+
+describe("取引Server Actionの保存結果cookieとredirect (TXN-019, AC-TXN-019-1〜3)", () => {
   afterEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
+    mocks.createExpense.mockReset();
+    mocks.createIncome.mockReset();
+    mocks.updateExpense.mockReset();
+    mocks.updateIncome.mockReset();
+    mocks.deleteTransaction.mockReset();
+    mocks.loadTransactionSaveFeedback.mockReset();
   });
 
-  it("支出登録はredirectせず、グループホームと通知内容を成功結果として返す", async () => {
+  it("支出登録は通知内容を短命cookieへ書いてからグループホームへredirectする", async () => {
     mocks.createExpense.mockResolvedValue(TRANSACTION_ID);
     mocks.loadTransactionSaveFeedback.mockResolvedValue(feedback);
 
-    const state = await createExpenseAction(
-      GROUP_ID,
-      INITIAL_EXPENSE_ACTION_STATE,
-      expenseFormData(),
-    );
+    await expect(
+      createExpenseAction(
+        GROUP_ID,
+        INITIAL_EXPENSE_ACTION_STATE,
+        expenseFormData(),
+      ),
+    ).rejects.toThrow(`NEXT_REDIRECT:/groups/${GROUP_ID}`);
 
-    expect(state).toEqual({
-      status: "success",
-      success: { redirectTo: `/groups/${GROUP_ID}`, feedback },
-    });
     // 通知内容は保存済みの行（作成された取引ID）から組み立てる
     expect(mocks.loadTransactionSaveFeedback).toHaveBeenCalledWith({
       operation: "create",
@@ -109,50 +127,64 @@ describe("取引Server Actionの成功結果 (TXN-019, AC-TXN-019-1〜3)", () =>
       transactionId: TRANSACTION_ID,
       fallbackType: "expense",
     });
+    const written = writtenFeedback();
+    expect(written.name).toBe("save_feedback");
+    expect(written.feedback).toEqual(feedback);
+    expect(written.options).toMatchObject({
+      path: "/",
+      maxAge: 30,
+      sameSite: "lax",
+      httpOnly: false,
+    });
+    // cookieを書いてからredirectする
+    expect(mocks.cookieSet.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.redirect.mock.invocationCallOrder[0] ?? 0,
+    );
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/groups/${GROUP_ID}`);
   });
 
-  it("収入登録も同じ形の成功結果を返し、未使用の?created=を付けない", async () => {
+  it("収入登録も同じ形で書き、未使用の?created=を付けずにredirectする", async () => {
     mocks.createIncome.mockResolvedValue(TRANSACTION_ID);
     mocks.loadTransactionSaveFeedback.mockResolvedValue({
       title: "収入を登録しました",
     });
 
-    const state = await createIncomeAction(
-      GROUP_ID,
-      INITIAL_EXPENSE_ACTION_STATE,
-      incomeFormData(),
-    );
+    await expect(
+      createIncomeAction(
+        GROUP_ID,
+        INITIAL_EXPENSE_ACTION_STATE,
+        incomeFormData(),
+      ),
+    ).rejects.toThrow(`NEXT_REDIRECT:/groups/${GROUP_ID}`);
 
-    expect(state.status).toBe("success");
-    expect(state.success?.redirectTo).toBe(`/groups/${GROUP_ID}`);
-    expect(state.success?.redirectTo).not.toContain("created=");
+    expect(mocks.redirect).toHaveBeenCalledWith(`/groups/${GROUP_ID}`);
     expect(mocks.loadTransactionSaveFeedback).toHaveBeenCalledWith({
       operation: "create",
       groupId: GROUP_ID,
       transactionId: TRANSACTION_ID,
       fallbackType: "income",
     });
+    expect(writtenFeedback().feedback).toEqual({
+      title: "収入を登録しました",
+    });
   });
 
-  it("支出・収入の更新は検証済みの遷移元と更新後の通知内容を返す", async () => {
+  it("支出・収入の更新は検証済みの遷移元へredirectし、更新後の通知内容を書く", async () => {
     mocks.updateExpense.mockResolvedValue({ kind: "ok" });
     mocks.updateIncome.mockResolvedValue({ kind: "ok" });
     mocks.loadTransactionSaveFeedback.mockResolvedValue({
       title: "支出を更新しました",
     });
 
-    const expenseState = await updateExpenseAction(
-      GROUP_ID,
-      TRANSACTION_ID,
-      `/groups/${GROUP_ID}/history`,
-      INITIAL_EXPENSE_ACTION_STATE,
-      expenseFormData(),
-    );
-    expect(expenseState.status).toBe("success");
-    expect(expenseState.success?.redirectTo).toBe(
-      `/groups/${GROUP_ID}/history`,
-    );
+    await expect(
+      updateExpenseAction(
+        GROUP_ID,
+        TRANSACTION_ID,
+        `/groups/${GROUP_ID}/history`,
+        INITIAL_EXPENSE_ACTION_STATE,
+        expenseFormData(),
+      ),
+    ).rejects.toThrow(`NEXT_REDIRECT:/groups/${GROUP_ID}/history`);
     expect(mocks.loadTransactionSaveFeedback).toHaveBeenLastCalledWith({
       operation: "update",
       groupId: GROUP_ID,
@@ -160,24 +192,26 @@ describe("取引Server Actionの成功結果 (TXN-019, AC-TXN-019-1〜3)", () =>
       fallbackType: "expense",
     });
 
-    // 検証できない遷移元はグループホームへ戻す（クライアントの値をそのまま返さない）
-    const incomeState = await updateIncomeAction(
-      GROUP_ID,
-      TRANSACTION_ID,
-      "https://evil.example/phish",
-      INITIAL_EXPENSE_ACTION_STATE,
-      incomeFormData(),
-    );
-    expect(incomeState.success?.redirectTo).toBe(`/groups/${GROUP_ID}`);
+    // 検証できない遷移元はグループホームへ戻す
+    await expect(
+      updateIncomeAction(
+        GROUP_ID,
+        TRANSACTION_ID,
+        "https://evil.example/phish",
+        INITIAL_EXPENSE_ACTION_STATE,
+        incomeFormData(),
+      ),
+    ).rejects.toThrow(`NEXT_REDIRECT:/groups/${GROUP_ID}`);
     expect(mocks.loadTransactionSaveFeedback).toHaveBeenLastCalledWith({
       operation: "update",
       groupId: GROUP_ID,
       transactionId: TRANSACTION_ID,
       fallbackType: "income",
     });
+    expect(mocks.cookieSet).toHaveBeenCalledTimes(2);
   });
 
-  it("削除は削除前に行を読んで通知内容を作り、成功結果を返す", async () => {
+  it("削除は削除前に行を読んで通知内容を作り、削除後にcookieへ書いてredirectする", async () => {
     const order: string[] = [];
     mocks.loadTransactionSaveFeedback.mockImplementation(async () => {
       order.push("load");
@@ -187,34 +221,33 @@ describe("取引Server Actionの成功結果 (TXN-019, AC-TXN-019-1〜3)", () =>
       order.push("delete");
       return { kind: "ok" };
     });
-
-    const state = await deleteTransactionAction(
-      GROUP_ID,
-      TRANSACTION_ID,
-      `/groups/${GROUP_ID}`,
-      INITIAL_EXPENSE_ACTION_STATE,
-      expenseFormData(),
-    );
-
-    expect(order).toEqual(["load", "delete"]);
-    expect(state).toEqual({
-      status: "success",
-      success: {
-        redirectTo: `/groups/${GROUP_ID}`,
-        feedback: {
-          title: "支出を削除しました",
-          description: "9/19 食費 ￥1,200",
-        },
-      },
+    mocks.cookieSet.mockImplementation(() => {
+      order.push("cookie");
     });
+
+    await expect(
+      deleteTransactionAction(
+        GROUP_ID,
+        TRANSACTION_ID,
+        `/groups/${GROUP_ID}`,
+        INITIAL_EXPENSE_ACTION_STATE,
+        expenseFormData(),
+      ),
+    ).rejects.toThrow(`NEXT_REDIRECT:/groups/${GROUP_ID}`);
+
+    expect(order).toEqual(["load", "delete", "cookie"]);
     expect(mocks.loadTransactionSaveFeedback).toHaveBeenCalledWith({
       operation: "delete",
       groupId: GROUP_ID,
       transactionId: TRANSACTION_ID,
     });
+    expect(writtenFeedback().feedback).toEqual({
+      title: "支出を削除しました",
+      description: "9/19 食費 ￥1,200",
+    });
   });
 
-  it("失敗時は従来どおりerrorを返し、通知内容を作らない (AC-TXN-019-6)", async () => {
+  it("失敗時は従来どおりerrorを返し、cookieもredirectもしない (AC-TXN-019-6)", async () => {
     mocks.updateExpense.mockResolvedValue({ kind: "conflict" });
     const conflict = await updateExpenseAction(
       GROUP_ID,
@@ -225,7 +258,6 @@ describe("取引Server Actionの成功結果 (TXN-019, AC-TXN-019-1〜3)", () =>
     );
     expect(conflict.status).toBe("error");
     expect(conflict.message).toContain("他のメンバーが先に");
-    expect(conflict.success).toBeUndefined();
 
     mocks.createExpense.mockRejectedValue(new Error("db"));
     const failed = await createExpenseAction(
@@ -234,7 +266,6 @@ describe("取引Server Actionの成功結果 (TXN-019, AC-TXN-019-1〜3)", () =>
       expenseFormData(),
     );
     expect(failed.status).toBe("error");
-    expect(failed.success).toBeUndefined();
 
     const invalid = await createExpenseAction(
       GROUP_ID,
@@ -244,7 +275,22 @@ describe("取引Server Actionの成功結果 (TXN-019, AC-TXN-019-1〜3)", () =>
     expect(invalid.status).toBe("error");
     expect(invalid.fieldErrors?.amountMinor).toBeDefined();
 
-    expect(mocks.loadTransactionSaveFeedback).not.toHaveBeenCalled();
+    // 削除の競合は行を読んでも、cookieを書かずerrorを返す
+    mocks.loadTransactionSaveFeedback.mockResolvedValue({
+      title: "支出を削除しました",
+    });
+    mocks.deleteTransaction.mockResolvedValue({ kind: "conflict" });
+    const deleteConflict = await deleteTransactionAction(
+      GROUP_ID,
+      TRANSACTION_ID,
+      `/groups/${GROUP_ID}`,
+      INITIAL_EXPENSE_ACTION_STATE,
+      expenseFormData(),
+    );
+    expect(deleteConflict.status).toBe("error");
+
+    expect(mocks.cookieSet).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

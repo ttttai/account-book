@@ -1,6 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+import {
+  encodeSaveFeedbackCookie,
+  SAVE_FEEDBACK_COOKIE_MAX_AGE_SECONDS,
+  SAVE_FEEDBACK_COOKIE_NAME,
+} from "@/modules/ui";
 
 import { createExpense } from "../application/create-expense";
 import { createIncome } from "../application/create-income";
@@ -18,6 +26,7 @@ import {
   updateIncomeInputSchema,
 } from "../domain/income-input";
 import type {
+  TransactionSaveFeedback,
   TransactionSaveOperation,
   TransactionType,
 } from "../domain/save-feedback";
@@ -48,24 +57,44 @@ function customAllocations(formData: FormData) {
     }));
 }
 
-// 保存成功をフォームへ返す。redirectせず、検証済みの遷移先と保存済みの行から作った通知内容を渡す (AC-TXN-019-1〜3)
-async function savedState(
+// 保存結果の通知内容を短命cookieへ書き、遷移後の画面の通知領域に読ませる (AC-TXN-019-3)
+// 戻り値で返してクライアントが遷移する方式は、削除後に現在の編集画面が再描画されて404になるため採らない
+async function writeSaveFeedbackCookie(
+  feedback: TransactionSaveFeedback,
+): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(
+    SAVE_FEEDBACK_COOKIE_NAME,
+    encodeSaveFeedbackCookie(feedback),
+    {
+      path: "/",
+      maxAge: SAVE_FEEDBACK_COOKIE_MAX_AGE_SECONDS,
+      sameSite: "lax",
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+    },
+  );
+}
+
+// 保存済みの行から通知内容を組み立ててcookieへ書き、検証済みの遷移先へredirectする (AC-TXN-019-1, AC-TXN-019-2)
+async function redirectWithSaveFeedback(
   operation: Exclude<TransactionSaveOperation, "delete">,
   type: TransactionType,
   groupId: string,
   transactionId: string,
   redirectTo: string,
-): Promise<ExpenseActionState> {
+): Promise<never> {
   const feedback = await loadTransactionSaveFeedback({
     operation,
     groupId,
     transactionId,
     fallbackType: type,
   });
-  return { status: "success", success: { redirectTo, feedback } };
+  await writeSaveFeedbackCookie(feedback);
+  redirect(redirectTo);
 }
 
-// 支出登録フォームのServer Action。入力検証と負担額計算を経て支出を登録し、グループホームへの遷移先を返す
+// 支出登録フォームのServer Action。入力検証と負担額計算を経て支出を登録し、グループ画面へ戻す
 export async function createExpenseAction(
   groupId: string,
   _previousState: ExpenseActionState,
@@ -122,7 +151,7 @@ export async function createExpenseAction(
   }
 
   revalidatePath(`/groups/${result.data.groupId}`);
-  return savedState(
+  return redirectWithSaveFeedback(
     "create",
     "expense",
     result.data.groupId,
@@ -152,7 +181,7 @@ function revalidateGroupScreens(groupId: string): void {
   revalidatePath(`/groups/${groupId}/history`);
 }
 
-// 支出編集フォームのServer Action。楽観的ロック付きで更新し、検証済みの遷移元を返す
+// 支出編集フォームのServer Action。楽観的ロック付きで更新し、検証済みの遷移元へ戻す
 export async function updateExpenseAction(
   groupId: string,
   transactionId: string,
@@ -212,7 +241,7 @@ export async function updateExpenseAction(
   }
 
   revalidateGroupScreens(result.data.groupId);
-  return savedState(
+  return redirectWithSaveFeedback(
     "update",
     "expense",
     result.data.groupId,
@@ -221,7 +250,7 @@ export async function updateExpenseAction(
   );
 }
 
-// 取引削除のServer Action。削除前の行から通知内容を作り、楽観的ロック付きで物理削除して検証済みの遷移元を返す
+// 取引削除のServer Action。削除前の行から通知内容を作り、楽観的ロック付きで物理削除して検証済みの遷移元へ戻す
 export async function deleteTransactionAction(
   groupId: string,
   transactionId: string,
@@ -254,16 +283,11 @@ export async function deleteTransactionAction(
   }
 
   revalidateGroupScreens(groupId);
-  return {
-    status: "success",
-    success: {
-      redirectTo: resolveEditReturnPath(unsafeReturnTo, groupId),
-      feedback,
-    },
-  };
+  await writeSaveFeedbackCookie(feedback);
+  redirect(resolveEditReturnPath(unsafeReturnTo, groupId));
 }
 
-// 収入登録フォームのServer Action。入力検証を経て収入を登録し、グループホームへの遷移先を返す
+// 収入登録フォームのServer Action。入力検証を経て収入を登録し、グループ画面へ戻す
 export async function createIncomeAction(
   groupId: string,
   _previousState: ExpenseActionState,
@@ -299,7 +323,7 @@ export async function createIncomeAction(
   }
 
   revalidateGroupScreens(result.data.groupId);
-  return savedState(
+  return redirectWithSaveFeedback(
     "create",
     "income",
     result.data.groupId,
@@ -319,7 +343,7 @@ export async function createTransactionAction(
     : createExpenseAction(groupId, previousState, formData);
 }
 
-// 収入編集フォームのServer Action。楽観的ロック付きで更新し、検証済みの遷移元を返す
+// 収入編集フォームのServer Action。楽観的ロック付きで更新し、検証済みの遷移元へ戻す
 export async function updateIncomeAction(
   groupId: string,
   transactionId: string,
@@ -358,7 +382,7 @@ export async function updateIncomeAction(
   }
 
   revalidateGroupScreens(result.data.groupId);
-  return savedState(
+  return redirectWithSaveFeedback(
     "update",
     "income",
     result.data.groupId,

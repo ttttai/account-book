@@ -25,32 +25,43 @@ async function listModuleSources(dir = "src/modules") {
   return files;
 }
 
-test("取引のServer Actionは成功時にredirectせず、遷移先と通知内容を返す (TXN-019, AC-TXN-019-1〜3)", async () => {
+test("取引のServer Actionは通知内容を短命cookieへ書いてから従来どおりredirectする (TXN-019, AC-TXN-019-1〜3)", async () => {
   const actions = await read(
     "src/modules/transactions/presentation/actions.ts",
   );
-  assert.doesNotMatch(actions, /\bredirect\(/);
-  assert.doesNotMatch(actions, /from "next\/navigation"/);
+  assert.match(actions, /import \{ cookies \} from "next\/headers"/);
+  assert.match(actions, /import \{ redirect \} from "next\/navigation"/);
+  assert.match(actions, /encodeSaveFeedbackCookie\(/);
+  assert.match(actions, /loadTransactionSaveFeedback\(/);
+  // 成功結果を戻り値で返してクライアントが遷移する方式は採らない（削除後に編集画面が404になる）
+  assert.doesNotMatch(actions, /status: "success"/);
   // 未使用だった?created=を残さない
   assert.doesNotMatch(actions, /created=/);
-  assert.match(actions, /loadTransactionSaveFeedback\(/);
-  assert.match(actions, /status: "success"/);
+  // 遷移後に読めるようhttpOnlyにせず、寿命は短くする
+  assert.match(actions, /httpOnly: false/);
+  assert.match(actions, /maxAge: SAVE_FEEDBACK_COOKIE_MAX_AGE_SECONDS/);
   // 削除は削除前に行を読む
-  const deleteIndex = actions.indexOf(
-    "export async function deleteTransactionAction",
+  const deleteBody = actions.slice(
+    actions.indexOf("export async function deleteTransactionAction"),
   );
-  const deleteBody = actions.slice(deleteIndex);
   assert.ok(
     deleteBody.indexOf("loadTransactionSaveFeedback(") <
       deleteBody.indexOf("deleteTransaction("),
     "削除Actionは行を削除する前に通知内容を読む",
   );
 
+  // フォームとaction stateは変更しない
   const state = await read(
     "src/modules/transactions/presentation/action-state.ts",
   );
-  assert.match(state, /"idle" \| "error" \| "success"/);
-  assert.match(state, /redirectTo: string/);
+  assert.doesNotMatch(state, /success/);
+  for (const path of [
+    "src/modules/transactions/presentation/expense-form.tsx",
+    "src/modules/transactions/presentation/delete-transaction-form.tsx",
+  ]) {
+    const source = await read(path);
+    assert.doesNotMatch(source, /useRouter|showSaveFeedback|from "sonner"/);
+  }
 });
 
 test("通知内容はサーバーが保存済みの行から純関数で組み立てる (AC-TXN-019-3)", async () => {
@@ -66,23 +77,15 @@ test("通知内容はサーバーが保存済みの行から純関数で組み�
   for (const banned of ["負担", "支払者", "支払額", "内訳"]) {
     assert.ok(!domain.includes(banned), `文面に「${banned}」を含めない`);
   }
+
+  // cookieの値はschemaで検証し、寿命は30秒
+  const cookie = await read("src/modules/ui/domain/save-feedback-cookie.ts");
+  assert.match(cookie, /SAVE_FEEDBACK_COOKIE_MAX_AGE_SECONDS = 30/);
+  assert.match(cookie, /safeParse\(/);
+  assert.match(cookie, /Max-Age=0/);
 });
 
-test("フォームは成功結果を受けて通知を表示してから遷移し、保存を無効に保つ (AC-TXN-019-1, AC-TXN-019-3)", async () => {
-  for (const path of [
-    "src/modules/transactions/presentation/expense-form.tsx",
-    "src/modules/transactions/presentation/delete-transaction-form.tsx",
-  ]) {
-    const source = await read(path);
-    assert.match(source, /import \{ useRouter \} from "next\/navigation"/);
-    assert.match(source, /showSaveFeedback/);
-    assert.match(source, /from "@\/modules\/ui"/);
-    assert.match(source, /router\.push\(/);
-    assert.doesNotMatch(source, /from "sonner"/);
-  }
-});
-
-test("Toasterはルートレイアウトに1つだけ置き、共有部品src/modules/uiから公開する (03 §6 保存結果のトースト)", async () => {
+test("Toasterはルートレイアウトに1つだけ置き、遷移ごとにcookieを読んで表示・削除する (03 §6 保存結果のトースト)", async () => {
   const layout = await read("src/app/layout.tsx");
   assert.match(
     layout,
@@ -93,11 +96,15 @@ test("Toasterはルートレイアウトに1つだけ置き、共有部品src/mo
   const index = await read("src/modules/ui/index.ts");
   assert.match(index, /SaveFeedbackToaster/);
   assert.match(index, /showSaveFeedback/);
+  assert.match(index, /encodeSaveFeedbackCookie/);
 
   const toaster = await read(
     "src/modules/ui/presentation/save-feedback-toast.tsx",
   );
   assert.match(toaster, /^"use client";/);
+  assert.match(toaster, /usePathname\(\)/);
+  assert.match(toaster, /decodeSaveFeedbackCookie\(/);
+  assert.match(toaster, /buildSaveFeedbackCookieDeletion\(\)/);
   assert.match(toaster, /position="top-center"/);
   assert.match(toaster, /visibleToasts=\{1\}/);
   assert.match(toaster, /duration=\{4000\}/);
@@ -148,5 +155,6 @@ test("仕様にTXN-019とレビュー記録がある", async () => {
   }
   const screens = await read("specs/03-screen-specification.md");
   assert.match(screens, /^### 保存結果のトースト/m);
+  assert.match(screens, /短命.*cookie/);
   await read("specs/reviews/2026-09-19-transaction-save-toast.md");
 });

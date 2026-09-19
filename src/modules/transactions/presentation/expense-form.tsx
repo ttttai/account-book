@@ -9,10 +9,9 @@ import {
   type FocusEvent as ReactFocusEvent,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 
-import { ChoiceChip, ChoiceChipList, showSaveFeedback } from "@/modules/ui";
+import { ChoiceChip, ChoiceChipList } from "@/modules/ui";
 
 import type { TransactionEditTransaction } from "../application/edit-types";
 import type {
@@ -184,14 +183,6 @@ export function ExpenseForm({
     boundAction,
     INITIAL_EXPENSE_ACTION_STATE,
   );
-  const router = useRouter();
-  // 成功結果を受けたら通知を出してから遷移する。遷移完了まで保存は無効のまま (AC-TXN-019-1, AC-TXN-019-3)
-  const saved = state.success;
-  useEffect(() => {
-    if (!saved) return;
-    showSaveFeedback(saved.feedback);
-    router.push(saved.redirectTo);
-  }, [saved, router]);
   // 金額欄は電卓の表示部で、式（例: 1200+300）を持つ。送信する金額は計算結果だけをhidden inputへ入れる (TXN-017)
   const [amountExpression, setAmountExpression] = useState(
     editTransaction ? String(editTransaction.amountMinor) : "",
@@ -856,7 +847,7 @@ export function ExpenseForm({
               side={
                 <div className={styles["input-dock-save"]}>
                   <SaveButton
-                    disabled={hasNoIncomeCategory || Boolean(saved)}
+                    disabled={hasNoIncomeCategory}
                     label={
                       editTransaction
                         ? "変更を保存"

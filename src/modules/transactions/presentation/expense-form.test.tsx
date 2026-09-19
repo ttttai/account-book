@@ -10,19 +10,6 @@ vi.mock("./actions", () => ({
   updateIncomeAction: vi.fn(),
 }));
 
-const navigationMocks = vi.hoisted(() => ({ push: vi.fn() }));
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: navigationMocks.push }),
-}));
-
-const uiMocks = vi.hoisted(() => ({ showSaveFeedback: vi.fn() }));
-vi.mock("@/modules/ui", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/ui")>()),
-  showSaveFeedback: uiMocks.showSaveFeedback,
-}));
-
-import { createTransactionAction } from "./actions";
-
 const groupId = "00000000-0000-4000-8000-000000000001";
 const currentMembershipId = "00000000-0000-4000-8000-000000000101";
 
@@ -519,81 +506,6 @@ describe("ExpenseForm のテンキーの閉じるキー (AC-TXN-014-8, AC-TXN-01
 
     fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
     expect(closeKey()).toBeTruthy();
-  });
-});
-
-describe("ExpenseForm の保存結果の通知 (TXN-019)", () => {
-  const feedback = {
-    title: "支出を登録しました",
-    description: "9/19 食費 ￥1,200",
-  };
-
-  function submitForm() {
-    const form = screen
-      .getByRole("button", { name: "支出を保存" })
-      .closest("form");
-    if (!form) throw new Error("form が必要です");
-    fireEvent.submit(form);
-  }
-
-  afterEach(() => {
-    navigationMocks.push.mockReset();
-    uiMocks.showSaveFeedback.mockReset();
-    vi.mocked(createTransactionAction).mockReset();
-  });
-
-  it("成功結果を受け取ると通知を表示してから遷移し、遷移まで保存を無効に保つ (AC-TXN-019-1, AC-TXN-019-3)", async () => {
-    vi.mocked(createTransactionAction).mockResolvedValue({
-      status: "success",
-      success: { redirectTo: `/groups/${groupId}`, feedback },
-    });
-    renderForm();
-    pressKey("1");
-    pressKey("2");
-    pressKey("00");
-
-    submitForm();
-
-    await vi.waitFor(() =>
-      expect(uiMocks.showSaveFeedback).toHaveBeenCalledWith(feedback),
-    );
-    expect(navigationMocks.push).toHaveBeenCalledWith(`/groups/${groupId}`);
-    // 通知を出してから遷移する
-    expect(uiMocks.showSaveFeedback.mock.invocationCallOrder[0]).toBeLessThan(
-      navigationMocks.push.mock.invocationCallOrder[0] ?? 0,
-    );
-    // 遷移が完了するまで保存操作は無効のまま (AC-TXN-016-2)
-    expect(
-      screen
-        .getByRole("button", { name: "支出を保存" })
-        .hasAttribute("disabled"),
-    ).toBe(true);
-    // 通知と遷移は1回だけ
-    expect(uiMocks.showSaveFeedback).toHaveBeenCalledTimes(1);
-    expect(navigationMocks.push).toHaveBeenCalledTimes(1);
-  });
-
-  it("失敗結果では通知も遷移もせず、フォーム内のエラーを表示する (AC-TXN-019-6)", async () => {
-    vi.mocked(createTransactionAction).mockResolvedValue({
-      status: "error",
-      message: "入力内容を確認してください。",
-    });
-    renderForm();
-
-    submitForm();
-
-    await vi.waitFor(() =>
-      expect(screen.getByRole("alert").textContent).toContain(
-        "入力内容を確認してください。",
-      ),
-    );
-    expect(uiMocks.showSaveFeedback).not.toHaveBeenCalled();
-    expect(navigationMocks.push).not.toHaveBeenCalled();
-    expect(
-      screen
-        .getByRole("button", { name: "支出を保存" })
-        .hasAttribute("disabled"),
-    ).toBe(false);
   });
 });
 

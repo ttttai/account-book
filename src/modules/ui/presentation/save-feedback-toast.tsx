@@ -1,15 +1,17 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { usePathname } from "next/navigation";
+import { type MouseEvent, useEffect } from "react";
 import { Toaster, toast } from "sonner";
 
-import styles from "./ui.module.css";
+import {
+  buildSaveFeedbackCookieDeletion,
+  decodeSaveFeedbackCookie,
+  readSaveFeedbackCookie,
+  type SaveFeedback,
+} from "../domain/save-feedback-cookie";
 
-/** 保存結果の通知に表示する見出しと説明 */
-export type SaveFeedback = Readonly<{
-  title: string;
-  description?: string;
-}>;
+import styles from "./ui.module.css";
 
 // 上端はsafe areaの下に置く (AC-TXN-019-4)
 const TOP_OFFSET = "max(0.75rem, env(safe-area-inset-top))";
@@ -29,8 +31,22 @@ function dismissOnToastTap(event: MouseEvent<HTMLDivElement>): void {
   toast.dismiss();
 }
 
-// 全画面共通の保存結果の通知領域。ルートレイアウトに1つだけ置く (TXN-019, 03 §6 保存結果のトースト)
+// 全画面共通の保存結果の通知領域。ルートレイアウトに1つだけ置き、
+// Server Actionがredirect直前に書いたcookieを遷移後に読んで表示し、読んだ直後に削除する (TXN-019, AC-TXN-019-3)
 export function SaveFeedbackToaster() {
+  const pathname = usePathname();
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: redirect後の遷移（pathnameの変化）ごとにcookieを読み直すための意図的な依存
+  useEffect(() => {
+    const rawValue = readSaveFeedbackCookie(document.cookie);
+    if (rawValue === undefined) return;
+    // 壊れた値でも残さない。表示するのは検証を通った内容だけ
+    // biome-ignore lint/suspicious/noDocumentCookie: Cookie Store APIはiOS Safariで使えないため、同期的なdocument.cookieで削除する
+    document.cookie = buildSaveFeedbackCookieDeletion();
+    const feedback = decodeSaveFeedbackCookie(rawValue);
+    if (feedback) showSaveFeedback(feedback);
+  }, [pathname]);
+
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: 本体タップは補助的な消去手段で、キーボードとスクリーンリーダーには「通知を閉じる」ボタンがある
     // biome-ignore lint/a11y/useKeyWithClickEvents: 同上
