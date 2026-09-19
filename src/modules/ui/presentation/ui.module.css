@@ -102,8 +102,9 @@
   transition: transform var(--motion-duration-medium) var(--motion-ease-out);
 }
 
-/* 出現・消失は200ms以下のmotion tokenで統一する (AC-TXN-019-5, NFR-UI-009) */
-.toast-region :global([data-sonner-toast]) {
+/* 出現・消失は200ms以下のmotion tokenで統一する (AC-TXN-019-5, NFR-UI-009)。
+   幅はライブラリの既定（356px）ではなく通知領域いっぱいにそろえる */
+.toast-region :global([data-sonner-toaster]) :global([data-sonner-toast]) {
   width: 100%;
   transition:
     transform var(--motion-duration-medium) var(--motion-ease-out),

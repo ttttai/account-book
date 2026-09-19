@@ -1,6 +1,6 @@
 # 取引の保存結果を遷移後の画面上部にトーストで通知する
 
-状態: 承認済み
+状態: 実装確認済み
 レビュー日: 2026-09-19
 ブランチ: feat/transaction-save-toast
 対象仕様: `specs/01-product-requirements.md`、`specs/02-use-cases.md`、`specs/03-screen-specification.md`、`specs/05-api-and-application-boundaries.md`、`specs/07-acceptance-test-plan.md`、`specs/08-decisions-and-deferred-scope.md`、`specs/15-e2e-testing.md`
@@ -66,3 +66,9 @@
 6. 実装後、375px・320px・1280pxとダークテーマで実画面を確認し、スクリーンショットをPRへ添付する。
 
 ## 実装確認
+
+- test: `npm test`でarchitecture test 233件（`transaction-save-toast.test.mjs`を追加。Actionが`cookies()`で通知内容を書いてから`redirect`すること、`?created=`が無いこと、フォームとaction stateがmainのままであること、Toasterがルートレイアウトに1つであること、ui.module.cssのtoken参照と44pxを固定）、vitest 117ファイル1122件が通過。追加・更新したtestは`save-feedback`（見出し・日付・金額・見出しのみ・禁止語）、`load-transaction-save-feedback`（行とタイムゾーンの読み取り、行を読めない場合の見出しのみ、未認証・不正IDで問い合わせない）、`actions`（6 Actionがcookieを書いてから遷移先へredirect、削除は削除前に行を読む、失敗時はcookieもredirectもしない）、`save-feedback-cookie`（往復・schema検証・削除文字列）、`save-feedback-toast`（cookieの表示と削除、pathごとの再読み取り、Toaster設定、本体タップ消去）。
+- lint（biome）、型検査（tsc）、整形（prettier --check）、本番build（`next build`）が通過。
+- E2E（分離stack `account-book-e2e-toast`、本番build）: `E2E-004`（mobile・desktop）で登録直後のカレンダー上部に「支出を登録しました」「M/D 食費 ￥6,000」が出て「支払者」「負担」「内訳」を含まないこと、`E2E-005`（mobile）で更新後に「支出を更新しました」「食費 ￥8,000」、本体タップでの即時消去、削除後に「支出を削除しました」「M/D 食費 ￥8,000」が出ることを確認。全シナリオの結果はPR本文に記載。
+- 実画面（375 x 812、320 x 568、1280 x 800、ダーク375）: Playwrightで撮影。375pxでトーストは上部中央に幅343px（左右16px）、閉じるボタン44 x 44px、横scrollなし。320pxでも幅に収まり横scrollなし。1280pxは幅384pxで上部中央。ダークテーマで面・文字・枠がtokenに追従し、削除後の通知が削除前の内容を示す。4秒後に自動で消えることを確認。スクリーンショットはPRへ添付（リポジトリへは含めない）。
+- 方式変更: 当初承認した「成功結果を返してクライアントが遷移する」方式は、削除後に編集画面が404へ再描画されフォームがunmountされるため、cookie＋redirect方式へ変更した（「対応」の追記を参照）。
