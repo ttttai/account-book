@@ -70,6 +70,35 @@ test("支出Server ActionはFormDataを検証して認可済みcommandだけを�
   assert.doesNotMatch(action, /formData\.get\(["'](?:userId|createdBy|total)/);
 });
 
+test("取引Actionの再検証はrevalidateGroupScreensに集約し、支出登録も履歴を再検証する (AC-TXN-001-12, AC-TXN-008-5)", async () => {
+  const action = await read("src/modules/transactions/presentation/actions.ts");
+
+  // revalidatePathの直接呼び出しはヘルパー内のホーム・履歴の2回だけ（Issue #187の非対称を再発させない）
+  assert.equal(action.match(/revalidatePath\(/g)?.length, 2);
+  assert.match(
+    action,
+    /function revalidateGroupScreens\(groupId: string\): void \{\s*revalidatePath\(`\/groups\/\$\{groupId\}`\);\s*revalidatePath\(`\/groups\/\$\{groupId\}\/history`\);/,
+  );
+
+  for (const name of [
+    "createExpenseAction",
+    "createIncomeAction",
+    "updateExpenseAction",
+    "updateIncomeAction",
+    "deleteTransactionAction",
+  ]) {
+    const start = action.indexOf(`export async function ${name}`);
+    assert.ok(start >= 0, `${name}が定義されている`);
+    const end = action.indexOf("\nexport async function ", start + 1);
+    const body = action.slice(start, end === -1 ? undefined : end);
+    assert.match(
+      body,
+      /revalidateGroupScreens\(/,
+      `${name}はrevalidateGroupScreensで2 pathを再検証する`,
+    );
+  }
+});
+
 test("App Routerはtransactionsモジュールの公開境界だけを使う", async () => {
   const page = await read("src/app/groups/[groupId]/transactions/new/page.tsx");
 

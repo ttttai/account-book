@@ -111,6 +111,7 @@
 - 招待tokenの長さ・URL-safe形式・決定的なSHA-256 hashと、不正形式の拒否
 - 招待共有リンクがraw tokenをfragmentだけへ含め、query・cookie・永続storageへ含めないこと
 - 支出作成ActionがFormDataを検証し、操作者user IDや合計額をクライアント入力から採用しないこと
+- 取引の登録・更新・削除のServer Actionが、成功時にグループホームと履歴の2 pathを再検証し、支出登録だけ履歴を省かないこと。検証・保存・競合の失敗時は再検証しないこと。ホームと履歴はcookie・search paramsを読む動的描画のためサーバー側にcacheされず、再現はブラウザのClient Cacheの戻る／進む再利用に限られるので、E2Eではなくunit testとarchitecture testで固定する（`AC-TXN-001-12`、`AC-TXN-008-5`）
 - 支出登録DTOがアクティブメンバーと未アーカイブ支出カテゴリだけを含み、認証tokenや不要なDB列を含まないこと
 - 支出カテゴリがradio semantics、名称、選択状態、44 x 44 CSS pixel以上のタップ領域を持ち、320px・375pxで2列表示されること
 - 履歴の絞り込み条件・cursorのサーバー検証と、不正値のfail closed表示

@@ -139,7 +139,7 @@ disableGroupBudget(groupId, effectiveMonth, expectedVersion)
 setDefaultGroup(groupId | null)
 ```
 
-`createTransaction`は支出と収入を種別ごとの原子的なDB関数で受け付ける。Server Actionは`groupId`をbind引数として受け取っても未信頼入力としてUUID検証し、FormDataの金額、日付、カテゴリ、種別に応じた支払者または受取者、支出の負担方法・負担メンバー・金額、メモ、`client_request_id`をschemaで検証する。commandは検証済みGoogle sessionを取得し、ユーザーsession付きSupabase clientでDB関数を呼ぶ。DB関数はアクティブ所属、種別に一致するカテゴリ、支払者・受取者・負担者の同一グループ所属とアクティブ状態、支出の合計一致、冪等性を再確認する。収入は負担行を作成しない。
+`createTransaction`は支出と収入を種別ごとの原子的なDB関数で受け付ける。Server Actionは`groupId`をbind引数として受け取っても未信頼入力としてUUID検証し、FormDataの金額、日付、カテゴリ、種別に応じた支払者または受取者、支出の負担方法・負担メンバー・金額、メモ、`client_request_id`をschemaで検証する。commandは検証済みGoogle sessionを取得し、ユーザーsession付きSupabase clientでDB関数を呼ぶ。DB関数はアクティブ所属、種別に一致するカテゴリ、支払者・受取者・負担者の同一グループ所属とアクティブ状態、支出の合計一致、冪等性を再確認する。収入は負担行を作成しない。取引の登録・更新・削除のServer Actionは、成功時に遷移先にかかわらずグループホーム`/groups/{groupId}`と履歴`/groups/{groupId}/history`の両方を`revalidatePath`で再検証し、対象pathを支出・収入や操作種別で変えない（`AC-TXN-001-12`、`AC-TXN-008-5`）。両画面はcookieとsearch paramsを読む動的描画でサーバー側のFull Route Cacheを持たないが、ブラウザ内のClient Cacheは戻る／進むで訪問済みページを再利用し、Server Functionの`revalidatePath`が訪問済み全ページを更新する現行の挙動は一時的なものとされているため、path単位の再検証を明示する。
 
 `updateTransaction`と`deleteTransaction`は、検証済みGoogle sessionとアクティブ所属を確認し、ユーザーsession付きSupabase clientで原子的なDB関数を呼ぶ。DB関数は対象行をlockし、`expectedVersion`と現在versionの不一致を`CONFLICT`として返す。`updateTransaction`は種別ごとのDB関数で行い、取引の種別は変更できない。成功時にversionを加算して操作者と日時を記録し、支出は金額・負担額合計・支払者と負担者のアクティブ所属・カテゴリ種別を、収入は金額・受取者のアクティブ所属・収入カテゴリを、登録時と同じ規則で再検証する。カテゴリだけは、変更しない場合に限り既存行と同じアーカイブ済みカテゴリを許可する。`deleteTransaction`は取引本体と負担行を同じtransactionで物理削除し、対象が存在しない（すでに削除済みの）再要求を状態を変更しない成功として冪等に扱う。復元用のcommand・queryは提供しない。
 
