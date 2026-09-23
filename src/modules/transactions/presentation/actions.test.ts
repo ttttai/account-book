@@ -141,6 +141,87 @@ describe("取引Server Actionの保存結果cookieとredirect (TXN-019, AC-TXN-0
       mocks.redirect.mock.invocationCallOrder[0] ?? 0,
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/groups/${GROUP_ID}`);
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      `/groups/${GROUP_ID}/history`,
+    );
+  });
+
+  it("登録・更新・削除の5 Actionはすべてホームと履歴の2 pathを再検証する (AC-TXN-001-12, AC-TXN-008-5)", async () => {
+    mocks.createExpense.mockResolvedValue(TRANSACTION_ID);
+    mocks.createIncome.mockResolvedValue(TRANSACTION_ID);
+    mocks.updateExpense.mockResolvedValue({ kind: "ok" });
+    mocks.updateIncome.mockResolvedValue({ kind: "ok" });
+    mocks.deleteTransaction.mockResolvedValue({ kind: "ok" });
+    mocks.loadTransactionSaveFeedback.mockResolvedValue(feedback);
+
+    const runs: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
+      [
+        "createExpense",
+        () =>
+          createExpenseAction(
+            GROUP_ID,
+            INITIAL_EXPENSE_ACTION_STATE,
+            expenseFormData(),
+          ),
+      ],
+      [
+        "createIncome",
+        () =>
+          createIncomeAction(
+            GROUP_ID,
+            INITIAL_EXPENSE_ACTION_STATE,
+            incomeFormData(),
+          ),
+      ],
+      [
+        "updateExpense",
+        () =>
+          updateExpenseAction(
+            GROUP_ID,
+            TRANSACTION_ID,
+            `/groups/${GROUP_ID}/history`,
+            INITIAL_EXPENSE_ACTION_STATE,
+            expenseFormData(),
+          ),
+      ],
+      [
+        "updateIncome",
+        () =>
+          updateIncomeAction(
+            GROUP_ID,
+            TRANSACTION_ID,
+            `/groups/${GROUP_ID}`,
+            INITIAL_EXPENSE_ACTION_STATE,
+            incomeFormData(),
+          ),
+      ],
+      [
+        "deleteTransaction",
+        () =>
+          deleteTransactionAction(
+            GROUP_ID,
+            TRANSACTION_ID,
+            `/groups/${GROUP_ID}/history`,
+            INITIAL_EXPENSE_ACTION_STATE,
+            expenseFormData(),
+          ),
+      ],
+    ];
+
+    for (const [name, run] of runs) {
+      mocks.revalidatePath.mockClear();
+      await expect(run(), name).rejects.toThrow("NEXT_REDIRECT:");
+      // 支出登録だけ履歴を省く非対称を作らない（Issue #187）
+      expect(
+        mocks.revalidatePath.mock.calls.map(([path]) => path),
+        name,
+      ).toEqual([`/groups/${GROUP_ID}`, `/groups/${GROUP_ID}/history`]);
+      // 再検証はredirectより前に行う
+      expect(
+        mocks.revalidatePath.mock.invocationCallOrder.at(-1) ?? 0,
+        name,
+      ).toBeLessThan(mocks.redirect.mock.invocationCallOrder.at(-1) ?? 0);
+    }
   });
 
   it("収入登録も同じ形で書き、未使用の?created=を付けずにredirectする", async () => {

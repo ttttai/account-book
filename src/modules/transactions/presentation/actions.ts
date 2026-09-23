@@ -150,7 +150,7 @@ export async function createExpenseAction(
     };
   }
 
-  revalidatePath(`/groups/${result.data.groupId}`);
+  revalidateGroupScreens(result.data.groupId);
   return redirectWithSaveFeedback(
     "create",
     "expense",
@@ -175,7 +175,7 @@ function commandErrorMessage(
   return "処理を完了できませんでした。接続状態を確認して、もう一度お試しください。";
 }
 
-// 変更後のグループ画面（ホーム・履歴）を再検証する
+// 変更後のグループ画面（ホーム・履歴）を再検証する。登録・更新・削除の全Actionで対象を同じにする (AC-TXN-001-12, AC-TXN-008-5)
 function revalidateGroupScreens(groupId: string): void {
   revalidatePath(`/groups/${groupId}`);
   revalidatePath(`/groups/${groupId}/history`);
