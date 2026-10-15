@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.17
+バージョン: 0.2.18
 
 ## 1. 設計目標
 
@@ -28,6 +28,9 @@ transactions *---1 group_members（支出の支払者または収入の受取者
 transactions *---1 auth.users（created_by / updated_by）
 groups     1---* budget_revisions 1---* budget_category_limits *---1 categories
 groups     1---1 line_notification_targets（LINE連携、任意）
+groups     1---* asset_categories
+groups     1---* asset_snapshots 1---* asset_snapshot_values *---1 group_members
+asset_snapshot_values *---1 asset_categories
 groups     1---* weekly_notification_log（週次レポートの送信記録）
 ```
 
@@ -263,6 +266,15 @@ Authユーザー作成triggerで同じIDの行を1件作る。Google OAuth初回
 - 合計が親改定の`total_amount_minor`以下で、支出種別かつ未アーカイブのカテゴリだけを持つ状態だけをDB commandでcommitする。停止改定には内訳を作らない。
 - 更新はowner/admin検証を含む`security definer`関数に限定し、直接のinsert/update/delete権限を付与しない。
 
+### asset_categories・asset_snapshots・asset_snapshot_values
+
+資産推移（`AST-*`）の資産区分と、記録月ごとの資産記録・内訳。詳細な列、制約、RLSは[`17-asset-tracking.md`](17-asset-tracking.md)を正本とする。
+
+- 3テーブルとも`group_id`を持ち、内訳は`group_id`を含む複合外部キーで同じグループの資産記録・`group_members`・資産区分へ固定する。
+- 資産記録は`(group_id, month)`をuniqueにし、`version`による楽観的ロックを適用する。削除は物理削除とし、内訳はcascadeで削除する。
+- 0円の資産額は内訳行を作らない。合計資産額・前回比・構成比は保存せず読み取り時に計算する。
+- selectはアクティブメンバーに限り、更新は`security definer`関数に限定する。資産区分の更新はowner/admin、資産記録の更新はアクティブメンバーを関数内で再確認する。
+
 ### line_notification_targets（`app_private`）
 
 家計グループとLINEグループトークの対応。詳細は[`16-line-weekly-report.md`](16-line-weekly-report.md)を正本とする。
@@ -318,6 +330,9 @@ budget_revisions(group_id, effective_month DESC)
 budget_category_limits(category_id, budget_revision_id)
 categories(group_id, type, archived_at, sort_order)
 user_preferences(default_group_id)
+asset_categories(group_id, sort_order)
+asset_snapshots(group_id, month DESC)
+asset_snapshot_values(group_id, snapshot_id)
 ```
 
 cursor paginationにはoffsetではなく`(transaction_date, id)`を使う。

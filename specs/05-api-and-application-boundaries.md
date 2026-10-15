@@ -2,7 +2,7 @@
 
 状態: 承認済み
 
-バージョン: 0.2.16
+バージョン: 0.2.17
 
 ## 1. Next.js境界方針
 
@@ -154,6 +154,8 @@ commandがDB関数の失敗で完了しなかった場合、利用者向けに�
 固定費のcommandは、Server Actionで入力を検証したうえで`security definer`のDB関数を1回呼び、設定と負担行を同一transactionで保存する。DB関数内でowner/admin、アクティブ所属、カテゴリと支払者・受取者・負担者の同一グループ所属、支出の負担額合計一致、`day_of_month`（1〜28）と開始月・終了月の月初日・前後関係を再検証する。展開（対象月の同じ日付へ1件作ること）は純関数として実装し、固定費queryとカレンダー集計の両方から同じ関数を使う。展開結果をDBへ保存せず、job・scheduler・queue・retry・occurrence用endpointを追加しない。
 
 予算（`BUD-*`）のqueryは`resolveGroupReadContext`で認証・所属を確認し、選択月の実績を`listMonthlyTransactions`と分析の集計純関数`aggregateAnalyticsMonth`で求め、適用改定とあわせて純関数`calculateBudgetProgress`で進捗DTOを作る。分析概要は同じ認可済みcontextと選択月の集計結果から`loadAppliedBudgetRevision`で適用改定を読み、同じ純関数で予算カードのDTOを作る。commandはServer Actionで入力を検証したうえで`security definer`のDB関数`set_group_budget`・`disable_group_budget`を1回呼び、改定本体とカテゴリ内訳を同一transactionで保存する。DB関数内でowner/admin、グループのタイムゾーン上の当月以降、金額範囲、カテゴリの同一グループ・支出種別・未アーカイブ・重複なし、合計がグループ予算以下、`expectedVersion`を再検証する。予算のRoute Handler、内部API、共有cacheは追加しない。
+
+資産推移（`AST-*`）は`src/modules/assets`に置き、queryは`resolveGroupReadContext`で認証・所属を確認してから、資産推移はグループの全資産記録・資産区分・表示用メンバーを1回で返す。表示期間・積み上げ・対象の切替は、このDTOに対してClient Componentが資産moduleの純関数`buildAssetTrendSeries`を呼んで行い、Server Actionやqueryを再度呼ばない。commandはServer Actionで入力を検証したうえで`security definer`のDB関数（`save_asset_snapshot`、`delete_asset_snapshot`、資産区分の作成・更新・アーカイブ・復元）を1回呼び、資産記録と内訳を同一transactionで保存する。DB関数内で許可リスト、アクティブ所属、資産区分ではowner/admin、記録月の範囲、金額範囲、値の組がアクティブメンバー × アクティブ資産区分であること、`expectedVersion`を再検証する。資産推移は取引・分析の集計を読まず、分析・予算・LINEレポートも資産記録を読まない。Route Handler、内部API、共有cacheは追加しない。
 
 `setDefaultGroup`は、Server Actionがbind引数のgroupIDと操作種別（設定・解除）をschema検証したうえで、検証済みGoogle sessionのユーザーsession付きSupabase clientから`security definer`のDB関数`set_default_group`を1回呼ぶ。DB関数は本人・許可リスト・対象グループへのアクティブ所属を再確認し、`user_preferences`をupsertする。ホーム（`/app`）の遷移先はサーバー専用query`getDefaultGroupId`と`listMyGroups`の結果だけから純関数`resolveHomeDestination`で決め、設定先がアクティブ所属に含まれない場合は所属件数の判定へ戻す。
 
