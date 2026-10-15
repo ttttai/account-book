@@ -366,6 +366,8 @@
 
 /* 資産の記録 */
 .asset-record {
+  /* テンキーのドックの高さ（見出し・4行のキー・下部ナビゲーション分の余白）の目安 */
+  --asset-dock-space: calc(21rem + env(safe-area-inset-bottom));
   display: grid;
   min-width: 0;
   gap: 0.8rem;
@@ -512,10 +514,97 @@
   text-align: right;
 }
 
-/* 取引入力と共有するテンキー。開いたときのscrollIntoViewで下部ナビゲーションぶんの余白を確保する */
-.asset-keypad {
-  grid-column: 1 / -1;
-  scroll-margin-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+/* 選んだ欄は枠で示し、ドックの上に見えるまでだけscrollする（ドックの高さ分のscroll-margin） */
+.asset-field {
+  scroll-margin-top: 1rem;
+  scroll-margin-bottom: calc(var(--asset-dock-space) + 1rem);
+}
+
+.asset-field[data-active] .asset-amount-wrap {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
+}
+
+/* 金額の入った欄を選んだ直後は、次の数字で置き換えることを値の塗りで示す (AC-AST-002-5) */
+.asset-amount-wrap[data-pending-replace] > input {
+  border-radius: 0.35rem;
+  background: var(--accent-soft);
+}
+
+/* ドックを開いている間は一覧の末尾にドックの高さ分の余白を設け、最後の欄までドックの上へ出せるようにする */
+.asset-record-form[data-dock-open] {
+  padding-bottom: var(--asset-dock-space);
+}
+
+/* テンキーのドック。取引入力の入力ドックと同じく画面下部（下部ナビゲーションの上）へ重ね、一覧を動かさない */
+.asset-dock {
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 -10px 30px rgb(var(--shadow-rgb) / 9%);
+}
+
+.asset-dock-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.asset-dock-heading > p {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-dock-close {
+  display: grid;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  place-items: center;
+  cursor: pointer;
+}
+
+.asset-dock-close:active {
+  background: var(--surface-muted);
+}
+
+/* 「次へ」「完了」はテンキー右列の1文字削除の下を埋める大きなキーにする */
+.asset-dock-next {
+  min-height: 48px;
+  border: 0;
+  border-radius: 0.75rem;
+  color: var(--on-accent);
+  background: var(--accent-surface);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.asset-dock-next:active {
+  background: var(--accent-strong);
 }
 
 .asset-keypad-hint {
@@ -738,5 +827,35 @@
 
   .asset-category-settings {
     max-width: 40rem;
+  }
+
+  /* PCでは右列をテンキー用に常に確保し、ドックを右列の上端へ固定する。本文を覆わず、開閉で一覧の幅も変わらない */
+  .asset-record {
+    --asset-dock-space: 0px;
+  }
+
+  .asset-fields {
+    grid-template-columns: minmax(0, 1fr) 21rem;
+    column-gap: 1.5rem;
+    align-items: start;
+  }
+
+  .asset-fields > * {
+    grid-column: 1;
+  }
+
+  .asset-fields > .asset-keypad-hint,
+  .asset-fields > .asset-dock {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .asset-dock {
+    position: sticky;
+    top: 1.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 12%);
   }
 }

@@ -76,7 +76,7 @@ describe("AssetRecordScreen", () => {
     expect(screen.getByRole("status").textContent).toContain("￥1,700,000");
   });
 
-  it("テンキーの入力は選んだ欄だけへ反映し、小計と合計を即時に更新する (AC-AST-002-5)", () => {
+  it("空の欄では数字を追加し、小計と合計を即時に更新する (AC-AST-002-5)", () => {
     render(<AssetRecordScreen view={createView()} />);
     const nisa = screen.getAllByLabelText("NISA")[0] as HTMLInputElement;
     fireEvent.focus(nisa);
@@ -90,12 +90,66 @@ describe("AssetRecordScreen", () => {
     expect(screen.getByRole("status").textContent).toContain("￥2,000,000");
   });
 
-  it("保存ボタンへfocusしてもテンキーを閉じず、押下中にボタンをずらさない (AC-AST-002-5)", () => {
+  it("テンキーは一覧に差し込まず下部のドックへ開き、入力中の欄名と閉じるを示す (AC-AST-002-5)", () => {
+    render(<AssetRecordScreen view={createView()} />);
+    expect(screen.queryByRole("region", { name: "金額の入力" })).toBeNull();
+    const cash = screen.getAllByLabelText("現金・預金")[0] as HTMLInputElement;
+    const fieldsBefore = document.querySelectorAll("[data-asset-field]");
+    fireEvent.focus(cash);
+    const dock = screen.getByRole("region", { name: "金額の入力" });
+    expect(dock.textContent).toContain("たいし・現金・預金");
+    // ドックは金額欄のまとまりの外にあり、欄の並びへ要素を差し込まない
+    expect(dock.closest("[data-asset-field]")).toBeNull();
+    expect(document.querySelectorAll("[data-asset-field]")).toHaveLength(
+      fieldsBefore.length,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "テンキーを閉じる" }));
+    expect(screen.queryByRole("region", { name: "金額の入力" })).toBeNull();
+  });
+
+  it("金額の入っている欄は最初の数字で置き換え、1文字削除では末尾を削除する (AC-AST-002-5)", () => {
+    render(<AssetRecordScreen view={createView()} />);
+    const cash = screen.getAllByLabelText("現金・預金")[0] as HTMLInputElement;
+    fireEvent.focus(cash);
+    expect(cash.closest("[data-pending-replace]")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "2" }));
+    expect(cash.value).toBe("2");
+    expect(cash.closest("[data-pending-replace]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "00" }));
+    expect(cash.value).toBe("200");
+
+    const partnerCash = screen.getAllByLabelText(
+      "現金・預金",
+    )[1] as HTMLInputElement;
+    fireEvent.focus(partnerCash);
+    fireEvent.click(screen.getByRole("button", { name: "1桁削除" }));
+    expect(partnerCash.value).toBe("50,000");
+    fireEvent.click(screen.getByRole("button", { name: "1" }));
+    expect(partnerCash.value).toBe("500,001");
+  });
+
+  it("保存へのfocusではドックを閉じず、押下中にボタンをずらさない (AC-AST-002-5)", () => {
     render(<AssetRecordScreen view={createView()} />);
     fireEvent.focus(screen.getAllByLabelText("NISA")[0] as HTMLInputElement);
-    expect(document.querySelector("[data-asset-keypad]")).not.toBeNull();
     fireEvent.focus(screen.getByRole("button", { name: "保存する" }));
-    expect(document.querySelector("[data-asset-keypad]")).not.toBeNull();
+    expect(screen.getByRole("region", { name: "金額の入力" })).toBeTruthy();
+  });
+
+  it("「次へ」で表示順の次の欄へ移り、最後の欄では「完了」で閉じる (AC-AST-002-5)", () => {
+    render(<AssetRecordScreen view={createView()} />);
+    fireEvent.focus(
+      screen.getAllByLabelText("現金・預金")[0] as HTMLInputElement,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    const dock = () => screen.getByRole("region", { name: "金額の入力" });
+    expect(dock().textContent).toContain("たいし・NISA");
+    expect(document.activeElement).toBe(screen.getAllByLabelText("NISA")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    expect(dock().textContent).toContain("はなこ・現金・預金");
+    fireEvent.click(screen.getByRole("button", { name: "次へ" }));
+    expect(dock().textContent).toContain("はなこ・NISA");
+    fireEvent.click(screen.getByRole("button", { name: "完了" }));
+    expect(screen.queryByRole("region", { name: "金額の入力" })).toBeNull();
   });
 
   it("既存記録は更新者を示し、versionを送って削除には確認を求める (AC-AST-004-1、AC-AST-004-2)", () => {

@@ -94,14 +94,13 @@ type AmountFieldProps = Readonly<{
   label: string;
   value: string;
   isActive: boolean;
+  /** 金額の入った欄を選んだ直後で、次の数字で置き換える状態 */
+  isPendingReplace: boolean;
   onChange: (value: string) => void;
   onActivate: () => void;
-  onKey: (key: AmountKeypadKey) => void;
-  onDelete: () => void;
-  keypadRef: RefObject<HTMLDivElement | null>;
 }>;
 
-// 金額欄1つ。inputmode="none"でOSの仮想キーボードを開かず、選択中はその直下に共有テンキーを開く (AC-AST-002-5)
+// 金額欄1つ。inputmode="none"でOSの仮想キーボードを開かず、選ぶと画面下部のドックのテンキーで入力する (AC-AST-002-5)
 // 送信値は区切りなしの整数のままhidden inputで送り、表示用の金額欄だけを3桁区切りにする
 function AmountField({
   id,
@@ -109,17 +108,22 @@ function AmountField({
   label,
   value,
   isActive,
+  isPendingReplace,
   onChange,
   onActivate,
-  onKey,
-  onDelete,
-  keypadRef,
 }: AmountFieldProps) {
   return (
-    <div className={styles["asset-field"]} data-asset-field={field}>
+    <div
+      className={styles["asset-field"]}
+      data-active={isActive ? "" : undefined}
+      data-asset-field={field}
+    >
       <label htmlFor={id}>{label}</label>
       <input name={`asset:${field}`} type="hidden" value={value} />
-      <div className={styles["asset-amount-wrap"]}>
+      <div
+        className={styles["asset-amount-wrap"]}
+        data-pending-replace={isPendingReplace ? "" : undefined}
+      >
         <span aria-hidden="true">¥</span>
         <input
           autoComplete="off"
@@ -136,16 +140,64 @@ function AmountField({
           value={formatAmountExpression(value)}
         />
       </div>
-      {isActive ? (
-        <div
-          className={styles["asset-keypad"]}
-          data-asset-keypad=""
-          ref={keypadRef}
-        >
-          <AmountKeypad onDelete={onDelete} onKey={onKey} open />
-        </div>
-      ) : null}
     </div>
+  );
+}
+
+type AssetKeypadDockProps = Readonly<{
+  label: string;
+  isLast: boolean;
+  onKey: (key: AmountKeypadKey) => void;
+  onDelete: () => void;
+  onNext: () => void;
+  onClose: () => void;
+  dockRef: RefObject<HTMLElement | null>;
+}>;
+
+// 画面下部に重ねて開くテンキーのドック。一覧へ差し込まないため、開閉と欄の切り替えで一覧の位置は動かない (AC-AST-002-5)
+// 見出しに入力中の欄、右上に「閉じる」、右列に表示順の次の欄へ移る「次へ」（最後の欄は「完了」）を置く
+function AssetKeypadDock({
+  label,
+  isLast,
+  onKey,
+  onDelete,
+  onNext,
+  onClose,
+  dockRef,
+}: AssetKeypadDockProps) {
+  return (
+    <section
+      aria-label="金額の入力"
+      className={styles["asset-dock"]}
+      data-asset-keypad=""
+      ref={dockRef}
+    >
+      <div className={styles["asset-dock-heading"]}>
+        <p aria-live="polite">{label}</p>
+        <button
+          aria-label="テンキーを閉じる"
+          className={styles["asset-dock-close"]}
+          onClick={onClose}
+          type="button"
+        >
+          閉じる
+        </button>
+      </div>
+      <AmountKeypad
+        onDelete={onDelete}
+        onKey={onKey}
+        open
+        side={
+          <button
+            className={styles["asset-dock-next"]}
+            onClick={onNext}
+            type="button"
+          >
+            {isLast ? "完了" : "次へ"}
+          </button>
+        }
+      />
+    </section>
   );
 }
 
@@ -247,51 +299,106 @@ function RecordFields({ view }: AssetRecordFormProps) {
   }));
   // 開いているテンキーの対象欄。nullは閉じている状態
   const [activeField, setActiveField] = useState<string | null>(null);
-  const keypadRef = useRef<HTMLDivElement>(null);
+  // 金額の入った欄を選んだ直後は、最初の数字・00で置き換える (AC-AST-002-5)
+  const [pendingReplace, setPendingReplace] = useState(false);
+  const dockRef = useRef<HTMLElement>(null);
 
-  // 金額欄へfocusしたらその欄でテンキーを開き、金額欄以外へfocusしたら閉じる。テンキー内の操作では開閉しない
+  // 表示順（メンバーの順、各メンバー内は資産区分の並び順）の欄。「次へ」の移動とドックの見出しに使う
+  const cells = view.members.flatMap((member) =>
+    view.categories.map((category) => ({
+      key: assetCellKey(member.memberId, category.id),
+      label: `${member.displayName}・${category.name}`,
+    })),
+  );
+  const activeIndex = cells.findIndex((cell) => cell.key === activeField);
+
+  function activate(field: string): void {
+    setActiveField(field);
+    setPendingReplace((values[field] ?? "") !== "");
+  }
+
+  function closeKeypad(): void {
+    setActiveField(null);
+    setPendingReplace(false);
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement) focused.blur();
+  }
+
+  // 金額欄へfocusしたらその欄でテンキーを開き、金額欄以外へfocusしたら閉じる。ドック内の操作では開閉しない
   function handleFieldsFocus(event: ReactFocusEvent<HTMLFieldSetElement>) {
     const target = event.target as HTMLElement | null;
     if (!target) return;
     const field = target.getAttribute("data-amount-field");
     if (field) {
-      setActiveField(field);
+      if (field !== activeField) activate(field);
       return;
     }
-    if (keypadRef.current?.contains(target)) return;
-    // 保存ボタンへのfocusでテンキーを閉じると、押下中にボタンが上へずれてタップが失われるため閉じない
+    if (dockRef.current?.contains(target)) return;
+    // 保存へのfocusで閉じると末尾の余白が消えてscroll位置が変わり、押下中のボタンがずれてタップが失われる
     if (target.closest('button[type="submit"]')) return;
     setActiveField(null);
+    setPendingReplace(false);
   }
 
-  // 開いたテンキーが下部ナビゲーションへ隠れないよう、見える位置まで移動する
+  // 選んだ欄がドックに隠れる場合だけ、ドックの上に見えるまでscrollする（scroll-marginでドックの高さを空ける）
   useEffect(() => {
     if (!activeField) return;
     const frame = requestAnimationFrame(() => {
-      const keypad = keypadRef.current;
-      if (keypad && typeof keypad.scrollIntoView === "function") {
-        keypad.scrollIntoView({ block: "nearest" });
+      const field = document.getElementById(`${fieldId}-${activeField}`);
+      const row = field?.closest("[data-asset-field]");
+      if (row && typeof row.scrollIntoView === "function") {
+        row.scrollIntoView({ block: "nearest" });
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [activeField]);
+  }, [activeField, fieldId]);
 
-  // テンキーの入力は選択中の欄だけへ反映する（取引入力と同じ桁追加規則）
-  function updateActive(update: (current: string) => string): void {
+  // テンキーの入力は選択中の欄だけへ反映する。置き換え待ちなら空から入力し直す（取引入力と同じ桁追加規則）
+  function handleKey(key: AmountKeypadKey): void {
     if (!activeField) return;
-    const key = activeField;
-    setValues((current) => ({ ...current, [key]: update(current[key] ?? "") }));
+    const field = activeField;
+    const replace = pendingReplace;
+    setPendingReplace(false);
+    setValues((current) => ({
+      ...current,
+      [field]: appendAmountDigit(replace ? "" : (current[field] ?? ""), key),
+    }));
   }
-  const handleKey = (key: AmountKeypadKey) =>
-    updateActive((current) => appendAmountDigit(current, key));
-  const handleDelete = () => updateActive(removeLastAmountDigit);
+
+  function handleDelete(): void {
+    if (!activeField) return;
+    const field = activeField;
+    setPendingReplace(false);
+    setValues((current) => ({
+      ...current,
+      [field]: removeLastAmountDigit(current[field] ?? ""),
+    }));
+  }
+
+  // 表示順の次の欄へfocusを移す。最後の欄ではドックを閉じる
+  function handleNext(): void {
+    const next = cells[activeIndex + 1];
+    if (!next) {
+      closeKeypad();
+      return;
+    }
+    const input = document.getElementById(`${fieldId}-${next.key}`);
+    if (input instanceof HTMLInputElement) {
+      input.focus({ preventScroll: true });
+    }
+    activate(next.key);
+  }
 
   const keysOf = (memberId: string) =>
     view.categories.map((category) => assetCellKey(memberId, category.id));
   const total = sumAmounts(Object.values(values));
 
   return (
-    <form action={formAction} className={styles["asset-record-form"]}>
+    <form
+      action={formAction}
+      className={styles["asset-record-form"]}
+      data-dock-open={activeField ? "" : undefined}
+    >
       <input name="month" type="hidden" value={view.month} />
       <input
         name="expectedVersion"
@@ -323,15 +430,16 @@ function RecordFields({ view }: AssetRecordFormProps) {
                     field={key}
                     id={`${fieldId}-${key}`}
                     isActive={activeField === key}
+                    isPendingReplace={activeField === key && pendingReplace}
                     key={key}
-                    keypadRef={keypadRef}
                     label={category.name}
-                    onActivate={() => setActiveField(key)}
-                    onChange={(value) =>
-                      setValues((current) => ({ ...current, [key]: value }))
-                    }
-                    onDelete={handleDelete}
-                    onKey={handleKey}
+                    onActivate={() => {
+                      if (activeField !== key) activate(key);
+                    }}
+                    onChange={(value) => {
+                      setPendingReplace(false);
+                      setValues((current) => ({ ...current, [key]: value }));
+                    }}
                     value={values[key] ?? ""}
                   />
                 );
@@ -343,6 +451,17 @@ function RecordFields({ view }: AssetRecordFormProps) {
           <p className={styles["asset-keypad-hint"]}>
             金額欄をタップするとテンキーを開きます。
           </p>
+        ) : null}
+        {activeField !== null && activeIndex >= 0 ? (
+          <AssetKeypadDock
+            dockRef={dockRef}
+            isLast={activeIndex === cells.length - 1}
+            label={cells[activeIndex]?.label ?? ""}
+            onClose={closeKeypad}
+            onDelete={handleDelete}
+            onKey={handleKey}
+            onNext={handleNext}
+          />
         ) : null}
         <p className={styles["asset-record-total"]} role="status">
           <span>合計資産額</span>
