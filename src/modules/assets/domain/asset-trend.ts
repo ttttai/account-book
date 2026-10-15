@@ -136,19 +136,26 @@ function groupDigits(value: number): string {
   return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// 縦軸の上端を、最大値以上の切りのよい値（1・2・5 × 10の累乗 万円）へ切り上げる。0円だけなら0
-export function assetAxisMaxMinor(maxTotalMinor: number): number {
+const MAX_AXIS_LINES = 6;
+
+// 縦軸の目盛り間隔（1・2・5 × 10の累乗 万円）を、目盛り線が6本以下になる最小の値にする
+export function assetAxisStepMinor(maxTotalMinor: number): number {
   if (maxTotalMinor <= 0) return 0;
-  const tenThousands = Math.ceil(maxTotalMinor / TEN_THOUSAND);
-  let magnitude = 1;
+  let magnitude = TEN_THOUSAND;
   for (;;) {
     for (const step of [1, 2, 5]) {
-      if (step * magnitude >= tenThousands) {
-        return step * magnitude * TEN_THOUSAND;
+      if (maxTotalMinor <= step * magnitude * MAX_AXIS_LINES) {
+        return step * magnitude;
       }
     }
     magnitude *= 10;
   }
+}
+
+// 縦軸の上端を、最大値以上で目盛り間隔の倍数になる最小の値へ切り上げる。0円だけなら0
+export function assetAxisMaxMinor(maxTotalMinor: number): number {
+  const step = assetAxisStepMinor(maxTotalMinor);
+  return step === 0 ? 0 : Math.ceil(maxTotalMinor / step) * step;
 }
 
 // 縦軸の短縮ラベル（万円単位）。正確な金額は本文で別途示す
@@ -351,15 +358,18 @@ function buildChart(
     });
   });
 
+  // 目盛り線は間隔ごとに引き、上端を含めて6本以下にする
+  const stepMinor = assetAxisStepMinor(axisMaxMinor);
   const ticks =
-    axisMaxMinor === 0
+    stepMinor === 0
       ? []
-      : [axisMaxMinor, axisMaxMinor / 2]
-          .filter((value) => value % TEN_THOUSAND === 0)
-          .map((value) => ({
-            y: round(yOf(value)),
-            label: formatAssetAxisLabel(value),
-          }));
+      : Array.from(
+          { length: axisMaxMinor / stepMinor },
+          (_, index) => axisMaxMinor - index * stepMinor,
+        ).map((value) => ({
+          y: round(yOf(value)),
+          label: formatAssetAxisLabel(value),
+        }));
 
   const hasGaps = points.some(
     (point, index) =>

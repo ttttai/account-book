@@ -4,6 +4,7 @@ import {
   type AssetTrendData,
   type AssetTrendOptions,
   assetAxisMaxMinor,
+  assetAxisStepMinor,
   assetSharePercent,
   buildAssetTrendSeries,
   formatAssetAxisLabel,
@@ -228,22 +229,36 @@ describe("buildAssetTrendSeries", () => {
 
   it("積み上げの上端は各月の合計と一致する", () => {
     const view = buildAssetTrendSeries(data, defaults);
-    // 縦軸上端は210万円→500万円、2026-05の合計210万円は高さ180の42%
-    expect(view.chart.axisMaxMinor).toBe(5_000_000);
-    expect(view.chart.markers.at(-1)?.y).toBe(104.4);
+    // 縦軸上端は210万円→250万円、2026-05の合計210万円は高さ180の84%
+    expect(view.chart.axisMaxMinor).toBe(2_500_000);
+    expect(view.chart.markers.at(-1)?.y).toBe(28.8);
     const topArea = view.chart.areas.at(-1);
-    expect(topArea?.points.split(" ")[1]).toBe("320,104.4");
+    expect(topArea?.points.split(" ")[1]).toBe("320,28.8");
   });
 });
 
 describe("縦軸と表示値", () => {
-  it("縦軸の上端を1・2・5 × 10の累乗 万円へ切り上げる", () => {
+  it("縦軸は目盛り線6本以下の1・2・5 × 10の累乗 万円間隔で、上端を間隔の倍数へ切り上げる", () => {
+    expect(assetAxisStepMinor(0)).toBe(0);
     expect(assetAxisMaxMinor(0)).toBe(0);
     expect(assetAxisMaxMinor(1)).toBe(10_000);
     expect(assetAxisMaxMinor(15_000)).toBe(20_000);
-    expect(assetAxisMaxMinor(2_100_000)).toBe(5_000_000);
+    expect(assetAxisMaxMinor(2_100_000)).toBe(2_500_000);
     expect(assetAxisMaxMinor(50_000_000)).toBe(50_000_000);
-    expect(assetAxisMaxMinor(60_500_000)).toBe(100_000_000);
+    // 5,659万円は1,000万円間隔で6,000万円まで
+    expect(assetAxisStepMinor(56_590_000)).toBe(10_000_000);
+    expect(assetAxisMaxMinor(56_590_000)).toBe(60_000_000);
+  });
+
+  it("目盛り線は上端から間隔ごとに引き、6本以下にする", () => {
+    const { chart } = buildAssetTrendSeries(data, defaults);
+    expect(chart.ticks.map((tick) => tick.label)).toEqual([
+      "250万円",
+      "200万円",
+      "150万円",
+      "100万円",
+      "50万円",
+    ]);
   });
 
   it("縦軸ラベルは万円単位で3桁区切りにする", () => {

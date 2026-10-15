@@ -28,6 +28,7 @@ export type {
 export {
   ASSET_TREND_RANGES,
   assetAxisMaxMinor,
+  assetAxisStepMinor,
   assetSharePercent,
   buildAssetTrendSeries,
   formatAssetAxisLabel,

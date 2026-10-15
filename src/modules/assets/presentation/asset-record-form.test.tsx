@@ -90,6 +90,14 @@ describe("AssetRecordScreen", () => {
     expect(screen.getByRole("status").textContent).toContain("￥2,000,000");
   });
 
+  it("保存ボタンへfocusしてもテンキーを閉じず、押下中にボタンをずらさない (AC-AST-002-5)", () => {
+    render(<AssetRecordScreen view={createView()} />);
+    fireEvent.focus(screen.getAllByLabelText("NISA")[0] as HTMLInputElement);
+    expect(document.querySelector("[data-asset-keypad]")).not.toBeNull();
+    fireEvent.focus(screen.getByRole("button", { name: "保存する" }));
+    expect(document.querySelector("[data-asset-keypad]")).not.toBeNull();
+  });
+
   it("既存記録は更新者を示し、versionを送って削除には確認を求める (AC-AST-004-1、AC-AST-004-2)", () => {
     render(
       <AssetRecordScreen

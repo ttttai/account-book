@@ -259,6 +259,8 @@ function RecordFields({ view }: AssetRecordFormProps) {
       return;
     }
     if (keypadRef.current?.contains(target)) return;
+    // 保存ボタンへのfocusでテンキーを閉じると、押下中にボタンが上へずれてタップが失われるため閉じない
+    if (target.closest('button[type="submit"]')) return;
     setActiveField(null);
   }
 

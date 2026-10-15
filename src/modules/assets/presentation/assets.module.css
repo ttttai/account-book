@@ -627,7 +627,21 @@
 }
 
 .asset-category-form > input {
+  min-width: 0;
   min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--field-border);
+  border-radius: 0.7rem;
+  color: var(--text);
+  background: var(--surface-strong);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.asset-category-form > input:focus-visible {
+  border-color: var(--accent);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
 }
 
 .asset-color-fieldset {
