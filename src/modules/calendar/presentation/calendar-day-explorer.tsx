@@ -19,17 +19,20 @@ import {
   buildCalendarDayRowAccessibleName,
   describeCalendarDayParty,
 } from "../domain/calendar-day-row";
-import type { Weekday } from "../domain/calendar-grid";
+import type { CalendarGridCell } from "../domain/calendar-grid";
 import { formatCalendarCellJpy, formatJpy } from "../domain/calendar-summary";
 
 import styles from "./calendar.module.css";
 
 const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
-// 土曜・日曜の日番号だけに色分け用classを返す。曜日見出しの文字で判別できるため色は補助 (CAL-016)
-function weekendClassName(weekday: Weekday): string {
-  if (weekday === 6) return styles["is-saturday"] ?? "";
-  if (weekday === 0) return styles["is-sunday"] ?? "";
+// 土曜・日曜・祝日の日番号だけに色分け用classを返す。祝日は土曜でも日曜と同じ色を優先する (CAL-016, CAL-018)
+function dayColorClassName(
+  cell: Pick<CalendarGridCell, "weekday" | "holidayName">,
+): string {
+  if (cell.holidayName) return styles["is-holiday"] ?? "";
+  if (cell.weekday === 6) return styles["is-saturday"] ?? "";
+  if (cell.weekday === 0) return styles["is-sunday"] ?? "";
   return "";
 }
 
@@ -284,6 +287,9 @@ function DayPanel({
   const dayTotal = data.dailyTotals[selectedDay] ?? 0;
   const dayIncomeTotal = data.incomeDailyTotals[selectedDay] ?? 0;
   const dayTransactions = data.dayTransactionsByDate[selectedDay] ?? [];
+  const holidayName = data.grid.find(
+    (cell) => cell.date === selectedDay,
+  )?.holidayName;
   // 支出0円で収入だけの日は、支出額￥0ではなく収入額を主見出しにする (AC-CAL-005-3)
   const isIncomeOnlyDay = dayTotal === 0 && dayIncomeTotal > 0;
 
@@ -300,7 +306,17 @@ function DayPanel({
     >
       <header>
         <div className={styles["calendar-day-summary"]}>
-          <h2 id="selected-day-title">{formatDay(selectedDay)}</h2>
+          <h2 id="selected-day-title">
+            {formatDay(selectedDay)}
+            {holidayName ? (
+              <>
+                {" "}
+                <span className={styles["calendar-day-holiday"]}>
+                  {holidayName}
+                </span>
+              </>
+            ) : null}
+          </h2>
           {isIncomeOnlyDay ? (
             <p
               className={`${styles["calendar-day-total"]} ${styles["calendar-day-total-income"]}`}
@@ -492,7 +508,7 @@ export function CalendarDayExplorer({
                     cell.isCurrentMonth
                       ? styles["is-current-month"]
                       : styles["is-other-month"],
-                    weekendClassName(cell.weekday),
+                    dayColorClassName(cell),
                     cell.isToday ? styles["is-today"] : "",
                     isSelected ? styles["is-selected"] : "",
                   ]
@@ -501,9 +517,13 @@ export function CalendarDayExplorer({
                   const expenseLabel = amount
                     ? `支出${formatJpy(amount)}`
                     : "支出なし";
+                  // 祝日名は色の代わりに読み上げで伝えるため、日付の直後に置く (AC-CAL-018-3)
+                  const dayLabel = cell.holidayName
+                    ? `${formatDay(cell.date)}、${cell.holidayName}`
+                    : formatDay(cell.date);
                   const exactLabel = incomeAmount
-                    ? `${formatDay(cell.date)}、${expenseLabel}、収入${formatJpy(incomeAmount)}`
-                    : `${formatDay(cell.date)}、${expenseLabel}`;
+                    ? `${dayLabel}、${expenseLabel}、収入${formatJpy(incomeAmount)}`
+                    : `${dayLabel}、${expenseLabel}`;
 
                   return (
                     <td key={cell.date} className={className}>

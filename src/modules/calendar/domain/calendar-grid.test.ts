@@ -50,6 +50,29 @@ describe("createCalendarGrid", () => {
     ).toBe(true);
   });
 
+  it("各セルへ祝日名を付与し、前後の年にまたがるセルと祝日でない日を区別する (AC-CAL-018-1, AC-CAL-018-4)", () => {
+    const september = createCalendarGrid("2026-09", 0, "2026-09-01");
+    const byDate = new Map(september.map((cell) => [cell.date, cell]));
+    expect(byDate.get("2026-09-21")?.holidayName).toBe("敬老の日");
+    expect(byDate.get("2026-09-22")?.holidayName).toBe("国民の休日");
+    expect(byDate.get("2026-09-23")?.holidayName).toBe("秋分の日");
+    expect(byDate.get("2026-09-24")?.holidayName).toBeUndefined();
+    // 祝日でない選択月外のセルには付けない
+    expect(byDate.get("2026-10-10")?.holidayName).toBeUndefined();
+
+    const december = createCalendarGrid("2026-12", 1, "2026-12-01");
+    const lastCell = december.find((cell) => cell.date === "2027-01-01");
+    expect(lastCell).toMatchObject({
+      isCurrentMonth: false,
+      holidayName: "元日",
+    });
+
+    const january = createCalendarGrid("2027-01", 0, "2027-01-01");
+    expect(
+      january.filter((cell) => cell.holidayName).map((cell) => cell.date),
+    ).toEqual(["2027-01-01", "2027-01-11"]);
+  });
+
   it("前月・翌月を年境界で計算する", () => {
     expect(shiftMonth("2026-01", -1)).toBe("2025-12");
     expect(shiftMonth("2026-12", 1)).toBe("2027-01");

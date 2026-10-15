@@ -812,6 +812,60 @@ describe("CalendarDayExplorer", () => {
     ).toBe(true);
   });
 
+  it("祝日の日番号は曜日によらず日曜と同じ色classで、日付リンクと日別sheetの見出しに祝日名を含める (AC-CAL-018-2, AC-CAL-018-3)", () => {
+    const holidayNames: Record<string, string> = {
+      // 8/1は土曜の祝日、fixtureの選択月外セル（2026-08-35）は月外の祝日として扱う
+      "2026-08-01": "テストの日",
+      "2026-08-11": "山の日",
+      "2026-08-35": "翌月の日",
+    };
+    const holidayData = {
+      ...data,
+      selectedDay: "2026-08-11",
+      grid: data.grid.map((cell) => {
+        const holidayName = holidayNames[cell.date];
+        return holidayName ? { ...cell, holidayName } : cell;
+      }),
+    };
+    render(<CalendarDayExplorer data={holidayData} />);
+
+    const holidayCell = screen
+      .getByRole("link", { name: "2026年8月11日、山の日、支出なし" })
+      .closest("td");
+    expect(holidayCell?.classList.contains("is-holiday")).toBe(true);
+    // 祝日名はセルに表示せず、日番号だけを表示する
+    expect(holidayCell?.textContent).toBe("11");
+
+    const saturdayHolidayCell = screen
+      .getByRole("link", { name: "2026年8月1日、テストの日、支出なし" })
+      .closest("td");
+    expect(saturdayHolidayCell?.classList.contains("is-holiday")).toBe(true);
+    expect(saturdayHolidayCell?.classList.contains("is-saturday")).toBe(false);
+
+    expect(
+      document.querySelectorAll("td.is-other-month.is-holiday"),
+    ).toHaveLength(1);
+
+    // 祝日でない日の表示とaccessibility nameは変えない
+    const weekdayCell = screen
+      .getByRole("link", { name: "2026年8月3日、支出なし" })
+      .closest("td");
+    expect(weekdayCell?.classList.contains("is-holiday")).toBe(false);
+    for (const header of screen.getAllByRole("columnheader")) {
+      expect(header.classList.contains("is-holiday")).toBe(false);
+    }
+
+    expect(
+      screen.getByRole("heading", { name: "2026年8月11日 山の日" }),
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("link", {
+        name: "2026年8月15日、支出￥1,000、収入￥300,000",
+      }),
+    );
+    expect(screen.getByRole("heading", { name: "2026年8月15日" })).toBeTruthy();
+  });
+
   it("popstateで有効な日付を復元し、月外日付を表示しない", () => {
     render(<CalendarDayExplorer data={data} />);
 
