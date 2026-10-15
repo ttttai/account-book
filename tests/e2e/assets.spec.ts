@@ -73,14 +73,14 @@ test("E2E-016 前月の記録をコピーして資産を記録し、推移と内
     memberPage.getByRole("heading", { name: `${monthLabel(month)}の内訳` }),
   ).toBeVisible();
 
-  // 表示条件の切替はサーバーへ要求しない (AC-AST-008-1)
+  // 表示条件の切替はServer Actionも資産推移の再取得も行わない (AC-AST-008-1)
+  // 下部ナビ等のLinkが表示範囲に入ると別routeを先読み（GET ?_rsc=）するため、それは数えない
+  const trendPath = `/groups/${groupId}/assets`;
   const requests: string[] = [];
   memberPage.on("request", (request) => {
-    if (
-      request.resourceType() === "fetch" ||
-      request.resourceType() === "document"
-    ) {
-      requests.push(request.url());
+    const url = new URL(request.url());
+    if (request.method() === "POST" || url.pathname === trendPath) {
+      requests.push(`${request.method()} ${url.pathname}${url.search}`);
     }
   });
   await memberPage
