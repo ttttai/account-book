@@ -330,6 +330,15 @@
   --weekend-color: var(--weekend-sunday-faint);
 }
 
+/* 祝日は曜日によらず日曜と同じ色にする。土曜の規則より後に置き、選択月外は弱い色のまま色相だけ区別する (CAL-018) */
+.calendar-cell.is-holiday {
+  --weekend-color: var(--weekend-sunday);
+}
+
+.calendar-cell.is-other-month.is-holiday {
+  --weekend-color: var(--weekend-sunday-faint);
+}
+
 /* 今日の丸を付けても縦位置がずれないよう、全セルで同じ寸法のボックスを確保する */
 .calendar-day-number {
   display: grid;
@@ -471,6 +480,13 @@
 
 .calendar-day-panel h2 {
   font-size: 1.05rem;
+}
+
+/* 見出しの日付に添える祝日名。日別合計の大きさと位置は変えない (AC-CAL-018-3) */
+.calendar-day-holiday {
+  color: var(--weekend-sunday);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .calendar-day-panel .calendar-day-total {

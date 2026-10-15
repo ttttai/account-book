@@ -1,3 +1,6 @@
+import { dayOfWeek, daysInMonth, formatDate } from "./calendar-date";
+import { getJapaneseHolidays } from "./japanese-holidays";
+
 type WeekStartsOn = 0 | 1;
 
 /** 曜日（0=日曜〜6=土曜） */
@@ -10,21 +13,14 @@ export type CalendarGridCell = Readonly<{
   isToday: boolean;
   /** 実際の曜日。土日の色分けに使い、Client側でDateから再計算しない (CAL-016) */
   weekday: Weekday;
+  /** 国民の祝日・振替休日・国民の休日の名称。祝日でない日は持たない (CAL-018) */
+  holidayName?: string;
 }>;
 
 function parseMonth(monthValue: string): { year: number; month: number } {
   const [year, month] = monthValue.split("-").map(Number);
   if (!year || !month) throw new Error("invalid calendar month");
   return { year, month };
-}
-
-function isLeapYear(year: number): boolean {
-  return year % 400 === 0 || (year % 4 === 0 && year % 100 !== 0);
-}
-
-function daysInMonth(year: number, month: number): number {
-  if (month === 2) return isLeapYear(year) ? 29 : 28;
-  return [4, 6, 9, 11].includes(month) ? 30 : 31;
 }
 
 // 範囲外の月・日を繰り上げ・繰り下げして正規の年月日へ丸める（Dateオブジェクト非依存）
@@ -63,26 +59,6 @@ function normalizeDate(year: number, month: number, day: number) {
   return { year: normalizedYear, month: normalizedMonth, day: normalizedDay };
 }
 
-function formatDate(year: number, month: number, day: number): string {
-  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-}
-
-// Sakamotoのアルゴリズムで曜日（0=日曜）を求める
-function dayOfWeek(year: number, month: number, day: number): number {
-  const offsets = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
-  let adjustedYear = year;
-  if (month < 3) adjustedYear -= 1;
-  return (
-    (adjustedYear +
-      Math.floor(adjustedYear / 4) -
-      Math.floor(adjustedYear / 100) +
-      Math.floor(adjustedYear / 400) +
-      (offsets[month - 1] ?? 0) +
-      day) %
-    7
-  );
-}
-
 // 前月または翌月のYYYY-MM文字列を返す
 export function shiftMonth(monthValue: string, offset: -1 | 1): string {
   const { year, month } = parseMonth(monthValue);
@@ -100,9 +76,21 @@ export function createCalendarGrid(
   const firstWeekday = dayOfWeek(year, month, 1);
   const leadingDays = (firstWeekday - weekStartsOn + 7) % 7;
 
+  // 42セルは前後の年にまたがり得るため、セルの年ごとに祝日表を引く
+  const holidaysByYear = new Map<number, ReadonlyMap<string, string>>();
+  function holidayNameOf(cellYear: number, date: string): string | undefined {
+    let holidays = holidaysByYear.get(cellYear);
+    if (!holidays) {
+      holidays = getJapaneseHolidays(cellYear);
+      holidaysByYear.set(cellYear, holidays);
+    }
+    return holidays.get(date);
+  }
+
   return Array.from({ length: 42 }, (_, index) => {
     const value = normalizeDate(year, month, index - leadingDays + 1);
     const date = formatDate(value.year, value.month, value.day);
+    const holidayName = holidayNameOf(value.year, date);
     return {
       date,
       day: value.day,
@@ -110,6 +98,7 @@ export function createCalendarGrid(
       isToday: date === today,
       // グリッドの先頭は週開始曜日なので、先頭からの位置で曜日が決まる
       weekday: ((weekStartsOn + index) % 7) as Weekday,
+      ...(holidayName ? { holidayName } : {}),
     };
   });
 }
