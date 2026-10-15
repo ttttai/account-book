@@ -8,6 +8,9 @@ const diagramEntityByTable = {
   "app_private.allowed_google_accounts": "ALLOWED_GOOGLE_ACCOUNTS",
   "app_private.line_notification_targets": "LINE_NOTIFICATION_TARGETS",
   "app_private.weekly_notification_log": "WEEKLY_NOTIFICATION_LOG",
+  "public.asset_categories": "ASSET_CATEGORIES",
+  "public.asset_snapshot_values": "ASSET_SNAPSHOT_VALUES",
+  "public.asset_snapshots": "ASSET_SNAPSHOTS",
   "public.budget_category_limits": "BUDGET_CATEGORY_LIMITS",
   "public.budget_revisions": "BUDGET_REVISIONS",
   "public.categories": "CATEGORIES",
@@ -83,4 +86,10 @@ test("ER図を実装済みmigrationとグループ境界へ同期する", async 
   assert.match(diagram, /GROUPS \|\|--o\| LINE_NOTIFICATION_TARGETS/);
   assert.match(diagram, /GROUPS \|\|--o\{ WEEKLY_NOTIFICATION_LOG/);
   assert.doesNotMatch(diagram, /\n\s{4}WEEKLY_NOTIFICATION_MESSAGES\s+\{/);
+  // 資産推移は記録月ごとの資産記録と内訳だけを持ち、合計・前回比を保存しない (AST-002)
+  assert.match(diagram, /GROUPS \|\|--o\{ ASSET_CATEGORIES/);
+  assert.match(diagram, /GROUPS \|\|--o\{ ASSET_SNAPSHOTS/);
+  assert.match(diagram, /ASSET_SNAPSHOTS \|\|--o\{ ASSET_SNAPSHOT_VALUES/);
+  assert.match(diagram, /GROUP_MEMBERS \|\|--o\{ ASSET_SNAPSHOT_VALUES/);
+  assert.match(diagram, /ASSET_CATEGORIES \|\|--o\{ ASSET_SNAPSHOT_VALUES/);
 });

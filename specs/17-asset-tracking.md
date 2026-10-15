@@ -1,8 +1,8 @@
 # 資産推移仕様
 
-状態: 承認済み（review: 2026-10-15-asset-tracking-spec）
+状態: 承認済み（review: 2026-10-15-asset-tracking-spec、2026-10-15-asset-tracking）
 
-バージョン: 0.1.0
+バージョン: 0.1.1
 
 対象リリース: MVP後・資産推移フェーズ
 
@@ -123,7 +123,7 @@
 
 ### 7.3 積み上げ面グラフ（`AST-007`、`AST-009`）
 
-- 横軸は表示期間内の月を暦どおりの等間隔に並べ、縦軸は0円から表示期間内の合計資産額の最大値までとする。縦軸の上端は最大値以上の切りのよい値（1・2・5 × 10の累乗万円）へ切り上げ、上端と中間の目盛りに短縮表記のラベルを付ける。全記録が0円のときも0除算を起こさず、基準線だけを描く。
+- 横軸は表示期間内で最初の記録月から最新の記録月までの月を暦どおりの等間隔に並べ（記録より前の空白を描かない）、縦軸は0円から表示期間内の合計資産額の最大値までとする。縦軸の上端は最大値以上の切りのよい値（1・2・5 × 10の累乗万円）へ切り上げ、上端と中間の目盛りに短縮表記のラベルを付ける。全記録が0円のときも0除算を起こさず、基準線だけを描く。
 - 各系列は並び順（区分別は資産区分の並び順、メンバー別は表示順）に下から積み上げ、各記録月の累積値を点として、隣り合う記録月の点を直線で結んだ面で描く。記録のない月には点を置かず、前後の記録月を結ぶ直線は補間した値を表示・数値化しない。グラフの下に「点のある月が記録した月です。間の月は記録がありません。」を小さく注記する（記録のない月が範囲内にある場合だけ）。
 - 記録月が表示期間内に1件だけの場合は、その月の位置に積み上げた縦棒（幅24px以下）として表示する。
 - 選択中の記録月には縦の補助線を引き、内訳（§7.2の5）と対応させる。
@@ -250,20 +250,20 @@ Command: saveAssetSnapshot(groupId, month, expectedVersion | null, values)
          deleteAssetSnapshot(groupId, month, expectedVersion)
          createAssetCategory(groupId, name, color)
          updateAssetCategory(groupId, categoryId, expectedVersion, name, color)
-         archiveAssetCategory(groupId, categoryId, expectedVersion)
-         restoreAssetCategory(groupId, categoryId, expectedVersion)
-Pure:    buildAssetTrendSeries(dto, { range, stack, memberId })  // 系列・座標・縦軸・前回比・構成比
+         setAssetCategoryArchived(groupId, categoryId, expectedVersion, archived)  // 削除（アーカイブ）と復元
+Pure:    buildAssetTrendSeries(dto, { range, stack, memberId, selectedMonth })  // 系列・座標・縦軸・前回比・構成比
 ```
 
 - 各queryは`groupId`と`month`を検証し、共有境界`resolveGroupReadContext`で認証・アクティブ所属を確認する。未認証は`next`付きログインへ、非メンバー・不正な`groupId`は存在を明かさず`null`を返す。
 - `getAssetTrend`はグループのすべての資産記録の値（記録月、メンバー、資産区分、金額）、資産区分（アーカイブ済みを含む名称・色・並び順）、表示に必要なメンバー（アクティブメンバーと、記録に現れる削除済みメンバーの表示名・表示順）を1回で返す。表示期間・積み上げ・対象の切替はこのDTOに対してClient Componentが純関数`buildAssetTrendSeries`を呼んで行い、サーバーへ再取得しない。全期間で記録月が600件（50年）を超えるデータは想定しないが、DTOの件数上限として記録月600件をqueryで打ち切る。
 - `buildAssetTrendSeries`は資産moduleのdomain層に置く副作用のない純関数とし、Server ComponentとClient Componentの双方から呼べるよう`server-only`を含めない。金額は整数で計算し、座標だけを表示用の数値へ変換する。
 - `getAssetRecordForm`は記録月の既存記録があればその値と`version`を、なければ記録月より前で最も新しい資産記録の値をコピー元の記録月とともに返す。返す入力欄はアクティブメンバー × アクティブ資産区分に限る。
-- 各commandはServer Actionで入力をschema検証したうえで、`security definer`のDB関数（`save_asset_snapshot`、`delete_asset_snapshot`、`create_asset_category`、`update_asset_category`、`archive_asset_category`、`restore_asset_category`）を1回呼び、同一transactionで保存する。DB関数は許可リスト・アクティブ所属・権限（資産区分はowner/admin）、記録月の範囲（当月以前・2000-01以降）、金額範囲、値の組がアクティブメンバー × アクティブ資産区分に含まれ重複しないこと、`expectedVersion`、資産区分の件数上限と名称の重複を再検証する。
+- 各commandはServer Actionで入力をschema検証したうえで、`security definer`のDB関数（`save_asset_snapshot`、`delete_asset_snapshot`、`create_asset_category`、`update_asset_category`、`set_asset_category_archived`）を1回呼び、同一transactionで保存する。DB関数は許可リスト・アクティブ所属・権限（資産区分はowner/admin）、記録月の範囲（当月以前・2000-01以降）、金額範囲、値の組がアクティブメンバー × アクティブ資産区分に含まれ重複しないこと、`expectedVersion`、資産区分の件数上限と名称の重複を再検証する。
 - `save_asset_snapshot`は`expectedVersion`が`null`なら新規作成（同月の記録が既にあれば競合）、値があれば同じ`version`の既存記録の更新（存在しない・versionが古いなら競合）とする。更新では要求に含まれるアクティブメンバー × アクティブ資産区分のセルだけを置き換え、それ以外のセルを保持する（§5.2）。要求内容が現在の値と同じ場合は更新も`version`の加算も行わず成功として返す（再送の冪等性）。
 - クライアントが渡した合計資産額、小計、前回比、メンバーの権限・所属を信用しない。
-- DB関数の失敗は`40001`（競合）、`P0002`（対象なし）、`42501`・`28000`（権限不足・未認証）、`22023`（入力不正）、`23505`（同月の同時作成・名称重複。前者は競合として扱う）を分類して利用者向けメッセージへ変換し、サーバーlogへ操作名とcodeだけを記録する（`NFR-OPS-008`）。資産額をlogへ出さない。
-- グループ作成のDB関数は、カテゴリの初期作成と同じtransactionで資産区分の初期4区分を作成する。既存グループへはmigrationで同じ4区分を作成する。
+- 楽観的ロックの競合（古い`version`、記録が既にある月への新規作成、存在しない記録の更新・削除）は`serialization_failure`（`40001`）で返さず、`outcome`列の結果行（`created`・`updated`・`unchanged`・`deleted`・`conflict`）で返す。PostgRESTが`40001`を自動で再試行し、応答が遅れたうえSQLSTATEが失われるためである。同じグループの資産更新はadvisory lockで直列化し、同月の同時作成も結果行の競合として返す。
+- DB関数の失敗は`42501`・`28000`（権限不足・未認証）、`22023`（入力不正・件数上限）、`23505`（資産区分名の重複）を分類して利用者向けメッセージへ変換し、サーバーlogへ操作名とcodeだけを記録する（`NFR-OPS-008`）。資産額をlogへ出さない。
+- 資産区分の初期4区分は`groups`へのinsert後に動くtriggerで作成し、グループ作成のDB関数（`create_group`）と同じtransactionで保存する。`create_group`本体は変更しない。既存グループへはmigrationで同じ4区分を作成する。
 - Server Componentはサーバー専用queryを直接呼び、Client Componentへは最小DTOだけを渡す。DB行、ユーザーID、tokenを渡さない。メンバーは表示用の識別子（`group_members.id`）と表示名だけを渡す。
 - 個人の家計データに対する共有cacheを追加しない。
 

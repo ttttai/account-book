@@ -7,6 +7,7 @@ export {
   repositionCategorySchema,
   toCategoryColor,
   updateCategorySchema,
+  CATEGORY_COLOR_LABELS,
   CATEGORY_COLORS,
   CATEGORY_NAME_MAX_LENGTH,
 } from "./domain/category-input";

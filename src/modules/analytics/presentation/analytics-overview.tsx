@@ -308,6 +308,7 @@ export function AnalyticsOverview({
         <Link href={`${groupBase}/history?month=${data.month}`}>
           この月の履歴を見る
         </Link>
+        <Link href={`${groupBase}/assets`}>資産推移を見る</Link>
       </nav>
     </div>
   );

@@ -168,6 +168,39 @@ erDiagram
         timestamptz created_at
     }
 
+    ASSET_CATEGORIES {
+        uuid id PK
+        uuid group_id FK
+        text name
+        text color
+        integer sort_order
+        timestamptz archived_at
+        integer version
+        uuid created_by FK
+        uuid updated_by FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ASSET_SNAPSHOTS {
+        uuid id PK
+        uuid group_id FK
+        date month
+        integer version
+        uuid created_by FK
+        uuid updated_by FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    ASSET_SNAPSHOT_VALUES {
+        uuid snapshot_id PK,FK
+        uuid member_id PK,FK
+        uuid asset_category_id PK,FK
+        uuid group_id FK
+        bigint amount_minor
+    }
+
     LINE_NOTIFICATION_TARGETS {
         uuid group_id PK,FK
         text line_group_id
@@ -213,6 +246,12 @@ erDiagram
     BUDGET_REVISIONS ||--o{ BUDGET_CATEGORY_LIMITS : "カテゴリ予算を持つ"
     CATEGORIES ||--o{ BUDGET_CATEGORY_LIMITS : "上限を持つ"
 
+    GROUPS ||--o{ ASSET_CATEGORIES : "資産区分を持つ"
+    GROUPS ||--o{ ASSET_SNAPSHOTS : "記録月ごとの資産記録を持つ"
+    ASSET_SNAPSHOTS ||--o{ ASSET_SNAPSHOT_VALUES : "資産額を持つ"
+    GROUP_MEMBERS ||--o{ ASSET_SNAPSHOT_VALUES : "資産を保有する"
+    ASSET_CATEGORIES ||--o{ ASSET_SNAPSHOT_VALUES : "分類する"
+
     GROUPS ||--o| LINE_NOTIFICATION_TARGETS : "LINEグループと連携する"
     GROUPS ||--o{ WEEKLY_NOTIFICATION_LOG : "週次レポートの送信記録を持つ"
 ```
@@ -230,6 +269,7 @@ erDiagram
 - カレンダー集計は`transactions`と`transaction_allocations`から読み取り時に計算し、現時点で`daily_summaries`テーブルは作成しない。
 - `recurring_transactions`は固定費の設定だけを保持し、月ごとの展開結果（occurrence）は保存しない。カレンダー集計は選択月へ展開した擬似取引を読み取り時に加える。
 - `budget_revisions`は適用開始月ごとの改定だけを保持し、月ごとの予算行を複製しない。`(group_id, effective_month)`をuniqueにし、`budget_category_limits`は`group_id`を含む複合外部キーで同じグループの支出カテゴリへ固定する。実績・残額・消化率は保存せず読み取り時に計算する。
+- `asset_snapshots`は`(group_id, month)`をuniqueにし、記録月ごとの資産記録だけを保持する。`asset_snapshot_values`は`group_id`を含む複合外部キーで同じグループの資産記録・`group_members`・`asset_categories`へ固定し、0円の資産額は行を作らない。合計資産額・前回比・構成比は保存せず読み取り時に計算する（`AST-*`）。
 - `line_notification_targets`は家計グループ1件につきLINEグループ1件の連携だけを保持し、`weekly_notification_log`は`(group_id, week_start_date)`の送信記録だけを保持する。どちらも`app_private`に置き、`authenticated`から参照できない。通知内容は保存しない。
 
 ## 4. 更新ルール
