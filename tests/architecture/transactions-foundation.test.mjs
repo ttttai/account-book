@@ -238,6 +238,16 @@ test("金額はOSの仮想キーボードを開かず画面内テンキーで入
   );
 });
 
+test("テンキーは速い連続タップでダブルタップの拡大を起こさない (AC-TXN-014-11)", async () => {
+  const styles = await read(
+    "src/modules/transactions/presentation/transactions.module.css",
+  );
+  // iOS Safariは同じ位置への素早い2回のタップを拡大として扱い、テンキーとドックの表示を崩す。
+  // manipulationはscrollとピンチの拡大を残し、ダブルタップの拡大だけを無効にする
+  assert.match(styles, /\.keypad\s*\{[^}]*touch-action:\s*manipulation/s);
+  assert.doesNotMatch(styles, /touch-action:\s*none/);
+});
+
 test("テンキーの閉じるは入力ドック右上に置き、テンキーの行を増やさない (AC-TXN-014-8, AC-TXN-014-9)", async () => {
   const form = await read(
     "src/modules/transactions/presentation/expense-form.tsx",

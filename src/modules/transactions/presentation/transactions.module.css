@@ -425,10 +425,13 @@
   background: var(--surface-muted);
 }
 
+/* iOS Safariは同じキーへの素早い連続タップをダブルタップとして画面を拡大し、テンキーの表示を崩す。
+   manipulationでダブルタップの拡大だけを無効にし、scrollとピンチの拡大は残す (AC-TXN-014-11) */
 .keypad {
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
   gap: 0.4rem;
+  touch-action: manipulation;
 }
 
 .keypad-digits {
