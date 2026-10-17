@@ -318,7 +318,6 @@
 
 .asset-month-select[aria-pressed="true"] {
   background: var(--accent-faint);
-  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .asset-month-select:focus-visible {
@@ -438,24 +437,31 @@
   min-inline-size: 0;
   gap: 0.5rem;
   margin: 0;
-  padding: 0.6rem 0.8rem 0.8rem;
+  padding: 0.75rem 0.8rem 0.8rem;
   border: 1px solid var(--border);
   border-radius: 0.9rem;
   background: var(--surface);
 }
 
-.asset-member-group > legend {
+/* 見出しはカード内に置き、名前を左・小計を右に並べて金額欄と線で区切る (AC-AST-010-4) */
+.asset-member-heading {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
   width: 100%;
+  min-width: 0;
   gap: 0.5rem;
-  padding: 0;
+  margin: 0;
+  padding: 0 0 0.55rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 1rem;
   font-weight: 750;
 }
 
 .asset-subtotal {
-  color: var(--muted);
-  font-size: 0.82rem;
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }

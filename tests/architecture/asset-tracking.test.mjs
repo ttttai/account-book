@@ -184,3 +184,27 @@ test("資産推移へ分析画面・設定ハブ・共通ナビゲーション�
     }
   }
 });
+
+// CSSの宣言ブロックを取り出す。見つからなければ空文字
+function cssBlock(css, selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? "";
+}
+
+test("記録画面の見出しをカード内へ収め、月別の選択行に左端の帯を付けない (AC-AST-010-4)", async () => {
+  const css = await read("src/modules/assets/presentation/assets.module.css");
+  const form = await read(
+    "src/modules/assets/presentation/asset-record-form.tsx",
+  );
+  // legendはWebKitで枠線の上へ描かれるため、見出しを要素で置いてaria-labelledbyで名付ける
+  assert.doesNotMatch(form, /<legend/);
+  assert.match(
+    form,
+    /aria-labelledby=\{`\$\{fieldId\}-\$\{member\.memberId\}-heading`\}/,
+  );
+  const heading = cssBlock(css, ".asset-member-heading");
+  assert.match(heading, /border-bottom:/, "見出しと金額欄を区切る");
+  const selected = cssBlock(css, '.asset-month-select[aria-pressed="true"]');
+  assert.match(selected, /background:/);
+  assert.doesNotMatch(selected, /box-shadow/);
+});
