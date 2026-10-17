@@ -98,4 +98,4 @@ gcloud secrets versions disable <旧version> --secret=account-book-allowed-googl
 
 ## ローカル開発の場合
 
-ローカルは本書の対象外である。Git管理外の`.env`の`AUTH_ALLOWED_GOOGLE_EMAILS`を編集し、`docker compose up --watch`を再起動すれば、`scripts/apply-migrations.sh`がDBの許可テーブルへ自動同期する。
+ローカルは本書の対象外である。Git管理外の`.env`の`AUTH_ALLOWED_GOOGLE_EMAILS`を編集し、`docker compose up --watch`を再起動すれば、migration適用後に`scripts/sync-local-allowed-google-accounts.sh`がDBの許可テーブルへ自動同期する。本番のProduction CD（`Apply migrations`）は許可リストを同期しないため、本書の手順が唯一の同期経路である。
