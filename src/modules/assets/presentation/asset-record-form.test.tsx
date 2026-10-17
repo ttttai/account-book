@@ -76,6 +76,14 @@ describe("AssetRecordScreen", () => {
     expect(screen.getByRole("status").textContent).toContain("￥1,700,000");
   });
 
+  it("メンバーのまとまりは見出しの表示名を名前に持ち、小計を見出しに並べる (AC-AST-010-4)", () => {
+    render(<AssetRecordScreen view={createView()} />);
+    const mine = screen.getByRole("group", { name: "たいし" });
+    expect(mine.textContent).toContain("小計 ￥1,200,000");
+    expect(screen.getByRole("group", { name: "はなこ" })).toBeTruthy();
+    expect(document.querySelector("legend")).toBeNull();
+  });
+
   it("空の欄では数字を追加し、小計と合計を即時に更新する (AC-AST-002-5)", () => {
     render(<AssetRecordScreen view={createView()} />);
     const nisa = screen.getAllByLabelText("NISA")[0] as HTMLInputElement;

@@ -409,12 +409,16 @@ function RecordFields({ view }: AssetRecordFormProps) {
       <fieldset className={styles["asset-fields"]} onFocus={handleFieldsFocus}>
         <div className={styles["asset-member-groups"]}>
           {view.members.map((member) => (
+            // legendはWebKitで枠線の上へ描かれるため、見出しを要素で置き表示名をgroupの名前にする (AC-AST-010-4)
             <fieldset
+              aria-labelledby={`${fieldId}-${member.memberId}-heading`}
               className={styles["asset-member-group"]}
               key={member.memberId}
             >
-              <legend>
-                <span>{member.displayName}</span>
+              <div className={styles["asset-member-heading"]}>
+                <span id={`${fieldId}-${member.memberId}-heading`}>
+                  {member.displayName}
+                </span>
                 <span className={styles["asset-subtotal"]}>
                   {`小計 ${formatTotal(
                     sumAmounts(
@@ -422,7 +426,7 @@ function RecordFields({ view }: AssetRecordFormProps) {
                     ),
                   )}`}
                 </span>
-              </legend>
+              </div>
               {view.categories.map((category) => {
                 const key = assetCellKey(member.memberId, category.id);
                 return (
