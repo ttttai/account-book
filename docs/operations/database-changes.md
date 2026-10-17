@@ -18,13 +18,13 @@
 
 ### riskの宣言
 
-冒頭コメントにriskを1行だけ宣言する（`INF-025`）。`202609120001_group_settings_update`より後のファイルで必須であり、それ以前の適用済みファイルには追記しない。
+冒頭コメントにriskを1行だけ宣言する（`INF-025`）。`202610150001_asset_tracking`より後のファイルで必須であり、それ以前の適用済みファイルには追記しない。
 
 ```sql
 -- migration-risk: low
 ```
 
-事前dumpが必要な変更（データ移行、delete/update文、制約の強化など。「高riskなmigrationの事前dump」を参照）は`-- migration-risk: high`とする。CIのarchitecture test（`tests/architecture/production-migration-cd.test.mjs`）は、宣言が無いファイルと、関数本体・コメント・文字列の外に`drop table`・`drop column`・`truncate`・`delete from`・`update ... set`・`rename`・`set not null`・列の型変更・`add constraint`などを含むのに`low`と宣言したファイルを拒否する。判定は字句ベースの近似のため、検出されない危険な変更（関数の意味を変える`create or replace`など）はレビューで`high`と判断する。
+事前dumpが必要な変更（データ移行、delete/update文、制約の強化など。「高riskなmigrationの事前dump」を参照）は`-- migration-risk: high`とする。CIのarchitecture test（`tests/architecture/production-migration-cd.test.mjs`）は、宣言が無いファイルと、関数本体・コメント・文字列の外（`do $$ ... $$`ブロックはその場で実行されるため中身も対象）に`drop table`・`drop column`・`truncate`・`delete from`・`update ... set`・`rename`・`set not null`・列の型変更・`add constraint`などを含むのに`low`と宣言したファイルを拒否する。判定は字句ベースの近似のため、検出されない危険な変更（関数の意味を変える`create or replace`など）はレビューで`high`と判断する。
 
 ### 並列開発時の注意
 

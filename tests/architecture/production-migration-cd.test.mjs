@@ -18,7 +18,7 @@ const root = new URL("../../", import.meta.url);
 const applyScript = fileURLToPath(new URL("scripts/apply-migrations.sh", root));
 
 // risk宣言を必須にする前の最後のmigration。これ以前は適用済みで書き換えない(INF-025)
-const LAST_UNDECLARED_MIGRATION = "202609120001_group_settings_update";
+const LAST_UNDECLARED_MIGRATION = "202610150001_asset_tracking";
 
 function read(path) {
   return readFile(new URL(path, root), "utf8");
@@ -33,10 +33,11 @@ function jobBlock(workflow, jobId) {
   return next === -1 ? rest : rest.slice(0, next + 1);
 }
 
-// コメント、dollar quote(関数本体)、文字列literalを除いた、実行される文だけを返す
+// コメント、関数本体のdollar quote、文字列literalを除いた、実行される文だけを返す。doブロックの中身は実行されるため残す
 function executableSql(sql) {
   let output = "";
   let index = 0;
+  let doBlockTag = "";
   while (index < sql.length) {
     if (sql.startsWith("--", index)) {
       const end = sql.indexOf("\n", index);
@@ -50,6 +51,22 @@ function executableSql(sql) {
       continue;
     }
     const dollarTag = /^\$[A-Za-z_]*\$/.exec(sql.slice(index));
+    if (dollarTag && dollarTag[0] === doBlockTag) {
+      doBlockTag = "";
+      index += dollarTag[0].length;
+      output += " ";
+      continue;
+    }
+    if (
+      dollarTag &&
+      !doBlockTag &&
+      /\bdo(\s+language\s+\w+)?\s*$/i.test(output)
+    ) {
+      doBlockTag = dollarTag[0];
+      index += dollarTag[0].length;
+      output += " ";
+      continue;
+    }
     if (dollarTag) {
       const end = sql.indexOf(dollarTag[0], index + dollarTag[0].length);
       index = end === -1 ? sql.length : end + dollarTag[0].length;
@@ -193,7 +210,7 @@ test("許可リスト同期は適用scriptから分離されている", async ()
 });
 
 // AC-INF-001-31: risk宣言の判定が既存ファイルで期待どおりに働く
-test("破壊的な文の判定は関数本体を除き、既存の制約追加だけを検出する", async () => {
+test("破壊的な文の判定は関数本体を除きdoブロックを含め、既存の制約追加だけを検出する", async () => {
   const directory = new URL("supabase/migrations/", root);
   const files = (await readdir(directory)).filter((file) =>
     file.endsWith(".sql"),
@@ -221,6 +238,23 @@ test("破壊的な文の判定は関数本体を除き、既存の制約追加�
     ),
     [],
   );
+  // doブロックはその場で実行されるため、中身も判定の対象にする
+  for (const statement of [
+    "do $$\nbegin\n  delete from public.t;\nend;\n$$;",
+    "do $body$ begin update public.t set a = 1; end $body$;",
+    "do language plpgsql $$ begin truncate public.t; end $$;",
+    "DO\n$$\nbegin\n  execute 'select 1';\n  drop table public.t;\nend;\n$$;",
+  ]) {
+    assert.notDeepEqual(destructiveStatements(statement), [], statement);
+  }
+  // doブロックの後の関数本体は引き続き対象外とする
+  assert.deepEqual(
+    destructiveStatements(
+      "do $$ begin perform 1; end $$;\ncreate function g() returns void language sql as $$ delete from public.t $$;",
+    ),
+    [],
+  );
+
   for (const statement of [
     "drop table public.t;",
     "alter table public.t drop column a;",
