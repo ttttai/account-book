@@ -10,7 +10,8 @@ flowchart LR
     CI -->|成功| MERGE[人によるmainへの手動merge]
     MERGE --> CI2[main上でCI再実行]
     CI2 -->|成功| CD[Production CD 自動起動]
-    CD --> BUILD[production imageのbuild/push]
+    CD --> MIGRATE[Apply migrations<br/>有効時のみ]
+    MIGRATE --> BUILD[production imageのbuild/push]
     BUILD --> DEPLOY[digest固定でCloud Runへdeploy]
     DEPLOY --> VERIFY[digest一致確認 + HTTPS smoke test]
 ```
@@ -25,11 +26,12 @@ flowchart LR
 2. 人が差分を確認してmainへmergeする。
 3. main上のCI成功後、Production CDが自動で次を直列実行する。
    1. CIが検証したcommit SHAをcheckoutする。
-   2. Workload Identity Federationで短期credentialを取得する（service account keyは使わない）。
-   3. production公開値（`NEXT_PUBLIC_*`）でimageをbuildする。
-   4. Artifact Registryへcommit SHA tagでpushし、immutableなdigestを解決する。
-   5. `gcloud run deploy --image=<digest>`でimage**だけ**を更新する。
-   6. Cloud Runの参照digestが一致することと、`/login`がHTTPSで応答することを確認する。
+   2. Repository variable `PRODUCTION_MIGRATIONS_ENABLED=true`の場合だけ、`Apply migrations` jobが未適用のmigrationを本番DBへ適用する（`INF-022`）。失敗した場合は以降を実行せず、deployしない。
+   3. Workload Identity Federationで短期credentialを取得する（service account keyは使わない）。
+   4. production公開値（`NEXT_PUBLIC_*`）でimageをbuildする。
+   5. Artifact Registryへcommit SHA tagでpushし、immutableなdigestを解決する。
+   6. `gcloud run deploy --image=<digest>`でimage**だけ**を更新する。
+   7. Cloud Runの参照digestが一致することと、`/login`がHTTPSで応答することを確認する。
 4. デプロイ完了後、GitHub ActionsのProduction CDが成功していることを確認する。失敗した場合はtrafficが直前のrevisionに残るため、慌てて再実行せずlogから原因を特定する。
 
 ### ドキュメントのみの変更はskipされる
@@ -46,16 +48,25 @@ Actionsの`Production CD`をmainに対して`workflow_dispatch`で手動実行�
 
 ## CDが行わないこと（重要）
 
-Production CDは**container imageの更新だけ**を行う。次はCDの対象外であり、別の手順で行う。
+Production CDは**container imageの更新と、有効化した場合のmigration適用だけ**を行う。次はCDの対象外であり、別の手順で行う。
 
-| 変更対象                                        | 手順                                                                          |
-| ----------------------------------------------- | ----------------------------------------------------------------------------- |
-| DB schema・RLS（migration）                     | 本番DBへの手動適用。[`database-changes.md`](database-changes.md)を参照        |
-| CPU、memory、scaling、環境変数、secret参照、IAM | Terraform（`infra/terraform/environments/prod`）のplan → 人による確認 → apply |
-| 許可Googleアカウント一覧                        | Secret Managerのversion追加 + Terraform変数更新 +（DB側は）手動同期           |
-| Supabase Auth設定、Google OAuth client          | 各Dashboardでの手動設定                                                       |
+| 変更対象                                        | 手順                                                                                                                                                          |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DB schema・RLS（migration）                     | `PRODUCTION_MIGRATIONS_ENABLED=true`なら`Apply migrations`が自動適用。無効時と高riskなmigrationは手動適用。[`database-changes.md`](database-changes.md)を参照 |
+| CPU、memory、scaling、環境変数、secret参照、IAM | Terraform（`infra/terraform/environments/prod`）のplan → 人による確認 → apply                                                                                 |
+| 許可Googleアカウント一覧                        | Secret Managerのversion追加 + Terraform変数更新 +（DB側は）手動同期。`Apply migrations`は許可リストを同期しない                                               |
+| Supabase Auth設定、Google OAuth client          | 各Dashboardでの手動設定                                                                                                                                       |
 
-このため、**migrationを含む変更はコードのdeployと自動では同期しない**。適用順序の考え方は[`database-changes.md`](database-changes.md)の「本番への適用とデプロイの順序」に従う。
+`PRODUCTION_MIGRATIONS_ENABLED`が`true`でない間は、**migrationを含む変更はコードのdeployと自動では同期しない**。適用順序の考え方は[`database-changes.md`](database-changes.md)の「本番への適用とデプロイの順序」に従う。
+
+### `Apply migrations`が失敗した場合
+
+`Build and deploy`は実行されず、本番は直前のrevisionと直前のschemaのまま動き続ける。失敗したmigrationはトランザクションごとrollbackされ、台帳にも記録されない。logの理由に応じて次を行い、`Production CD`を`workflow_dispatch`で再実行する。
+
+- `High-risk migrations are pending`: 事前dumpを取得し、表示されたmigrationを手動適用する（[`database-changes.md`](database-changes.md)の「高riskなmigration」）。
+- `PRODUCTION_DATABASE_URL`が未設定、または接続できない: `production` Environmentのsecret（Session poolerのURI）を確認する。
+- `lock_timeout`による失敗: 長いトランザクションとの競合である。時間を置いて再実行する。
+- SQLの誤り: 適用済みファイルは書き換えず、修正したmigrationを新しいPRで追加する（未適用のファイルに限り修正してよい）。
 
 ## 公開設定値（NEXT_PUBLIC_*）を変更する場合
 
@@ -97,6 +108,8 @@ gcloud run deploy CLOUD_RUN_SERVICE --project=GCP_PROJECT_ID --region=asia-north
 ## デプロイの一時停止
 
 Repository variable `PRODUCTION_CD_ENABLED`を`false`（または削除）にすると、以降のmerge後CDはrunnerへ送られずskipされる。障害対応中や、migration適用とdeployの順序を制御したい場合に使う。再開時は`true`へ戻す。
+
+migrationの自動適用だけを止めたい場合は、`PRODUCTION_MIGRATIONS_ENABLED`を`false`（または削除）にする。`Apply migrations`はskipされ、deployは従来どおり行われるため、migrationを含む変更はmerge前に手動適用する。
 
 ## smoke testチェックリスト
 

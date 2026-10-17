@@ -116,8 +116,15 @@ services:
       AUTH_ALLOWED_GOOGLE_EMAILS: ${AUTH_ALLOWED_GOOGLE_EMAILS:-}
     volumes:
       - ./scripts/apply-migrations.sh:/app/apply-migrations.sh:ro
+      - ./scripts/sync-local-allowed-google-accounts.sh:/app/sync-local-allowed-google-accounts.sh:ro
       - ./supabase/migrations:/migrations:ro
-    entrypoint: ["/bin/sh", "/app/apply-migrations.sh"]
+    # migrationが成功した場合だけ、ローカルの許可リストを同期する(INF-024)
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        "/bin/sh /app/apply-migrations.sh && /bin/sh /app/sync-local-allowed-google-accounts.sh",
+      ]
     restart: "no"
 
   rest:

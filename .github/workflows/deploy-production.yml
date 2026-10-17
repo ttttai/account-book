@@ -92,12 +92,61 @@ jobs:
           echo "判定結果: deploy=${deploy} (前回deploy=${last_deployed:-特定できず})"
           echo "deploy=${deploy}" >> "${GITHUB_OUTPUT}"
 
+  # 未適用のmigrationをdeployより前に本番DBへ適用する(INF-022〜INF-026)。
+  # このjobだけが本番DB接続文字列を参照し、GCPの資格情報を持たない。
+  # 許可Googleアカウント一覧の同期は行わない(INF-024)。
+  migrate:
+    # このjob名は構造testと運用資料が参照するため変更しない
+    name: Apply migrations
+    needs: changes
+    # 自動適用はvariableで明示的に有効化した場合だけ行う。無効時は従来どおり手動適用とする
+    if: needs.changes.outputs.deploy == 'true' && vars.PRODUCTION_MIGRATIONS_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Checkout the verified commit
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+          persist-credentials: false
+
+      - name: Apply pending migrations
+        shell: bash
+        env:
+          # Supabase Session poolerのURI。GitHub hosted runnerはIPv6の直接接続ができない
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${DATABASE_URL:-}" ]]; then
+            echo "production EnvironmentのPRODUCTION_DATABASE_URLが未設定です" >&2
+            exit 1
+          fi
+          # 接続文字列はcommand lineへ展開せず、変数名だけでcontainerへ渡す
+          docker run --rm \
+            --env DATABASE_URL \
+            --env MIGRATION_MODE=production \
+            --env MIGRATIONS_DIR=/migrations \
+            --volume "${GITHUB_WORKSPACE}/supabase/migrations:/migrations:ro" \
+            --volume "${GITHUB_WORKSPACE}/scripts/apply-migrations.sh:/app/apply-migrations.sh:ro" \
+            --entrypoint /bin/sh \
+            postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929 \
+            /app/apply-migrations.sh
+
   deploy:
     # このjob名はchanges jobの照会条件と構造testが参照するため変更しない
     name: Build and deploy
-    needs: changes
-    # 前回deploy以降がドキュメントのみの変更ならskipする(判定はchanges jobを参照)
-    if: needs.changes.outputs.deploy == 'true'
+    needs: [changes, migrate]
+    # 前回deploy以降がドキュメントのみの変更ならskipする(判定はchanges jobを参照)。
+    # migrationの適用が失敗・cancelされた場合はdeployせず、自動適用が無効(skipped)なら従来どおりdeployする
+    if: >-
+      !cancelled() &&
+      needs.changes.outputs.deploy == 'true' &&
+      (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: production

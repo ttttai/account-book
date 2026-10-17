@@ -16,6 +16,16 @@
 - 1ファイルは1つのまとまった変更に対応させ、冒頭コメントに目的と関連する要件ID・受け入れ条件IDを書く。
 - 適用の台帳は`public.schema_migrations`テーブル（version = 拡張子なしのファイル名）。適用スクリプトが自動で記録し、適用済みversionはskipする。
 
+### riskの宣言
+
+冒頭コメントにriskを1行だけ宣言する（`INF-025`）。`202609120001_group_settings_update`より後のファイルで必須であり、それ以前の適用済みファイルには追記しない。
+
+```sql
+-- migration-risk: low
+```
+
+事前dumpが必要な変更（データ移行、delete/update文、制約の強化など。「高riskなmigrationの事前dump」を参照）は`-- migration-risk: high`とする。CIのarchitecture test（`tests/architecture/production-migration-cd.test.mjs`）は、宣言が無いファイルと、関数本体・コメント・文字列の外に`drop table`・`drop column`・`truncate`・`delete from`・`update ... set`・`rename`・`set not null`・列の型変更・`add constraint`などを含むのに`low`と宣言したファイルを拒否する。判定は字句ベースの近似のため、検出されない危険な変更（関数の意味を変える`create or replace`など）はレビューで`high`と判断する。
+
 ### 並列開発時の注意
 
 migrationは競合しやすいため、AGENTS.mdのworktree運用に従い**同時に複数のworktreeでmigrationを追加しない**。担当を1つに限定するか、先行変更としてmergeしてから後続worktreeの基点を更新する。連番の衝突（同じ`YYYYMMDDNNNN`）はmerge前に必ず解消する。
@@ -51,13 +61,13 @@ docker compose --profile test run --rm integration-tests
 
 ### migrationを含むPRの記載事項
 
-本番へのmigration適用は自動化されておらず手動運用のため、mergeする人が「このPRはmerge前にDB作業が必要である」ことをPR本文だけで判断できるようにする。**migrationを含むPRには、その旨と次の内容をPR本文へ必ず明記する。**
+mergeする人が「このPRはmerge前にDB作業が必要か」をPR本文だけで判断できるようにする。**migrationを含むPRには、次の内容をPR本文へ必ず明記する。**
 
 - 追加したmigrationファイル名（例: `supabase/migrations/YYYYMMDDNNNN_xxx.sql`）
-- 本番への適用が必要であることと、適用のタイミング（原則: merge前。「本番への適用とデプロイの順序」を参照）
-- 高riskな変更（データ移行、delete/update文、制約の強化など）を含むか。含む場合は事前dumpが必要である旨
+- 宣言したrisk（`low`または`high`）と、高riskな変更（データ移行、delete/update文、制約の強化など）を含むか。含む場合は事前dumpが必要である旨
 - 旧コード（現在の本番revision）と互換な追加的変更であるか。非互換な場合は多段階のどの段階かと、前後のPRへの参照
-- **本番へ適用するために実行するコマンド**。「psqlが手元に無い場合（Docker経由の実行形）」の台帳確認・適用コマンドを、**プレースホルダーを実際の値へ置き換えた、そのまま実行できる形**で記載する。mergeする人がPR本文のコピーだけで適用を完了できる状態にする。
+- 本番への適用方法。`low`かつ自動適用が有効（`PRODUCTION_MIGRATIONS_ENABLED=true`）なら「merge後にProduction CDの`Apply migrations`が適用する。merge前のDB作業は不要」と書く。`high`の場合、または自動適用が無効の場合は「merge前に手動適用が必要」と書き、次の適用コマンドを記載する。
+- **手動適用が必要な場合は、本番へ適用するために実行するコマンド**。「psqlが手元に無い場合（Docker経由の実行形）」の台帳確認・適用コマンドを、**プレースホルダーを実際の値へ置き換えた、そのまま実行できる形**で記載する。mergeする人がPR本文のコピーだけで適用を完了できる状態にする。
   - `<対象ファイル名>`は追加したmigrationのファイル名へ置き換える。
   - `<リポジトリのルート>`は実行するディレクトリの絶対パスへ置き換える。**merge前に適用する場合、migrationファイルはそのbranchのworktreeにしか存在しない**ため、そのworktreeの絶対パス（例: `/Users/<user>/Desktop/account-book/.claude/worktrees/<worktree名>`）を書く。merge後に実行する場合はメインのチェックアウトの絶対パスでよい。
   - 接続文字列そのものは書かない。`.env`の`PROD_DB_URL`を参照する形を維持する。実行するディレクトリに`PROD_DB_URL`入りの`.env`があることを前提として明記する。
@@ -84,22 +94,60 @@ docker compose --profile test run --rm integration-tests
 
 ## 本番への適用とデプロイの順序
 
-**Production CD（GitHub Actions）はmigrationを適用しない。** 本番のマネージドSupabaseへのmigration適用は、権限を持つ運用者が手動で行う。
+本番のマネージドSupabaseへの適用には2つの経路がある。
+
+- **自動適用**: Repository variable `PRODUCTION_MIGRATIONS_ENABLED=true`のとき、Production CDの`Apply migrations` jobが`Build and deploy`より前に未適用のmigrationを適用する（`INF-022`）。`low`宣言のmigrationはこの経路で適用する。
+- **手動適用**: 自動適用が無効の間のすべてのmigrationと、`high`宣言のmigrationは、権限を持つ運用者が後述の手順で適用する。
 
 ### 適用順序の原則: 先にmigration、後にコード
 
-デプロイ中は新旧のCloud Run revisionが混在しうるため、migrationは**旧コードのまま適用しても壊れない追加的（additive）な変更**にする。この前提を守ったうえで、次の順序を標準とする。
+デプロイ中は新旧のCloud Run revisionが混在しうるため、migrationは**旧コードのまま適用しても壊れない追加的（additive）な変更**にする。自動適用でもこの原則は変わらない。
+
+自動適用が有効で`low`のmigrationでは、次の順序となる。
 
 1. migrationを含むPRのCIが通り、レビューが完了する。
-2. **mergeする前に**、本番DBへmigrationを適用する（手順は後述）。適用とdeployの間隔を制御したい場合は、`PRODUCTION_CD_ENABLED=false`でCDを一時停止してからmergeし、適用後に`true`へ戻して手動実行してもよい。
+2. PRをmergeする。merge前のDB作業は不要である。
+3. main上のCI成功後、Production CDが`Apply migrations` → `Build and deploy`の順に実行する。適用に失敗した場合はdeployされない（[`deployment.md`](deployment.md)の「`Apply migrations`が失敗した場合」）。
+4. smoke testで新機能とRLSを確認する。
+
+自動適用が無効の場合、または`high`のmigrationでは、次の順序となる。
+
+1. migrationを含むPRのCIが通り、レビューが完了する。
+2. **mergeする前に**、本番DBへmigrationを適用する（`high`は事前dumpを取得してから。手順は後述）。台帳に記録されるため、merge後のCDでは適用済みとしてskipされる。適用とdeployの間隔を制御したい場合は、`PRODUCTION_CD_ENABLED=false`でCDを一時停止してからmergeし、適用後に`true`へ戻して手動実行してもよい。
 3. PRをmergeし、CDが新コードをdeployする。
 4. smoke testで新機能とRLSを確認する。
+
+`high`のmigrationを手動適用せずにmergeした場合、`Apply migrations`は何も適用せずに失敗し、deployも止まる。事前dumpと手動適用を行ってから、Actionsの`Production CD`を`workflow_dispatch`で再実行する。
+
+### 自動適用の仕組み
+
+`Apply migrations`はローカルと同じ`scripts/apply-migrations.sh`を`MIGRATION_MODE=production`で実行する。ローカルとの違いは次のとおりである。
+
+- 台帳`public.schema_migrations`が空なら、何も適用せずに失敗する。台帳未記録のDBへ全ファイルを再実行しないためである。
+- 未適用のmigrationに`-- migration-risk: high`が1件でもあれば、何も適用せずに失敗する。
+- 各ファイルのトランザクションに`lock_timeout = 10s`を設定する。旧revisionの読み書きとのlock競合で失敗した場合は、時間を置いて再実行する。
+- 適用後に台帳を読み直し、未適用が残っていないことを確認する。
+- 許可Googleアカウント一覧は同期しない。ローカルの同期は`scripts/sync-local-allowed-google-accounts.sh`へ分離されており、本番の同期は「許可リストの同期」の手順だけで行う。
+
+接続文字列は`production` Environmentのsecret `PRODUCTION_DATABASE_URL`から`Apply migrations` jobだけに渡され、logへは出ない。GCPの資格情報を扱う`Build and deploy` jobには渡さない。
+
+### 自動適用の有効化手順
+
+一度だけ、次の順に行う。
+
+1. 本番の台帳が`supabase/migrations/`の全ファイルと一致することを確認する。後述の「psqlが手元に無い場合」の台帳確認コマンドの出力と、`ls supabase/migrations`の拡張子を除いたファイル名を比べ、過不足が無いこと。不足がある場合は、実際に適用済みかを確認したうえで手動適用または台帳へ記録してから進む。
+2. Supabase DashboardのConnectから**Session pooler**のURIを取得する（GitHub hosted runnerはIPv6の直接接続ができないため、Direct connectionは使えない）。GitHubの`Settings` → `Environments` → `production` → `Environment secrets`へ`PRODUCTION_DATABASE_URL`として登録する。値はshell historyやチャットへ貼らない。
+3. `production` Environmentのdeployment branchがmainだけに制限されていることを確認する。
+4. Repository variable `PRODUCTION_MIGRATIONS_ENABLED`を`true`にする。
+5. Actionsの`Production CD`を`workflow_dispatch`で実行し、`Apply migrations`のlogが`Already applied`だけで終わり、`Migrations are up to date.`と表示されることを確認する。
+
+接続文字列の漏えいが疑われる場合は、Supabase Dashboardでdatabase passwordをresetし、secretと`.env`の`PROD_DB_URL`を更新する。
 
 カラム削除・rename・制約強化など**旧コードを壊しうる変更は、一段階で行わない**。「新カラム追加 → 新旧併記のコードをdeploy → データ移行 → 旧カラムへの参照を除去したコードをdeploy → 旧カラムを削除するmigration」のように、各段階が直前のコードと互換になるよう複数のmigration・PRへ分割する（expand/contract）。
 
 ### 高riskなmigrationの事前dump
 
-破壊的または高riskな本番migration（データ移行、delete/update文を含む、制約の強化など）の前には、手動でdumpを取得する（`NFR-REC-003`）。MVPでは自動backupを実装していないため、これが唯一の事前復旧手段である。
+`-- migration-risk: high`と宣言した破壊的または高riskな本番migration（データ移行、delete/update文を含む、制約の強化など）の前には、手動でdumpを取得する（`NFR-REC-003`）。MVPでは自動backupを実装していないため、これが唯一の事前復旧手段である。
 
 ```bash
 pg_dump "本番の接続文字列" --format=custom --file=backup-$(date +%Y%m%d%H%M%S).dump
@@ -107,9 +155,9 @@ pg_dump "本番の接続文字列" --format=custom --file=backup-$(date +%Y%m%d%
 
 dumpファイルは家計データを含む秘密情報として扱い、Gitへコミットせず、検証後は安全に破棄する。
 
-### 適用手順
+### 手動適用の手順
 
-ローカルと同じ台帳・同じ順序で適用するため、`scripts/apply-migrations.sh`と同等の手順を本番でも踏む。接続文字列はSupabase Dashboardの接続情報から取得し、shell historyやlogへ残さない。
+自動適用が無効の場合と`high`のmigrationで使う。ローカルと同じ台帳・同じ順序で適用するため、`scripts/apply-migrations.sh`と同等の手順を本番でも踏む。接続文字列はSupabase Dashboardの接続情報から取得し、shell historyやlogへ残さない。
 
 1. 本番の`public.schema_migrations`で適用済みversionを確認する。
 
@@ -165,7 +213,7 @@ Docker経由でも手順自体（1ファイルずつ・単一トランザクシ�
 
 ### 許可リストの同期
 
-ローカルでは起動時に`apply-migrations.sh`が`.env`の`AUTH_ALLOWED_GOOGLE_EMAILS`を`app_private.allowed_google_accounts`へ同期するが、**本番ではこの同期も手動運用**である。許可リストを変更した場合は、Secret Managerのrotationと合わせて[`allowed-google-emails.md`](allowed-google-emails.md)の手順で同期する。手入力で再度一覧を渡すと Cloud Run側と食い違う恐れがあるため、Secret Managerの同じversionから値を取得する`sync-db`を使う（`<version>`はCloud Runへ固定したversion番号）。
+ローカルでは起動時に、migration適用の成功後に`scripts/sync-local-allowed-google-accounts.sh`が`.env`の`AUTH_ALLOWED_GOOGLE_EMAILS`を`app_private.allowed_google_accounts`へ同期する。**本番ではこの同期は手動運用であり、Production CDの`Apply migrations`も同期しない**。許可リストを変更した場合は、Secret Managerのrotationと合わせて[`allowed-google-emails.md`](allowed-google-emails.md)の手順で同期する。手入力で再度一覧を渡すと Cloud Run側と食い違う恐れがあるため、Secret Managerの同じversionから値を取得する`sync-db`を使う（`<version>`はCloud Runへ固定したversion番号）。
 
 ```bash
 ./scripts/rotate-allowed-google-emails.sh sync-db <version>

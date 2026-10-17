@@ -1,10 +1,10 @@
 # 本番インフラストラクチャ仕様
 
-状態: 実装承認済み（LINE週次レポート向け追加分 review: 2026-09-07-line-weekly-report-infra）
+状態: 実装承認済み（本番migration自動適用の追加分 review: 2026-10-17-production-migration-cd）
 
-バージョン: 0.5.0
+バージョン: 0.6.0
 
-最終更新日: 2026-09-07
+最終更新日: 2026-10-17
 
 ## 1. 目的
 
@@ -39,6 +39,14 @@ LINE週次レポート（[`16-line-weekly-report.md`](16-line-weekly-report.md)�
 - `INF-020`: 週次ジョブの起動には、`bootstrap`が作成するCloud Scheduler専用service account（keyなし）を使う。`environments/prod`はCloud Scheduler job（毎週日曜21:00 `Asia/Tokyo`、HTTP POST、OIDC token）を宣言し、audienceと呼び出し先URLを同じ値（`<site_url>/api/v1/jobs/weekly-line-report`）から導出する。Cloud Runは公開invokerのため、scheduler service accountへ`roles/run.invoker`やproject-levelの権限を付与しない。認可はアプリ側のOIDC検証（`NOTIF-006`）が担う。
 - `INF-021`: LINE週次レポートの構成は`environments/prod`の単一変数（既定`null`）で有効・無効を切り替える。無効時は環境変数・secret参照・Cloud Scheduler jobを一切作成せず、既存構成のplanに差分を出さない。有効時は`LINE_CHANNEL_SECRET`・`LINE_CHANNEL_ACCESS_TOKEN`・`NOTIFIER_DATABASE_URL`をSecret Managerの指定version（`latest`不可）で、`LINE_WEEKLY_REPORT_GROUP_ID`・`LINE_WEEKLY_REPORT_JOB_AUDIENCE`・`LINE_WEEKLY_REPORT_JOB_INVOKER`を平文の環境変数としてCloud Runへ渡す。有効化の順序は「bootstrap apply → secret version登録 → prod変数設定 → plan確認 → apply」とし、secret versionが存在しない状態でprodを有効化しない。
 
+本番migrationの自動適用（`feat/production-migration-cd`）として、次を追加する。`INF-016`のうち「workflowへ渡さない値」の制約は維持し、本番DB接続文字列だけを`INF-023`の範囲で例外として扱う。
+
+- `INF-022`: production CDは、Repository variable `PRODUCTION_MIGRATIONS_ENABLED=true`の場合だけ、`Build and deploy` jobより前に専用の`Apply migrations` jobで`supabase/migrations`の未適用migrationを本番DBへ適用する。適用はローカルと同じ`scripts/apply-migrations.sh`と台帳`public.schema_migrations`を使い、ファイル名順に1ファイルずつ単一トランザクションで適用して台帳へ記録する。`Apply migrations` jobが失敗した場合は`Build and deploy`を実行しない。variableが`true`でない場合は`Apply migrations` jobをskipし、従来どおり手動適用を前提に`Build and deploy`を実行する。
+- `INF-023`: 本番DB接続文字列（Supabase Session poolerのURI）は`production` Environmentのsecret `PRODUCTION_DATABASE_URL`へ保存し、`Apply migrations` jobだけが参照する。値は環境変数としてcontainerへ渡し、workflowのcommand、`docker run`の引数、標準出力、logへ展開しない。`changes` jobと`Build and deploy` jobへ渡さない。secretが未設定の場合は何も適用せずjobを失敗させる。
+- `INF-024`: `scripts/apply-migrations.sh`はmigrationの適用だけを行い、許可Googleアカウント一覧の同期を含まない。ローカルの許可リスト同期は別script `scripts/sync-local-allowed-google-accounts.sh`へ分離し、Docker Composeの`migrations` serviceがmigration成功後にだけ実行する。production CDは許可リストの同期を行わず、`AUTH_ALLOWED_GOOGLE_EMAILS`を受け取らない。本番の同期は`INF-018`の手順だけで行う。
+- `INF-025`: `202609120001_group_settings_update`より後のmigrationファイルは、先頭のコメントに`-- migration-risk: low`または`-- migration-risk: high`を1行だけ宣言する。CIは、宣言が無いファイルと、関数本体・コメント・文字列の外にデータや既存構造を壊しうる文（`drop table`・`drop schema`・`drop column`・`drop type`、`truncate`、`delete from`、`update ... set`、`rename`、`set not null`、列の型変更、`add constraint`等の制約追加）を含むのに`low`と宣言したファイルを拒否する。`high`と宣言した未適用migrationが1件でもある場合、production CDの適用は何も適用せずに失敗し、運用者が事前dump（`NFR-REC-003`）と手動適用を行う。
+- `INF-026`: production CDの適用は、台帳が空なのにmigrationファイルが存在する場合は何も適用せず失敗する（台帳未記録のDBへ全ファイルを再実行しないため）。各ファイルの適用トランザクションには`lock_timeout`（10秒）を設定し、lock待ちで本番の読み書きを長時間止めない。適用後に未適用migrationが残っていないことを確認する。
+
 ## 3. 対象構成
 
 ```mermaid
@@ -49,6 +57,7 @@ flowchart LR
     GH[GitHub Actions<br/>CI成功後のCD] -->|WIF| DEPLOY[Deploy service account]
     GH -->|build / push| AR[Artifact Registry<br/>digest固定image]
     DEPLOY -->|imageだけ更新| CR
+    GH -->|migrationの適用<br/>Session pooler| SB
     AR --> CR
     TF[Terraform] --> GCS[GCS remote state<br/>versioning + locking]
     TF --> AR
@@ -103,7 +112,7 @@ flowchart LR
 - GCP projectとbilling accountそのものの作成・組織IAM
 - Google OAuth clientの作成とclient secret
 - Supabase organization、production project、Auth provider、Auth Hookの作成・変更
-- DB schemaとRLS。引き続き`supabase/migrations`を正本とする
+- DB schemaとRLS。引き続き`supabase/migrations`を正本とし、本番への適用は`INF-022`のproduction CDまたは手動運用で行う
 - custom domain、external load balancer、Cloud CDN、VPC connector、Cloud SQL
 - DB自動backup、監視SLO、paging、preview環境
 
@@ -154,11 +163,12 @@ production CDは、初期構築とEnvironment設定が完了し、Repository var
 workflowは次だけを行う。
 
 1. CIが検証したcommit SHAをcheckoutする。
-2. GitHub OIDC tokenをWIFで短期Google credentialへ交換する。
-3. production用`NEXT_PUBLIC_*`でimageをbuildする。
-4. commit SHA tagでArtifact Registryへpushし、解決したdigestを取得する。
-5. 対象serviceへdigestを指定し、imageだけを更新する。
-6. serviceがそのdigestを参照することと、HTTPS endpointが応答することを確認する。
+2. `PRODUCTION_MIGRATIONS_ENABLED=true`の場合だけ、`Apply migrations` jobで未適用migrationを本番DBへ適用する（4.6節）。失敗した場合は以降を実行しない。
+3. GitHub OIDC tokenをWIFで短期Google credentialへ交換する。
+4. production用`NEXT_PUBLIC_*`でimageをbuildする。
+5. commit SHA tagでArtifact Registryへpushし、解決したdigestを取得する。
+6. 対象serviceへdigestを指定し、imageだけを更新する。
+7. serviceがそのdigestを参照することと、HTTPS endpointが応答することを確認する。
 
 workflowから`--set-env-vars`、`--update-secrets`、`--service-account`、CPU・memory・scaling・ingress・IAMを変更するflagを渡さない。GitHub Actionsが追加する管理labelもTerraformとの競合を避けるため付けない。deploy失敗時は直前revisionへのtrafficを維持し、確認済みの過去digestを指定する手動rollbackを可能にする。
 
@@ -198,6 +208,33 @@ Cloud Runが予約する`PORT`をTerraformから上書きしない。`SUPABASE_I
 
 ジョブは`NOTIF-008`により冪等なため、リトライや手動実行で二重送信しない。jobの作成・変更にはapply実行者がscheduler service accountへの`iam.serviceAccounts.actAs`を持つ必要がある（project ownerは満たす）。
 
+### 4.6 本番migrationの自動適用
+
+`Apply migrations` jobは`changes` jobが`deploy=true`と判定し、かつ`PRODUCTION_MIGRATIONS_ENABLED=true`の場合だけ実行する（`INF-022`）。docsのみの変更ではmigrationも変わらないため、deployのskip判定と同じ条件でよい。migrationの適用が失敗したrunは`Build and deploy`が成功しないため、次回のrunでも差分の基準にならず、再びmigrationとdeployの対象になる。
+
+| 項目           | 値                                                                                                   |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| job名          | `Apply migrations`                                                                                   |
+| Environment    | `production`                                                                                         |
+| 接続           | secret `PRODUCTION_DATABASE_URL`（Supabase Session poolerのURI。GitHub hosted runnerはIPv6直結不可） |
+| 実行環境       | version固定の`postgres` image内のpsql。scriptとmigrationは読み取り専用でmountする                    |
+| 適用script     | `scripts/apply-migrations.sh`を`MIGRATION_MODE=production`で実行                                     |
+| GCP credential | 使わない（`id-token: write`を付与しない）                                                            |
+
+`MIGRATION_MODE=production`のscriptは、次の順で処理する。
+
+1. 台帳`public.schema_migrations`が無ければ作成する（ローカルと同じ定義とrevoke）。
+2. 台帳が空でmigrationファイルが存在する場合、何も適用せず失敗する（`INF-026`）。
+3. 未適用ファイルをファイル名順に列挙する。`-- migration-risk: high`を宣言したファイルが1件でもあれば、そのファイル名を表示して何も適用せず失敗する（`INF-025`）。
+4. 未適用ファイルを1ファイルずつ、`set local lock_timeout = '10s'`、ファイル本体、台帳へのinsertを単一トランザクションで実行する。失敗したファイルはrollbackされ、以降のファイルは適用しない。
+5. 未適用ファイルが残っていないことを確認する。
+
+ローカル（`MIGRATION_MODE`未指定）では、2、3、`lock_timeout`を適用しない。ローカルは空のvolumeから全ファイルを適用し、高riskなmigrationもそのまま検証する必要があるためである。
+
+適用はdeployより前に行うため、旧revisionが新schemaで動く期間が生じる。migrationは引き続き旧コードと互換な追加的変更（expand/contract）に限る。高riskなmigrationはmerge前に運用者が事前dumpを取得して手動適用し、台帳へ記録する。これによりmerge後のCDでは適用済みとなり、そのままdeployへ進む。手動適用を忘れてmergeした場合はCDが失敗してdeployを止めるため、手動適用後に`workflow_dispatch`でCDを再実行する。
+
+`PRODUCTION_MIGRATIONS_ENABLED`を`true`にする前に、本番の台帳が`supabase/migrations`の全ファイルと一致することを運用者が確認する。
+
 ## 5. secretとstateの安全性
 
 - Terraform source、tfvars example、plan artifact、output、logへsecret payloadを書かない。
@@ -207,6 +244,7 @@ Cloud Runが予約する`PORT`をTerraformから上書きしない。`SUPABASE_I
 - state bucketはpublic access prevention、uniform bucket-level access、versioningを有効にし、`force_destroy = false`と削除防止を設定する。
 - backend credentialはApplication Default Credentialsまたはservice account impersonationを使う。service account key JSONを作成・保存しない。
 - GitHub ActionsはOIDCとWorkload Identity Federationを使い、長期service account key JSONをGitHub Secretsへ保存しない。
+- 本番DB接続文字列`PRODUCTION_DATABASE_URL`は`production` Environmentのsecretにだけ保存し、`Apply migrations` job以外へ渡さない（`INF-023`）。漏えいが疑われる場合はSupabase Dashboardでdatabase passwordをresetし、secretを更新する。
 - `.terraform/`、`*.tfstate*`、`*.tfplan`、実値の`*.tfvars`とbackend設定はGit管理外とする。
 - 同じTerraform生成物と実値を`.dockerignore`でも除外し、production Docker daemonへ送らない。
 
@@ -296,6 +334,15 @@ LINE週次レポート向け（`INF-019`〜`INF-021`。`AC-INF-001-21`〜`AC-INF
 - `AC-INF-001-26`: Cloud Scheduler jobが`0 21 * * 0`・`Asia/Tokyo`・HTTP POST・`oidc_token`で宣言され、URLとaudienceが`site_url`から導出した同じlocal値であり、`LINE_WEEKLY_REPORT_JOB_AUDIENCE`もその値、`LINE_WEEKLY_REPORT_JOB_INVOKER`がscheduler service accountのemailである。scheduler service accountへ`roles/run.invoker`やproject-level roleを付与しない。
 - `AC-INF-001-27`: 上記が実credentialなしの構造test、`terraform fmt -check -recursive`、両rootの`terraform init -backend=false`と`terraform validate`で検証でき、`infra/terraform/README.md`と`docs/operations/line-weekly-report.md`が有効化の順序（bootstrap apply → secret version登録 → prod変数設定 → plan → apply）、pauseと無効化、確認手順を説明する。
 
+本番migrationの自動適用（`INF-022`〜`INF-026`）:
+
+- `AC-INF-001-28`: production CDに`Apply migrations` jobがあり、`changes` jobの`deploy=true`かつ`vars.PRODUCTION_MIGRATIONS_ENABLED == 'true'`の場合だけ実行される。`Build and deploy`は`Apply migrations`の後に実行され、`Apply migrations`が失敗またはcancelされた場合は実行されず、skipされた場合は従来どおり実行される。
+- `AC-INF-001-29`: `PRODUCTION_DATABASE_URL`は`Apply migrations` jobの中だけで参照され、値をcommand line引数へ展開せず環境変数名だけでcontainerへ渡す。`Apply migrations` jobは`id-token: write`を持たず、workflow全体が`AUTH_ALLOWED_GOOGLE_EMAILS`、`sync_allowed_google_accounts`、OAuth client secret、service role keyを含まない。secret未設定ではjobが失敗する。
+- `AC-INF-001-30`: `scripts/apply-migrations.sh`が許可リスト同期を含まず、`scripts/sync-local-allowed-google-accounts.sh`が同期だけを行い、Docker Composeの`migrations` serviceがmigration成功後にだけ同期scriptを実行する。
+- `AC-INF-001-31`: `202609120001_group_settings_update`より後のmigrationファイルは`-- migration-risk: low|high`を1行だけ宣言し、破壊的な文を関数本体・コメント・文字列の外に含むファイルは`high`である。architecture testがこれを検証し、判定は既存の`202608270001_expense_transactions`と`202609060001_category_color_palette`の制約追加を破壊的な文として検出し、関数本体内の`update`・`delete from`を検出しない。
+- `AC-INF-001-32`: `MIGRATION_MODE=production`のscriptは、未適用の`high`宣言ファイルがある場合、台帳が空の場合のどちらも1ファイルも適用せず非0で終了する。適用時は各ファイルへ`lock_timeout`を設定し、適用後に未適用が残らないことを確認する。これらは実DBなしにstubのpsqlで検証でき、ローカルmodeでは`high`宣言ファイルも適用される。
+- `AC-INF-001-33`: `docs/operations/database-changes.md`と`docs/operations/deployment.md`が、自動適用の有効化手順（台帳の一致確認、Session pooler URIのsecret登録、variable設定）、無効時の手動運用、risk宣言の書き方、高risk migrationの事前dumpと手動適用、失敗時の再実行、migrationを含むPRの記載事項を説明する。
+
 ## 10. worktree境界
 
 本変更は専用worktreeと`feat/terraform-cloud-run`ブランチで行う。競合を避けるため、変更を次へ限定する。
@@ -330,3 +377,7 @@ dependency追加、migration番号、共通UI、routeは本変更で予約しな
 ### 10.2 LINE週次レポートのインフラ（`INF-019`〜`INF-021`）
 
 `feat/line-weekly-report-infra`ブランチ（`feat/line-weekly-report`を基点とする段階2）では、`infra/terraform/**`、`tests/architecture/line-weekly-report-infra.test.mjs`、`infra/terraform/README.md`、`docs/operations/line-weekly-report.md`、本仕様とそのレビューだけを変更する。`src/**`、`supabase/migrations/**`、CI/CD workflow、`package.json`とlockfileは変更しない。実cloud資源のapplyは行わない。
+
+### 10.3 本番migrationの自動適用（`INF-022`〜`INF-026`）
+
+`feat/production-migration-cd`ブランチでは、`.github/workflows/deploy-production.yml`、`scripts/apply-migrations.sh`、`scripts/sync-local-allowed-google-accounts.sh`、`compose.yaml`の`migrations` service、`tests/architecture/production-migration-cd.test.mjs`、`docs/operations/database-changes.md`・`deployment.md`・`allowed-google-emails.md`、root `README.md`の本番構成の説明、本仕様とそのレビューだけを変更する。`R-INF-003`の「DB migration自動適用は追加しない」は本追加分で置き換える。`src/**`、既存の`supabase/migrations/**`、`infra/terraform/**`、`ci.yml`、`package.json`とlockfileは変更しない。本番DBへの適用、GitHub variable・secretの設定は行わない。

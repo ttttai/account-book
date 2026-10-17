@@ -244,7 +244,7 @@ CIは実Googleアカウント、本番Supabase、本番秘密情報へ接続し�
 - **マネージドSupabase**（Tokyo）にPostgres・Authを置き、Cloud RunからはHTTPSとユーザーJWTで接続します。LINE通知だけは権限を絞った専用ロール`line_notifier`でSession pooler経由に接続します。
 - **Secret Manager**で許可Googleアカウント一覧やLINEの秘密値を管理し、Cloud Runは`latest`ではなくversion番号を固定して参照します。
 - **Terraform**（[`infra/terraform/`](infra/terraform/README.md)）でGCP資源を宣言します。`bootstrap`（API、state bucket、Artifact Registry、service account、WIF、secret container、budget）と`environments/prod`（Cloud Run、IAM、環境変数、Cloud Scheduler）の2 rootに分け、applyは人がplanを確認して行います。
-- 本番DBへのmigrationは手動で適用します（CDは適用しません）。
+- 本番DBへのmigrationは、Repository variable `PRODUCTION_MIGRATIONS_ENABLED=true`のとき、Production CDの`Apply migrations` jobがdeployより前に適用します。高riskと宣言したmigrationと、無効時の適用は手動です（[DB変更の運用](docs/operations/database-changes.md)）。
 
 ## 運用ドキュメント
 
