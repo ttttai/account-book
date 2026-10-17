@@ -369,6 +369,11 @@ export function AnalyticsDetails({
         ) : null}
         <AnalyticsDetailsSections data={current} />
       </div>
+      <nav aria-label="関連する画面" className={styles["analytics-links"]}>
+        <Link href={`/groups/${encodeURIComponent(groupId)}/assets`}>
+          資産推移を見る
+        </Link>
+      </nav>
     </div>
   );
 }

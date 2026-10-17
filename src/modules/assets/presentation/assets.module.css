@@ -1,0 +1,861 @@
+/* 資産推移・資産の記録・資産区分の管理（AST-*）。色はstyles.cssのtokenとカテゴリ色tokenだけを使う */
+
+.asset-layout,
+.asset-main,
+.asset-side {
+  display: grid;
+  min-width: 0;
+  gap: 0.9rem;
+}
+
+.asset-muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.asset-empty {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.asset-empty > p {
+  margin: 0;
+}
+
+.asset-summary {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.asset-summary > p {
+  margin: 0;
+}
+
+.asset-summary-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.asset-summary-amount {
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.asset-summary-diff {
+  min-height: 1.2em;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.asset-controls {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.asset-control-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 表示期間・積み上げの切替。選択中はaria-pressedで示し、色だけに依存しない */
+.asset-segment {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  min-width: 0;
+  padding: 0.2rem;
+  gap: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface-muted);
+}
+
+.asset-segment > button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: 0.6rem;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.asset-segment > button[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--surface-strong);
+  box-shadow: 0 1px 3px rgb(var(--shadow-rgb) / 14%);
+}
+
+.asset-segment > button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.asset-member-select {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.asset-member-select > select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 0.6rem;
+  border: 1px solid var(--field-border);
+  border-radius: 0.7rem;
+  color: var(--text);
+  background: var(--surface-strong);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.asset-chart {
+  display: grid;
+  min-width: 0;
+  gap: 0.3rem;
+}
+
+.asset-chart-plot {
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.asset-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.asset-chart-area {
+  fill: var(--category-color, var(--neutral));
+  fill-opacity: 0.88;
+}
+
+.asset-chart-grid {
+  stroke: var(--border);
+  stroke-dasharray: 3 3;
+  stroke-width: 1;
+}
+
+.asset-chart-baseline {
+  stroke: var(--field-border);
+  stroke-width: 1;
+}
+
+.asset-chart-cursor {
+  stroke: var(--text);
+  stroke-dasharray: 2 3;
+  stroke-width: 1;
+}
+
+.asset-chart-marker {
+  fill: var(--surface-strong);
+  stroke: var(--text);
+  stroke-width: 1.2;
+}
+
+.asset-chart-marker[data-selected] {
+  fill: var(--text);
+}
+
+.asset-chart-tick {
+  position: absolute;
+  left: 0.2rem;
+  padding: 0 0.25rem;
+  border-radius: 0.3rem;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.asset-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.asset-chart-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.asset-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+}
+
+.asset-legend > li {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 0.35rem;
+}
+
+.asset-dot {
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--category-color, var(--neutral));
+}
+
+.asset-breakdown,
+.asset-months {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.asset-breakdown > h2,
+.asset-months > h2,
+.asset-category-settings h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.asset-breakdown ul,
+.asset-months ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 1系列1行。名称は省略記号で切り詰め、金額と構成比は折り返さない */
+.asset-breakdown li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto 3.2rem;
+  align-items: center;
+  min-height: 44px;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.asset-breakdown-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-breakdown-amount,
+.asset-breakdown-percent {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.asset-breakdown-percent {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.asset-months li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.asset-month-select {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "name total"
+    "name diff";
+  align-items: center;
+  min-height: 52px;
+  padding: 0.35rem 0.4rem;
+  column-gap: 0.5rem;
+  border: 0;
+  border-radius: 0.6rem;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.asset-month-select[aria-pressed="true"] {
+  background: var(--accent-faint);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.asset-month-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.asset-month-name {
+  grid-area: name;
+  font-weight: 700;
+}
+
+.asset-month-total {
+  grid-area: total;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.asset-month-diff {
+  grid-area: diff;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.asset-month-edit {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--accent);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.asset-back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+/* 資産の記録 */
+.asset-record {
+  /* テンキーのドックの高さ（見出し・4行のキー・下部ナビゲーション分の余白）の目安 */
+  --asset-dock-space: calc(21rem + env(safe-area-inset-bottom));
+  display: grid;
+  min-width: 0;
+  gap: 0.8rem;
+}
+
+.asset-month-nav {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.asset-month-nav > h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.asset-month-nav > a,
+.asset-month-nav > button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 0.7rem;
+  color: var(--text);
+  background: var(--surface);
+  font: inherit;
+  font-size: 1.3rem;
+  text-decoration: none;
+}
+
+.asset-month-nav > button:disabled {
+  color: var(--text-faint);
+}
+
+.asset-notice {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.7rem;
+  color: var(--text);
+  background: var(--accent-faint);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.asset-record-form,
+.asset-fields {
+  display: grid;
+  min-width: 0;
+  min-inline-size: 0;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.asset-member-groups {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
+.asset-member-group {
+  display: grid;
+  min-width: 0;
+  min-inline-size: 0;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.6rem 0.8rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--surface);
+}
+
+.asset-member-group > legend {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5rem;
+  padding: 0;
+  font-weight: 750;
+}
+
+.asset-subtotal {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 区分名と金額欄を1行に並べ、テンキーは選んだ欄の直下へ全幅で開く */
+.asset-field {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr);
+  align-items: center;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.asset-field > label {
+  overflow: hidden;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-amount-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+  padding-inline: 0.65rem;
+  border: 1px solid var(--field-border);
+  border-radius: 0.7rem;
+  background: var(--surface-strong);
+}
+
+.asset-amount-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
+}
+
+.asset-amount-wrap > span {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.asset-amount-wrap > input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* 選んだ欄は枠で示し、ドックの上に見えるまでだけscrollする（ドックの高さ分のscroll-margin） */
+.asset-field {
+  scroll-margin-top: 1rem;
+  scroll-margin-bottom: calc(var(--asset-dock-space) + 1rem);
+}
+
+.asset-field[data-active] .asset-amount-wrap {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
+}
+
+/* 金額の入った欄を選んだ直後は、次の数字で置き換えることを値の塗りで示す (AC-AST-002-5) */
+.asset-amount-wrap[data-pending-replace] > input {
+  border-radius: 0.35rem;
+  background: var(--accent-soft);
+}
+
+/* ドックを開いている間は一覧の末尾にドックの高さ分の余白を設け、最後の欄までドックの上へ出せるようにする */
+.asset-record-form[data-dock-open] {
+  padding-bottom: var(--asset-dock-space);
+}
+
+/* テンキーのドック。取引入力の入力ドックと同じく画面下部（下部ナビゲーションの上）へ重ね、一覧を動かさない */
+.asset-dock {
+  position: fixed;
+  z-index: 20;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 -10px 30px rgb(var(--shadow-rgb) / 9%);
+}
+
+.asset-dock-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.asset-dock-heading > p {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.85rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-dock-close {
+  display: grid;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  color: var(--muted);
+  background: transparent;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  place-items: center;
+  cursor: pointer;
+}
+
+.asset-dock-close:active {
+  background: var(--surface-muted);
+}
+
+/* 「次へ」「完了」はテンキー右列の1文字削除の下を埋める大きなキーにする */
+.asset-dock-next {
+  min-height: 48px;
+  border: 0;
+  border-radius: 0.75rem;
+  color: var(--on-accent);
+  background: var(--accent-surface);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.asset-dock-next:active {
+  background: var(--accent-strong);
+}
+
+.asset-keypad-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.asset-record-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0;
+  padding: 0.7rem 0.2rem;
+  border-top: 1px solid var(--border);
+  font-weight: 700;
+}
+
+.asset-record-total > strong {
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.asset-delete {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.asset-delete-actions,
+.asset-category-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.asset-delete-actions > button,
+.asset-category-actions > button {
+  flex: 1;
+  width: auto;
+  min-height: 44px;
+}
+
+/* 資産区分の管理 */
+.asset-category-settings {
+  display: grid;
+  min-width: 0;
+  gap: 1.2rem;
+}
+
+.asset-category-settings > section {
+  display: grid;
+  min-width: 0;
+  gap: 0.6rem;
+}
+
+.asset-category-list,
+.asset-archived ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 0.4rem;
+  list-style: none;
+}
+
+.asset-category-row,
+.asset-restore {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 52px;
+  padding: 0.25rem 0.4rem 0.25rem 0.8rem;
+  gap: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+}
+
+.asset-category-row > button,
+.asset-restore > button {
+  width: auto;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.asset-restore > .form-message {
+  grid-column: 1 / -1;
+}
+
+.asset-category-name {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.asset-category-panel,
+.asset-category-form,
+.asset-category-delete {
+  display: grid;
+  min-width: 0;
+  gap: 0.55rem;
+}
+
+.asset-category-panel {
+  margin-top: 0.4rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+}
+
+.asset-category-form > input {
+  min-width: 0;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--field-border);
+  border-radius: 0.7rem;
+  color: var(--text);
+  background: var(--surface-strong);
+  font: inherit;
+  font-size: 1rem;
+}
+
+.asset-category-form > input:focus-visible {
+  border-color: var(--accent);
+  outline: 0;
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
+}
+
+.asset-color-fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.asset-color-fieldset > legend {
+  margin-bottom: 0.35rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.asset-color-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.asset-color-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--border);
+  border-radius: 0.7rem;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.asset-color-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.asset-color-swatch {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: var(--category-color, var(--neutral));
+}
+
+/* 選択状態は色だけに依存させず、枠と選択記号でも示す */
+.asset-color-check {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: none;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.asset-color-option:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.asset-color-option:has(input:checked) .asset-color-check {
+  display: block;
+}
+
+.asset-color-option:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.asset-archived > summary {
+  min-height: 44px;
+  padding-block: 0.6rem;
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* PCでは推移を左、内訳と月別の資産額を右へ置き、記録はメンバーごとに2カラムにする */
+@media (min-width: 900px) {
+  .asset-layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .asset-member-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .asset-category-settings {
+    max-width: 40rem;
+  }
+
+  /* PCでは右列をテンキー用に常に確保し、ドックを右列の上端へ固定する。本文を覆わず、開閉で一覧の幅も変わらない */
+  .asset-record {
+    --asset-dock-space: 0px;
+  }
+
+  .asset-fields {
+    grid-template-columns: minmax(0, 1fr) 21rem;
+    column-gap: 1.5rem;
+    align-items: start;
+  }
+
+  .asset-fields > * {
+    grid-column: 1;
+  }
+
+  .asset-fields > .asset-keypad-hint,
+  .asset-fields > .asset-dock {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .asset-dock {
+    position: sticky;
+    top: 1.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    box-shadow: 0 16px 50px rgb(var(--shadow-rgb) / 12%);
+  }
+}

@@ -85,7 +85,8 @@ export function GroupNavigation({ groupId }: Readonly<{ groupId: string }>) {
       id: "analytics",
       label: "分析",
       href: `${groupBase}/analytics`,
-      activePaths: [`${groupBase}/analytics`],
+      // 資産推移は分析の一部として「分析」を現在地にする (§16)
+      activePaths: [`${groupBase}/analytics`, `${groupBase}/assets`],
     },
     {
       id: "settings",
@@ -97,6 +98,7 @@ export function GroupNavigation({ groupId }: Readonly<{ groupId: string }>) {
         `${groupBase}/categories`,
         `${groupBase}/recurring-transactions`,
         `${groupBase}/budgets`,
+        `${groupBase}/asset-categories`,
       ],
     },
   ];

@@ -130,6 +130,18 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
               </span>
               <span aria-hidden="true">›</span>
             </Link>
+            {canManageCategories ? (
+              <Link
+                className="settings-row-link"
+                href={`/groups/${encodedGroupId}/asset-categories`}
+              >
+                <span>
+                  <strong>資産区分</strong>
+                  <small>資産推移で記録する区分を管理します</small>
+                </span>
+                <span aria-hidden="true">›</span>
+              </Link>
+            ) : null}
             <a
               className="settings-row-link"
               href={`/api/v1/groups/${encodedGroupId}/exports/transactions.csv`}
