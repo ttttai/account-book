@@ -147,10 +147,12 @@ test("カテゴリ管理のswatchは全色に色名labelを持ち、折り返し
     "src/modules/categories/presentation/categories.module.css",
   );
 
-  const labelsBlock = management.match(
-    /const colorLabels[^=]*=\s*\{([\s\S]*?)\};/,
+  // 色名は資産区分の色選択と共有するため、カテゴリのdomainに1箇所で定義する
+  const input = await read("src/modules/categories/domain/category-input.ts");
+  const labelsBlock = input.match(
+    /export const CATEGORY_COLOR_LABELS[^=]*=\s*\{([\s\S]*?)\};/,
   );
-  assert.ok(labelsBlock, "colorLabels の定義が必要");
+  assert.ok(labelsBlock, "CATEGORY_COLOR_LABELS の定義が必要");
   for (const token of EXPECTED_COLORS) {
     assert.match(
       labelsBlock[1],
@@ -158,7 +160,7 @@ test("カテゴリ管理のswatchは全色に色名labelを持ち、折り返し
       `${token} の色名labelが必要`,
     );
   }
-  assert.match(management, /aria-label=\{colorLabels\[color\]\}/);
-  assert.match(management, /title=\{colorLabels\[color\]\}/);
+  assert.match(management, /aria-label=\{CATEGORY_COLOR_LABELS\[color\]\}/);
+  assert.match(management, /title=\{CATEGORY_COLOR_LABELS\[color\]\}/);
   assert.match(styles, /\.category-color-options\s*\{[^}]*flex-wrap:\s*wrap/s);
 });

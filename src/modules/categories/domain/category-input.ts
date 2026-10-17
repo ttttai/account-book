@@ -75,3 +75,25 @@ export type CategoryColor = z.infer<typeof categoryColorSchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type ArchiveCategoryInput = z.infer<typeof archiveCategorySchema>;
 export type RepositionCategoryInput = z.infer<typeof repositionCategorySchema>;
+
+// swatchの読み上げ・tooltip用の色名。パレット (AC-CAT-002-7) の全tokenを網羅する
+export const CATEGORY_COLOR_LABELS: Readonly<Record<CategoryColor, string>> = {
+  food: "レッド",
+  daily: "ブルー",
+  home: "ブラウン",
+  utilities: "イエロー",
+  transport: "ブルーグリーン",
+  leisure: "パープル",
+  other: "グレー",
+  salary: "グリーン",
+  extra: "ピンク",
+  orange: "オレンジ",
+  olive: "オリーブ",
+  mint: "ミント",
+  sky: "スカイブルー",
+  indigo: "インディゴ",
+  navy: "ネイビー",
+  rose: "ローズ",
+  wine: "ワイン",
+  charcoal: "チャコール",
+};

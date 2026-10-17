@@ -13,8 +13,8 @@ import { useFormStatus } from "react-dom";
 
 import type { CategorySummary } from "../application/category-types";
 import {
+  CATEGORY_COLOR_LABELS,
   CATEGORY_COLORS,
-  type CategoryColor,
   type CategoryType,
 } from "../domain/category-input";
 import {
@@ -106,28 +106,6 @@ function AddCategoryForm({
   );
 }
 
-// swatchの読み上げ・tooltip用の色名。パレット (AC-CAT-002-7) の全tokenを網羅する
-const colorLabels: Readonly<Record<CategoryColor, string>> = {
-  food: "レッド",
-  daily: "ブルー",
-  home: "ブラウン",
-  utilities: "イエロー",
-  transport: "ブルーグリーン",
-  leisure: "パープル",
-  other: "グレー",
-  salary: "グリーン",
-  extra: "ピンク",
-  orange: "オレンジ",
-  olive: "オリーブ",
-  mint: "ミント",
-  sky: "スカイブルー",
-  indigo: "インディゴ",
-  navy: "ネイビー",
-  rose: "ローズ",
-  wine: "ワイン",
-  charcoal: "チャコール",
-};
-
 // 名称・色の変更と削除をまとめた行内編集パネル。結果は親のメッセージ領域へ通知する
 function CategoryEditPanel({
   groupId,
@@ -188,10 +166,10 @@ function CategoryEditPanel({
               <label
                 className={styles["category-color-option"]}
                 key={color}
-                title={colorLabels[color]}
+                title={CATEGORY_COLOR_LABELS[color]}
               >
                 <input
-                  aria-label={colorLabels[color]}
+                  aria-label={CATEGORY_COLOR_LABELS[color]}
                   defaultChecked={category.color === color}
                   name="color"
                   type="radio"
