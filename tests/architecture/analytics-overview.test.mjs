@@ -535,6 +535,19 @@ test("詳細分析はカテゴリ・月別推移を常時表示し、メンバ�
   // 金額帯の表示名は省略記号で切り詰めず、収まらないときだけ「〜」の後で折り返す (AC-ANA-018-2)
   assert.match(moduleCss, /\.amount-band-label \{[^}]*word-break:\s*keep-all;/);
   assert.doesNotMatch(moduleCss, /\.amount-band-label \{[^}]*text-overflow/);
+  // 件数・金額・構成比は7行で列をそろえる。各行と行内の段落は一覧のgridをsubgridで共有する (AC-ANA-018-2)
+  assert.match(
+    moduleCss,
+    /\.amount-band-list \{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) repeat\(3, auto\);/,
+  );
+  assert.match(
+    moduleCss,
+    /\.amount-band-row \{[^}]*grid-template-columns:\s*subgrid;/,
+  );
+  assert.match(
+    moduleCss,
+    /\.amount-band-head \{[^}]*grid-template-columns:\s*subgrid;/,
+  );
   assert.doesNotMatch(details, /SavingsChart|scaleAnalyticsSavingsChart/);
 
   // 折りたたみはClient Componentのローカル状態で、h3内のボタンとhiddenで開閉し、URL・遷移を使わない

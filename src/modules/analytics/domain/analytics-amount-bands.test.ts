@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ANALYTICS_AMOUNT_BANDS,
   aggregateAnalyticsAmountBands,
+  findTopAnalyticsAmountBand,
   layoutAnalyticsAmountBands,
 } from "./analytics-amount-bands";
 import {
@@ -123,34 +124,48 @@ describe("layoutAnalyticsAmountBands", () => {
     { scope: "group" },
   );
 
-  it("件数基準では全件数に対する構成比と、最多件数の帯に対する棒の長さを返す (AC-ANA-018-3)", () => {
+  it("件数基準では全件数に対する構成比と、同じ意味の棒の長さを返す (AC-ANA-018-3)", () => {
     const rows = layoutAnalyticsAmountBands(bands, "count");
 
     expect(rows[0]).toMatchObject({
       count: 4,
       sharePercent: 80,
-      barPercent: 100,
+      barPercent: 80,
     });
     expect(rows[6]).toMatchObject({
       count: 1,
       sharePercent: 20,
-      barPercent: 25,
+      barPercent: 20,
     });
     expect(rows[1]).toMatchObject({ count: 0, sharePercent: 0, barPercent: 0 });
   });
 
-  it("金額基準では期間支出に対する構成比と、最大金額の帯に対する棒の長さを返す (AC-ANA-018-3)", () => {
+  it("金額基準では期間支出に対する構成比と、最大の帯を満幅にしない棒の長さを返す (AC-ANA-018-3)", () => {
     const rows = layoutAnalyticsAmountBands(bands, "amount");
 
+    // 45,000 / 46,000 = 97.8%。棒は四捨五入前の割合から求める
     expect(rows[6]).toMatchObject({
       amountMinor: 45000,
       sharePercent: 98,
-      barPercent: 100,
+      barPercent: 97.8,
     });
     // 小さい帯でも0でなければ棒が見える最小幅を持つ
-    expect(rows[0]).toMatchObject({ amountMinor: 1000, sharePercent: 2 });
-    expect(rows[0]?.barPercent).toBeGreaterThanOrEqual(2);
+    expect(rows[0]).toMatchObject({
+      amountMinor: 1000,
+      sharePercent: 2,
+      barPercent: 2.2,
+    });
     expect(rows[3]?.barPercent).toBe(0);
+  });
+
+  it("0でない帯の棒は最小幅を下回らない", () => {
+    const tiny = aggregateAnalyticsAmountBands(
+      ["2026-09"],
+      [expense(100), expense(1_000_000)],
+      { scope: "group" },
+    );
+
+    expect(layoutAnalyticsAmountBands(tiny, "amount")[0]?.barPercent).toBe(2);
   });
 
   it("全帯0件では0除算を起こさず、すべて0を返す", () => {
@@ -163,5 +178,56 @@ describe("layoutAnalyticsAmountBands", () => {
         expect(row).toMatchObject({ sharePercent: 0, barPercent: 0 });
       }
     }
+  });
+});
+
+describe("findTopAnalyticsAmountBand", () => {
+  it("選択中の基準で最も大きい帯を返す (AC-ANA-018-3)", () => {
+    const bands = aggregateAnalyticsAmountBands(
+      ["2026-09"],
+      [expense(100), expense(200), expense(45000)],
+      { scope: "group" },
+    );
+
+    expect(
+      findTopAnalyticsAmountBand(
+        layoutAnalyticsAmountBands(bands, "count"),
+        "count",
+      )?.label,
+    ).toBe("500円未満");
+    expect(
+      findTopAnalyticsAmountBand(
+        layoutAnalyticsAmountBands(bands, "amount"),
+        "amount",
+      )?.label,
+    ).toBe("3万円以上");
+  });
+
+  it("同数の帯が複数あるときは小さい金額帯を返す (AC-ANA-018-3)", () => {
+    const bands = aggregateAnalyticsAmountBands(
+      ["2026-09"],
+      [expense(100), expense(6000)],
+      { scope: "group" },
+    );
+
+    expect(
+      findTopAnalyticsAmountBand(
+        layoutAnalyticsAmountBands(bands, "count"),
+        "count",
+      )?.label,
+    ).toBe("500円未満");
+  });
+
+  it("全帯0件では帯を返さない", () => {
+    const empty = aggregateAnalyticsAmountBands(["2026-09"], [], {
+      scope: "group",
+    });
+
+    expect(
+      findTopAnalyticsAmountBand(
+        layoutAnalyticsAmountBands(empty, "count"),
+        "count",
+      ),
+    ).toBeUndefined();
   });
 });

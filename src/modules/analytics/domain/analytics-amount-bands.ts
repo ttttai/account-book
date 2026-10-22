@@ -78,29 +78,47 @@ export function aggregateAnalyticsAmountBands(
   }));
 }
 
-// 選択中の基準で構成比（全体に対する整数%）と棒の長さ（最大帯に対する%）を求める。0の帯は棒を持たない (AC-ANA-018-3)
+function basisValueOf(
+  band: AnalyticsAmountBandTotal,
+  basis: AnalyticsAmountBandBasis,
+): number {
+  return basis === "count" ? band.count : band.amountMinor;
+}
+
+// 選択中の基準で構成比（整数%）と棒の長さを求める。棒もカテゴリと同じく全体に対する割合で、最大帯を満幅にしない (AC-ANA-018-3)
 export function layoutAnalyticsAmountBands(
   bands: readonly AnalyticsAmountBandTotal[],
   basis: AnalyticsAmountBandBasis,
 ): readonly AnalyticsAmountBandRow[] {
-  const basisValue = (band: AnalyticsAmountBandTotal) =>
-    basis === "count" ? band.count : band.amountMinor;
-  const total = bands.reduce((sum, band) => safeAdd(sum, basisValue(band)), 0);
-  const max = bands.reduce(
-    (largest, band) => Math.max(largest, basisValue(band)),
+  const total = bands.reduce(
+    (sum, band) => safeAdd(sum, basisValueOf(band, basis)),
     0,
   );
 
   return bands.map((band) => {
-    const value = basisValue(band);
+    const value = basisValueOf(band, basis);
+    // 棒は表示用に丸めた構成比ではなく、四捨五入前の割合を小数1桁にして描く
     const barPercent =
-      value === 0 || max === 0
+      value === 0 || total === 0
         ? 0
-        : Math.max(Math.round((value / max) * 1000) / 10, MIN_BAR_PERCENT);
+        : Math.max(Math.round((value / total) * 1000) / 10, MIN_BAR_PERCENT);
     return {
       ...band,
       sharePercent: sharePercentOf(value, total),
       barPercent,
     };
   });
+}
+
+// 選択中の基準で最も大きい帯を返す。同数・同額なら小さい金額帯とし、全帯0なら返さない (AC-ANA-018-3)
+export function findTopAnalyticsAmountBand(
+  rows: readonly AnalyticsAmountBandRow[],
+  basis: AnalyticsAmountBandBasis,
+): AnalyticsAmountBandRow | undefined {
+  let top: AnalyticsAmountBandRow | undefined;
+  for (const row of rows) {
+    const value = basisValueOf(row, basis);
+    if (value > 0 && (!top || value > basisValueOf(top, basis))) top = row;
+  }
+  return top;
 }

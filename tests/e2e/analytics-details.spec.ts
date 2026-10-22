@@ -142,6 +142,9 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
   await expect(
     bandList.getByRole("listitem").filter({ hasText: "5,000〜1万円" }),
   ).toContainText("1件￥6,000100%");
+  await expect(
+    memberPage.getByText("件数が最も多いのは5,000〜1万円（1件・100%）"),
+  ).toBeVisible();
   const bandToggle = memberPage.getByRole("group", {
     name: "金額帯別の支出の基準",
   });

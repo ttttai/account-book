@@ -67,8 +67,12 @@ describe("AnalyticsAmountBandChart", () => {
     for (const bar of bars) {
       expect(bar.getAttribute("aria-hidden")).toBe("true");
     }
-    expect((bars[0] as HTMLElement).style.width).toBe("100%");
-    expect((bars[1] as HTMLElement).style.width).toBe("25%");
+    // 棒の長さは構成比と同じ意味で、最大の帯を満幅にしない
+    expect((bars[0] as HTMLElement).style.width).toBe("80%");
+    expect((bars[1] as HTMLElement).style.width).toBe("20%");
+    expect(
+      container.querySelector("[data-amount-band-summary]")?.textContent,
+    ).toBe("件数が最も多いのは500円未満（4件・80%）");
   });
 
   it("金額へ切り替えると棒と構成比の基準だけが変わり、件数・金額のテキストは変わらない (AC-ANA-018-3、AC-ANA-018-4)", () => {
@@ -87,7 +91,11 @@ describe("AnalyticsAmountBandChart", () => {
     expect(items[0]?.textContent).toBe("500円未満4件￥1,0002%");
     expect(items[6]?.textContent).toBe("3万円以上1件￥45,00098%");
     const bars = container.querySelectorAll("[data-amount-band-bar]");
-    expect((bars[1] as HTMLElement).style.width).toBe("100%");
+    expect((bars[0] as HTMLElement).style.width).toBe("2.2%");
+    expect((bars[1] as HTMLElement).style.width).toBe("97.8%");
+    expect(
+      container.querySelector("[data-amount-band-summary]")?.textContent,
+    ).toBe("金額が最も大きいのは3万円以上（￥45,000・98%）");
     // 切替はリンクやformを使わない
     expect(container.querySelector("a, form")).toBeNull();
   });
