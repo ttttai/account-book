@@ -408,6 +408,52 @@
   background: var(--category-color, var(--neutral));
 }
 
+/* 金額帯別の支出。基準の説明文と切替を同じ行に並べ、説明文だけを折り返す (AC-ANA-018-4) */
+.amount-band-caption {
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* 帯の表示名は主情報のため省略しない。320pxで長い金額と並んで収まらないときだけ「〜」の後で折り返し、数字の途中では切らない (AC-ANA-018-2) */
+.amount-band-head {
+  gap: 0.4rem;
+}
+
+.amount-band-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 650;
+  word-break: keep-all;
+}
+
+.amount-band-count {
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.amount-band-head .analytics-category-amount {
+  font-size: 0.82rem;
+}
+
+.amount-band-head .analytics-category-share {
+  min-width: 2.2rem;
+}
+
+/* 帯ごとに色を変えず、支出と同じ1色で塗る (ANA-018) */
+.amount-band-bar {
+  display: block;
+  height: 8px;
+  max-width: 100%;
+  border-radius: 999px;
+  background: var(--chart-expense);
+}
+
 .analytics-empty-message {
   margin: 0;
   padding: 1rem 0.8rem;

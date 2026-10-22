@@ -515,18 +515,26 @@ test("詳細分析はカテゴリ・月別推移を常時表示し、メンバ�
   // 並びはカテゴリ → 月別推移 → メンバー別（既定展開）→ 数値表（既定で閉じる）
   const categoryAt = details.indexOf('data-details-section="category"');
   const trendAt = details.indexOf('data-details-section="trend"');
+  const bandsAt = details.indexOf('id="analytics-details-amount-bands"');
   const membersAt = details.indexOf('id="analytics-details-members"');
   const monthsAt = details.indexOf('id="analytics-details-months"');
   assert.ok(categoryAt > 0 && categoryAt < trendAt, "カテゴリは月別推移より前");
   assert.ok(
-    trendAt < membersAt && membersAt < monthsAt,
-    "折りたたみは月別推移の後",
+    trendAt < bandsAt && bandsAt < membersAt && membersAt < monthsAt,
+    "折りたたみは月別推移の後で、金額帯別 → メンバー別 → 数値表の順 (AC-ANA-017-2)",
+  );
+  assert.match(
+    details,
+    /<AnalyticsDetailsFold\s+defaultOpen\s+heading="金額帯別の支出"/,
   );
   assert.match(
     details,
     /<AnalyticsDetailsFold\s+defaultOpen\s+heading="メンバー別"/,
   );
   assert.match(details, /defaultOpen=\{false\}\s+heading="月別の正確な数値"/);
+  // 金額帯の表示名は省略記号で切り詰めず、収まらないときだけ「〜」の後で折り返す (AC-ANA-018-2)
+  assert.match(moduleCss, /\.amount-band-label \{[^}]*word-break:\s*keep-all;/);
+  assert.doesNotMatch(moduleCss, /\.amount-band-label \{[^}]*text-overflow/);
   assert.doesNotMatch(details, /SavingsChart|scaleAnalyticsSavingsChart/);
 
   // 折りたたみはClient Componentのローカル状態で、h3内のボタンとhiddenで開閉し、URL・遷移を使わない

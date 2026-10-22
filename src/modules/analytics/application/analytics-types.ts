@@ -10,6 +10,7 @@ import type {
   AnalyticsMemberTotal,
   AnalyticsPeriodTotals,
 } from "../domain/analytics-details";
+import type { AnalyticsAmountBandTotal } from "../domain/analytics-amount-bands";
 import type { AnalyticsCumulativeBalance } from "../domain/analytics-savings";
 
 export type AnalyticsSearchInput = Readonly<{
@@ -120,6 +121,8 @@ export type AnalyticsDetailsReady = Readonly<{
   memberBreakdown: readonly AnalyticsMemberTotal[];
   /** 開始月から各月までの累積収支。`months`と同じ順序 (ANA-013) */
   cumulativeBalances: readonly AnalyticsCumulativeBalance[];
+  /** 小さい順の7帯の件数・合計金額。取引1件ごとの値は含めない (ANA-018) */
+  amountBands: readonly AnalyticsAmountBandTotal[];
   hasTransactions: boolean;
 }>;
 

@@ -9,6 +9,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AnalyticsDetailsReady } from "../application/analytics-types";
+import { ANALYTICS_AMOUNT_BANDS } from "../domain/analytics-amount-bands";
 import type { AnalyticsMonthTotals } from "../domain/analytics-summary";
 import { applyAnalyticsDetailsFilterAction } from "./actions";
 import { AnalyticsDetailsValidationError } from "./analytics-details";
@@ -91,6 +92,12 @@ function createData(
       { month: "2026-08", balance: 10000, cumulativeBalance: 10000 },
       { month: "2026-09", balance: -6000, cumulativeBalance: 4000 },
     ],
+    amountBands: ANALYTICS_AMOUNT_BANDS.map((band) => ({
+      bandId: band.id,
+      label: band.label,
+      count: band.id === "5000-10000" ? 1 : 0,
+      amountMinor: band.id === "5000-10000" ? 6000 : 0,
+    })),
     hasTransactions: true,
     ...overrides,
   };
@@ -161,7 +168,7 @@ describe("AnalyticsDetails", () => {
     expect(screen.getByText(/最大支出月 2026年9月/)).toBeTruthy();
   });
 
-  it("並びは期間指標・カテゴリ・月別推移・メンバー別（既定展開）・数値表（既定で閉じる）で、独立した貯金額の推移は無い (AC-ANA-017-1、2)", () => {
+  it("並びは期間指標・カテゴリ・月別推移・金額帯別とメンバー別（既定展開）・数値表（既定で閉じる）で、独立した貯金額の推移は無い (AC-ANA-017-1、2)", () => {
     render(<AnalyticsDetails data={createData()} />);
 
     const sections = [...results().children]
@@ -175,12 +182,18 @@ describe("AnalyticsDetails", () => {
       "期間の主要指標",
       "支出カテゴリ構成",
       "月別推移",
+      "analytics-details-amount-bands",
       "analytics-details-members",
       "analytics-details-months",
     ]);
     expect(screen.queryByRole("region", { name: "貯金額の推移" })).toBeNull();
     expect(screen.queryByText("貯金額の推移")).toBeNull();
 
+    expect(
+      screen
+        .getByRole("button", { name: "金額帯別の支出" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
     const members = screen.getByRole("button", { name: "メンバー別" });
     expect(members.getAttribute("aria-expanded")).toBe("true");
     expect(members.closest("h3")).toBeTruthy();
