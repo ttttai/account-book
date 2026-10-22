@@ -21,7 +21,7 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
   await expect(
     memberPage.getByRole("form", { name: "詳細分析の表示条件" }),
   ).toBeVisible();
-  // 並びはカテゴリ → 月別推移 → メンバー別（既定展開）→ 数値表（既定で閉じる）。独立した貯金額の推移は無い (AC-ANA-017-1〜3)
+  // 並びはカテゴリ → 月別推移 → 金額帯別・メンバー別（既定展開）→ 数値表（既定で閉じる）。独立した貯金額の推移は無い (AC-ANA-017-1〜3)
   await expect(
     memberPage.getByRole("region", { name: "支出カテゴリ構成" }),
   ).toBeVisible();
@@ -40,6 +40,7 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
   expect(sectionOrder).toEqual([
     "category",
     "trend",
+    "analytics-details-amount-bands",
     "analytics-details-members",
     "analytics-details-months",
   ]);
@@ -132,6 +133,32 @@ test("E2E-010 詳細分析で期間統計を数値とURLから確認できる @d
       .getByRole("cell")
       .nth(3),
   ).toContainText("−￥6,000");
+
+  // 金額帯別の支出は既定で件数を選び、6,000円の支出を「5,000〜1万円」へ1件として数える。切替でURLは変わらない (AC-ANA-018-1〜4)
+  const bandList = memberPage.getByRole("list", {
+    name: "金額帯別の件数と金額",
+  });
+  await expect(bandList.getByRole("listitem")).toHaveCount(7);
+  await expect(
+    bandList.getByRole("listitem").filter({ hasText: "5,000〜1万円" }),
+  ).toContainText("1件￥6,000100%");
+  await expect(
+    memberPage.getByText("件数が最も多いのは5,000〜1万円（1件・100%）"),
+  ).toBeVisible();
+  const bandToggle = memberPage.getByRole("group", {
+    name: "金額帯別の支出の基準",
+  });
+  await expect(
+    bandToggle.getByRole("button", { name: "件数" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await bandToggle.getByRole("button", { name: "金額" }).click();
+  await expect(
+    bandToggle.getByRole("button", { name: "金額" }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    memberPage.getByText("棒と割合は金額で比べています。"),
+  ).toBeVisible();
+  expect(memberPage.url()).toBe(urlBeforeTrendToggle);
 
   await memberPage.getByRole("link", { name: "3か月" }).click();
   const month = currentMonthInGroupTimezone();

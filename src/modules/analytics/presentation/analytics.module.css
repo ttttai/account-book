@@ -408,6 +408,105 @@
   background: var(--category-color, var(--neutral));
 }
 
+/* 金額帯別の支出。基準の説明文と切替を同じ行に並べ、説明文だけを折り返す (AC-ANA-018-4) */
+.amount-band-caption {
+  min-width: 0;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* 7行の件数・金額・構成比の列をそろえる。各行と段落はsubgridで一覧の列を共有し、金額の桁数で件数の位置をずらさない (AC-ANA-018-2) */
+.amount-band-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  margin: 0;
+  padding: 0;
+  column-gap: 0.4rem;
+  row-gap: 0.6rem;
+  list-style: none;
+}
+
+.amount-band-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  row-gap: 0.25rem;
+}
+
+.amount-band-head {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  margin: 0;
+}
+
+/* 帯の表示名は主情報のため省略しない。320pxで長い金額と並んで収まらないときだけ「〜」の後で折り返し、数字の途中では切らない (AC-ANA-018-2) */
+.amount-band-label {
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 650;
+  word-break: keep-all;
+}
+
+.amount-band-count,
+.amount-band-amount,
+.amount-band-share {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.amount-band-count,
+.amount-band-amount {
+  font-size: 0.82rem;
+}
+
+.amount-band-share {
+  min-width: 2.2rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+/* 最も大きい帯の文。一覧より先に読む答えとして、本文と同じ強さで示す (AC-ANA-018-3) */
+.amount-band-summary {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.amount-band-summary-detail {
+  white-space: nowrap;
+}
+
+/* 320px前後では列の間隔と数値の文字を詰め、通常の値で帯の表示名が折り返さないようにする (AC-ANA-018-2) */
+@media (max-width: 360px) {
+  .amount-band-list {
+    column-gap: 0.3rem;
+  }
+
+  .amount-band-count,
+  .amount-band-amount {
+    font-size: 0.78rem;
+  }
+
+  .amount-band-share {
+    min-width: 2rem;
+    font-size: 0.74rem;
+  }
+}
+
+/* 帯ごとに色を変えず、支出と同じ1色で塗る (ANA-018) */
+.amount-band-bar {
+  display: block;
+  grid-column: 1 / -1;
+  height: 8px;
+  max-width: 100%;
+  border-radius: 999px;
+  background: var(--chart-expense);
+}
+
 .analytics-empty-message {
   margin: 0;
   padding: 1rem 0.8rem;

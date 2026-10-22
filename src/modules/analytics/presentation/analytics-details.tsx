@@ -9,6 +9,7 @@ import {
   formatAnalyticsSignedJpy,
 } from "../domain/analytics-jpy";
 import { formatAnalyticsMonth } from "../domain/analytics-month";
+import { AnalyticsAmountBandChart } from "./analytics-amount-band-chart";
 import { AnalyticsCategoryChart } from "./analytics-category-chart";
 import { AnalyticsDetailsFold } from "./analytics-details-fold";
 import { AnalyticsMonthlyTrendChart } from "./analytics-monthly-trend-chart";
@@ -47,7 +48,7 @@ function DetailsAmountCell({
   );
 }
 
-// 詳細分析の集計結果を「期間指標 → カテゴリ → 月別推移（支出・収入・貯金額）→ 折りたたみ（メンバー別・数値表）」の順に認可済みDTOから描く (ANA-017)
+// 詳細分析の集計結果を「期間指標 → カテゴリ → 月別推移（支出・収入・貯金額）→ 折りたたみ（金額帯別・メンバー別・数値表）」の順に認可済みDTOから描く (ANA-017)
 export function AnalyticsDetailsSections({
   data,
 }: Readonly<{ data: AnalyticsDetailsReady }>) {
@@ -128,6 +129,14 @@ export function AnalyticsDetailsSections({
           }))}
         />
       </section>
+
+      <AnalyticsDetailsFold
+        defaultOpen
+        heading="金額帯別の支出"
+        id="analytics-details-amount-bands"
+      >
+        <AnalyticsAmountBandChart bands={data.amountBands} />
+      </AnalyticsDetailsFold>
 
       {data.scope === "group" ? (
         <AnalyticsDetailsFold

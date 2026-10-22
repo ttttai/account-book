@@ -2,6 +2,7 @@ import "server-only";
 
 import { resolveGroupReadContext } from "@/modules/groups/server";
 
+import { aggregateAnalyticsAmountBands } from "../domain/analytics-amount-bands";
 import {
   aggregateAnalyticsMembers,
   summarizeAnalyticsPeriod,
@@ -100,6 +101,8 @@ export async function getAnalyticsDetails(
         ? aggregateAnalyticsMembers(members, inputs.expenses, inputs.incomes)
         : [],
     cumulativeBalances: accumulateAnalyticsBalance(monthlyTotals),
+    // 同じ取引集合・対象から集計し、帯の金額の合計を期間支出と一致させる (AC-ANA-018-1)
+    amountBands: aggregateAnalyticsAmountBands(months, inputs.expenses, target),
     hasTransactions: period.expenseTotal > 0 || period.incomeTotal > 0,
   };
 }

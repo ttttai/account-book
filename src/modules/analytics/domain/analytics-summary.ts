@@ -154,6 +154,19 @@ export function aggregateAnalyticsDateRange(
   };
 }
 
+// 集計対象から見た支出1件の金額。グループは取引金額、メンバーは負担額で、負担のない取引は0円 (CAL-010)
+export function targetExpenseAmount(
+  expense: AnalyticsExpenseInput,
+  target: AnalyticsTarget,
+): number {
+  if (target.scope === "group") return expense.amountMinor;
+  return (
+    expense.allocations.find(
+      (allocation) => allocation.memberId === target.memberId,
+    )?.amountMinor ?? 0
+  );
+}
+
 // 月版・日付範囲版が共有する唯一の集計処理。期間判定だけを呼び出し側から受け取る
 function aggregateAnalyticsTransactions(
   isInPeriod: (date: string) => boolean,
@@ -168,12 +181,7 @@ function aggregateAnalyticsTransactions(
 
   for (const expense of expenses) {
     if (!isInPeriod(expense.date)) continue;
-    const targetAmount =
-      target.scope === "group"
-        ? expense.amountMinor
-        : (expense.allocations.find(
-            (allocation) => allocation.memberId === target.memberId,
-          )?.amountMinor ?? 0);
+    const targetAmount = targetExpenseAmount(expense, target);
     if (targetAmount <= 0) continue;
 
     expenseTotal = safeAdd(expenseTotal, targetAmount);
